@@ -1,16 +1,19 @@
 <template>
 	<view style="align-items: center; display: flex; width: 100vw;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
-			<image style="width: 90%;margin: 20px;" src="../../../static/image.png"></image>
-			<view style="margin: 15px 0 0 15px;">1、将血压计开机；</view>
-			<view style="margin: 0 25px 0 15px;">2、在待机状态下按“设定”和“记忆”键，随后WiFi图标开始闪烁，进入配网模式。</view>
+			<view style="width: auto;margin: 20px; background: white; border-radius: 10px;padding: 20px;">
+				<image style="width: 70vw;" src="../../../static/image/2.png"></image>
+			</view>
+			<view style="margin: 10px 20px 0 20px;">{{$t('BDSBitem.title_13')}}</view>
+			<view style="margin: 0 20px 0 20px;">{{$t('BDSBitem.title_14')}}</view>
 			<view style="flex-direction: row; display: flex; margin-top: 100rpx; justify-content: center;">
 				<checkbox style="font-size: 28rpx; margin-right:10px;" color="#ffffff" class="round"
-					activeBackgroundColor="blue" :checked="cb" @click="checked">准备就绪
+					activeBackgroundColor="#3298F7" active-border-color="#D5D5D5" :checked="cb" @click="checked">
+					{{$t('BDSBitem.title_2')}}
 				</checkbox>
 			</view>
-			<button class="btn" @click="btn_next()">下一步</button>
-			<view class="text">使用蓝牙绑定</view>
+			<button class="btn" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
+			<view @click="bind_lanya()" class="text">{{$t('BDSBitem.title_15')}}</view>
 		</view>
 	</view>
 </template>
@@ -20,9 +23,15 @@
 		data() {
 			return {
 				cb: false,
-
 			}
 		},
+
+		onShow() {
+			uni.setNavigationBarTitle({
+				title: this.$t('BDSB')
+			})
+		},
+
 		methods: {
 
 			checked() {
@@ -45,6 +54,11 @@
 					url: '../Bing_xueya/Bing_xueya_2'
 				})
 			},
+			bind_lanya() {
+				uni.navigateTo({
+					url: '/pages/Bind/Bing_xueya/Bing_xueya_LY'
+				})
+			}
 
 		}
 	}
@@ -54,14 +68,14 @@
 	.btn {
 		margin: 60rpx 40rpx 0 40rpx;
 		border-radius: 50rpx;
-		background: skyblue;
+		background: #3298F7;
 		color: white;
 	}
 
 	.text {
 		text-align: center;
 		margin-top: 40rpx;
-		color: deepskyblue;
+		color: #3298F7;
 		font-size: 28rpx;
 	}
 

@@ -1,18 +1,21 @@
 <template>
 	<view style="align-items: center; display: flex; width: 100vw;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
-			<view style="display: flex; width: auto; margin: 20px;justify-content: center; background: white; border-radius: 10px;">
+			<view
+				style="display: flex; width: auto; margin: 20px;justify-content: center; background: white; border-radius: 10px;">
 				<image style="width: 80%; " src="../../../static/image/1.png" />
 			</view>
 			<view style="margin: 15px 0 0 15px; font-size: 16px;">{{$t('BDSBitem.title_0')}}</view>
 			<text style="margin: 0 25px 0 15px; font-size: 16px;">{{$t('BDSBitem.title_1')}}</text>
-			<view style="flex-direction: row; display: flex; margin-top: 120px; justify-content: center;">
-				<checkbox style="font-size: 16px;" color="#ffffff" class="round" activeBackgroundColor="blue"
-					active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('BDSBitem.title_2')}}
-				</checkbox>
+			<view style="position: fixed;bottom: 0; width: 100vw;">
+				<view style="flex-direction: row; display: flex; margin-top: 120px; justify-content: center;">
+					<checkbox style="font-size: 16px;" color="#ffffff" class="round" activeBackgroundColor="#3298F7"
+						active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('BDSBitem.title_2')}}
+					</checkbox>
+				</view>
+				<button class="btn" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
+				<view class="textsss" @click="bing_fail()">{{$t('BDSBitem.title_3')}}</view>
 			</view>
-			<button class="btn" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
-			<view class="textsss" @click="bing_fail()">{{$t('BDSBitem.title_3')}}</view>
 		</view>
 		<view>
 			<uni-popup ref="popup" type="bottom" border-radius="10px 10px 0 0" :mask-click="false">
@@ -37,8 +40,6 @@
 				cb: false,
 			}
 		},
-
-
 		onShow() {
 			uni.setNavigationBarTitle({
 				title: this.$t('BDSB')

@@ -1,7 +1,7 @@
 <template>
 	<view>
 		<view style="display: flex; flex-direction: column;">
-			<view style="margin: 15px 0 0 15px; font-size: 14px; color: gray;">请勿连接名称前有“5G”的WIFI</view>
+			<view style="margin: 15px 0 0 15px; font-size: 14px; color: gray;">{{$t('BDSBitem.title_18')}}</view>
 
 			<image style="width: 90%;margin: 20px;" src="../../../static/image.png"></image>
 
@@ -12,13 +12,14 @@
 			</view>
 			<view style="margin: 15px 0 0 15px;">
 				<view class="input_style">
-					<view style="font-weight: bold;">WIFI密码:</view>
-					<input type="password" style="margin-left: 10px;" v-model="wifi_password" placeholder="请输入wifi密码" />
+					<view style="font-weight: bold;">{{$t('BDSBitem.title_19')}}</view>
+					<input type="password" style="margin-left: 10px;" v-model="wifi_password"
+						:placeholder="$t('BDSBitem.title_20')" />
 				</view>
 			</view>
-
-			<button class="btn" @click="btn_start()">开始连接</button>
-
+			<view style="position: fixed;bottom: 40px;width: 100vw;">
+				<button class="btn" @click="btn_start()">{{$t('BDSBitem.title_21')}}</button>
+			</view>
 
 		</view>
 	</view>
@@ -33,6 +34,11 @@
 		},
 
 		onShow() {
+			uni.setNavigationBarTitle({
+				title: this.$t('BDSBitem.title_17')
+			})
+
+
 			uni.getNetworkType({
 				success: function(res) {
 					console.log(res.networkType);
@@ -98,9 +104,9 @@
 	}
 
 	.btn {
-		margin: 60rpx 40rpx 0 40rpx;
+		margin: 60px 40px 0 40px;
 		border-radius: 50rpx;
-		background: skyblue;
+		background: #3298F7;
 		color: white;
 	}
 </style>

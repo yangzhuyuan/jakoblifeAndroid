@@ -2,25 +2,28 @@
 	<view style="align-items: center; display: flex; width: 100vw;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
 			<image style="width: 90%;margin: 20px;" src="../../../static/image.png"></image>
-			<view style="margin: 15px 0 0 15px;">1、将SIM卡按照标识正确插入设备中；</view>
-			<view style="margin: 0 25px 0 15px;">2、使用“JakobLife”APP扫描机身标贴的IMEI码或包装彩盒标贴的二维码进行绑定。</view>
-			<view style="flex-direction: row; display: flex; margin-top: 100rpx; justify-content: center;">
-				<checkbox style="font-size: 28rpx;" color="#ffffff"  class="round" activeBackgroundColor="blue" :checked="cb"
-					@click="checked">准备就绪
-				</checkbox>
+			<view style="margin: 15px 0 0 15px;">{{$t('BDSBitem.title_0')}}</view>
+			<view style="margin: 0 25px 0 15px;">{{$t('BDSBitem.title_1')}}。</view>
+			<view style="position: fixed;bottom: 0; width: 100vw;">
+				<view style="flex-direction: row; display: flex; margin-top: 100rpx; justify-content: center;">
+					<checkbox style="font-size: 28rpx;" color="#ffffff" class="round" activeBackgroundColor="#3298F7"
+						active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('BDSBitem.title_2')}}
+					</checkbox>
+				</view>
+				<button class="btn" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
+				<view class="text" @click="bing_fail()">{{$t('BDSBitem.title_3')}}</view>
 			</view>
-			<button class="btn" @click="btn_next()">下一步</button>
-			<view class="text" @click="bing_fail()">绑定失败？</view>
 		</view>
 		<view>
 			<uni-popup ref="popup" type="bottom" border-radius="10px 10px 0 0" :mask-click="false">
 				<view class="popup_bg">
-					<view class="pupup_title" style="margin-top: 20rpx;">绑定失败?</view>
-					<view style="margin-top: 50rpx;">1、请确保按照标识正确插入SIM卡在设备中，并检查网络连接是否正常，若无信号请在关机状态下重新插入SIM卡；</view>
-					<view style="margin-top: 10rpx;">2、请扫描机身标贴的IMEI码或包装彩盒标贴的二维码重新绑定；</view>
-					<view style="margin-top: 10rpx;">3、重启设备进行尝试；</view>
-					<view style="margin-top: 10rpx;">4、若仍无法绑定，请拨打我们的服务热线0755-86561393。</view>
-					<button class="btn" @tap="knowe()">知道了</button>
+					<view class="pupup_title" style="margin-top: 10px;">{{$t('BDSBitem.title_3')}}</view>
+					<view style="margin-top: 20px; color: #999999;">{{$t('BDSBitem.title_4')}}</view>
+					<view style="margin-top: 10px;color: #999999;">{{$t('BDSBitem.title_5')}}</view>
+					<view style="margin-top: 10px;margin-bottom: 10px; color: #999999;">{{$t('BDSBitem.title_6')}}
+					</view>
+					<text style="color: #999999;">{{$t('BDSBitem.title_7')}}</text>
+					<button class="btn" @tap="knowe()">{{$t('BDSBitem.title_8')}}</button>
 				</view>
 			</uni-popup>
 		</view>
@@ -34,6 +37,11 @@
 				cb: false,
 
 			}
+		},
+		onShow() {
+			uni.setNavigationBarTitle({
+				title: this.$t('BDSB')
+			})
 		},
 		methods: {
 			checked() {
@@ -68,17 +76,18 @@
 
 <style>
 	.btn {
-		margin: 60rpx 40rpx 0 40rpx;
-		border-radius: 50rpx;
-		background: skyblue;
+		margin: 15px 20px 0 20px;
+		border-radius: 25px;
+		background: #3298F7;
 		color: white;
 	}
 
 	.text {
 		text-align: center;
-		margin-top: 40rpx;
-		color: deepskyblue;
-		font-size: 28rpx;
+		margin-top: 20px;
+		margin-bottom: 20px;
+		color: #3298F7;
+		font-size: 14px;
 	}
 
 	.popup_bg {

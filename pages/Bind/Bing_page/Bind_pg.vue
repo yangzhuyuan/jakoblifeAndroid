@@ -6,8 +6,9 @@
 				{{progress}}%
 			</circle-progress-bar>
 		</view>
-		<view style="margin-top: 60px;text-align: center;font-size: 16px;">
-			绑定设备中,请不要退出app</view>
+		<view style="margin-top: 60px;text-align: center;font-size: 16px;padding: 20px;">
+			{{$t('BDSBitem.title_16')}}
+		</view>
 	</view>
 </template>
 
@@ -52,10 +53,9 @@
 							uni.navigateTo({
 								url: "../Bing_page/Bind_success"
 							})
-
-						}, 100)
+						}, 500)
 					}
-				}, 100)
+				}, 300)
 			}
 		},
 
