@@ -1,0 +1,76 @@
+{
+  "id": "yt-dateTimePicker",
+  "displayName": "日期时间选择器（超级好用）自带滑动音效",
+  "version": "1.2.2",
+  "description": "这个选择器允许用户选择年、月、日、时、分和秒，提供了丰富的样式和配置选项。通过设置起始时间和结束时间范围，用户可以方便地进行精准的日期和时间选择。是开发uni-app应用程序的理想选择之一，",
+  "keywords": [
+    "时间",
+    "日期",
+    "年月日",
+    "时间选择器",
+    "日期时间选择器"
+],
+  "repository": "",
+"engines": {
+  },
+"dcloudext": {
+    "sale": {
+      "regular": {
+        "price": "0.00"
+      },
+      "sourcecode": {
+        "price": "0.00"
+      }
+    },
+    "contact": {
+      "qq": "3190136675"
+    },
+    "declaration": {
+      "ads": "无",
+      "data": "无",
+      "permissions": "无"
+    },
+    "npmurl": "",
+    "type": "component-vue"
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": {
+      "cloud": {
+        "tcb": "y",
+        "aliyun": "y"
+      },
+      "client": {
+        "App": {
+          "app-vue": "y",
+          "app-nvue": "u"
+        },
+        "H5-mobile": {
+          "Safari": "y",
+          "Android Browser": "y",
+          "微信浏览器(Android)": "y",
+          "QQ浏览器(Android)": "y"
+        },
+        "H5-pc": {
+          "Chrome": "y",
+          "IE": "n",
+          "Edge": "y",
+          "Firefox": "y",
+          "Safari": "y"
+        },
+        "小程序": {
+          "微信": "y",
+          "阿里": "u",
+          "百度": "u",
+          "字节跳动": "u",
+          "QQ": "u"
+        },
+        "快应用": {
+          "华为": "u",
+          "联盟": "u"
+        }
+      }
+    }
+  }
+}

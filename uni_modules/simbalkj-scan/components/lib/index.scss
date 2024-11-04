@@ -1,0 +1,76 @@
+.wx-scan-content {
+	height: 270px;
+	position: relative;
+
+	.cover-view-box {
+		width: 650rpx;
+		height: 150px;
+		position: relative;
+		z-index: 5;
+		margin: 100rpx auto 60rpx;
+
+		// 四个角边框
+		.scan-border {
+			background-color: #fff;
+			position: absolute;
+		}
+
+		.scan-verLine {
+			width: 3px;
+			height: 13px;
+		}
+
+		.scan-horLine {
+			width: 13px;
+			height: 3px;
+		}
+
+		// 左上角
+		.scan-left-top {
+			left: 0;
+			top: 0;
+		}
+
+		// 左下角
+		.scan-left-bottom {
+			left: 0;
+			bottom: 0;
+		}
+
+		// 右上角
+		.scan-right-top {
+			right: 0;
+			top: 0;
+		}
+
+		// 右下角
+		.scan-right-bottom {
+			right: 0;
+			bottom: 0;
+		}
+
+		// 相机中上下移动的线条
+		.scan-animation {
+			width: 240px;
+			height: 2px;
+			margin: 0 auto;
+			background-color: #fff;
+			border-radius: 50%;
+		}
+	}
+
+	.scan-cameraCon {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 3;
+		width: 100%;
+		height: 100%;
+
+		.scan-camera {
+			width: 100% !important;
+			height: 100% !important;
+			position: relative;
+		}
+	}
+}

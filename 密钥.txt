@@ -1,0 +1,99 @@
+别名: key0
+创建日期: 2024-9-19
+条目类型: PrivateKeyEntry
+证书链长度: 1
+证书[1]:
+所有者: CN=杨, OU=剑博微电子（南京）有限公司, O=剑博微电子（南京）有限公司, L=南京, ST=江苏省, C=ZG
+发布者: CN=杨, OU=剑博微电子（南京）有限公司, O=剑博微电子（南京）有限公司, L=南京, ST=江苏省, C=ZG
+序列号: 69f3dd1c
+有效期为 Thu Sep 19 11:03:46 GMT+08:00 2024 至 Sat Aug 26 11:03:46 GMT+08:00 2124
+证书指纹:
+         MD5:  23:06:71:B3:5E:96:D4:81:0B:82:34:4C:04:2B:B7:1B
+         SHA1: 2B:88:F3:DC:DD:D8:CE:29:8E:11:47:61:26:E9:59:00:16:A5:C8:23
+         SHA256: 32:F7:04:06:5C:7D:9B:A1:23:88:C9:70:CA:3A:5E:37:2C:7D:F3:F7:8B:56:37:85:43:CB:58:5E:EE:AC:D4:68        
+签名算法名称: SHA256withRSA
+主体公共密钥算法: 2048 位 RSA 密钥
+版本: 3
+
+扩展:
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 62 AD 5D F4 2E AA D9 48   CA 80 7F 7A 81 60 1B AC  b.]....H...z.`..
+0010: 5B D0 70 0D                                        [.p.
+]
+]
+
+
+
+*******************************************
+*******************************************
+
+
+
+Warning:
+JKS 密钥库使用专用格式。建议使用 "keytool -importkeystore -srckeystore jakob.keystore -destkeystore jakob.keystore -deststoretype pkcs12" 迁移到行业标准格式 PKCS12。
+PS D:\workdemo\jianbo> keytool -importkeystore -srckeystore jakob.keystore -destkeystore jakob.keystore -deststoretype pkcs12
+输入源密钥库口令:  
+已成功导入别名 key0 的条目。
+已完成导入命令: 1 个条目成功导入, 0 个条目失败或取消
+
+Warning:
+已将 "jakob.keystore" 迁移到 Non JKS/JCEKS。将 JKS 密钥库作为 "jakob.keystore.old" 进行了备份。
+PS D:\workdemo\jianbo> keytool -list -v -keystore jakob.keystore                                                             
+输入密钥库口令:  
+密钥库类型: PKCS12
+密钥库提供方: SUN
+
+您的密钥库包含 1 个条目
+
+别名: key0
+创建日期: 2024-9-19
+条目类型: PrivateKeyEntry
+证书链长度: 1
+证书[1]:
+所有者: CN=杨, OU=剑博微电子（南京）有限公司, O=剑博微电子（南京）有限公司, L=南京, ST=江苏省, C=ZG
+发布者: CN=杨, OU=剑博微电子（南京）有限公司, O=剑博微电子（南京）有限公司, L=南京, ST=江苏省, C=ZG
+序列号: 69f3dd1c
+有效期为 Thu Sep 19 11:03:46 GMT+08:00 2024 至 Sat Aug 26 11:03:46 GMT+08:00 2124
+证书指纹:
+         MD5:  23:06:71:B3:5E:96:D4:81:0B:82:34:4C:04:2B:B7:1B
+         SHA1: 2B:88:F3:DC:DD:D8:CE:29:8E:11:47:61:26:E9:59:00:16:A5:C8:23
+         SHA256: 32:F7:04:06:5C:7D:9B:A1:23:88:C9:70:CA:3A:5E:37:2C:7D:F3:F7:8B:56:37:85:43:CB:58:5E:EE:AC:D4:68        
+签名算法名称: SHA256withRSA
+主体公共密钥算法: 2048 位 RSA 密钥
+版本: 3
+
+
+
+//开放中心生成的密钥
+密码：UJs6Bh9r
+密钥库类型： JKS
+密钥库提供方： SUN
+您的密钥库包含 1 个条目
+别名： __uni__f833fcf
+创建日期： Sep 19, 2024
+条目类型： PrivateKeyEntry
+证书链长度： 1
+证书[1]：
+所有者： CN=S4j8a0JulHxyPM1FrD%2BuA2EZyM3CA6yZjmqGnPkjgUfwjrT%2F7UQQ23Tbrg%2BKz%2FtaFDy3ZDF%2BoTkkUE5N8ZuRvA%3D%3D, OU=Android, O=Android, L=, ST=, C=CN
+发布者： CN=S4j8a0JulHxyPM1FrD%2BuA2EZyM3CA6yZjmqGnPkjgUfwjrT%2F7UQQ23Tbrg%2BKz%2FtaFDy3ZDF%2BoTkkUE5N8ZuRvA%3D%3D, OU=Android, O=Android, L=, ST=, C=CN
+序列号： 4557a945
+生效时间： Thu Sep 19 15:20:10 CST 2024 失效时间： Sat Aug 26 15:20:10 CST 2124
+证书指纹：
+MD5: D5:83:F5:28:41:E7:A4:75:F0:56:62:8C:6A:E4:E9:63
+SHA1: 21:FB:58:D6:7C:5C:A0:3C:7E:30:51:A2:7D:8A:1C:11:61:9C:E6:17
+SHA256: 75:FF:CD:98:FE:E2:21:B9:A5:A4:4B:8F:20:1A:D6:08:69:3A:60:7F:8C:BA:77:86:CE:69:69:10:3B:69:AA:BD
+签名算法名称： SHA256withRSA
+版本： 3
+扩展：
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 80 3E 5C 96 AE 44 60 F0 5B D1 A6 68 CE E8 7D AE .>\..D`.[..h....
+0010: C7 B1 75 5F ..u_
+]
+]
+*******************************************
+**
