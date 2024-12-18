@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 20px;">
+	<view style="padding: 20px;color: black;height: 100vh;width: 100vw;">
 		<view style="margin-bottom: 160px;">
 			<view style="font-weight: bold;">{{title}}</view>
 			<view style="font-weight: bold;">{{content}}</view>

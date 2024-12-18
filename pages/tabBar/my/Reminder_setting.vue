@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view style="color: black;">
 		<view v-if="listdata">
 			<view class="list_bg" v-for="(item,index) in list" :key="index">
 				<view class="list_item">

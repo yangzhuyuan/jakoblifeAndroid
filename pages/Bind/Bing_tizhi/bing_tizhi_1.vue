@@ -1,5 +1,5 @@
 <template>
-	<view style="align-items: center; display: flex; width: 100vw;">
+	<view style=" display: flex; width: 100vw;color: black;height: 100vh;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
 			<image style="width: 90%;margin: 20px;" src="../../../static/image.png"></image>
 			<view style="margin: 15px 0 0 15px;">{{$t('BDSBitem.title_0')}}</view>

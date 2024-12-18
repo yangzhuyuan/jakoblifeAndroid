@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view style="color: black;height: 100vh;width: 100vw;">
 		<view class="view_bg">
 			<image class="img_bg" src="../../../static/icons/success.png">
 			</image>

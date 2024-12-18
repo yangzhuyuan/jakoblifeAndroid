@@ -1,5 +1,5 @@
 <template>
-	<view style="display: flex;justify-content: center; background: #F7F7F7;height: 100vh;">
+	<view style="display: flex;justify-content: center; background: #F7F7F7;height: 100vh;color: black;">
 		<view style="width: 90vw; margin-top: 20px;">
 			<uni-search-bar @input="set" v-model="searchValue" bgColor="#FBFBFB" radius="5"
 				:placeholder="$t('gongxiangitem.title_12')" clearButton="always" cancelButton="none" @confirm="search" />

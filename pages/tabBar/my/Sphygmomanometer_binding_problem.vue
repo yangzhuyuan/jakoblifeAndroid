@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 20px;">
+	<view style="padding: 20px;color: black;height: 100vh;">
 		<view style="background: white;border-radius: 10px;padding: 10px;">
 			<view style="padding: 10px;">
 				<view @click="binding_Tutorials_4G()" style="display: flex; flex-direction: row; align-items: center; ">

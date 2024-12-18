@@ -74,7 +74,8 @@
 		methods: {
 			onClick() {
 				uni.showToast({
-					title: '列表被点击'
+					title: '列表被点击',
+					icon:'none'
 				})
 			},
 			avatar(count) {

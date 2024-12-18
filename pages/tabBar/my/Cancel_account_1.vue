@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 10px;">
+	<view style="padding: 10px;background: #F7F7F7; color: black;height: 100vh;">
 		<view style="display:flex;flex-direction: column;align-items: center;">
 			<image style="width: 180px;height: 180px; " src="../../../static/icons/14.png"></image>
 			<text style=" font-size: 16px; font-weight: bold;">{{$t('wodelist.zx_title1')}}</text>
@@ -19,12 +19,11 @@
 				activeBackgroundColor="#3298F7" :checked="cb" @click="checked">{{$t('wodelist.zx_title7')}}
 			</checkbox>
 		</view>
-		<button @click="Think_again()"
-			style="margin:30px 20px 20px 20px;background: #3298F7;color: white;border-radius: 40px;">{{$t('wodelist.zx_title8')}}</button>
+		<button @click="Think_again()" class="button_back">{{$t('wodelist.zx_title8')}}</button>
 
 
-		<button @click="Definitive_cancellation()"
-			style="margin:10px 20px 80px 20px;background: #3298F7;color: white;border-radius: 40px;">{{$t('wodelist.zx_title9')}}</button>
+		<button @click="Definitive_cancellation()" class="button_back"
+			:style="getback(cb)">{{$t('wodelist.zx_title9')}}</button>
 
 	</view>
 </template>
@@ -46,6 +45,15 @@
 			})
 		},
 		methods: {
+
+
+			getback(id) {
+				return {
+					background: id === false ? "#DBDBDB" : "#3298F7"
+				}
+			},
+
+
 			checked() {
 				if (this.cb == true) {
 					this.cb = false
@@ -59,7 +67,8 @@
 				uni.navigateBack();
 			},
 			Definitive_cancellation() {
-				if (this.cb == false) {
+				let that = this
+				if (that.cb == false) {
 					uni.showToast({
 						title: "请您阅读并同意注销协议",
 						icon: "none"
@@ -72,26 +81,57 @@
 						success: function(res) {
 							if (res.confirm) {
 								console.log('用户点击确定');
-								uni.showToast({
-									title: "注销成功",
-									icon: "success"
-								})
-								setTimeout(function() {
-									uni.reLaunch({
-										url: "/pages/login/login_land"
-									})
-								}, 1000)
+								that.delete_self()
 							} else if (res.cancel) {
 								console.log('用户点击取消');
 							}
 						}
 					});
 				}
+			},
+			//注销用户
+			delete_self() {
+				let that = this
+				uni.request({
+					url: that.$url_delete_self,
+					method: 'POST',
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+					},
+					success(res) {
+						console.log("注销用户", res)
+						if (res.data.code == 200) {
+							uni.showToast({
+								title: res.data.msg,
+								icon: "none"
+							})
+							uni.removeStorageSync("deviceSn")
+							setTimeout(function() {
+								uni.reLaunch({
+									url: "/pages/login/login_land"
+								})
+							}, 1000)
+						} else {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						}
+
+					}
+				})
+
 			}
 		}
 	}
 </script>
 
 <style>
-
+	.button_back {
+		margin: 30px 20px 20px 20px;
+		background: #3298F7;
+		color: white;
+		border-radius: 40px;
+	}
 </style>

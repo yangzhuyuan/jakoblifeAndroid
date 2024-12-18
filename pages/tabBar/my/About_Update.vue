@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 10px;">
+	<view style="padding: 20px; background: #F7F7F7; color: black;height: 100vh;background: #EFEFF4;">
 		<view style="display: flex;align-items: center; flex-direction: column; margin-top: 40px;">
 			<image src="../../../static/icons/96x96.png" style="width: 80px; height: 80px;"></image>
 			<text style="margin-top: 20px;font-size: 18px; font-weight: bold;">JakobLife</text>
@@ -89,42 +89,42 @@
 		methods: {
 			Text_content1() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=1"
+					url: "../my/Text_content?id=1134"
 				})
 			},
 			Text_content2() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=2"
+					url: "../my/Text_content?id=1131"
 				})
 			},
 			Text_content3() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=3"
+					url: "../my/Text_content?id=1130"
 				})
 			},
 			Text_content4() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=4"
+					url: "../my/Text_content?id=1135"
 				})
 			},
 			Text_content5() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=5"
+					url: "../my/Text_content?id=1111"
 				})
 			},
 			Text_content6() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=6"
+					url: "../my/Text_content?id=1136"
 				})
 			},
 			Text_content7() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=7"
+					url: "../my/Text_content?id=1137"
 				})
 			},
 			Text_content8() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Text_content?id=8"
+					url: "../my/Text_content?id=1138"
 				})
 			},
 
@@ -146,7 +146,8 @@
 	.bt_BG {
 		display: flex;
 		flex-direction: row;
-		padding-top: 10px;
+		padding-top: 15px;
+		padding-bottom: 5px;
 		padding-left: 10px;
 		align-items: center;
 

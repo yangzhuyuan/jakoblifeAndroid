@@ -13,9 +13,31 @@
 	},
 	"pages": [
 		// pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		//ios隐私政策，Android打包时需要注释
+		{
+			"path" : "pages/index/iosLogin",
+			"style" : 
+			{
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7", 
+				"navigationBarTextStyle": "black"
+			}
+		},
+
 
 		{
 			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
+			}
+		},
+
+
+
+
+		{
+			"path": "pages/index/es_index",
 			"style": {
 				"navigationBarTitleText": "",
 				"navigationStyle": "custom"
@@ -30,7 +52,6 @@
 				"app-plus": {
 					"scrollIndicator": "none"
 				}
-
 			}
 		},
 		{
@@ -54,7 +75,6 @@
 								"fontSrc": "/static/ted.ttf",
 								"fontSize": "22px",
 								"color": "#000"
-
 							}
 						]
 					}
@@ -64,29 +84,29 @@
 		{
 			"path": "pages/tabBar/share/Share",
 			"style": {
-				"navigationBarTitleText": "共享",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black",
-				"app-plus": {
-					"titleNView": {
-						"buttons": [{
-								"float": "left",
-								"text": "\ue613",
-								"fontSrc": "/static/add1.ttf",
-								"fontSize": "22px",
-								"color": "#000"
-							},
-							{
-								"float": "right",
-								"text": "\ue61d",
-								"fontSrc": "/static/main.ttf",
-								"fontSize": "22px",
-								"color": "#000"
-
-							}
-						]
-					}
-				}
+				"navigationStyle": "custom"
+				// "navigationBarTitleText": "共享",
+				// "navigationBarBackgroundColor": "#F7F7F7",
+				// "navigationBarTextStyle": "black",
+				// "app-plus": {
+				// 	"titleNView": {
+				// 		"buttons": [{
+				// 				"float": "left",
+				// 				"text": "\ue889",
+				// 				"fontSrc": "/static/gongxiang.ttf",
+				// 				"fontSize": "22px",
+				// 				"color": "#000"
+				// 			},
+				// 			{
+				// 				"float": "right",
+				// 				"text": "\ueaf1",
+				// 				"fontSrc": "/static/gongxiang.ttf",
+				// 				"fontSize": "22px",
+				// 				"color": "#000"
+				// 			}
+				// 		]
+				// 	}
+				// }
 			}
 		},
 		{
@@ -130,16 +150,6 @@
 				"navigationBarTitleText": "重置密码",
 				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
-
-			}
-		},
-		{
-			"path": "pages/login/register",
-			"style": {
-				"navigationBarTitleText": "注册",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
-
 			}
 		},
 		{
@@ -167,6 +177,14 @@
 			}
 		},
 		{
+			"path": "pages/login/Register_success2",
+			"style": {
+				"navigationBarTitleText": "绑定成功",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
 			"path": "pages/service/Service_Agreement",
 			"style": {
 				"navigationBarTitleText": "使用协议",
@@ -181,18 +199,29 @@
 				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
+		}, {
+			"path": "pages/Bind/cs_manage_1",
+			"style": {
+				"navigationBarTitleText": "选择管理类型",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
 		},
 		{
 			"path": "pages/Bind/Bing_page/Bing_page",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
-				"navigationBarTextStyle": "black"
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black",
+				"enablePullDownRefresh": true //设置为true表示当前页面开启下拉刷新
+
 			}
 		},
 		{
 			"path": "pages/Bind/Bing_page/Bing_page_1",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -200,6 +229,7 @@
 			"path": "pages/Bind/Bing_page/Bind_fail",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -207,6 +237,7 @@
 			"path": "pages/Bind/Bing_page/Bind_page_2",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -214,6 +245,7 @@
 			"path": "pages/login/Bind_phone",
 			"style": {
 				"navigationBarTitleText": "绑定手机号",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -221,7 +253,6 @@
 			"path": "pages/Bind/Bing_page/Bind_pg",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
-				"navigationBarBackgroundColor": "#f8f8ff",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -229,7 +260,7 @@
 			"path": "pages/service/Service_Agreement",
 			"style": {
 				"navigationBarTitleText": "《JakobLife软件服务使用协议》",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -237,7 +268,7 @@
 			"path": "pages/Bind/Bing_page/Bind_success",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -245,7 +276,7 @@
 			"path": "pages/Bind/Bing_xueya/Bing_xueya",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -253,7 +284,7 @@
 			"path": "pages/Bind/Bing_xueya/Bing_xueya_2",
 			"style": {
 				"navigationBarTitleText": "为设备连接WiFi",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -261,7 +292,7 @@
 			"path": "pages/Bind/Bing_xueya/Bing_xueya_LY",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -269,7 +300,7 @@
 			"path": "pages/Bind/Bing_xueya/Bing_xueya_LY_2",
 			"style": {
 				"navigationBarTitleText": "蓝牙绑定设备",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -277,7 +308,7 @@
 			"path": "pages/Bind/Bing_tizhi/Bing_tizhi",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -285,23 +316,12 @@
 			"path": "pages/Bind/Bing_tizhi/bing_tizhi_1",
 			"style": {
 				"navigationBarTitleText": "绑定设备",
-				"navigationBarBackgroundColor": "#f8f8ff",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
 		// #ifndef MP-TOUTIAO
-		{
-			"path": "pages/component/cover-view/cover-view",
-			"style": {
-				"navigationBarTitleText": "cover-view"
-			}
-		},
-		{
-			"path": "pages/component/movable-view/movable-view",
-			"style": {
-				"navigationBarTitleText": "movable-view"
-			}
-		},
+
 		// #endif
 		{
 			"path": "pages/component/text/text",
@@ -438,12 +458,6 @@
 			}
 		},
 		// #ifndef MP-ALIPAY || MP-TOUTIAO || VUE3
-		// {
-		// 	"path": "pages/component/audio/audio",
-		// 	"style": {
-		// 		"navigationBarTitleText": "audio"
-		// 	}
-		// },
 		// #endif
 		// #ifndef MP-TOUTIAO
 		{
@@ -480,51 +494,6 @@
 		},
 		// #endif
 		{
-			"path": "platforms/app-plus/speech/speech",
-			"style": {
-				"navigationBarTitleText": "语音识别"
-			}
-		},
-		{
-			"path": "platforms/app-plus/orientation/orientation",
-			"style": {
-				"navigationBarTitleText": "方向传感器"
-			}
-		},
-		{
-			"path": "platforms/app-plus/proximity/proximity",
-			"style": {
-				"navigationBarTitleText": "距离传感器"
-			}
-		},
-		{
-			"path": "platforms/app-plus/push/push",
-			"style": {
-				"navigationBarTitleText": "推送"
-			}
-		},
-		{
-			"path": "platforms/app-plus/shake/shake",
-			"style": {
-				"navigationBarTitleText": "摇一摇"
-			}
-		},
-		// #ifdef H5 || APP-PLUS
-		{
-			"path": "pages/about/about",
-			"style": {
-				"navigationBarTitleText": "关于"
-			}
-		},
-		// #endif
-		{
-			"path": "platforms/app-plus/feedback/feedback",
-			"style": {
-				"navigationBarTitleText": "问题反馈"
-
-			}
-		},
-		{
 			"path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
 			"style": {
 				"app-plus": {
@@ -543,21 +512,34 @@
 			"path": "pages/tabBar/tendency/Add_new_data",
 			"style": {
 				"navigationBarTitleText": "添加新数据",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
 		{
 			"path": "pages/tabBar/tendency/Historical_record",
 			"style": {
-				"navigationBarTitleText": "历史记录",
 				"enablePullDownRefresh": true,
-				"navigationBarTextStyle": "black"
+				"onReachBottomDistance": 120,
+				"navigationStyle": "custom",
+				"app-plus": {
+					"pullToRefresh": {
+						"support": true,
+						"color": "#000000", //小圈圈的颜色
+						"style": "circle" //小圈圈的样式
+					}
+				}
+
+				// "navigationBarTitleText": "历史记录",
+				// "navigationBarBackgroundColor": "#F7F7F7",
+				// "navigationBarTextStyle": "black"
 			}
 		},
 		{
 			"path": "pages/tabBar/my/Health_record",
 			"style": {
 				"navigationBarTitleText": "健康档案",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -565,17 +547,15 @@
 			"path": "pages/tabBar/my/message",
 			"style": {
 				"navigationBarTitleText": "消息",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black",
-				"navigationBarBackgroundColor": "#F5F5F5",
 				"app-plus": {
-
 					"titleNView": {
-						// "type": "float",
 						"buttons": [{
-							"text": "消息",
+							"text": "清空",
 							"fontSize": "16px",
-							"color": "#000",
-							"width": "50px"
+							"fontWeight": "normal",
+							"width": "auto"
 						}]
 					}
 				}
@@ -585,7 +565,7 @@
 			"path": "pages/tabBar/my/Invite",
 			"style": {
 				"navigationBarTitleText": "邀请",
-				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -593,7 +573,7 @@
 			"path": "pages/tabBar/my/Invite_2",
 			"style": {
 				"navigationBarTitleText": "邀请",
-				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -601,7 +581,7 @@
 			"path": "pages/tabBar/my/Unit_setting",
 			"style": {
 				"navigationBarTitleText": "单位设置",
-				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -609,20 +589,23 @@
 			"path": "pages/tabBar/my/Help_center",
 			"style": {
 				"navigationBarTitleText": "帮助中心",
-				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
 		{
 			"path": "pages/tabBar/my/Sphygmomanometer_binding_problem",
 			"style": {
-				"navigationBarTitleText": "血压计绑定问题"
+				"navigationBarTitleText": "血压计绑定问题",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
 			}
 		},
 		{
 			"path": "pages/tabBar/my/Sphygmomanometer_binding_problem_1",
 			"style": {
 				"navigationBarTitleText": "血压计绑定问题",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -630,6 +613,7 @@
 			"path": "pages/tabBar/my/Data_synchronization",
 			"style": {
 				"navigationBarTitleText": "数据同步",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -637,6 +621,7 @@
 			"path": "pages/tabBar/my/Data_synchronization_1",
 			"style": {
 				"navigationBarTitleText": "数据同步失败",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -644,6 +629,7 @@
 			"path": "pages/tabBar/my/Body_fat_scale_binding_problem",
 			"style": {
 				"navigationBarTitleText": "体脂秤绑定问题",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -651,6 +637,7 @@
 			"path": "pages/tabBar/my/Body_fat_scale_binding_problem_1",
 			"style": {
 				"navigationBarTitleText": "体脂秤绑定问题",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -658,6 +645,7 @@
 			"path": "pages/tabBar/my/Safety_center",
 			"style": {
 				"navigationBarTitleText": "安全中心",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -665,6 +653,7 @@
 			"path": "pages/tabBar/my/Cancel_account",
 			"style": {
 				"navigationBarTitleText": "注销账号",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -672,6 +661,7 @@
 			"path": "pages/tabBar/my/Cancel_account_1",
 			"style": {
 				"navigationBarTitleText": "注销账号",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -679,6 +669,7 @@
 			"path": "pages/tabBar/my/About_Update",
 			"style": {
 				"navigationBarTitleText": "关于&更新",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -686,6 +677,7 @@
 			"path": "pages/tabBar/my/Text_content",
 			"style": {
 				"navigationBarTitleText": "关于&更新",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -693,20 +685,7 @@
 			"path": "pages/tabBar/my/Change_number",
 			"style": {
 				"navigationBarTitleText": "原手机号验证",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/New_number_binding",
-			"style": {
-				"navigationBarTitleText": "新手机号绑定",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/New_number_binding_1",
-			"style": {
-				"navigationBarTitleText": "新手机号绑定",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -714,6 +693,7 @@
 			"path": "pages/tabBar/my/Member_name_modification",
 			"style": {
 				"navigationBarTitleText": "会员名修改",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -721,27 +701,16 @@
 			"path": "pages/tabBar/my/Password_setting",
 			"style": {
 				"navigationBarTitleText": "密码设置",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
-		{
-			"path": "pages/tabBar/my/Password_setting_1",
-			"style": {
-				"navigationBarTitleText": "密码设置",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/Password_setting_2",
-			"style": {
-				"navigationBarTitleText": "密码设置",
-				"navigationBarTextStyle": "black"
-			}
-		},
+
 		{
 			"path": "pages/tabBar/my/Equipment_management",
 			"style": {
 				"navigationBarTitleText": "设备管理",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -749,6 +718,7 @@
 			"path": "pages/tabBar/my/Reminder_setting",
 			"style": {
 				"navigationBarTitleText": "提醒设置",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black",
 				"app-plus": {
 					"titleNView": {
@@ -766,6 +736,7 @@
 			"path": "pages/tabBar/my/Reminder_setting_1",
 			"style": {
 				"navigationBarTitleText": "提醒设置",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -773,6 +744,7 @@
 			"path": "pages/tabBar/my/repeat",
 			"style": {
 				"navigationBarTitleText": "重复",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -780,6 +752,7 @@
 			"path": "pages/tabBar/my/Vibration",
 			"style": {
 				"navigationBarTitleText": "震动",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -787,6 +760,7 @@
 			"path": "pages/tabBar/my/Audio",
 			"style": {
 				"navigationBarTitleText": "铃声",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -802,7 +776,9 @@
 			"path": "pages/tabBar/share/Share_with_1",
 			"style": {
 				"navigationBarTitleText": "共享",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
 			}
 		},
 		{
@@ -817,33 +793,40 @@
 			"path": "pages/tabBar/share/Share_with_2",
 			"style": {
 				"navigationBarTitleText": "与他人共享",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
 		{
 			"path": "pages/tabBar/tendency/Historical_record_2",
 			"style": {
-				"navigationBarTitleText": "历史记录",
-				"navigationBarTextStyle": "black"
+				"navigationStyle": "custom"
+				// "navigationBarTitleText": "历史记录",
+				// "navigationBarBackgroundColor": "#F7F7F7",
+				// "navigationBarTextStyle": "black"
 			}
 		},
 		{
-			"path": "pages/tabBar/tendency/Historical_record_2",
+			"path": "pages/tabBar/main/card",
 			"style": {
-				"navigationBarTitleText": "历史记录",
+				"navigationBarTitleText": "编辑数据卡片",
+				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
-		},
-		{
-			"path": "pages/tabBar/main/ce/ce",
+		}, {
+			"path": "pages/tabBar/main/card1",
 			"style": {
-				"navigationBarTitleText": "aa"
+				"navigationBarTitleText": "编辑数据卡片",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
 			}
 		},
 		{
 			"path": "pages/components/drag-and-drop-sort-A/drag-and-drop-sort-A",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
 			}
 		},
 		{
@@ -893,7 +876,121 @@
 				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
+		},
+		{
+			"path": "pages/login/es_login/welcome",
+			"style": {
+				"navigationBarTitleText": "欢迎页",
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/login/es_login/sign_in",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/login/es_login/forget_password",
+			"style": {
+				"navigationBarTitleText": "忘记密码",
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/login/es_login/forget_password_1",
+			"style": {
+				"navigationBarTitleText": "忘记密码",
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/login/es_login/forget_password_2",
+			"style": {
+				"navigationBarTitleText": "忘记密码",
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/service/Usage_agreement",
+			"style": {
+				"navigationBarTitleText": "使用协议",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/my/avatar_set",
+			"style": {
+				"navigationBarTitleText": "头像设置",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/Bind/Bing_xueya/lanya_wifi",
+			"style": {
+				"navigationBarTitleText": "蓝牙搜索页面",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [{
+							"text": "刷新",
+							"fontSize": "16px",
+							"fontWeight": "normal",
+							"width": "auto"
+						}]
+					}
+				}
+			}
+		},
+		{
+			"path": "pages/Bind/Bing_xueya/lanyashebe",
+			"style": {
+				"navigationBarTitleText": "蓝牙搜索页面",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [{
+							"text": "刷新",
+							"fontSize": "16px",
+							"fontWeight": "normal",
+							"width": "auto"
+						}]
+					}
+				}
+			}
+		},
+		{
+			"path": "pages/tabBar/tendency/yulan",
+			"style": {
+				"navigationBarTitleText": "预览",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/index/iosLogin",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
 		}
+
 	],
 	"globalStyle": {
 		"pageOrientation": "portrait",

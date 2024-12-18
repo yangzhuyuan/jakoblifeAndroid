@@ -1,6 +1,6 @@
 <template>
-	<view>
-		<view style="margin-bottom: 280rpx;">
+	<view style="color: black;width: 100vw;height: 100vh;">
+		<view>
 			<view style="padding:20px 20px 0 20px;color: black;font-weight: bold;">请选择血压计型号</view>
 			<view class="list-container">
 				<view class="list-item" :style="getboeder(index)" v-for="(item, index) in list" :key="index">
@@ -81,11 +81,11 @@
 				if (this.act === "未选择" || this.act === "" || this.act === undefined) {
 					uni.showToast({
 						title: "请选择一个设备",
-						icon: "error"
+						icon: "none"
 					})
 					return
 				} else {
-				
+
 				}
 			}
 
@@ -97,7 +97,7 @@
 	.list-container {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
-		padding: 5px;
+		padding: 15px 15px 200px 15px;
 		justify-content: space-between;
 	}
 
@@ -121,7 +121,7 @@
 	}
 
 	.pos_buton_bg {
-		background: white;
+		background: #F5F5F5;
 		width: 100vw;
 		height: auto;
 		display: flex;

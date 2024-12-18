@@ -1,6 +1,6 @@
 <template>
-	<view>
-		<view v-if="lisdata_show">
+	<view style="color: black;height: 100vh;width: 100vw; background: #EFEFF4;">
+		<view v-if="lisdata_show" style="padding-bottom: 80px;">
 			<view v-for="(item,index) in list" :key="index" style="padding-top: 20px;">
 				<view style="background: white;margin: 0 20px 0 20px;padding: 15px;border-radius: 10px"
 					@click="listclick(item.name,item.avatar)">
@@ -20,7 +20,6 @@
 					</view>
 				</view>
 			</view>
-
 		</view>
 		<view v-else class="aa">
 			<text>-</text>
@@ -49,14 +48,23 @@
 						name: "小红",
 						content: "想与您共享健康数据"
 					},
+					{
+						type: "邀请",
+						time: "10:20",
+						avatar: "../../../static/shuijiao.jpg",
+						name: "小红",
+						content: "想与您共享健康数据"
+					},
+		
+					
 				],
 			}
 		},
 
-		onReady() {
-			document.querySelector('.uni-page-head-ft .uni-page-head-btn .uni-btn-icon').innerHTML = this.$t(
-				"wodelist.xiaoxiitem.button_0");
-		},
+		// onReady() {
+		// 	document.querySelector('.uni-page-head-ft .uni-page-head-btn .uni-btn-icon').innerHTML = this.$t(
+		// 		"wodelist.xiaoxiitem.button_0");
+		// },
 
 		onShow() {
 			uni.setNavigationBarTitle({

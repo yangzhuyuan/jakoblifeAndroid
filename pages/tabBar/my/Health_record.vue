@@ -1,5 +1,5 @@
 <template>
-	<view style="padding:10px 10px 0 10px">
+	<view style="padding:10px 10px 0 10px;background: #F7F7F7; color: black;width: 100vw;height: 100vh;">
 		<view style="background: white; border-radius: 20px;">
 			<view class="context_btn" @click="btn_avatar()">
 				<view class="context_title">{{$t('wodelist.wdjkdaitem.title_0')}}</view>
@@ -35,8 +35,7 @@
 			<view class="bt_BG">
 				<view class="text">{{$t('zhuceitem.title_4')}}</view>
 				<view style="width: 40vw; justify-content: flex-end; display: flex;flex-direction: row;">
-					<picker fields="day" mode="date" :value="date" :start="startDate" :end="endDate"
-						@change="bindDateChange">
+					<picker fields="day" mode="date" :value="date" @change="bindDateChange">
 						<view style="display: flex;flex-direction: row;align-items: center;">
 							<view class="color_bg_1" :style="getcolor(date)">{{date}}</view>
 							<uni-icons type="forward" size="20" style="margin-left: 10px;"></uni-icons>
@@ -87,7 +86,8 @@
 				select: this.$t('zhuceitem.title_8'),
 				height: '',
 				width: '',
-				date: this.$t('zhuceitem.title_8')
+				date: this.$t('zhuceitem.title_8'),
+				phone: '',
 			}
 		},
 
@@ -102,11 +102,17 @@
 
 
 		onShow() {
+			let that = this;
 			uni.setNavigationBarTitle({
-				title: this.$t('wodelist.wdjkdaitem.title_3')
+				title: that.$t('wodelist.wdjkdaitem.title_3')
 			})
 
-			let that = this;
+			//头像返回的数据
+			uni.$once('uploadFileRes', function(data) {
+				console.log(data)
+				that.avatar = data
+			})
+
 			uni.request({
 				url: that.$url_getInfo,
 				method: 'GET',
@@ -115,19 +121,25 @@
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				},
 				success: function(res) {
-					console.log("获取用户信息成功:", res)
+					console.log("获取用户信息成功1111:", res)
 					if (res.statusCode == 200) {
 						if (res.data.code == 200) {
-							that.username = res.data.data.userName
+							if (res.data.data.avatar === "" || res.data.data.avatar === undefined) {
+								that.avatar = "../../../static/icons/40x40.png"
+							} else {
+								that.avatar = res.data.data.avatar
+							}
+							that.username = res.data.data.nickName
 							that.select = res.data.data.sex === '0' ? that.$t('zhuceitem.select_0') : that.$t(
 								'zhuceitem.select_1')
 							that.date = res.data.data.birthTime
 							that.height = res.data.data.height
 							that.width = res.data.data.weight
+							that.phone = res.data.data.phonenumber
 						} else {
 							uni.showToast({
 								title: res.data.msg,
-								icon: 'error'
+								icon: 'none'
 							})
 						}
 					} else {
@@ -144,15 +156,16 @@
 		methods: {
 			//更新个人信息
 			update_info() {
+				let that = this
 				uni.request({
-					url: this.$url_update_info,
+					url: that.$url_update_info,
 					method: 'POST',
 					data: {
-						nickName: this.username,
-						sex: this.select === this.$t('zhuceitem.select_0') ? "0" : "1",
-						birthTime: this.date,
-						height: this.height,
-						weight: this.width
+						nickName: that.username,
+						sex: that.select === that.$t('zhuceitem.select_0') ? "0" : "1",
+						birthTime: that.date,
+						height: that.height,
+						weight: that.width
 					},
 					header: {
 						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
@@ -162,20 +175,10 @@
 					success(res) {
 						console.log("更新个人信息", res)
 						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
+							if (res.data.code == 200) {} else {
 								uni.showToast({
 									title: res.data.msg,
 									icon: 'none'
-								})
-								// setTimeout(function() {
-								// 	uni.reLaunch({
-								// 		url: "../Bind/cs_manage"
-								// 	})
-								// }, 300)
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'error'
 								})
 							}
 						}
@@ -203,20 +206,16 @@
 			bindDateChange(e) {
 				this.date = e.detail.value
 			},
+
+			//更换头像
 			btn_avatar() {
-				let that = this
-				uni.chooseImage({
-					count: 1, //默认9
-					sizeType: ['original', 'compressed'], //可以指定是原图还是压缩图，默认二者都有
-					sourceType: ['camera', 'album'], //从相册选择
-					success: function(res) {
-						that.avatar = res.tempFilePaths[0]
-					}
+				uni.navigateTo({
+					url: '/pages/tabBar/my/avatar_set'
 				})
 			},
 			member() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Member_name_modification"
+					url: '../../tabBar/my/Member_name_modification?PHONE=' + this.phone
 				})
 			},
 			getcolor(id) {

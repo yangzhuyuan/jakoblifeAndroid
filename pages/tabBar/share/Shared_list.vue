@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view style="color: black;height: 100vh;width: 100vw;">
 		<view style=" display: flex; justify-content: center; padding: 40px 0 10px 0;">
 			<view class="swich_bg_0">
 				<view @click="clicked1()">

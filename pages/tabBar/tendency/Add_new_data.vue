@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 10px;">
+	<view style="padding: 10px;color: black;">
 		<view style="padding: 10px;border-radius: 20px;background: white;">
 			<view style="font-weight: bold;margin-left: 10px;">日期和时间</view>
 			<picker-view v-if="visible" :indicator-style="indicatorStyle" :value="value" @change="bindChange"

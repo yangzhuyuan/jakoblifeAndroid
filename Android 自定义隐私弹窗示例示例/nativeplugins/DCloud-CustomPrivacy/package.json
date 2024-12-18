@@ -1,0 +1,19 @@
+{
+	"name": "CustomPrivacy",
+	"id": "DCloud-CustomPrivacy",
+	"version": "1.0.3",
+	"description": "示例插件",
+	"_dp_type":"nativeplugin",
+	"_dp_nativeplugin":{
+		"android": {
+			"plugins": [
+				{
+					"type": "module",
+					"name": "DCloud-CustomPrivacy",
+					"class": "uni.dcloud.io.CustomPrivacyModule"
+				}
+			],
+			"integrateType": "jar"
+		}
+	}
+}

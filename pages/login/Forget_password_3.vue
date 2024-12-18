@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 20px;">
+	<view style="padding: 20px;color: black; height: 100vh;background: #F7F7F7;">
 		<view style="flex-direction: column; display: flex;padding-top: 80px; align-items: center; ">
 			<image src="../../static/icons/success.png" style="width: 100px; height: 100px;"></image>
 			<view style="margin-top: 40px;font-weight: bold;text-align: center;">{{$t('WJMMitem.title_0')}}</view>

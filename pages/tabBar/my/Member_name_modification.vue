@@ -1,8 +1,8 @@
 <template>
-	<view style="padding-top: 20px;">
+	<view style="padding-top: 20px;color: black;height: 100vh;background: #EFEFF4;">
 		<view class="linear">
 			<image class="img_bg" src="../../../static/icons/17.png" />
-			<input type="number" :placeholder="$t('wodelist.aqzxitem.title_15')" style="width: 70vw;margin-left: 10px; "
+			<input type="text" :placeholder="$t('wodelist.aqzxitem.title_15')" style="width: 70vw;margin-left: 10px; "
 				maxlength="11" v-model="unername" />
 		</view>
 
@@ -17,7 +17,7 @@
 		</view>
 		<button
 			style=" margin:40px 15px 0 15px; background:#3298F7; color: white; border-radius: 30px;font-weight: bold;"
-			@tap="btn_next">{{$t('zhuceitem.btn_0')}}</button>
+			@tap="btn_next">{{$t('zhuceitem.btn_1')}}</button>
 
 
 		<view class="container_bg" v-show="tanchuang">
@@ -28,7 +28,7 @@
 						{{$t('login.text_10')}}
 					</view>
 					<view class="modal-content_bg">
-						<input class="edit_bg" type="text" :placeholder="$t('login.text_11')" v-model="yzm" />
+						<input class="edit_bg" type="number" :placeholder="$t('login.text_11')" v-model="yzm" />
 						<view>
 							<image :src="yangzhengma_img" style="width: 120px; height: 45px;"></image>
 							<view style="text-align: center; color: dodgerblue;margin-top: 10px;" @click="clickCode">
@@ -68,12 +68,14 @@
 				codetime: 0,
 				tanchuang: false,
 				yzm: '',
+				phone: '',
 			}
 		},
 
 		onLoad(res) {
 			//带过来的数据res
 			console.log(res)
+			this.phone = res.PHONE
 
 		},
 
@@ -110,7 +112,7 @@
 			captchaImage() {
 				let _that = this
 				uni.request({
-					url: this.$url_captchaImage,
+					url: _that.$url_captchaImage,
 					method: 'GET',
 					header: {
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -127,7 +129,7 @@
 						} else {
 							uni.showToast({
 								title: res.data.msg,
-								icon: 'error'
+								icon: 'none'
 							})
 						}
 					},
@@ -154,7 +156,7 @@
 				if (this.yzm === "" || this.yzm === undefined) {
 					uni.showToast({
 						title: this.$t('login.text_19'),
-						icon: 'error'
+						icon: 'none'
 					})
 					return
 				} else {
@@ -174,31 +176,13 @@
 								if (res.data.code == 200) {
 									console.log("校验验证码", res.data)
 									that.tanchuang = false
-									that.yanzheng = 0
-									if (that.codetime > 0) {
-										uni.showToast({
-											title: that.$t('zhuceitem.toast_5'),
-											icon: "none"
-										})
-										return
-									} else {
-										that.codetime = 60
-										that.msg = that.$t('zhuceitem.input_3')
-										that.send_phone_reset_code()
-										let timer = setInterval(() => {
-											that.codetime-- + that.msg;
-											if (that.codetime < 1) {
-												clearInterval(timer);
-												that.msg = ''
-												that.codetime = that.$t('zhuceitem.input_4')
-											}
-										}, 1000)
-									}
+									that.send_phone_reset_code()
 								} else {
 									uni.showToast({
 										title: res.data.msg,
-										icon: 'error'
+										icon: 'none'
 									})
+									that.captchaImage()
 								}
 							}
 							console.log("校验验证码", res)
@@ -222,18 +206,22 @@
 					})
 					return
 				} else {
-					this.check_reset_code()
+					this.check_change_name_code()
 				}
 			},
-			//发送重置密码短信
+			//发送更换会员名验证码
 			send_phone_reset_code() {
+				
+				let that = this
+				console.log("Daskhsdhadas",that.phone)
 				uni.request({
-					url: this.$url_send_phone_reset_code,
+					url: that.$url_send_change_name_code,
 					method: 'POST',
 					data: {
-						phone: this.unername
+						phone: that.phone
 					},
 					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 						'content-type': 'application/x-www-form-urlencoded'
 					},
 					success(res) {
@@ -242,49 +230,69 @@
 							if (res.data.code == 200) {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'success'
+									icon: 'none'
 								})
+								that.yanzheng = 0
+								if (that.codetime > 0) {
+									uni.showToast({
+										title: that.$t('zhuceitem.toast_5'),
+										icon: "none"
+									})
+									return
+								} else {
+									that.codetime = 60
+									that.msg = that.$t('zhuceitem.input_3')
+									let timer = setInterval(() => {
+										that.codetime-- + that.msg;
+										if (that.codetime < 1) {
+											clearInterval(timer);
+											that.msg = ''
+											that.codetime = that.$t('zhuceitem.input_4')
+										}
+									}, 1000)
+								}
 							} else {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						}
 					}
 				})
 			},
-			//校验重置密码验证码
-			check_reset_code() {
+			//更换会员名称
+			check_change_name_code() {
 				let that = this
 				uni.request({
-					url: that.$url_check_reset_code,
+					url: that.$url_check_change_name_code,
 					method: 'POST',
 					data: {
-						phone: that.unername,
+						name: that.unername,
+						phone: that.phone,
 						code: that.yanzhengma,
 					},
 					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					},
 					success: (res) => {
-						console.log("校验重置密码验证码：", res)
+						console.log("更换会员名称：", res)
 						if (res.statusCode == 200) {
 							if (res.data.code == 200) {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'success'
+									icon: 'none'
 								})
 								setTimeout(function() {
-									uni.navigateTo({
-										url: '../../login/Forget_password_2?phone=' + that
-											.unername
+									uni.navigateBack({
+										delta: 1
 									})
-								}, 300)
+								}, 1000)
 							} else {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						}

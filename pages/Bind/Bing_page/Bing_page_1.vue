@@ -1,9 +1,9 @@
 <template>
-	<view style="align-items: center; display: flex; width: 100vw;">
+	<view style="width: 100vw; color: black;height: 100vh;background: #EFEFF4;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
 			<view
 				style="display: flex; width: auto; margin: 20px;justify-content: center; background: white; border-radius: 10px;">
-				<image style="width: 80%; " src="../../../static/image/1.png" />
+				<image style="width: 80%; " :src="SELECT_TYPE === '0' ? imagess:imagess1" />
 			</view>
 			<view style="margin: 15px 0 0 15px; font-size: 16px;">{{$t('BDSBitem.title_0')}}</view>
 			<text style="margin: 0 25px 0 15px; font-size: 16px;">{{$t('BDSBitem.title_1')}}</text>
@@ -13,7 +13,7 @@
 						active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('BDSBitem.title_2')}}
 					</checkbox>
 				</view>
-				<button class="btn" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
+				<button class="btn" :style="getback(cb)" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
 				<view class="textsss" @click="bing_fail()">{{$t('BDSBitem.title_3')}}</view>
 			</view>
 		</view>
@@ -38,8 +38,19 @@
 		data() {
 			return {
 				cb: false,
+				SELECT_TYPE: '',
+				imagess: '../../../static/image/2.png',
+				imagess1: '../../../static/image/5.png'
 			}
 		},
+
+
+		onLoad(opt) {
+			console.log("上个页面带过来的数据", opt.SELECT_TYPE)
+
+			this.SELECT_TYPE = opt.SELECT_TYPE
+		},
+
 		onShow() {
 			uni.setNavigationBarTitle({
 				title: this.$t('BDSB')
@@ -47,6 +58,13 @@
 		},
 
 		methods: {
+
+			getback(id) {
+				return {
+					background: id === false ? "#DBDBDB" : "#3298F7"
+				}
+			},
+
 			checked() {
 				if (this.cb == true) {
 					this.cb = false

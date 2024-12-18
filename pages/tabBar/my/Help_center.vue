@@ -1,27 +1,23 @@
 <template>
-	<view style="padding: 20px;">
-		<view style="background: white;border-radius: 10px;padding: 10px;">
-			<view @click="Sphygmomanometer_binding_problem()"
-				style="display: flex; flex-direction: row; align-items: center; padding: 10px;">
+	<view style="padding: 20px;color: black;color: black;height: 100vh;font-size: 16px;">
+		<view style="background: white;border-radius: 10px;">
+			<view @click="Sphygmomanometer_binding_problem()" class="title_btn_bg">
 				<text
 					style="width: 90vw; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_0')}}</text>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
-			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
-			<view @click="Body_fat_scale_binding_problem()"
-				style="display: flex; flex-direction: row; align-items: center;padding: 10px;">
+			<view style="background: gainsboro; width: 85vw; height: 1px;margin-left: 10px;"></view>
+			<view @click="Body_fat_scale_binding_problem()" class="title_btn_bg">
 				<text
 					style="width: 90vw; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_1')}}</text>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
-			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
-			<view @click="Data_synchronization()"
-				style="display: flex; flex-direction: row; align-items: center;padding: 10px;">
+			<view style="background: gainsboro; width: 85vw; height: 1px;margin-left: 10px;"></view>
+			<view @click="Data_synchronization()" class="title_btn_bg">
 				<text
 					style="width: 90vw; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_2')}}</text>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
-			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
 		</view>
 	</view>
 </template>
@@ -68,5 +64,10 @@
 </script>
 
 <style>
-
+	.title_btn_bg {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 15px;
+	}
 </style>

@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view style="color: black;height: 100vh;width: 100vw;">
 		<view style=" padding-top: 5px;padding-bottom: 60px; ">
 			<view style="background: white; margin: 15px;  border-radius: 20px; padding:20px 0 20px 0;">
 				<view style="display: flex; align-items: center;  flex-direction: column;">
@@ -254,7 +254,7 @@
 				if (this.action.join() === '' || this.action.join() == '0') {
 					uni.showToast({
 						title: this.$t('gongxiangitem.title_20'),
-						icon: 'error'
+						icon: 'none'
 					})
 					return
 				}

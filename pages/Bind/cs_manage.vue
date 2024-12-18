@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 20px;">
+	<view style="padding: 20px;color: black;height: 100vh;background: #EFEFF4;">
 		<view class="titless">{{$t('XZGLLXitem.title_0')}}</view>
 		<view class="title_1">{{$t('XZGLLXitem.title_1')}}</view>
 		<view class="context_btn" @click="xueya_click()">
@@ -22,10 +22,11 @@
 					<view class="pupup_title" style="margin-top: 10px;">{{$t('XZGLLXitem.title_2')}}</view>
 					<view class="pupup_title">{{$t('XZGLLXitem.title_3')}}</view>
 					<view class="pupup_title">{{$t('XZGLLXitem.title_4')}}</view>
-					<view style="margin-top: 20px;">{{$t('XZGLLXitem.title_5')}}</view>
-					<view style="margin-top: 5px;">{{$t('XZGLLXitem.title_6')}}</view>
-					<view style="margin-top: 5px;">{{$t('XZGLLXitem.title_7')}}</view>
-					<view style="margin-top: 5px;">{{$t('XZGLLXitem.title_8')}}</view>
+					<view style="margin-top: 20px;" @click="click_button(0)">{{$t('XZGLLXitem.title_5')}}</view>
+					<view style="margin-top: 5px;" @click="click_button(1)">{{$t('XZGLLXitem.title_6')}}</view>
+					<view style="margin-top: 5px;" @click="click_button(2)">{{$t('XZGLLXitem.title_7')}}</view>
+					<view style="margin-top: 5px;" @click="click_button(3)">{{$t('XZGLLXitem.title_8')}}</view>
+
 					<view class="btn">
 						<button @tap="agree"
 							style="width: 25vw;height: 50px; display: flex; justify-content: center; align-items: center; background: #3298F7; color: white;border-radius: 30px; font-weight: bold;">{{$t('login.text_4')}}</button>
@@ -47,7 +48,6 @@
 		data() {
 			return {
 				select_types: "",
-
 			}
 		},
 
@@ -58,12 +58,19 @@
 		},
 
 		methods: {
+
+			click_button(id) {
+				uni.navigateTo({
+					url: '../service/Usage_agreement?id=' + id
+				})
+			},
+
 			xueya_click() {
-				this.select_types = "xueya",
+				this.select_types = "0",
 					this.$refs.popup.open('bottom')
 			},
 			tizhi_click() {
-				this.select_types = "tizhi",
+				this.select_types = "1",
 					this.$refs.popup.open('bottom')
 			},
 			skile() {
@@ -72,6 +79,7 @@
 				})
 			},
 			agree() {
+				this.$refs.popup.close()
 				uni.navigateTo({
 					url: "../Bind/Bing_page/Bing_page?SELECT_TYPE=" + this.select_types
 				})
@@ -79,9 +87,6 @@
 			Turn_down() {
 				this.$refs.popup.close()
 			},
-
-
-
 		}
 	}
 </script>
@@ -101,8 +106,9 @@
 	}
 
 	.img {
-		width: 25px;
-		height: 25px;
+		width: 50px;
+		height: 45px;
+
 	}
 
 	.context_btn {
@@ -110,7 +116,7 @@
 		flex-direction: row;
 		align-items: center;
 		background: white;
-		padding: 15px;
+		padding: 10px;
 		margin-top: 20px;
 		border-radius: 30px;
 
@@ -118,7 +124,7 @@
 
 	.context_title {
 		width: 70vw;
-		font-size: 16px;
+		font-size: 18px;
 		color: black;
 		font-weight: bold;
 		margin-left: 10px;

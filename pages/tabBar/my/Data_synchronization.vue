@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 20px;">
+	<view style="padding: 20px;background: #F7F7F7; color: black;height: 100vh;">
 		<view style="background: white;border-radius: 10px;padding: 10px;">
 			<view @click="failure()" style="display: flex; flex-direction: row; align-items: center; padding: 10px;">
 				<text style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_13')}}</text>

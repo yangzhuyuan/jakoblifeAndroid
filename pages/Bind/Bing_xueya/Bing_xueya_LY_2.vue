@@ -1,5 +1,5 @@
 <template>
-	<view style="display: flex; flex-direction: column;">
+	<view style="display: flex; flex-direction: column;color: black;width: 100vw;height: 100vh;">
 		<image style="width: 90vw; margin: 20px;" src="../../../static/image.png"></image>
 		<view style="margin: 15px 15px 0 20px;">{{$t('BDSBitem.title_25')}}</view>
 		<view style="margin: 0 25px 0 20px;">{{$t('BDSBitem.title_26')}}</view>

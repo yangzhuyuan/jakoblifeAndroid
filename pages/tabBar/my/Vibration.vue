@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 10px;">
+	<view style="padding: 10px;color: black;height: 100vh;">
 		<view style="background: white; padding: 10px;border-radius: 15px;">
 			<view style="display: flex;flex-direction: row; padding:0 5px 5px 5px;" @click="open()">
 				<view style="width: 90%; margin-left: 5px;">开</view>

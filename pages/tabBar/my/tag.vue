@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 15px;">
+	<view style="padding: 15px;color: black;height: 100vh;">
 		<view style="background: white; padding: 15px;border-radius: 10px">
 			<input type="text" :placeholder="$t('wodelist.txszitem.tx_title0')" v-model="input_tag" />
 		</view>

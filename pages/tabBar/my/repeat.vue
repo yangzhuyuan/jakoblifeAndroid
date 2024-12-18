@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 10px;">
+	<view style="padding: 10px;color: black;height: 100vh;">
 		<view style="background: white; padding: 0 10px 0 10px; border-radius: 10px;">
 
 			<view class="check_week_bg" @click="ck_Every_Monday()">

@@ -1,6 +1,6 @@
 <template>
-	<view style="padding:80px 20px 20px 20px">
-		<view>
+	<view style="padding:80px 0 0 0; background: #F7F7F7; color: black;height: 100vh;">
+		<view style="background: #F7F7F7; padding: 20px;">
 			<view class="title_bg">{{$t('login.title_0')}}</view>
 			<view class="title_bg">{{$t('login.title_1')}}</view>
 			<view class="linear">
@@ -38,32 +38,34 @@
 				<checkbox class="round" color="#ffffff" activeBorderColor="#D2D2D2" activeBackgroundColor="#3298F7"
 					:checked="cb" @click="checked">
 				</checkbox>
-				<view style="display: flex;flex-direction: row;">
-					<view>{{$t('login.text_4')}}</view>
+				<view style="display: flex;flex-direction: row;align-items: center;">
+					<view style="color: black; font-size: 16px;">{{$t('login.text_4')}}</view>
 					<view style="color: #3298F7;font-size: 14px;" @tap="Service_Agreement">{{$t('login.text_5')}}
 					</view>
 				</view>
 			</view>
-			<button
-				style="background: #3298F7; margin:20px 30px 0 30px; color: white; border-radius: 30px;font-weight: bold;"
+			<button class="button_back" :style="getback(unername,passwrod,yanzhengma,cb)"
 				@tap="login_sumbit1">{{$t('login.text_6')}}</button>
-			<view style="display: flex; flex-direction: row;margin-top: 20px;justify-content: center;">
-				<view style="font-size: 14px;text-align: center;">{{$t('login.text_7')}}
+			<view
+				style="display: flex; flex-direction: row;margin-top: 30px;justify-content: center;align-items: center;">
+				<view style="font-size: 16px;text-align: center;color: black;">{{$t('login.text_7')}}
 				</view>
-				<view style="color: #3298F7;font-size: 14px;" @click="login_land()">
+				<view style="color: #3298F7;font-size: 16px;" @click="login_land()">
 					{{$t('login.text_8')}}
 				</view>
 			</view>
-
-			<view style="justify-content: center;align-items: center; display: flex;font-size: 14px;margin-top: 120px;">
-				<view style="background: gainsboro; width: 80px; height: 1px; margin-right: 10px"></view>
-				<view>{{$t('login.text_9')}}</view>
-				<view style="background: gainsboro; width: 80px; height: 1px;margin-left: 10px;"></view>
-			</view>
-			<view style="justify-content: center;display:flex;margin-top: 20px;margin-bottom: 50px;">
-				<image @click="other_sbuitm('weixin')" class="img_dsf" src="../../static/weixin.jpg" />
-				<image @click="other_sbuitm('qq')" class="img_dsf" src="../../static/qq.jpg" />
-				<image @click="other_sbuitm('apple')" class="img_dsf" src="../../static/pingguodenglu.png" />
+			<view
+				style=" display: flex;justify-content: center; align-items: center;flex-direction: column;padding-top: 120px;">
+				<view style="display: flex;justify-content: center;align-items: center; display: flex;font-size: 14px;">
+					<view style="background: gainsboro; width: 80px; height: 1px; margin-right: 10px"></view>
+					<view style="font-size: 16px;">其它登录方式</view>
+					<view style="background: gainsboro; width: 80px; height: 1px;margin-left: 10px;"></view>
+				</view>
+				<view style="display:flex;justify-content: center;margin-top: 40px;">
+					<image @click="other_sbuitm('weixin')" class="img_dsf1" src="../../static/weixin.jpg" />
+					<image @click="other_sbuitm('qq')" class="img_dsf" src="../../static/qq.jpg" />
+					<image @click="other_sbuitm('apple')" class="img_dsf" src="../../static/pingguodenglu.png" />
+				</view>
 			</view>
 		</view>
 		<view class="container_bg" v-show="tanchuang">
@@ -74,7 +76,7 @@
 						{{$t('login.text_10')}}
 					</view>
 					<view class="modal-content_bg">
-						<input class="edit_bg" type="text" :placeholder="$t('login.text_11')" v-model="yzm" />
+						<input class="edit_bg" type="number" :placeholder="$t('login.text_11')" v-model="yzm" />
 						<view>
 							<image :src="yangzhengma_img" style="width: 120px; height: 45px;"></image>
 							<view style="text-align: center; color: dodgerblue;margin-top: 10px;" @click="clickCode">
@@ -106,7 +108,7 @@
 		data() {
 			return {
 				yangzhengma_img: '',
-				unername: "", //会员名或手机号
+				unername: uni.getStorageSync("unername") != "" ? uni.getStorageSync("unername") : '', //会员名或手机号
 				passwrod: "", //密码
 				yanzhengma: '',
 				tanchuang: false, //数字验证弹窗
@@ -114,7 +116,7 @@
 				yanzheng: 1, //验证码读秒后显示的内容
 				isPassword: true, //判断密码是否可见
 				codetime: 0, //验证码秒数
-				cb: false, //选择框
+				cb: true, //选择框
 				urlicon1: "../../static/icons/mima_1.png", //密码可见iocn
 				urlicon2: "../../static/icons/mima_2.png", //密码不可见icon
 				msg: this.$t('zhuceitem.input_3'),
@@ -145,14 +147,29 @@
 
 
 		onLoad() {
-			if (uni.getStorageSync("token") == "" || uni.getStorageSync("token") == undefined) {
-				this.fastLoginFn()
-				console.log('bbbbb')
-			}
+			// if (uni.getStorageSync("token") == "" || uni.getStorageSync("token") == undefined) {
+			// 	this.fastLoginFn()
+			// 	console.log('bbbbb')
+			// }
 		},
 
 		methods: {
-			...mapMutations(['getImgID']),
+			...mapMutations(['getImgID', 'other_sign_access_token', 'other_sign_openid', 'other_sign_other_types']),
+
+
+			getback(name, mm, yzm, cb) {
+				if (this.mm_yzm == true) {
+					return {
+						background: name === "" || mm === "" || cb == false ? "#DBDBDB" : "#3298F7"
+					}
+				} else {
+					return {
+						background: name === "" || yzm == "" || cb == false ? "#DBDBDB" : "#3298F7"
+					}
+				}
+			},
+
+
 			//服务协议
 			Service_Agreement() {
 				uni.navigateTo({
@@ -188,7 +205,7 @@
 				if (this.yzm === "" || this.yzm === undefined) {
 					uni.showToast({
 						title: this.$t('login.text_19'),
-						icon: 'error'
+						icon: 'none'
 					})
 					return
 				} else {
@@ -208,32 +225,13 @@
 								if (res.data.code == 200) {
 									console.log("校验验证码", res.data)
 									that.tanchuang = false
-									that.yanzheng = 0
-									if (that.codetime > 0) {
-										uni.showToast({
-											title: that.$t('zhuceitem.toast_5'),
-											icon: "none"
-										})
-										return
-									} else {
-										that.codetime = 60
-										that.msg = that.$t('zhuceitem.input_3')
-										that.send_login_code()
-										let timer = setInterval(() => {
-											that.codetime-- + that.msg;
-											if (that.codetime < 1) {
-												clearInterval(timer);
-												that.msg = ''
-												that.codetime = that.$t('zhuceitem.input_4')
-											}
-										}, 1000)
-
-									}
+									that.send_login_code()
 								} else {
 									uni.showToast({
 										title: res.data.msg,
-										icon: 'error'
+										icon: 'none'
 									})
+									that.captchaImage()
 								}
 							}
 							console.log("校验验证码", res)
@@ -268,7 +266,7 @@
 			captchaImage() {
 				let _that = this
 				uni.request({
-					url: this.$url_captchaImage,
+					url: _that.$url_captchaImage,
 					method: 'GET',
 					header: {
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -285,7 +283,7 @@
 						} else {
 							uni.showToast({
 								title: res.data.msg,
-								icon: 'error'
+								icon: 'none'
 							})
 						}
 					},
@@ -297,11 +295,12 @@
 
 			//发送手机登录验证码
 			send_login_code() {
+				let that = this
 				uni.request({
-					url: this.$url_send_login_code,
+					url: that.$url_send_login_code,
 					method: 'POST',
 					data: {
-						phone: this.unername
+						phone: that.unername
 					},
 					header: {
 						'content-type': 'application/x-www-form-urlencoded'
@@ -312,12 +311,32 @@
 							if (res.data.code == 200) {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'success'
+									icon: 'none'
 								})
+								that.yanzheng = 0
+								if (that.codetime > 0) {
+									uni.showToast({
+										title: that.$t('zhuceitem.toast_5'),
+										icon: "none"
+									})
+									return
+								} else {
+									that.codetime = 60
+									that.msg = that.$t('zhuceitem.input_3')
+									let timer = setInterval(() => {
+										that.codetime-- + that.msg;
+										if (that.codetime < 1) {
+											clearInterval(timer);
+											that.msg = ''
+											that.codetime = that.$t('zhuceitem.input_4')
+										}
+									}, 1000)
+
+								}
 							} else {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						}
@@ -331,7 +350,7 @@
 					if (this.unername == "" || this.unername == undefined) {
 						uni.showToast({
 							title: this.$t('login.input_0'),
-							icon: 'none'
+							icon: 'none',
 						})
 						return
 					} else if (this.passwrod == "" || this.passwrod == undefined) {
@@ -396,6 +415,7 @@
 						if (res.statusCode == 200) {
 							if (res.data.code == 200) {
 								uni.setStorageSync("token", res.data.token)
+								uni.setStorageSync("unername", this.unername)
 								uni.showToast({
 									title: res.data.msg,
 									icon: 'none'
@@ -408,7 +428,7 @@
 							} else {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						}
@@ -435,6 +455,7 @@
 						if (res.statusCode == 200) {
 							if (res.data.code == 200) {
 								uni.setStorageSync("token", res.data.token)
+								uni.setStorageSync("unername", this.unername)
 								uni.showToast({
 									title: res.data.msg,
 									icon: 'none'
@@ -447,7 +468,7 @@
 							} else {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						}
@@ -539,7 +560,7 @@
 							"suffix": "并使用本机号码登录", // 条款后的文案 默认值：“并使用本机号码登录”
 							"privacyItems": [ // 自定义协议条款，最大支持2个，需要同时设置url和title. 否则不生效
 								{
-									"url": "https://", // 点击跳转的协议详情页面
+									"url": "https://jakoblife.jakob-techs.com/privacy.html", // 点击跳转的协议详情页面
 									"title": "用户服务协议" // 协议名称
 								}
 							]
@@ -556,7 +577,8 @@
 							})
 							.then((dataRes) => {
 								console.log("云函数返回的参数", dataRes)
-								// let phone = dataRes.result.data.phoneNumber
+								let phone = dataRes.result.phoneNumber
+								console.log("云函数返回的参数手机号", phone)
 								// this.userPhone = dataRes.result.data.phoneNumber
 								// // 这里进行登录操作
 								// this.loginFast({
@@ -593,23 +615,23 @@
 			},
 			//第三方登录
 			other_sbuitm(type) {
+				let that = this
 				switch (type) {
 					case "weixin":
-						console.log("aaa00", type)
 						uni.login({
 							provider: 'weixin',
-							onlyAuthorize: true, // 微信登录仅请求授权认证
-							success: function(loginRes) {
-								console.log("客户端成功获取授权临时票据（code)", loginRes);
-								uni.getUserInfo({
-									provider: 'weixin',
-									success: function(infoRes) {
-										uni.navigateTo({
-											url: "../login/Bind_phone"
-										})
-										console.log('用户昵称为：' + infoRes.userInfo.nickName);
-									}
-								});
+							// onlyAuthorize: true, // 微信登录仅请求授权认证
+							success: function(res) {
+								console.log("客户端成功获取授权", res);
+								that.check_auth(res.authResult.access_token, res.authResult.openid, "weixin")
+							},
+							fail: function(err) {
+								// 登录授权失败
+								// err.code是错误码
+								uni.showToast({
+									title: err,
+									icon: 'none'
+								})
 							}
 						});
 						break;
@@ -617,25 +639,16 @@
 						uni.login({
 							provider: 'qq',
 							success: function(loginRes) {
-								console.log(loginRes.authResult);
-								uni.getUserInfo({
-									provider: 'qq',
-									success: function(infoRes) {
-										console.log('用户信息：' + JSON.stringify(infoRes.userInfo));
-										uni.setStorageSync("nickName", infoRes.userInfo.nickName)
-										uni.setStorageSync("avatarUrl", infoRes.userInfo.avatarUrl)
-										uni.navigateTo({
-											url: "../login/Bind_phone"
-										})
-									}
-								});
+								console.log(loginRes);
+								that.check_auth(loginRes.authResult.access_token, loginRes.authResult.openid,
+									"qq")
 							},
 							fail: function(err) {
 								// 登录授权失败
 								// err.code是错误码
 								uni.showToast({
 									title: err,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						});
@@ -645,29 +658,55 @@
 							provider: 'apple',
 							success: function(loginRes) {
 								console.log(loginRes.authResult);
-								uni.getUserInfo({
-									provider: 'apple',
-									success: function(infoRes) {
-										console.log('用户信息：' + JSON.stringify(infoRes.userInfo));
-										uni.setStorageSync("nickName", infoRes.userInfo.nickName)
-										uni.setStorageSync("avatarUrl", infoRes.userInfo.avatarUrl)
-										uni.navigateTo({
-											url: "../login/Bind_phone"
-										})
-									}
-								});
+								that.check_auth(loginRes.authResult.access_token, loginRes.authResult.openid,
+									"apple")
 							},
 							fail: function(err) {
 								// 登录授权失败
 								// err.code是错误码
 								uni.showToast({
 									title: err,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						});
 						break
 				}
+			},
+
+			//校验第三方账号是否已注册
+			check_auth(access_token, openid, othersss_types) {
+				let that = this
+				uni.request({
+					url: that.$url_check_auth,
+					method: 'POST',
+					data: {
+						openId: openid
+					},
+					header: {
+						'content-type': 'application/x-www-form-urlencoded'
+					},
+					success(res) {
+						console.log("校验第三方账号是否已注册", res)
+						if (res.statusCode == 200) {
+							if (res.data.code == 200) {
+								uni.setStorageSync("token", res.data.data)
+								uni.switchTab({
+									url: '/pages/tabBar/main/Main'
+								})
+							} else {
+								that.other_sign_access_token(access_token)
+								that.other_sign_openid(openid)
+								that.other_sign_other_types(othersss_types)
+								uni.reLaunch({
+									url: '../login/Force_binding_phone'
+								})
+							}
+						} else {
+							console.log(res)
+						}
+					}
+				})
 			},
 		}
 	}
@@ -675,7 +714,9 @@
 
 <style>
 	.title_bg {
-		height: 40px;
+		color: black;
+		height: 50px;
+		margin-left: 10px;
 		font-size: 28px;
 		font-weight: bold;
 	}
@@ -684,7 +725,7 @@
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 40px;
+		height: 50px;
 		background-color: white;
 		border-radius: 40px;
 		margin: 20px 0 0 0;
@@ -695,10 +736,10 @@
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 40px;
+		height: 50px;
 		background-color: white;
-		border-top-left-radius: 20px;
-		border-bottom-left-radius: 20px;
+		border-top-left-radius: 40px;
+		border-bottom-left-radius: 40px;
 		border-top-right-radius: 5px;
 		border-bottom-right-radius: 5px;
 		margin: 20px 0 0 0;
@@ -711,13 +752,13 @@
 		align-items: center;
 		margin-top: 20px;
 		margin-left: 10px;
-		height: 40px;
+		height: 50px;
 		font-size: 12px;
 		text-align: center;
 		width: 60vw;
 		line-height: 18px;
-		border-top-right-radius: 20px;
-		border-bottom-right-radius: 20px;
+		border-top-right-radius: 40px;
+		border-bottom-right-radius: 40px;
 		background: #3298F7;
 		color: white;
 		/* white-space: nowrap;
@@ -731,14 +772,14 @@
 	}
 
 	.text_bg {
-		font-size: 14px;
+		font-size: 16px;
 		color: cornflowerblue;
 		width: 50vw;
 		margin-left: 10px;
 	}
 
 	.text_bg_1 {
-		font-size: 28rpx;
+		font-size: 16px;
 		color: cornflowerblue;
 		width: 50vw;
 		text-align: right;
@@ -748,16 +789,30 @@
 	.linear_ck {
 		flex-direction: row;
 		display: flex;
-		margin-top: 30px;
+		margin-top: 40px;
 		margin-left: 30px;
 		/* align-items: center; */
 	}
 
+	.button_back {
+		background: #3298F7;
+		margin: 20px 30px 0 30px;
+		color: white;
+		border-radius: 30px;
+		font-weight: bold;
+	}
+
 	.img_dsf {
 		border-radius: 20px;
-		height: 40px;
-		width: 40px;
+		height: 50px;
+		width: 50px;
 		margin-left: 15px;
+	}
+
+	.img_dsf1 {
+		border-radius: 20px;
+		height: 50px;
+		width: 50px;
 	}
 
 

@@ -1,7 +1,7 @@
 <template>
 	<view>
 		<!-- 扫码页面 -->
-		<view style="width: 90%;height: 260px;"></view>
+		<view style="width: 90%;height: 300px;"></view>
 	</view>
 </template>
 
@@ -46,10 +46,10 @@
 					this.barcode = plus.barcode.create('barcode', [plus.barcode.QR, plus.barcode.CODABAR, plus.barcode
 						.UPCA, plus.barcode.CODE39, plus.barcode.CODE93, plus.barcode.CODE128
 					], {
-						top: '25px',
+						top: '90px',
 						left: '20px',
 						width: '90%',
-						height: '260px',
+						height: '300px',
 						scanbarColor: '#87ceeb',
 						frameColor: '#87ceeb',
 						display: 'flex',
@@ -130,7 +130,7 @@
 						id: 'scanBar',
 						src: 'static/shoudiantong2.png',
 						position: {
-							top: '30%',
+							top: '60%',
 							width: '30px',
 							left: '30%',
 							height: '20%',
@@ -145,7 +145,7 @@
 							color: '#ffffff'
 						},
 						position: {
-							top: '10px',
+							top: '50px',
 							width: '80%',
 							left: '10%'
 						}
@@ -158,7 +158,7 @@
 						id: 'scanBar',
 						src: 'static/shoudiantong.png',
 						position: {
-							top: '30%',
+							top: '60%',
 							width: '30px',
 							left: '30%',
 							height: '20%',
@@ -173,7 +173,7 @@
 							color: '#ffffff'
 						},
 						position: {
-							top: '10px',
+							top: '50px',
 							width: '80%',
 							left: '10%'
 						}
@@ -185,7 +185,7 @@
 						tag: 'img',
 						id: 'scanBar',
 						position: {
-							top: '30%',
+							top: '50%',
 							width: '20px',
 							left: '30%',
 							height: '20%',
@@ -199,7 +199,7 @@
 							color: '#ffffff'
 						},
 						position: {
-							top: '10px',
+							top: '20px',
 							width: '80%',
 							left: '10%'
 						}

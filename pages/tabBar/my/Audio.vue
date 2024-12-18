@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 20px 10px 10px 10px;">
+	<view style="padding: 20px 10px 10px 10px;background: #F7F7F7; color: black; height: 100vh;">
 		<view style="background: white; padding: 10px;border-radius: 15px;">
 			<view style="display: flex;flex-direction: row; padding:5px 0" @click="Select_a_song()">
 				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_14')}}</view>

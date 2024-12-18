@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view style="color: black;width: 100vw;height: 100vh;background: #F7F7F7;">
 		<view>
 			<view style="display: flex;flex-direction: column; padding-top: 120px; align-items: center; ">
 				<image src="../../../static/icons/shibaitubiao.png" style="width: 80px; height: 80px;"></image>
@@ -8,7 +8,7 @@
 			<view style="position: fixed; bottom: 50px;width: 100vw;">
 				<button
 					style=" margin-top: 50px;margin-left: 20px;margin-right: 20px;background:#3298F7; color: white; border-radius: 25px;"
-					@tap="back">{{$t('BDSBitem.title_23')}}</button>
+					@click="back()">{{$t('BDSBitem.title_23')}}</button>
 				<view class="text" @click="bing_fail()">{{$t('BDSBitem.title_3')}}</view>
 			</view>
 		</view>
@@ -34,6 +34,9 @@
 
 			}
 		},
+
+
+
 		onShow() {
 			uni.setNavigationBarTitle({
 				title: this.$t('BDSB')
@@ -41,6 +44,11 @@
 		},
 
 		methods: {
+			back() {
+				uni.switchTab({
+					url: "../../tabBar/my/My"
+				})
+			},
 			bing_fail() {
 				this.$refs.popup.open("bottom")
 			},
@@ -61,7 +69,7 @@
 
 	.popup_bg {
 		background: white;
-		margin:15px;
+		margin: 15px;
 		border-radius: 25px;
 		padding: 20px;
 	}

@@ -1,5 +1,5 @@
 <template>
-	<view style="display: flex;flex-direction: column; justify-content: center; padding: 10px;">
+	<view style="display: flex;flex-direction: column; height: 100vh;width: 100vw; padding: 10px;color: black;">
 		<view style="display: flex; justify-content: center;">
 			<image class="img" src="../../../static/icons/success.png"></image>
 		</view>

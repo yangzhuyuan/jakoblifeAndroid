@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 15px;">
+	<view style="padding: 15px;color: black;height: 100vh;">
 		<view style="padding: 10px;border-radius: 15px;background: white; ">
 			<view style="font-weight: bold;margin-left: 10px;">{{$t('wodelist.txszitem.title_2')}}</view>
 			<picker-view v-if="visible" indicator-class="picker-box" :value="value" @change="bindChange"

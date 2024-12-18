@@ -6,6 +6,10 @@
     "versionCode" : 1,
     "transformPx" : false,
     "app-plus" : {
+        "compatible" : {
+            "runtimeVersion" : "4.41", //根据实际情况填写  
+            "compilerVersion" : "4.41" //根据实际情况填写  
+        },
         "usingComponents" : true,
         "nvueCompiler" : "uni-app",
         "nvueStyleCompiler" : "uni-app",
@@ -15,7 +19,7 @@
             "alwaysShowBeforeRender" : true,
             "waiting" : true,
             "autoclose" : true,
-            "delay" : 0
+            "delay" : 5000
         },
         "modules" : {
             "Speech" : {},
@@ -39,15 +43,18 @@
                     "<uses-permission android:name=\"com.asus.msa.SupplementaryDID.ACCESS\" />",
                     "<uses-permission android:name=\"com.huawei.android.launcher.permission.CHANGE_BADGE\" />",
                     "<uses-permission android:name=\"android.permission.INSTALL_PACKAGES\" />",
-                    "<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\" />"
+                    "<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\" />",
+                    "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>"
                 ],
                 "targetSdkVersion" : 30,
                 "minSdkVersion" : 19
             },
             "ios" : {
                 "appid" : "io.dcloud.jakob", //必填，字符串类型，iOS平台Bundle ID
-                "mobileprovision" : "C:/Users/27474/Desktop/Jakob/ios开发证书/JakobLife.mobileprovision", //必填，字符串类型，iOS打包使用的profile文件路径
-                "p12" : "C:/Users/27474/Desktop/Jakob/ios开发证书/JakobLife.p12", //必填，字符串类型，iOS打包使用的证书文件路径
+                "mobileprovision" : "C:/Users/27474/Desktop/Jakob/ios发布证书/JakobLifeDistribution.mobileprovision", //必填，字符串类型，iOS打包使用的profile文件路径
+                "p12" : "C:/Users/27474/Desktop/Jakob/ios发布证书/JakobLifes.p12", //必填，字符串类型，iOS打包使用的证书文件路径
                 "password" : "CW0881ab@", //必填，字符串类型，iOS打包使用的证书密码
                 "devices" : "iphone", //必填，字符串类型，iOS支持的设备类型，可取值iphone、ipad、universal
                 "urltypes" : "", //可选，字符串类型，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemes
@@ -69,13 +76,11 @@
                 }
             },
             "sdkConfigs" : {
-                "speech" : {
-                    "ifly" : {}
-                },
                 "oauth" : {
                     "weixin" : {
                         "appid" : "wx8a9bec1c96e0321e",
-                        "UniversalLinks" : "https://jakob-techs.com/uni-universallinks/__UNI__F833FCF/"
+                        "appsecret" : "3ec44cbf68c34512d97a2ad411d72707",
+                        "UniversalLinks" : "https://www.jakob-techs.com/"
                     },
                     "qq" : {
                         "appid" : "102445791",
@@ -88,13 +93,13 @@
             "orientation" : [ "portrait-primary" ],
             "splashscreen" : {
                 "useOriginalMsgbox" : true,
-                "androidStyle" : "default",
+                "androidStyle" : "common",
                 "android" : {
-                    "hdpi" : "static/image/480x762.png",
-                    "xhdpi" : "static/image/720x1242.png",
-                    "xxhdpi" : "static/image/1080x1882.png"
+                    "hdpi" : "",
+                    "xhdpi" : "",
+                    "xxhdpi" : ""
                 },
-                "iosStyle" : "storyboard",
+                "iosStyle" : "common",
                 "ios" : {
                     "storyboard" : "CustomStoryboard.zip"
                 }

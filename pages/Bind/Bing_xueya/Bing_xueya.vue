@@ -1,8 +1,8 @@
 <template>
-	<view style="align-items: center; display: flex; width: 100vw;">
+	<view style="display: flex; width: 100vw;color: black;height: 100vh;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
 			<view style="width: auto;margin: 20px; background: white; border-radius: 10px;padding: 20px;">
-				<image style="width: 70vw;" src="../../../static/image/2.png"></image>
+				<image style="width: 100%;" :src="SELECT_TYPE === '0' ? imagess:imagess1"></image>
 			</view>
 			<view style="margin: 10px 20px 0 20px;">{{$t('BDSBitem.title_13')}}</view>
 			<view style="margin: 0 20px 0 20px;">{{$t('BDSBitem.title_14')}}</view>
@@ -12,8 +12,7 @@
 					{{$t('BDSBitem.title_2')}}
 				</checkbox>
 			</view>
-			<button class="btn" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
-			<view @click="bind_lanya()" class="text">{{$t('BDSBitem.title_15')}}</view>
+			<button class="btn" :style="getback(cb)" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
 		</view>
 	</view>
 </template>
@@ -23,7 +22,16 @@
 		data() {
 			return {
 				cb: false,
+				SELECT_TYPE: '',
+				imagess: '../../../static/image/2.png',
+				imagess1: '../../../static/image/5.png'
 			}
+		},
+
+		onLoad(opt) {
+			console.log("上个页面带过来的数据", opt.SELECT_TYPE)
+
+			this.SELECT_TYPE = opt.SELECT_TYPE
 		},
 
 		onShow() {
@@ -32,7 +40,17 @@
 			})
 		},
 
+
+
+
 		methods: {
+			
+			getback(id) {
+				return {
+					background: id === false ? "#DBDBDB" : "#3298F7"
+				}
+			},
+
 
 			checked() {
 				if (this.cb == true) {
@@ -51,15 +69,12 @@
 					return
 				}
 				uni.navigateTo({
-					url: '../Bing_xueya/Bing_xueya_2'
+					url: '../Bing_xueya/lanya_wifi'
 				})
+				// uni.navigateTo({
+				// 	url: '../Bing_xueya/Bing_xueya_2'
+				// })
 			},
-			bind_lanya() {
-				uni.navigateTo({
-					url: '/pages/Bind/Bing_xueya/Bing_xueya_LY'
-				})
-			}
-
 		}
 	}
 </script>

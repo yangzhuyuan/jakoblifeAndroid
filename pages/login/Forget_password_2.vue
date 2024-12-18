@@ -1,6 +1,6 @@
 <template>
-	<view>
-		<view style="padding-top: 80px;">
+	<view style="color: black; background: #F7F7F7; color: black;width: 100vw; height: 100vh;">
+		<view style="padding-top: 80px;color: black;">
 			<view class="linear">
 				<image class="img_bg" src="../../static/icons/16.png" />
 				<input type="text" :password=isPassword1 :placeholder="$t('login.input_1')"
@@ -73,6 +73,20 @@
 				if (this.true_passwrod === "" || this.true_passwrod === undefined) {
 					uni.showToast({
 						title: this.$t('zhuceitem.toast_2'),
+						icon: "none"
+					})
+					return
+				}
+				if (this.passwrod.length < 8) {
+					uni.showToast({
+						title: "密码不能低于8位数",
+						icon: "none"
+					})
+					return
+				}
+				if (this.true_passwrod.length < 8) {
+					uni.showToast({
+						title: "密码不能低于8位数",
 						icon: "none"
 					})
 					return

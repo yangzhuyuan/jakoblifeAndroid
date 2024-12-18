@@ -48,7 +48,7 @@
 			// 默认值
 			defaultValue: {
 				type: Number,
-				default: 0
+				default: 1000
 			},
 			// 是否禁用
 			disable: {
@@ -71,15 +71,20 @@
 			// 刻度尺滚动监听
 			handleScroll(e) {
 				this.scroll = e;
-				this.number = Math.round(e.detail.scrollLeft / Math.round((e.detail.scrollWidth - 375) / this.max));
+				this.number = Math.round(e.detail.scrollLeft / Math.round((e.detail.scrollWidth) / this.max));
 				this.$emit('change', ((this.number + this.min) / this.multiple).toFixed(this.point));
 			},
 			// 初始化刻度尺
 			initScroll() {
-				this.scroll_left = this.number * Math.round((this.scroll.detail.scrollWidth - 375) / this.max);
+				console.log("默认值1：", this.number)
+				console.log("默认值1：", Math.round((this.scroll.detail.scrollWidth) / this.max))
+				this.scroll_left = this.number * 5;
 			},
 			// 设置默认值
 			setDefault(number) {
+				console.log("默认值：", number)
+				console.log("最小值：", this.min)
+				console.log("最大值：", this.max)
 				if (number < this.min || number > this.max) {
 					uni.showToast({
 						title: `数值超出范围(${this.min/this.multiple}-${this.max/this.multiple})`,
@@ -105,9 +110,10 @@
 
 <style scoped lang="scss">
 	.select-ruler {
-		width: 100vw;
-		height: 30px;
+		// width: 100vw;
+		// height: 30px;
 		position: relative;
+
 		.tap-mask {
 			width: 90vw;
 			height: 20px;
@@ -122,7 +128,7 @@
 			position: absolute;
 			left: 180px;
 			text-align: center;
-			
+
 			&:before {
 				content: '';
 				width: 2px;
@@ -151,7 +157,7 @@
 
 			&.mask-left {
 				left: 0;
-				background-image: linear-gradient(to right, #fff, rgba(#fff, 0));
+				background-image: linear-gradient(to left, #fff, rgba(#fff, 0));
 			}
 
 			&.mask-right {
@@ -161,7 +167,7 @@
 		}
 
 		scroll-view {
-			width: 90vw;
+			width: 100%;
 			height: 80px;
 			white-space: nowrap;
 
@@ -171,12 +177,15 @@
 				display: inline-block;
 				position: relative;
 
+
+				//开始值
 				&:first-child {
-					margin-left: 180px;
+					margin-left: 56%;
 				}
 
+				//结束值
 				&:last-child {
-					margin-right: 150px;
+					margin-right: 43%;
 				}
 
 				//子线

@@ -1,10 +1,9 @@
 <template>
-	<view>
+	<view style="color: black;width: 100vw;height: 100vh;">
 		<view style="background: #3298F7;">
 			<view style="display: flex;flex-direction: column;align-items: center;padding-top: 120px;">
 				<view>
-					<image :src="avatar?avatar :'../../../static/icons/40x40.png'"
-						style="border-radius: 50px; width: 80px;height: 80px;">
+					<image :src="avatar" style="border-radius: 50px; width: 80px;height: 80px;">
 					</image>
 				</view>
 				<view style="margin-top: 15px;color: white;font-size: 18px;font-weight: bold;">{{username}}</view>
@@ -48,8 +47,8 @@
 					</view>
 				</view>
 			</view>
-			<view class="title_all">
-				<image src="../../../static/qiehuan.png" style="width: 25px; height: 25px;"></image>
+			<view class="my_title_all">
+				<image @click="qiehuan()" src="../../../static/qiehuan.png" style="width: 25px; height: 25px;"></image>
 				<view class="title">{{$t('wode')}}</view>
 				<image v-if="msg" src="../../../static/icons/19.png"
 					style="width: 25px; height: 25px; padding-right: 30px;" @click="Historical_record()">
@@ -84,17 +83,58 @@
 		},
 
 		onShow() {
+			console.log("token:", uni.getStorageSync("token"))
 			let that = this
-			console.log("yonghu", that.info)
-			this.avatar = that.info.avatar
-			this.username = that.info.userName
+			if (uni.getStorageSync("token") === "" || uni.getStorageSync("token") === undefined) {
+				uni.redirectTo({
+					url: "/pages/login/login_land"
+				})
+			} else {
+				uni.request({
+					url: that.$url_getInfo,
+					method: 'GET',
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+					},
+					success: function(res) {
+						console.log("获取用户信息成功:", res)
+						if (res.statusCode == 200) {
+							if (res.data.code == 200) {
+								if (res.data.data.avatar === "" || res.data.data.avatar === undefined) {
+									that.avatar = "../../../static/icons/40x40.png"
+								} else {
+									that.avatar = res.data.data.avatar
+								}
+								that.username = that.info.nickName
+							} else {
+								uni.showToast({
+									title: res.data.msg,
+									icon: 'none'
+								})
+							}
+						} else {
+							console.log("获取数据错误")
+						}
+					},
+					fail(err) {
+						console.log(err)
+					}
+				})
+			}
 		},
 
-		onLoad() {
 
-		},
 
 		methods: {
+
+
+			//切换
+			qiehuan() {
+				uni.navigateTo({
+							url: '../../../pages/Bind/cs_manage_1?typesss=my'
+				})
+			},
 
 			//消息
 			Historical_record() {
@@ -123,14 +163,14 @@
 					url: "/pages/tabBar/my/Equipment_management"
 				})
 			},
-			
+
 			//提醒设置
 			Reminder_setting() {
 				uni.navigateTo({
 					url: "/pages/tabBar/my/Reminder_setting"
 				})
 			},
-			
+
 			//帮助中心
 			Help_center() {
 				uni.navigateTo({
@@ -158,9 +198,9 @@
 </script>
 
 <style>
-	.title_all {
+	.my_title_all {
 		height: 60px;
-		padding: 30px 10px 10px 10px;
+		padding: 30px 15px 10px 15px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;

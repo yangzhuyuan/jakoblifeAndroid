@@ -11,14 +11,18 @@
                 "launchtype" : "local"
             },
             "h5" : {
-                "launchtype" : "local"
+                "launchtype" : "remote"
             },
             "provider" : "aliyun",
             "type" : "uniCloud"
         },
         {
-            "playground" : "standard",
+            "playground" : "custom",
             "type" : "uni-app:app-android"
+        },
+        {
+            "playground" : "standard",
+            "type" : "uni-app:app-ios"
         }
     ]
 }

@@ -1,0 +1,16 @@
+{
+    "success" : false,
+    "error" : {
+        "code" : "InvalidSpace.NotInService",
+        "message" : "The space is not in service."
+    },
+    "applinks" : {
+        "apps" : [],
+        "details" : [
+            {
+                "appID" : "3M8XH232W5.io.dcloud.jakob",
+                "paths" : [ "*", "https://jakob-techs.com/qq_conn/102445791/*" ]
+            }
+        ]
+    }
+}

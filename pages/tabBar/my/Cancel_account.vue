@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 10px;">
+	<view style="padding: 10px;background: #F7F7F7; color: black; height: 100vh;">
 		<view style="display:flex;flex-direction: column;align-items: center;">
 			<image style="width: 180px;height:180px;" src="../../../static/icons/14.png"></image>
 			<text style=" font-size: 16px; font-weight: bold;">{{$t('wodelist.zx_titles0')}}</text>

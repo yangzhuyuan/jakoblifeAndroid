@@ -1,5 +1,5 @@
 <template>
-	<view style="padding: 20px;">
+	<view style="padding: 20px; background: #F7F7F7; color: black; height: 100vh;">
 		<view class="titless">{{$t('zhuceitem.title_1')}}</view>
 		<view class="title_ct">{{$t('zhuceitem.title_2')}}</view>
 		<view class="bt_BG">
@@ -91,10 +91,10 @@
 				this.$refs.popup.close()
 			},
 			bindDateChange(e) {
-				let str = e.detail.value;
-				let t = str.replace("-", "年").replace("-", "月") + "日";
-				console.log(t);
-				this.date = t
+				// let str = e.detail.value;
+				// let t = str.replace("-", "年").replace("-", "月") + "日";
+				// console.log(t);
+				this.date = e.detail.value
 			},
 			btn_success() {
 				if (this.select === '' || this.select === undefined || this.select === this.$t('zhuceitem.title_7')) {
@@ -126,8 +126,8 @@
 				this.update_info()
 			},
 			btn_skip() {
-				uni.reLaunch({
-					url: "../Bind/cs_manage"
+				uni.switchTab({
+					url: '/pages/tabBar/main/Main'
 				})
 			},
 			//更新个人信息
@@ -163,7 +163,7 @@
 							} else {
 								uni.showToast({
 									title: res.data.msg,
-									icon: 'error'
+									icon: 'none'
 								})
 							}
 						}

@@ -1,9 +1,8 @@
 <template>
-	<view style="background: #F1F1F1;height: 100vh;">
-		<view class="title_bg">《JakobLife软件服务使用协议》</view>
-		<view style="padding: 20px; background: #F1F1F1;">
-			<view>JakobLife为您提供与部分JakobLife健康产品配套的相关健康管理服务（包括健康数据管理等）。</view>
-			<view style="margin-top: 20px;padding-bottom: 400px;">{{context}}</view>
+	<view style="background: #F1F1F1;height: 100vh;color: black;width: 100vw;">
+		<view class="title_bg">{{title}}</view>
+		<view style="padding: 20px 20px 260px 20px; background: #F1F1F1;">
+			<rich-text :nodes="content"></rich-text>
 		</view>
 		<view style="width:100vw;position:fixed;bottom: 0; background: #F1F1F1;">
 			<view class="pos_title">
@@ -11,13 +10,16 @@
 					activeBackgroundColor="#3298F7" :checked="cb" @click="checked()">{{$t('SYXYitem.pos_0')}}
 				</checkbox>
 				<view style="margin-left: 32px; margin-top: 5px;">{{$t('SYXYitem.pos_1')}}</view>
-				<view style="margin-left: 35px; margin-top: 5px;">{{$t('SYXYitem.pos_2')}}</view>
-				<view style="margin-left: 35px; margin-top: 5px;">{{$t('SYXYitem.pos_3')}}</view>
-				<view style="margin-left: 35px; margin-top: 5px;">{{$t('SYXYitem.pos_4')}}</view>
-				<view style="margin-left: 35px; margin-top: 5px;">{{$t('SYXYitem.pos_5')}}</view>
+				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1131)">{{$t('SYXYitem.pos_2')}}
+				</view>
+				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1130)">{{$t('SYXYitem.pos_3')}}
+				</view>
+				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1135)">{{$t('SYXYitem.pos_4')}}
+				</view>
+				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1111)">{{$t('SYXYitem.pos_5')}}
+				</view>
 			</view>
-			<button style="background: #3298F7; color: white; border-radius: 30px; margin: 20px"
-				@tap="btn_agree">{{$t('SYXYitem.button')}}</button>
+			<button class="button_back" :style="getback(cb)" @tap="btn_agree">{{$t('SYXYitem.button')}}</button>
 		</view>
 
 	</view>
@@ -27,15 +29,17 @@
 	export default {
 		data() {
 			return {
-				context: '若要继续,请确保已经阅读并充分理解的前提下勾选并同意以下的必要协议。《JakobLife软件移动客户端用户使用规范》、《JakobLife隐私政策》、《敏感个人信息处理情况的说明》、《向第三方提供个人信息情况的说明》，可让您知道我们如何处理您的个人信息以及您享有的相关权力。',
+				title: '',
+				content: '',
 				cb: false,
 			}
 		},
-		
+
 		onShow() {
 			uni.setNavigationBarTitle({
-				title:this.$t('SYXY_title')
+				title: this.$t('SYXY_title')
 			})
+			this.article(1)
 		},
 
 		onLoad(res) {
@@ -48,6 +52,38 @@
 		},
 
 		methods: {
+
+			article(id) {
+				let that = this
+				uni.request({
+					url: that.$url_article,
+					method: 'GET',
+					data: {
+						articleId: id
+					},
+					header: {
+						'content-type': 'application/json' //自定义请求头信息
+					},
+					success(res) {
+						console.log("根据文章id获取内容详细信息", res)
+						that.title = res.data.data.title
+						that.content = res.data.data.content
+					}
+				})
+			},
+
+
+			getback(id) {
+				return {
+					background: id == false ? "#DBDBDB" : "#3298F7"
+				}
+			},
+
+			click_button(id) {
+				uni.navigateTo({
+					url: '../service/Usage_agreement?id=' + id
+				})
+			},
 
 			checked() {
 				if (this.cb == true) {
@@ -89,5 +125,12 @@
 		display: flex;
 		flex-direction: column;
 		margin-bottom: 10px;
+	}
+
+	.button_back {
+		background: #3298F7;
+		color: white;
+		border-radius: 30px;
+		margin: 20px
 	}
 </style>

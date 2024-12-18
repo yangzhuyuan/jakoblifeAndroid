@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view style="color: black;height: 100vh;width: 100vw;">
 		<view style="background: #0686CC; height: 120px;">
 			<view style=" padding-top: 60px;padding-bottom: 60px; ">
 
