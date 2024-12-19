@@ -61,29 +61,30 @@
 													<uni-icons type="help" size="15" style=""
 														@tap="BMI_tap"></uni-icons>
 												</view>
-												<view style="margin-right: 10px; color: gray;">{{item.modelName}}</view>
+												<view style="margin-right: 30px; color: gray;">{{item.modelName}}</view>
 											</view>
 											<view class="border_bg" />
-											<view style="display: flex; flex-direction: row; ">
+											<view style="display: flex; flex-direction: row; padding-left: 10px;">
 												<view style="text-align: center;">
-													<view class="text_item_bg">{{$t('gongxiangitem.title_24')}}/mmHg
-													</view>
-													<view class="text_item_bg_1">{{item.object.summary.highPressureAvg}}
-													</view>
-												</view>
-												<view style="text-align: center;">
-													<view class="text_item_bg">{{$t('gongxiangitem.title_23')}}/mmHg
+													<view class="text_item_bg">舒张压mmHg
 													</view>
 													<view class="text_item_bg_1">{{item.object.summary.lowPressureAvg}}
 													</view>
 												</view>
 												<view style="text-align: center;">
-													<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}/BMP
+													<view class="text_item_bg">收缩压mmHg
+													</view>
+													<view class="text_item_bg_1">{{item.object.summary.highPressureAvg}}
+													</view>
+												</view>
+												
+												<view style="text-align: center;">
+													<view class="text_item_bgqqq">{{$t('gongxiangitem.title_25')}}/BMP
 													</view>
 													<view class="text_item_bg_1">{{item.object.summary.heartrateAvg}}
 													</view>
 												</view>
-												<view style="margin-top: 20px;margin-left: 10px;"
+												<view style="margin-top: 20px;"
 													@click="zhankai_cl(index)">
 													<view v-if="item.object.summary.ss == true">
 														<uni-icons type="top" size="22"></uni-icons>
@@ -147,24 +148,25 @@
 													<view style="display: flex; flex-direction: row; ">
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_24')}}/mmHg
-															</view>
-															<view class="text_item_bg_1">
-																{{item1.highPressure}}
-															</view>
-														</view>
-														<view style="text-align: center;">
-															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_23')}}/mmHg
+																舒张压mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item1.lowPressure}}
 															</view>
 														</view>
+														<view style="text-align: center;">
+															<view class="text_item_bg">
+																收缩压mmHg
+															</view>
+															<view class="text_item_bg_1">
+																{{item1.highPressure}}
+															</view>
+														</view>
+														
 
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_25')}}/BMP
+																{{$t('gongxiangitem.title_25')}}BMP
 															</view>
 															<view class="text_item_bg_1">{{item1.heartrate}}</view>
 														</view>
@@ -197,10 +199,11 @@
 												<view style="margin-top: 10px;width: 25vw;margin-left: 10px;">
 													{{item1.time}}
 												</view>
-												<view style="margin-top: 10px;width: 20vw;">{{item1.highPressure}}
-												</view>
 												<view style="margin-top: 10px;width: 20vw;">{{item1.lowPressure}}
 												</view>
+												<view style="margin-top: 10px;width: 20vw;">{{item1.highPressure}}
+												</view>
+												
 												<view style="margin-top: 10px;">{{item1.heartrate}}</view>
 											</view>
 										</view>
@@ -238,7 +241,7 @@
 															<uni-icons type="help" size="15" style=""
 																@tap="BMI_tap"></uni-icons>
 														</view>
-														<view style="margin-right: 10px; color: gray;">
+														<view style="margin-right: 20px; color: gray;">
 															{{item.modelName}}
 														</view>
 													</view>
@@ -246,7 +249,7 @@
 													<view style="display: flex; flex-direction: row; ">
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_23')}}/mmHg
+																{{$t('gongxiangitem.title_23')}}mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.lowPressureAvg}}
@@ -254,15 +257,15 @@
 														</view>
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_24')}}/mmHg
+																{{$t('gongxiangitem.title_24')}}mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.highPressureAvg}}
 															</view>
 														</view>
 														<view style="text-align: center;">
-															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_25')}}/BMP
+															<view class="text_item_bgqqq">
+																{{$t('gongxiangitem.title_25')}}BMP
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.heartrateAvg}}
@@ -310,7 +313,7 @@
 															<uni-icons type="help" size="15" style=""
 																@tap="BMI_tap"></uni-icons>
 														</view>
-														<view style="margin-right: 10px; color: gray;">
+														<view style="margin-right: 20px; color: gray;">
 															{{item.modelName}}
 														</view>
 													</view>
@@ -318,7 +321,7 @@
 													<view style="display: flex; flex-direction: row; ">
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_23')}}/mmHg
+																{{$t('gongxiangitem.title_23')}}mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.lowPressureAvg}}
@@ -326,15 +329,15 @@
 														</view>
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_24')}}/mmHg
+																{{$t('gongxiangitem.title_24')}}mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.highPressureAvg}}
 															</view>
 														</view>
 														<view style="text-align: center;">
-															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_25')}}/BMP
+															<view class="text_item_bgqqq">
+																{{$t('gongxiangitem.title_25')}}BMP
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.heartrateAvg}}
@@ -399,25 +402,25 @@
 													<uni-icons type="help" size="15" style=""
 														@tap="BMI_tap1"></uni-icons>
 												</view>
-												<view style="margin-right: 10px; color: gray;">{{item.modelName}}</view>
+												<view style="margin-right: 20px; color: gray;">{{item.modelName}}</view>
 											</view>
 											<view class="border_bg" />
 											<view style="display: flex; flex-direction: row; ">
 												<view>
-													<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
+													<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
 													</view>
-													<view class="text_item_bg_1">{{item.object.summary.weightAvg}}
+													<view class="text_item_bg_1" style="padding-left: 25px;">{{item.object.summary.weightAvg}}
 													</view>
 												</view>
 												<view>
-													<view class="text_item_bg">BMI</view>
-													<view class="text_item_bg_1">{{item.object.summary.bmiAvg}}</view>
+													<view class="text_item_bgqqq" >BMI</view>
+													<view class="text_item_bg_1" style="padding-left: 5px;">{{item.object.summary.bmiAvg}}</view>
 												</view>
-												<view>
-													<view class="text_item_bg"></view>
-													<view class="text_item_bg_2">{{item.dateTime}}</view>
+												<view style="padding-left: 30px;">
+													<view class="text_item_bgqqq" ></view>
+													<view class="text_item_bg_2qqq">{{item.dateTime}}</view>
 												</view>
-												<view style="margin-top: 20px;margin-left: 10px;"
+												<view style="margin-top: 20px; margin-left: 10px;"
 													@click="zhankai_cl(index)">
 													<view v-if="item.object.summary.ss == true">
 														<uni-icons type="top" size="22"></uni-icons>
@@ -482,18 +485,18 @@
 													<view class="border_bg1" />
 													<view style="display: flex; flex-direction: row; ">
 														<view>
-															<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
+															<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
 															</view>
-															<view class="text_item_bg_1">
+															<view class="text_item_bg_1" style="padding-left: 25px;">
 																{{item1.weight}}
 															</view>
 														</view>
 														<view>
-															<view class="text_item_bg">BMI</view>
+															<view class="text_item_bgqqq">BMI</view>
 															<view class="text_item_bg_1">{{item1.bmi}}
 															</view>
 														</view>
-														<view>
+														<view style="margin-left: 20px;">
 															<view class="text_item_bg"></view>
 															<view class="text_item_bg_2">{{item.dateTime}}</view>
 														</view>
@@ -576,19 +579,19 @@
 													</view>
 													<view class="border_bg" />
 													<view style="display: flex; flex-direction: row; ">
-														<view>
-															<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
+														<view >
+															<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
 															</view>
-															<view class="text_item_bg_1">
+															<view class="text_item_bg_1" style="padding-left: 25px;">
 																{{item.object.summary.weightAvg}}
 															</view>
 														</view>
 														<view>
-															<view class="text_item_bg">BMI</view>
+															<view class="text_item_bgqqq">BMI</view>
 															<view class="text_item_bg_1">{{item.object.summary.bmiAvg}}
 															</view>
 														</view>
-														<view>
+														<view style="margin-left: 20px;">
 															<view class="text_item_bg"></view>
 															<view class="text_item_bg_2">{{item.dateTime1}}</view>
 														</view>
@@ -644,18 +647,18 @@
 													<view class="border_bg" />
 													<view style="display: flex; flex-direction: row; ">
 														<view>
-															<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
+															<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
 															</view>
-															<view class="text_item_bg_1">
+															<view class="text_item_bg_1"style="padding-left: 25px;">
 																{{item.object.summary.weightAvg}}
 															</view>
 														</view>
 														<view>
-															<view class="text_item_bg">BMI</view>
+															<view class="text_item_bgqqq">BMI</view>
 															<view class="text_item_bg_1">{{item.object.summary.bmiAvg}}
 															</view>
 														</view>
-														<view>
+														<view style="margin-left: 20px;">
 															<view class="text_item_bg"></view>
 															<view class="text_item_bg_2">{{item.dateTime1}}</view>
 														</view>
@@ -2536,18 +2539,28 @@
 
 	.text_item_bg {
 		font-size: 12px;
-		margin-left: 20px;
-		margin-right: 1px;
+		margin-left: 5px;
+		margin-right: 5px;
 		color: gray;
-		width: 60px;
+		width: 80px;
 		margin-top: 5px;
-		white-space: nowrap;
-		overflow: auto;
+		/* white-space: nowrap;
+		overflow: auto; */
+	}
+	.text_item_bgqqq {
+		font-size: 12px;
+		margin-left: 5px;
+		margin-right: 5px;
+		color: gray;
+		/* width: 80px; */
+		margin-top: 5px;
+		/* white-space: nowrap;
+		overflow: auto; */
 	}
 
 	.text_item_bg_1 {
 		font-size: 16px;
-		margin-left: 20px;
+		/* margin-left: 5px; */
 	}
 
 	.icon_item_bg_ssss {
@@ -2583,6 +2596,13 @@
 	.text_item_bg_2 {
 		font-size: 16px;
 		margin-left: 10px;
+		color: gray;
+		margin-top: 20px;
+	}
+	
+	.text_item_bg_2qqq {
+		font-size: 16px;
+		/* margin-left: 10px; */
 		color: gray;
 		margin-top: 20px;
 	}

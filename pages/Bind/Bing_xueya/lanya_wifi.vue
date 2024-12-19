@@ -88,9 +88,25 @@
 
 <script>
 	export default {
-		// onShow() {
-		// 	this.initBluetooth()
-		// },
+		onShow() {
+			let that = this
+			uni.getStorageInfo({
+				success(res) {
+					if (res.keys.includes("listdadsa")) {
+						console.log("daskasdhadha", uni.getStorageSync("listdadsa"))
+						// 假设我们要根据 'id' 属性去重
+						let uniqueArr = uni.getStorageSync("listdadsa").filter((item, index, self) => {
+							return self.findIndex(t => t.name === item.name) === index;
+						});
+						that.bluetoothList1 = uniqueArr
+					} else {
+						that.bluetoothList1 = []
+					}
+				}
+			})
+
+
+		},
 		data() {
 			return {
 				checked: false,
@@ -130,16 +146,20 @@
 				if (e.detail.value == true) {
 					this.checked = true
 					this.initBluetooth()
-				}else{
+				} else {
 					this.checked = false
 					this.bluetoothList = []
 					uni.closeBluetoothAdapter({
-					  success(res) {
-					    console.log(res)
-					  }
+						success(res) {
+							console.log(res)
+						}
 					})
 				}
 			},
+
+
+
+
 
 
 			goService() {
@@ -154,7 +174,22 @@
 			selectBluetooth1(item) {
 				let that = this
 				console.log("选中蓝牙", item)
-				that.createBLEConnection(item.deviceId)
+				// uni.openBluetoothAdapter({
+				// 	success: res => {
+				that.createBLEConnection(item.deviceId, item)
+				// 	}
+				// })
+
+
+			},
+			selectBluetooth(item) {
+				let that = this
+				uni.openBluetoothAdapter({
+					success: res => {
+						that.createBLEConnection(item.deviceId, "")
+					}
+				})
+
 
 			},
 			/*蓝牙初始化*/
@@ -179,15 +214,23 @@
 			},
 
 
-			createBLEConnection(deviceId) {
+			createBLEConnection(deviceId, item) {
 				let that = this;
 				that.$refs.popup.open("bottom")
+
+
 				uni.createBLEConnection({
 					deviceId: deviceId,
 					success: (res) => {
 						that.$refs.popup1.open("bottom")
 						console.log("连接低功耗蓝牙设备成功", res);
 						that.$refs.popup.close()
+
+						if (item != "") {
+							that.bluetoothList1.push(item)
+							uni.setStorageSync("listdadsa", that.bluetoothList1)
+						}
+
 						//需延时连接，不然会报错
 						setTimeout(function() {
 							that.getBLEDeviceServices(deviceId)
@@ -204,7 +247,7 @@
 					fail(erro) {
 						that.$refs.popup.close()
 						uni.showToast({
-							title: "连接失败",
+							title: "连接失败或设备已经连接",
 							icon: 'none'
 						})
 						console.log("连接低功耗蓝牙设备失败", erro);
@@ -237,7 +280,7 @@
 					serviceId: serviceId,
 					success: (res) => {
 						console.log('获取蓝牙设备某个服务中所有特征值(characteristic)', res.characteristics)
-						
+
 						that.deviceId = deviceId
 						that.serviceId = serviceId
 						that.uuid = res.characteristics[0].uuid

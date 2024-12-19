@@ -40,13 +40,13 @@
 								<view>
 									<view style="color: gray;font-size: 12px;">{{$t('gongxiangitem.title_23')}}mmHg
 									</view>
-									<view style="font-weight: bold;margin-top: 10px;font-size: 18px;">{{highPressure}}
+									<view style="font-weight: bold;margin-top: 10px;font-size: 18px;">{{lowPressure}}
 									</view>
 								</view>
 								<view style="margin-left: 20px;">
 									<view style="color: gray;font-size: 12px;">{{$t('gongxiangitem.title_24')}}mmHg
 									</view>
-									<view style="font-weight: bold;margin-top: 10px;font-size: 18px;">{{lowPressure}}
+									<view style="font-weight: bold;margin-top: 10px;font-size: 18px;">{{highPressure}}
 									</view>
 								</view>
 								<view style="margin-left: 20px;">
@@ -1194,8 +1194,8 @@
 						deviceSn: uni.getStorageSync('deviceSn'),
 						slaveSn: "0",
 						slaveData: {
-							lowPressure: that.shousuoya,
-							highPressure: that.shuzhangya,
+							lowPressure: that.shuzhangya,
+							highPressure: that.shousuoya,
 							heartrate: that.maibo
 						},
 						time: timestamp

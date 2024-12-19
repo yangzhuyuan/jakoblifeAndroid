@@ -1,7 +1,7 @@
 <template>
-	<view style="padding: 10px; display: flex;justify-content: center;background: #EFEFF4;color: black;height: 100vh;">
+	<view style="padding: 10px; display: flex;background: #EFEFF4;color: black;height: 100vh;flex-direction: column;">
 		<view class="title_bg">{{title}}</view>
-		<view style="padding: 20px; background: #F1F1F1;">
+		<view style="padding-right: 20px;">
 			<rich-text :nodes="content"></rich-text>
 		</view>
 
@@ -84,6 +84,6 @@
 		justify-content: left;
 		font-size: 16px;
 		font-weight: bold;
-		padding-top: 40px;
+		padding-top: 20px;
 	}
 </style>

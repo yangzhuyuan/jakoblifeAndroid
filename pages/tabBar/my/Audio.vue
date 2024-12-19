@@ -188,14 +188,29 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-				innerAudioContext.src = 'http://localhost:8080/static/autio/lieda.mp3';
-				innerAudioContext.onPlay(() => {
-					console.log('开始播放');
-				});
-				innerAudioContext.onError((res) => {
-					console.log(res.errMsg);
-					console.log(res.errCode);
-				});
+				if (uni.getSystemInfoSync().platform === "android") {
+					innerAudioContext.src = 'http://localhost:8080/static/autio/lieda.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				} else {
+					const innerAudioContext = uni.createInnerAudioContext();
+					innerAudioContext.autoplay = true;
+					innerAudioContext.src = '/static/autio/lieda.mp3'; //铃声文件的路径
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				}
+
+
 			},
 
 
@@ -210,14 +225,25 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-				innerAudioContext.src = 'http://localhost:8080/static/autio/bolang.mp3';
-				innerAudioContext.onPlay(() => {
-					console.log('开始播放');
-				});
-				innerAudioContext.onError((res) => {
-					console.log(res.errMsg);
-					console.log(res.errCode);
-				});
+				if (uni.getSystemInfoSync().platform === "android") {
+					innerAudioContext.src = 'http://localhost:8080/static/autio/bolang.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				} else {
+					innerAudioContext.src = '/static/autio/bolang.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				}
 			},
 			//倒影
 			Inverted_reflection() {
@@ -228,14 +254,25 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-				innerAudioContext.src = 'http://localhost:8080/static/autio/daoying.mp3';
-				innerAudioContext.onPlay(() => {
-					console.log('开始播放');
-				});
-				innerAudioContext.onError((res) => {
-					console.log(res.errMsg);
-					console.log(res.errCode);
-				});
+				if (uni.getSystemInfoSync().platform === "android") {
+					innerAudioContext.src = 'http://localhost:8080/static/autio/daoying.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				} else {
+					innerAudioContext.src = '/static/autio/daoying.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				}
 			},
 			//灯塔
 			Lighthouse() {
@@ -246,14 +283,26 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-				innerAudioContext.src = 'http://localhost:8080/static/autio/dengta.mp3';
-				innerAudioContext.onPlay(() => {
-					console.log('开始播放');
-				});
-				innerAudioContext.onError((res) => {
-					console.log(res.errMsg);
-					console.log(res.errCode);
-				});
+				if (uni.getSystemInfoSync().platform === "android") {
+					innerAudioContext.src = 'http://localhost:8080/static/autio/dengta.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+
+				} else {
+					innerAudioContext.src = '/static/autio/dengta.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				}
 			},
 			//山顶
 			hilltop() {
@@ -264,15 +313,28 @@
 				this.hilltop_show = true
 				this.Crystal_show = false
 				this.There_is_no_show = false
-				innerAudioContext.src = 'http://localhost:8080/static/autio/shanding.mp3';
-				innerAudioContext.onPlay(() => {
-					console.log('开始播放');
-				});
-				innerAudioContext.onError((res) => {
-					console.log(res.errMsg);
-					console.log(res.errCode);
-				});
+				if (uni.getSystemInfoSync().platform === "android") {
+					innerAudioContext.src = 'http://localhost:8080/static/autio/shanding.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+
+				} else {
+					innerAudioContext.src = '/static/autio/shanding.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				}
 			},
+
 			//水晶
 			Crystal() {
 				this.radar_show = false
@@ -282,14 +344,25 @@
 				this.hilltop_show = false
 				this.Crystal_show = true
 				this.There_is_no_show = false
-				innerAudioContext.src = 'http://localhost:8080/static/autio/shuijing.mp3';
-				innerAudioContext.onPlay(() => {
-					console.log('开始播放');
-				});
-				innerAudioContext.onError((res) => {
-					console.log(res.errMsg);
-					console.log(res.errCode);
-				});
+				if (uni.getSystemInfoSync().platform === "android") {
+					innerAudioContext.src = 'http://localhost:8080/static/autio/shuijing.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				} else {
+					innerAudioContext.src = '/static/autio/shuijing.mp3';
+					innerAudioContext.onPlay(() => {
+						console.log('开始播放');
+					});
+					innerAudioContext.onError((res) => {
+						console.log(res.errMsg);
+						console.log(res.errCode);
+					});
+				}
 			},
 			There_is_no() {
 				this.radar_show = false

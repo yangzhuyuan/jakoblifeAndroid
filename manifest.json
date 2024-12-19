@@ -95,9 +95,9 @@
                 "useOriginalMsgbox" : true,
                 "androidStyle" : "common",
                 "android" : {
-                    "hdpi" : "",
-                    "xhdpi" : "",
-                    "xxhdpi" : ""
+                    "hdpi" : "static/splsh.png",
+                    "xhdpi" : "static/splsh.png",
+                    "xxhdpi" : "static/splsh.png"
                 },
                 "iosStyle" : "common",
                 "ios" : {

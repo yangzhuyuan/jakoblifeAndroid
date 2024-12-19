@@ -79,15 +79,15 @@
 					<view class="border_bg" />
 					<view class="title_all_bg">
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_23')}}/mmHg</view>
+							<view class="text_item_bg">舒张压mmHg</view>
 							<view class="text_item_bg_1">{{lately_Diastolic_blood_pressure}}</view>
 						</view>
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_24')}}/mmHg</view>
+							<view class="text_item_bg">收缩压mmHg</view>
 							<view class="text_item_bg_1">{{lately_Systolic_blood_pressure}}</view>
 						</view>
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}/BMP</view>
+							<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}BMP</view>
 							<view class="text_item_bg_1">{{lately_pulse}}</view>
 						</view>
 					</view>
@@ -108,11 +108,11 @@
 					<view class="border_bg" />
 					<view class="title_all_bg">
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_23')}}/mmHg</view>
+							<view class="text_item_bg">舒张压mmHg</view>
 							<view class="text_item_bg_1">{{average_Diastolic_blood_pressure}}</view>
 						</view>
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_24')}}/mmHg</view>
+							<view class="text_item_bg">收缩压mmHg</view>
 							<view class="text_item_bg_1">{{average_Systolic_blood_pressure}}</view>
 						</view>
 						<view>
@@ -137,11 +137,11 @@
 					<view class="border_bg" />
 					<view class="title_all_bg">
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_23')}}/mmHg</view>
+							<view class="text_item_bg">舒张压mmHg</view>
 							<view class="text_item_bg_1">{{Maximum_Diastolic_blood_pressure}}</view>
 						</view>
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_24')}}/mmHg</view>
+							<view class="text_item_bg">收缩压mmHg</view>
 							<view class="text_item_bg_1">{{Maximum_Systolic_blood_pressure}}</view>
 						</view>
 						<view>
@@ -166,11 +166,11 @@
 					<view class="border_bg" />
 					<view class="title_all_bg">
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_23')}}/mmHg</view>
+							<view class="text_item_bg">舒张压mmHg</view>
 							<view class="text_item_bg_1">{{Minimum_Diastolic_blood_pressure}}</view>
 						</view>
 						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_24')}}/mmHg</view>
+							<view class="text_item_bg">收缩压mmHg</view>
 							<view class="text_item_bg_1">{{Minimum_Systolic_blood_pressure}}</view>
 						</view>
 						<view>
@@ -1817,8 +1817,8 @@
 						deviceSn: uni.getStorageSync('deviceSn'),
 						slaveSn: "0",
 						slaveData: {
-							lowPressure: that.shousuoya,
-							highPressure: that.shuzhangya,
+							lowPressure: that.shuzhangya,
+							highPressure: that.shousuoya,
 							heartrate: that.maibo
 						},
 						time: timestamp
@@ -2211,13 +2211,13 @@
 
 	.text_item_bg {
 		font-size: 12px;
-		margin-left: 10px;
-		margin-right: 10px;
+		margin-left: 5px;
+		margin-right: 5px;
 		color: gray;
-		width: 60px;
+		width: 80px;
 		margin-top: 5px;
-		white-space: nowrap;
-		overflow: auto;
+		// white-space: nowrap;
+		// overflow: auto;
 
 	}
 

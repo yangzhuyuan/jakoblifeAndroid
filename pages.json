@@ -737,7 +737,17 @@
 			"style": {
 				"navigationBarTitleText": "提醒设置",
 				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
+				"navigationBarTextStyle": "black",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [{
+							"text": "保存",
+							"fontSrc": "/static/add.ttf",
+							"fontSize": "16px",
+							"color": "#3298F7"
+						}]
+					}
+				}
 			}
 		},
 		{
