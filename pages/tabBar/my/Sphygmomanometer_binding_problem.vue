@@ -12,14 +12,16 @@
 			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
 			<view @click="binding_problem_4G()"
 				style="display: flex; flex-direction: row; align-items: center;padding: 10px;">
-				<text style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_4')}}</text>
+				<text
+					style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_4')}}</text>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
 			<view style="padding: 10px;">
 				<view @click="binding_Tutorials_wifi()"
 					style="display: flex; flex-direction: row; align-items: center; ">
-					<text style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_5')}}</text>
+					<text
+						style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_5')}}</text>
 					<uni-icons type="right" size="16"></uni-icons>
 				</view>
 				<text style="font-size: 12px; color: gray;margin-left: 10px;">JL-BP67W、JL-BP68W为WIFI网络连接</text>
@@ -27,10 +29,10 @@
 			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
 			<view @click="binding_problem_wifi()"
 				style="display: flex; flex-direction: row; align-items: center;padding: 10px;">
-				<text style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_6')}}</text>
+				<text
+					style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_6')}}</text>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
-			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
 		</view>
 
 	</view>
@@ -53,22 +55,22 @@
 		methods: {
 			binding_Tutorials_4G() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Sphygmomanometer_binding_problem_1?id=1"
+					url: '../../tabBar/my/Sphygmomanometer_binding_problem_1?id=1'
 				})
 			},
 			binding_problem_4G() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Sphygmomanometer_binding_problem_1?id=2"
+					url: '../../tabBar/my/Sphygmomanometer_binding_problem_1?id=2'
 				})
 			},
 			binding_Tutorials_wifi() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Sphygmomanometer_binding_problem_1?id=3"
+					url: '../../tabBar/my/Sphygmomanometer_binding_problem_1?id=3'
 				})
 			},
 			binding_problem_wifi() {
 				uni.navigateTo({
-					url: "/pages/tabBar/my/Sphygmomanometer_binding_problem_1?id=4"
+					url: '../../tabBar/my/Sphygmomanometer_binding_problem_1?id=4'
 				})
 			},
 

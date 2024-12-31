@@ -1,7 +1,7 @@
 <template>
-	<view style="color: black;height: 100vh; padding: 15px;">
+	<view style="color: black;height: 100vh; padding: 0 15px 15px 15px;">
 		<view class="title_bg">{{title}}</view>
-		<view style="padding: 20px; background: #F1F1F1;">
+		<view style="padding: 20px;">
 			<rich-text :nodes="content"></rich-text>
 		</view>
 

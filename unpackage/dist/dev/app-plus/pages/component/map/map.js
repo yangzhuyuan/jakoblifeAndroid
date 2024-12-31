@@ -2142,7 +2142,7 @@ var S = "development" === "development",
   k = "true" === false || !0 === false,
   A = I([]),
   C = "h5" === b ? "web" : "app-plus" === b || "app-harmony" === b ? "app" : b,
-  P = I({"address":["127.0.0.1","192.168.2.9","192.168.157.1","192.168.136.1"],"servePort":7001,"debugPort":9001,"initialLaunchType":"remote","skipFiles":["<node_internals>/**","D:/HBuilderX.4.26.2024082213-alpha/HBuilderX/plugins/unicloud/**/*.js"]}),
+  P = I({"address":["127.0.0.1","192.168.2.9","192.168.157.1","192.168.136.1"],"servePort":7000,"debugPort":9000,"initialLaunchType":"remote","skipFiles":["<node_internals>/**","D:/HBuilderX.4.26.2024082213-alpha/HBuilderX/plugins/unicloud/**/*.js"]}),
   T = I([{"provider":"aliyun","spaceName":"jakoblife","spaceId":"mp-4026ecb4-413a-4626-8b98-52878b59a140","clientSecret":"Re/BtGPy/CHO32ggUYeAdA==","endpoint":"https://api.next.bspapp.com"}]) || [],
   x = true;
 var O = "";

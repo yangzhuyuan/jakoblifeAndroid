@@ -23,20 +23,7 @@
 		data() {
 			return {
 				listdata: true,
-				list: [{
-						tips: "测试",
-						time: "08:00",
-						switch: true,
-
-					},
-					{
-						tips: "吃药",
-						time: "08:00",
-						switch: false,
-
-					}
-				]
-
+				list: []
 			}
 		},
 
@@ -91,6 +78,7 @@
 							}
 							that.list.push(tiixnglist[i])
 						}
+						uni.setStorageSync("tixing", that.list)
 						uni.setStorageSync("tixing1", that.list)
 						console.log("dajhsdahd", that.list)
 					} else {
@@ -98,7 +86,6 @@
 						uni.setStorageSync("tixing1", that.list)
 						console.log("tixing不存在")
 					}
-
 				}
 			})
 		},
@@ -126,6 +113,7 @@
 				}
 				console.log("dasdjkashdadak", this.list)
 				uni.setStorageSync("tixing", this.list)
+				uni.setStorageSync("tixing1", this.list)
 
 			},
 		}

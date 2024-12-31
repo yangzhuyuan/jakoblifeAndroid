@@ -67,7 +67,7 @@
 			<view class="icon_item_bgsdsadsa">
 				<view class="icon_item_bg_1">
 					<image src="../../../static/icons/3.png" class="img_iocn_bg" />
-					<view style="margin-top: 10px;text-align: center;line-height: 15px;">{{$t('qushiitem.title_0')}}
+					<view style="margin-top: 10px;text-align: center;line-height: 15px;width: 60px;">最近血压
 					</view>
 				</view>
 				<view>
@@ -78,16 +78,16 @@
 					</view>
 					<view class="border_bg" />
 					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">舒张压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">舒张压/mmHg</view>
 							<view class="text_item_bg_1">{{lately_Diastolic_blood_pressure}}</view>
 						</view>
-						<view>
-							<view class="text_item_bg">收缩压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">收缩压/mmHg</view>
 							<view class="text_item_bg_1">{{lately_Systolic_blood_pressure}}</view>
 						</view>
-						<view>
-							<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}BMP</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}/BMP</view>
 							<view class="text_item_bg_1">{{lately_pulse}}</view>
 						</view>
 					</view>
@@ -96,7 +96,7 @@
 			<view class="icon_item_bg">
 				<view class="icon_item_bg_1">
 					<image src="../../../static/icons/3.png" class="img_iocn_bg" />
-					<view style="margin-top: 10px;text-align: center;line-height: 15px;">{{$t('qushiitem.title_1')}}
+					<view style="margin-top: 10px;text-align: center;line-height: 15px;width: 60px;">{{$t('qushiitem.title_1')}}
 					</view>
 				</view>
 				<view>
@@ -107,15 +107,15 @@
 					</view>
 					<view class="border_bg" />
 					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">舒张压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">舒张压/mmHg</view>
 							<view class="text_item_bg_1">{{average_Diastolic_blood_pressure}}</view>
 						</view>
-						<view>
-							<view class="text_item_bg">收缩压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">收缩压/mmHg</view>
 							<view class="text_item_bg_1">{{average_Systolic_blood_pressure}}</view>
 						</view>
-						<view>
+						<view style="margin-left: 5px;">
 							<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}/BMP</view>
 							<view class="text_item_bg_1">{{average_pulse}}</view>
 						</view>
@@ -125,7 +125,7 @@
 			<view class="icon_item_bg">
 				<view class="icon_item_bg_1">
 					<image src="../../../static/icons/3.png" class="img_iocn_bg" />
-					<view style="margin-top: 10px;text-align: center;line-height: 15px;">{{$t('qushiitem.title_2')}}
+					<view style="margin-top: 10px;text-align: center;line-height: 15px;width: 60px;">最高血压
 					</view>
 				</view>
 				<view>
@@ -136,15 +136,15 @@
 					</view>
 					<view class="border_bg" />
 					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">舒张压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">舒张压/mmHg</view>
 							<view class="text_item_bg_1">{{Maximum_Diastolic_blood_pressure}}</view>
 						</view>
-						<view>
-							<view class="text_item_bg">收缩压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">收缩压/mmHg</view>
 							<view class="text_item_bg_1">{{Maximum_Systolic_blood_pressure}}</view>
 						</view>
-						<view>
+						<view style="margin-left: 5px;">
 							<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}/BMP</view>
 							<view class="text_item_bg_1">{{Maximum_pulse}}</view>
 						</view>
@@ -154,7 +154,7 @@
 			<view class="icon_item_bg">
 				<view class="icon_item_bg_1">
 					<image src="../../../static/icons/3.png" class="img_iocn_bg" />
-					<view style="margin-top: 10px;text-align: center;line-height: 15px;">{{$t('qushiitem.title_3')}}
+					<view style="margin-top: 10px;text-align: center;line-height: 15px;width: 60px;">最低血压
 					</view>
 				</view>
 				<view>
@@ -165,15 +165,15 @@
 					</view>
 					<view class="border_bg" />
 					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">舒张压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">舒张压/mmHg</view>
 							<view class="text_item_bg_1">{{Minimum_Diastolic_blood_pressure}}</view>
 						</view>
-						<view>
-							<view class="text_item_bg">收缩压mmHg</view>
+						<view style="margin-left: 5px;">
+							<view class="text_item_bg">收缩压/mmHg</view>
 							<view class="text_item_bg_1">{{Minimum_Systolic_blood_pressure}}</view>
 						</view>
-						<view>
+						<view style="margin-left: 5px;">
 							<view class="text_item_bg">{{$t('gongxiangitem.title_25')}}/BMP</view>
 							<view class="text_item_bg_1">{{Minimum_pulse}}</view>
 						</view>
@@ -248,7 +248,7 @@
 			<view class="icon_item_bg">
 				<view class="icon_item_bg_1">
 					<image src="../../../static/icons/6.png" class="img_iocn_bg" />
-					<view style="margin-top: 10px;text-align: center;line-height: 15px;">{{$t('qushiitem.title_12')}}
+					<view style="margin-top: 10px;text-align: center;line-height: 15px;width: 60px;">{{$t('qushiitem.title_12')}}
 					</view>
 				</view>
 				<view>
@@ -259,7 +259,7 @@
 					</view>
 					<view class="border_bg" />
 					<view class="title_all_bg">
-						<view>
+						<view style="margin-left: 5px;">
 							<view class="text_item_bg">{{$t('qushiitem.title_13')}}</view>
 							<view class="text_item_bg_1">{{max_weight}}</view>
 						</view>
@@ -267,7 +267,7 @@
 							<view class="text_item_bg">{{$t('qushiitem.title_14')}}</view>
 							<view class="text_item_bg_1">{{min_weight}}</view>
 						</view>
-						<view>
+						<view style="margin-right: 5px;">
 							<view class="text_item_bg">{{$t('qushiitem.title_15')}}</view>
 							<view class="text_item_bg_1">{{avg_weight}}</view>
 						</view>
@@ -290,8 +290,6 @@
 					<view style="display: flex;justify-content: space-between; padding: 15px;">
 						<text @click="tz_closess()" style="font-size: 22px;">✖</text>
 						<view style="display: flex; flex-direction: row;">
-							<!-- <text @click="dataclick2()">{{birthday2}}</text>
-							<uni-icons type="bottom" size="16"></uni-icons> -->
 							<picker fields="day" mode="date" :value="birthday2" @change="bindDateChange2s"
 								:end='endtimesss'>
 								<view style="display: flex;flex-direction: row;">
@@ -1047,6 +1045,9 @@
 								icon: 'none'
 							})
 							that.$refs.tizhong_popup.close()
+							let str = new Date().toISOString().slice(0, 10) + ' 00:00:00'
+							let end = new Date().toISOString().slice(0, 10) + " 23:59:59"
+							that.query_weight_day(str, end)
 						} else {
 							uni.showToast({
 								title: res.data.msg,
@@ -1834,7 +1835,7 @@
 
 						if (res.data.code == 200) {
 							that.$refs.qs_popup.close()
-							that.birthday = that.$t('shouye_item.title_21')
+							that.birthday = "今天"
 							that.shousuoya = ''
 							that.shuzhangya = ''
 							that.maibo = ''
@@ -1842,6 +1843,7 @@
 								title: res.data.msg,
 								icon: 'none'
 							})
+							that.query_minmax(that.startTime, that.endTime)
 						} else if (res.data.code == 500) {
 
 						} else {
@@ -2191,11 +2193,11 @@
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		margin-left: 15px;
+		margin-left: 5px;
 	}
 
 	.border_bg {
-		margin: 5px 10px 0 20px;
+		margin: 5px 10px 0 10px;
 		background: gainsboro;
 		width: 65vw;
 		height: 1px;
@@ -2205,28 +2207,28 @@
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
-		margin-left: 10px;
+		margin-left: 5px;
 		margin-right: 10px;
 	}
 
 	.text_item_bg {
 		font-size: 12px;
+		color: gray;
+		// width: 80px;
+		margin-top: 5px;
+
+	}
+	.text_item_bg222ws {
+		font-size: 12px;
 		margin-left: 5px;
 		margin-right: 5px;
 		color: gray;
-		width: 80px;
 		margin-top: 5px;
-		// white-space: nowrap;
-		// overflow: auto;
-
 	}
-
-
-
 
 	.text_item_bg_1 {
 		font-size: 16px;
-		margin-left: 10px;
+		margin-top: 10px;
 	}
 
 	.icon_item_bg {
@@ -2262,7 +2264,7 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-		margin-left: 2px;
+		margin-left: 5px;
 	}
 
 	.button_time_1 {

@@ -3,7 +3,7 @@
 		<view v-if="img_scan" style="padding: 80px 20px 20px 20px;">
 			<app-scan ref="appScan" @getCode="getCode" />
 		</view>
-		<view v-else style="padding: 80px 20px 20px 20px;">
+		<view v-else style="padding: 40px 20px 20px 20px;">
 			<view class="imgss">
 				<image class="imgss1" :src="scan_img"></image>
 			</view>
@@ -21,7 +21,7 @@
 </template>
 
 <script>
-	import scan  from "../../components/p-scan/scan.vue"
+	import scan from "../../components/p-scan/scan.vue"
 	import appScan from "../../../uni_modules/simbalkj-scan/components/simbalkj-scan/appScan.vue"
 	export default {
 		components: {
@@ -41,15 +41,25 @@
 				scan_img: "../../../static/image-active.png",
 				xinghao: '',
 				context_msg: this.$t('BDSBitem.title_9'),
+				modelConnectType: '',
+				SELECT_TYPE: '',
 			};
 		},
+
+		onLoad(res) {
+			console.log("上个页面带过来的数据222：", res.SELECT_TYPE)
+			console.log("上个页面带过来的数据111：", res.modelConnectType)
+			this.SELECT_TYPE = res.SELECT_TYPE
+			this.modelConnectType = res.modelConnectType
+		},
+
+
+
 		methods: {
 			getCode(barNumber) {
 				this.context_msg = barNumber
 				this.img_scan = false
 				this.get_device_info()
-
-
 			},
 			True_Bind() {
 				if (this.context_msg === this.$t('BDSBitem.title_9')) {
@@ -59,107 +69,13 @@
 					})
 					return
 				}
-
 				this.queryDevices()
-
-
 			},
 			unbind() {
-				uni.reLaunch({
-					url: '../../login/login_land'
+				uni.switchTab({
+					url: "/pages/tabBar/main/Main"
 				})
 			},
-
-			queryDevices() {
-				let that = this
-				uni.request({
-					url: that.$url_queryDevices,
-					method: 'POST',
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success(res) {
-						console.log("查询用户的绑定设备", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								if (res.data.rows == null) {
-									uni.navigateTo({
-										url: "../Bing_page/Bind_pg?sn=" + that.context_msg.replace('IMEI:',
-											'')
-									})
-								} else {
-									uni.getStorageInfo({
-										success(ress) {
-											if (ress.keys.includes('deviceSn')) {
-												if (uni.getStorageSync("deviceSn") == that.context_msg
-													.replace('IMEI:', '')) {
-													uni.showToast({
-														title: '当前主页面已绑定该设备',
-														icon: 'none'
-													})
-													uni.switchTab({
-														url: '/pages/tabBar/main/Main'
-													})
-												} else {
-													for (let i = 0; res.data.rows.length > i; i++) {
-														if (res.data.rows[i].deviceSn.includes(that
-																.context_msg.replace(
-																	'IMEI:',
-																	''))) {
-															uni.showToast({
-																title: '绑定成功',
-																icon: 'none'
-															})
-															uni.setStorageSync("deviceSn", that.context_msg
-																.replace('IMEI:',
-																	''))
-															uni.switchTab({
-																url: '/pages/tabBar/main/Main'
-															})
-															return
-														} else {
-															uni.navigateTo({
-																url: "../Bing_page/Bind_pg?sn=" +
-																	that.context_msg
-																	.replace('IMEI:',
-																		'')
-															})
-														}
-													}
-												}
-											} else {
-
-												uni.navigateTo({
-													url: "../Bing_page/Bind_pg?sn=" + that
-														.context_msg
-														.replace('IMEI:',
-															'')
-												})
-
-
-											}
-
-										}
-									})
-									console.log(uni.getStorageSync("deviceSn"))
-
-								}
-
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
-						}
-
-					}
-				})
-			},
-
-
-
 			//获取设备基础信息
 			get_device_info() {
 				let that = this
@@ -192,10 +108,139 @@
 						} else {
 							console.log("设备绑定失败", res)
 						}
-
 					}
 				})
-			}
+			},
+
+			queryDevices() {
+				let that = this
+				uni.request({
+					url: that.$url_queryDevices,
+					method: 'POST',
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+					},
+					success(res) {
+						console.log("查询用户的绑定设备", res)
+						if (res.statusCode == 200) {
+							if (res.data.code == 200) {
+								if (res.data.rows == null) {
+									//0-扫码  1-蓝牙 2-WiFi
+									if (that.modelConnectType == 0) {
+										uni.navigateTo({
+											url: "../Bing_page/Bind_pg?sn=" + that.context_msg.replace(
+												'IMEI:',
+												'')
+										})
+									} else if (that.modelConnectType == 1) {
+										uni.navigateTo({
+											url: '../../Bind/Bing_xueya/Bing_xueya_LY?SELECT_TYPE=' + that
+												.SELECT_TYPE + "&sn=" + that.context_msg.replace('IMEI:',
+													'')
+										})
+									} else if (that.modelConnectType == 2) {
+										uni.navigateTo({
+											url: '../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=' + that
+												.SELECT_TYPE + "&sn=" + that.context_msg.replace('IMEI:',
+													'')
+										})
+									}
+								} else {
+									uni.getStorageInfo({
+										success(ress) {
+											if (ress.keys.includes('deviceSn')) {
+												if (uni.getStorageSync("deviceSn") == that.context_msg
+													.replace('IMEI:', '')) {
+													uni.showToast({
+														title: '当前主页面已绑定该设备',
+														icon: 'none'
+													})
+													uni.switchTab({
+														url: '/pages/tabBar/main/Main'
+													})
+												} else {
+													for (let i = 0; res.data.rows.length > i; i++) {
+														if (res.data.rows[i].deviceSn.includes(that
+																.context_msg.replace('IMEI:', ''))) {
+															uni.showToast({
+																title: '绑定成功',
+																icon: 'none'
+															})
+															uni.setStorageSync("deviceSn", that
+																.context_msg
+																.replace('IMEI:',
+																	''))
+															uni.switchTab({
+																url: '/pages/tabBar/main/Main'
+															})
+															return
+														} else {
+
+															if (that.modelConnectType == 0) {
+																uni.navigateTo({
+																	url: "../Bing_page/Bind_pg?sn=" +
+																		that.context_msg.replace(
+																			'IMEI:', '')
+																})
+															} else if (that.modelConnectType == 1) {
+																uni.navigateTo({
+																	url: '../../Bind/Bing_xueya/Bing_xueya_LY?SELECT_TYPE=' +
+																		that.SELECT_TYPE + "&sn=" +
+																		that.context_msg.replace(
+																			'IMEI:', '')
+																})
+															} else if (that.modelConnectType == 2) {
+																uni.navigateTo({
+																	url: '../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=' +
+																		that.SELECT_TYPE + "&sn=" +
+																		that.context_msg.replace(
+																			'IMEI:', '')
+																})
+															}
+														}
+													}
+												}
+											} else {
+												if (that.modelConnectType == 0) {
+													uni.navigateTo({
+														url: "../Bing_page/Bind_pg?sn=" + that
+															.context_msg
+															.replace('IMEI:',
+																'')
+													})
+												} else if (that.modelConnectType == 1) {
+													uni.navigateTo({
+														url: '../../Bind/Bing_xueya/Bing_xueya_LY?SELECT_TYPE=' +
+															that
+															.SELECT_TYPE + "&sn=" + that
+															.context_msg.replace('IMEI:',
+																'')
+													})
+												} else if (that.modelConnectType == 2) {
+													uni.navigateTo({
+														url: '../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=' +
+															that
+															.SELECT_TYPE + "&sn=" + that
+															.context_msg.replace('IMEI:',
+																'')
+													})
+												}
+											}
+
+										}
+									})
+								}
+							} else {
+								uni.showToast({
+									title: res.data.msg,
+									icon: 'none'
+								})
+							}
+						}
+					}
+				})
+			},
 		}
 	};
 </script>

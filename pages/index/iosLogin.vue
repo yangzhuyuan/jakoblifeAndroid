@@ -8,11 +8,11 @@
 				<view style="display: flex; justify-content:center;">
 					<image style="width: 180px;height: 180px;" src="../../static/icons/14.png" />
 				</view>
-				<!-- <view class="warp">
+				<view class="warp">
 					<view class="view_circle1"></view>
 					<view class="view_circle2"></view>
 					<view class="view_circle3"></view>
-				</view> -->
+				</view>
 			</view>
 		</view>
 		<view v-else class="dialog">

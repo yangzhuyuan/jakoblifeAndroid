@@ -2,8 +2,7 @@
 	<view style="display: flex;justify-content: center; background: #F7F7F7;height: 100vh;color: black;">
 		<view style="width: 90vw; margin-top: 20px;">
 			<uni-search-bar @input="set" v-model="searchValue" bgColor="#FBFBFB" radius="5"
-				:placeholder="$t('gongxiangitem.title_12')" clearButton="always" cancelButton="none" @confirm="search" />
-			<!-- <scroll-view scroll-y="true" class="scroll-Y" @scrolltolower="lower"> -->
+				:placeholder="$t('gongxiangitem.title_12')" clearButton="always" cancelButton="none"  />
 				<view class="list">
 					<view v-for="(item,index) in filterList" :key="index" @click="Share_with(item.name,item.phone)">
 						<view style="display: flex;align-items: center; padding: 10px;margin: 0 15px 0 15px;">
@@ -20,7 +19,6 @@
 						</view>
 					</view>
 				</view>
-			<!-- </scroll-view> -->
 		</view>
 
 	</view>

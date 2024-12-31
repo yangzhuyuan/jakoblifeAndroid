@@ -99,8 +99,9 @@
  				shangxias,
  				shangxia: '',
  				value: [hour, minute, shangxia],
- 				times: ((hour + 1) < 10 ? "0" + (hour + 1) : (hour + 1)) + ":" + (minute < 10 ? ("0" + minute) : minute) + (
- 					shangxia === 0 ? "AM" : "PM"),
+ 				times: ((hour + 1) < 10 ? "0" + (hour + 1) : (hour + 1)) + ":" + (minute < 10 ? ("0" + minute) : minute) +
+ 					(
+ 						shangxia === 0 ? "AM" : "PM"),
  				visible: true,
  				indicatorStyle: "height: 50px; background-color: #82C2E5; z-index: 0;",
  				chexk: false,
@@ -114,29 +115,47 @@
  		onNavigationBarButtonTap(e) {
  			console.log(e)
  			if (e.text === "保存") {
- 				let aaa = {
- 					times: this.times,
- 					weekly: this.weekly,
- 					tag: this.tag,
- 					Audios: this.Audios,
- 					chexk: this.chexk,
- 					chexk1: this.chexk1,
- 					switch: true
+ 				if (this.weekly == "") {
+ 					uni.showToast({
+ 						title: "选择重复时间",
+ 						icon: 'none'
+ 					})
+ 					return
+ 				} else if (this.tag == "") {
+ 					uni.showToast({
+ 						title: "请填写标签",
+ 						icon: 'none'
+ 					})
+ 					return
+ 				} else if (this.Audios == "") {
+ 					uni.showToast({
+ 						title: "请选择铃声",
+ 						icon: 'none'
+ 					})
+ 					return
+ 				} else {
+ 					let aaa = {
+ 						times: this.times,
+ 						weekly: this.weekly,
+ 						tag: this.tag,
+ 						Audios: this.Audios,
+ 						chexk: this.chexk,
+ 						chexk1: this.chexk1,
+ 						switch: true
+ 					}
+ 					let bb = uni.getStorageSync("tixing1")
+ 					bb.push(aaa)
+ 					console.log(bb)
+ 					uni.setStorageSync("tixing", bb)
+ 					uni.showToast({
+ 						title: '保存成功',
+ 						icon: 'none'
+ 					})
+ 					setTimeout(() => {
+ 						uni.navigateBack()
+ 					}, 300)
  				}
- 				let bb = uni.getStorageSync("tixing1")
- 				bb.push(aaa)
- 				console.log(bb)
- 				uni.setStorageSync("tixing", bb)
- 				uni.showToast({
- 					title: '保存成功',
- 					icon: 'none'
- 				})
- 				setTimeout(() => {
- 					uni.navigateBack()
- 				}, 300)
-
  			}
-
  		},
 
 

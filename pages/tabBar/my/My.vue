@@ -2,8 +2,9 @@
 	<view style="color: black;width: 100vw;height: 100vh;">
 		<view style="background: #3298F7;">
 			<view style="display: flex;flex-direction: column;align-items: center;padding-top: 120px;">
-				<view>
-					<image :src="avatar" style="border-radius: 50px; width: 80px;height: 80px;">
+				<view @click="touxiang()" style="background: white; border-radius: 50px; display: flex; padding: 1px; align-items: center;">
+					<image :src="avatar"
+						style="border-radius: 50px; width: 80px;height: 80px; ">
 					</image>
 				</view>
 				<view style="margin-top: 15px;color: white;font-size: 18px;font-weight: bold;">{{username}}</view>
@@ -124,15 +125,13 @@
 			}
 		},
 
-
-
 		methods: {
 
 
 			//切换
 			qiehuan() {
 				uni.navigateTo({
-							url: '../../../pages/Bind/cs_manage_1?typesss=my'
+					url: '../../../pages/Bind/cs_manage_1?typesss=my'
 				})
 			},
 
@@ -140,6 +139,12 @@
 			Historical_record() {
 				uni.navigateTo({
 					url: "/pages/tabBar/my/message"
+				})
+			},
+
+			touxiang() {
+				uni.navigateTo({
+					url: "/pages/tabBar/my/Health_record"
 				})
 			},
 

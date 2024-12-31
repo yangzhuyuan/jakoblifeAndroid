@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">LiveFitSDK</string>
+    <string name="connect">连接</string>
+    <string name="ble_name">设备名称：%s</string>
+    <string name="ble_mac">Mac：%s</string>
+    <string name="updating_d">正在升级中... %d%%</string>
+    <string name="update_resource_tips">正在传输表盘资源（%1$d/%2$d）</string>
+    <string name="ota_checking_upgrade_file">正在检验升级文件</string>
+    <string name="ota_upgrade_failed">升级失败: %s</string>
+    <string name="ota_complete">升级完成</string>
+    <string name="ota_upgrading">正在升级</string>
+    <string name="ota_upgrade_cancel">升级已取消</string>
+    <string name="update_fail">升级失败</string>
+    <string name="complete">传输完成</string>
+    <string name="downloading">下载中</string>
+    <string name="installing_d">安装中 %d%%</string>
+    <string name="installing">安装中</string>
+    <string name="install_success">安装成功</string>
+    <string name="install_fail">安装失败</string>
+</resources>

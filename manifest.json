@@ -17,7 +17,7 @@
         "nvueLaunchMode" : "",
         "splashscreen" : {
             "alwaysShowBeforeRender" : true,
-            "waiting" : true,
+            "waiting" : false,
             "autoclose" : true,
             "delay" : 5000
         },
@@ -92,12 +92,12 @@
             },
             "orientation" : [ "portrait-primary" ],
             "splashscreen" : {
-                "useOriginalMsgbox" : true,
-                "androidStyle" : "common",
+                "useOriginalMsgbox" : false,
+                "androidStyle" : "default",
                 "android" : {
-                    "hdpi" : "static/splsh.png",
-                    "xhdpi" : "static/splsh.png",
-                    "xxhdpi" : "static/splsh.png"
+                    "hdpi" : "unpackage/res/480.png",
+                    "xhdpi" : "unpackage/res/720.png",
+                    "xxhdpi" : "unpackage/res/1080.png"
                 },
                 "iosStyle" : "common",
                 "ios" : {
@@ -139,7 +139,8 @@
         },
         "uniStatistics" : {
             "enable" : true
-        }
+        },
+        "nativePlugins" : {}
     },
     "quickapp" : {},
     "quickapp-native" : {

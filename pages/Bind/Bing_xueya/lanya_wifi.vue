@@ -104,11 +104,19 @@
 					}
 				}
 			})
+		},
 
+
+		onLoad(res) {
+			this.sn = res.sn
+			this.SELECT_TYPE = res.SELECT_TYPE
 
 		},
+
 		data() {
 			return {
+				sn: '',
+				SELECT_TYPE: '',
 				checked: false,
 				tipShow: false,
 				show: false,
@@ -131,11 +139,19 @@
 		onNavigationBarButtonTap(e) {
 			console.log(e)
 			if (e.text == "刷新") {
-				this.bluetoothList = []
-				this.initBluetooth()
+				if (this.checked == true) {
+					this.bluetoothList = []
+					this.initBluetooth()
+				} else {
+					this.bluetoothList = []
+					uni.closeBluetoothAdapter({
+						success(res) {
+							console.log(res)
+						}
+					})
+				}
 
 			}
-
 		},
 
 		methods: {
@@ -156,9 +172,6 @@
 					})
 				}
 			},
-
-
-
 
 
 
@@ -298,7 +311,8 @@
 				that.$refs.popup1.close()
 				uni.navigateTo({
 					url: '../../Bind/Bing_xueya/Bing_xueya_2?deviceId=' + that.deviceId +
-						"&serviceId=" + that.serviceId + "&uuid=" + that.uuid
+						"&serviceId=" + that.serviceId + "&uuid=" + that.uuid + "&sn=" + that.sn +
+						"&SELECT_TYPE=" + that.SELECT_TYPE
 				})
 
 			},

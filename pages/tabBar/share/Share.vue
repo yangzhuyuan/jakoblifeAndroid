@@ -1,9 +1,9 @@
 <template>
-	<view style="color: black; height: 100vh;width: 100vw;">
-		<view style="background: #F7F7F7; padding-bottom: 80px; color: black;">
+	<view style="color: black; height: 100vh;">
+		<view style=" padding-bottom: 80px; color: black;">
 			<view style=" padding-top: 100px;">
 				<view v-if="share_show"
-					style="background: white; margin: 0 10px 0 10px; padding: 10px; border-radius: 20px;">
+					style="background: white; margin: 20px 20px 0 20px; padding: 10px; border-radius: 20px;">
 					<view style=" display: flex; justify-content: center; margin: 10px 0 10px 0;">
 						<view class="swich_bg_0">
 							<view @click="clicked1()">
@@ -148,14 +148,14 @@
 			</view>
 
 			<view
-				style="background: #F7F7F7; position: fixed; top: 0;display: flex; align-items: center; justify-content: space-between;height: auto;padding: 60px 10px 10px 10px; width: 95vw;">
+				style="background: #F5F5F5; position: fixed; top: 0;display: flex; align-items: center; justify-content: space-between;height: auto;padding: 60px 10px 10px 10px; width: 95vw;">
 
 				<image @click="zengjia()" src="../../../static/page_icon/zengjia.png"
-					style="width: 32px; height: 32px;"></image>
+					style="width: 28px; height: 28px;"></image>
 
 				<view style="font-size: 18px; font-weight: bold;width: 60vw;text-align: center;">共享</view>
 
-				<image @click="caidan()" src="../../../static/page_icon/caidan.png" style="width: 32px; height: 32px;">
+				<image @click="caidan()" src="../../../static/page_icon/caidan.png" style="width: 28px; height: 28px;">
 				</image>
 
 			</view>
@@ -170,7 +170,7 @@
 	export default {
 		data() {
 			return {
-				share_show: false,
+				share_show: true,
 				show1: true,
 				show2: true,
 				swiperlist: [{

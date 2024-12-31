@@ -13,7 +13,6 @@ Vue.use(htmlToPdf)
 
 
 
-
 Vue.config.productionTip = false
 Vue.prototype.$store = store
 
@@ -111,6 +110,8 @@ Vue.prototype.$url_query_log_v2 = "https://jakoblife.jakob-techs.com/prod-api/de
 //根据文章id获取内容详细信息
 Vue.prototype.$url_article = "https://jakoblife.jakob-techs.com/prod-api/cms/article/get"
 
+//删除历史记录
+Vue.prototype.$url_batch_del_data_log = "https://jakoblife.jakob-techs.com/prod-api/device_app/batch_del_data_log"
 
 
 

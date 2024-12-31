@@ -23,14 +23,15 @@
 			return {
 				cb: false,
 				SELECT_TYPE: '',
+				sn: '',
 				imagess: '../../../static/image/2.png',
 				imagess1: '../../../static/image/5.png'
 			}
 		},
 
 		onLoad(opt) {
-			console.log("上个页面带过来的数据", opt.SELECT_TYPE)
-
+			console.log("上个页面带过来的数据", opt)
+			this.sn = opt.sn
 			this.SELECT_TYPE = opt.SELECT_TYPE
 		},
 
@@ -44,7 +45,7 @@
 
 
 		methods: {
-			
+
 			getback(id) {
 				return {
 					background: id === false ? "#DBDBDB" : "#3298F7"
@@ -69,7 +70,7 @@
 					return
 				}
 				uni.navigateTo({
-					url: '../Bing_xueya/lanya_wifi'
+					url: '../Bing_xueya/lanya_wifi?sn=' + this.sn + "&SELECT_TYPE=" + this.SELECT_TYPE
 				})
 				// uni.navigateTo({
 				// 	url: '../Bing_xueya/Bing_xueya_2'

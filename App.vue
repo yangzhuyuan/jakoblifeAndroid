@@ -11,6 +11,7 @@
 
 		data() {
 			return {
+				timer: null, //定时器名称
 				stepCount: 0, //步数
 				stepCount1: 0,
 				lastTime: 0, //上次更新时河
@@ -111,14 +112,190 @@
 
 
 
+			// console.log("当前时间？", new Date().getHours() + ":" + new Date().getMinutes())
+			// console.log("今天是周几？", this.week(new Date().toDateString()))
+			let week = this.week(new Date().toDateString())
+			// this.timer = setInterval(function() {
+			let houres = new Date().getHours() < 10 ? "0" + new Date().getHours() : new Date().getHours()
+			let minutes = new Date().getMinutes() < 10 ? "0" + new Date().getMinutes() : new Date()
+				.getMinutes()
+
+			let time = houres + ":" + minutes
+			// 放入你自己的业务逻辑代码
+			uni.getStorageInfo({
+				success(resssd) {
+					if (resssd.keys.includes("tixing")) {
+						let autiolist = uni.getStorageSync("tixing")
+						for (let i = 0; autiolist.length > i; i++) {
+							if (autiolist[i].switch === true && autiolist[i].weekly.includes(
+									week) && autiolist[i].times === time) {
+								if (autiolist[i].Audios == "雷达(默认)") {
+									console.log("Dsajksdhaksjdhsakj1111111")
+									if (uni.getSystemInfoSync().platform === "android") {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src =
+											'http://localhost:8080/static/autio/lieda.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									} else {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src = '/static/autio/lieda.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									}
+								} else if (autiolist[i].Audios == "波浪") {
+									console.log("Dsajksdhaksjdhsakj1111111")
+									if (uni.getSystemInfoSync().platform === "android") {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src =
+											'http://localhost:8080/static/autio/bolang.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									} else {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src = '/static/autio/bolang.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									}
+								} else if (autiolist[i].Audios == "倒影") {
+									console.log("Dsajksdhaksjdhsakj1111111")
+									if (uni.getSystemInfoSync().platform === "android") {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src =
+											'http://localhost:8080/static/autio/daoying.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									} else {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src = '/static/autio/daoying.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									}
+								} else if (autiolist[i].Audios == "灯塔") {
+									console.log("Dsajksdhaksjdhsakj1111111")
+									if (uni.getSystemInfoSync().platform === "android") {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src =
+											'http://localhost:8080/static/autio/dengta.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									} else {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src = '/static/autio/dengta.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									}
+								} else if (autiolist[i].Audios == "山顶") {
+									console.log("Dsajksdhaksjdhsakj1111111")
+									if (uni.getSystemInfoSync().platform === "android") {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src =
+											'http://localhost:8080/static/autio/shanding.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									} else {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src = '/static/autio/shanding.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									}
+								} else if (autiolist[i].Audios == "水晶") {
+									console.log("Dsajksdhaksjdhsakj1111111")
+									if (uni.getSystemInfoSync().platform === "android") {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src =
+											'http://localhost:8080/static/autio/shuijing.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									} else {
+										const innerAudioContext = uni.createInnerAudioContext();
+										innerAudioContext.autoplay = true;
+										innerAudioContext.src = '/static/autio/shuijing.mp3';
+										innerAudioContext.onPlay(() => {
+											console.log('开始播放');
+										});
+										innerAudioContext.onError((res) => {
+											console.log(res.errMsg);
+											console.log(res.errCode);
+										});
+									}
+								} else {
+
+								}
+							}
+						}
+					}
+				}
+			})
+			// }, 3000);
+
 			this.setTabBarItems()
-
-
-
-			// console.log('App Show')
-		},
-		onHide: function() {
-			// console.log('App Hide')
 		},
 		globalData: {
 			test: ''
@@ -126,7 +303,15 @@
 		methods: {
 			...mapMutations(['setUniverifyErrorMsg', 'setUniverifyLogin']),
 
-
+			// 获取当前星期几
+			week(e) {
+				// e = 20**-**-**
+				// let week = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
+				let week = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+				let date = new Date(e);
+				let getday = date.getDay();
+				return week[getday];
+			},
 
 			// 加速计
 			accelerometerStart() {

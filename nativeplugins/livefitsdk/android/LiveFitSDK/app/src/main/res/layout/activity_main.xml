@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:paddingBottom="10dp">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_save"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="保存16进制 log日志"
+            android:visibility="gone"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_save2"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="保存ASCII log日志"
+            android:visibility="gone"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/sync_time"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="同步时间" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_set_time_format"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="时间格式24h" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_set_user"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设置默认用户信息"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/sync_weather"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设置默认天气"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_get_battery"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="获取电量"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_get_dev_information"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="获取设备信息"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_real_time_data"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="获取设实时数据"
+            android:layout_marginTop="10dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_detail_data"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="获取详细数据"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_heart_rate_etc"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="获取心率、血压、血氧"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_sport_data"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="获取运动数据"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_pressure"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="获取血压"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_language"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设置默认语言"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_news"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="发送默认消息"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_clock_alert"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设置默认闹钟"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_sedentary_reminder"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设置默认久坐提醒"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_disturb_mode"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="勿扰模式"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_screen"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设置默认屏幕"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_vibrate"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设置默认振动次数"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_add_contact"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="添加默认联系人"
+            android:layout_marginTop="5dp"/>
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_dev_get_contact"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:text="获取联系人"
+                android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_dial_custom"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="自定义表盘"
+            android:layout_marginTop="5dp"/>
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_dev_dial_recommend"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:text="表盘"
+                android:layout_marginTop="5dp"
+                android:visibility="gone"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_music"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="音乐"
+            android:layout_marginTop="5dp"/>
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_dev_book"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:text="电子书"
+                android:layout_marginTop="5dp"/>
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_dev_audio"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:text="录音"
+                android:layout_marginTop="5dp"/>
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_dev_qr_code"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:text="添加QQ默认名片二维码"
+                android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_ota"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="OTA"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_take_photo"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="拍照"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_find_device"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="查找设备"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_restart"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="设备重启"
+            android:layout_marginTop="5dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_dev_factory_settings"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="恢复出产设置"
+            android:layout_marginTop="5dp"/>
+
+        <Switch
+            android:id="@+id/sw_sync"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="自动同步"/>
+
+    </LinearLayout>
+
+</ScrollView>

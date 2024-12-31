@@ -1,5 +1,5 @@
 <template>
-	<view style="color: black;height: 100vh;background: #EFEFF4;width: 100vw;">
+	<view style="color: black;height: 100vh;background: #EFEFF4;">
 		<view style="">
 			<view style="padding:20px;color: black;font-weight: bold;">
 				{{SELECT_TYPE==="0" ? $t('XZGLLXitem.title_9') : $t('XZGLLXitem.title_10')}}
@@ -13,7 +13,6 @@
 					</view>
 				</view>
 			</view>
-
 			<view style="text-align: center;" v-else>
 				<view style="margin-top: 100px;font-weight: bold;">
 					暂无设备型号数据
@@ -100,28 +99,11 @@
 					})
 					return
 				} else {
-					console.log(this.modelConnectType)
-					if (this.name == "BP68W") {
-						uni.navigateTo({
-							url: '../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=' + this.SELECT_TYPE
-						})
-					} else {
-						//0-扫码  1-蓝牙 2-WiFi
-						if (this.modelConnectType == 0) {
-							console.log("aaa")
-							uni.navigateTo({
-								url: '../../Bind/Bing_page/Bing_page_1?SELECT_TYPE=' + this.SELECT_TYPE
-							})
-						} else if (this.modelConnectType == 1) {
-							uni.navigateTo({
-								url: '../../Bind/Bing_xueya/Bing_xueya_LY?SELECT_TYPE=' + this.SELECT_TYPE
-							})
-						} else if (this.modelConnectType == 2) {
-							uni.navigateTo({
-								url: '../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=' + this.SELECT_TYPE
-							})
-						}
-					}
+					console.log("0-扫码  1-蓝牙 2-WiFi设备类型：" + this.modelConnectType)
+					uni.navigateTo({
+						url: '../../Bind/Bing_page/Bing_page_1?SELECT_TYPE=' + this.SELECT_TYPE +
+							"&modelConnectType=" + this.modelConnectType
+					})
 				}
 			},
 			Unbind() {

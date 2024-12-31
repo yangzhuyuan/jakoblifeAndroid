@@ -1,7 +1,9 @@
 <template>
 	<view style="padding: 20px;background: #F7F7F7; color: black;height: 100vh;">
 		<view style="font-weight: bold;">{{title}}</view>
-		<view style="font-weight: bold;">{{content}}</view>
+		<view>
+			<rich-text :nodes="content"></rich-text>
+		</view>
 		<view class="bt_bg">
 			<view style="display: flex; flex-direction: column; ">
 				<button class="bt_Accept" @click="Accept()">{{$t('wodelist.bzzxitem.title_7')}}</button>
@@ -15,8 +17,8 @@
 	export default {
 		data() {
 			return {
-				title: "数据同步失败",
-				content: "------------------------------"
+				title: "",
+				content: ""
 
 			}
 		},
@@ -27,25 +29,46 @@
 				uni.setNavigationBarTitle({
 					title: this.$t('wodelist.bzzxitem.title_9')
 				})
+				this.article(1143)
 			} else if (res.id == "2") {
 				uni.setNavigationBarTitle({
 					title: this.$t('wodelist.bzzxitem.title_10')
 				})
+				this.article(1144)
 			} else if (res.id == "3") {
 				uni.setNavigationBarTitle({
 					title: this.$t('wodelist.bzzxitem.title_11')
 				})
+				this.article(1145)
 			} else if (res.id == "4") {
 				uni.setNavigationBarTitle({
 					title: this.$t('wodelist.bzzxitem.title_12')
 				})
+				this.article(1146)
 			}
 
 		},
 
 
 		methods: {
-
+			article(id) {
+				let that = this
+				uni.request({
+					url: that.$url_article,
+					method: 'GET',
+					data: {
+						articleId: id
+					},
+					header: {
+						'content-type': 'application/json' //自定义请求头信息
+					},
+					success(res) {
+						console.log("根据文章id获取内容详细信息", res)
+						that.title = res.data.data.title
+						that.content = res.data.data.content
+					}
+				})
+			},
 		}
 	}
 </script>

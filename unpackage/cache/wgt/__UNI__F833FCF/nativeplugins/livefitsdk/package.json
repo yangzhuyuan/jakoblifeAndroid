@@ -1,0 +1,25 @@
+{
+	"name": "livefitsdk",
+    "id": "livefitsdk",
+    "version": "1.0",
+    "description": "获取蓝牙手表数据",
+	"_dp_type":"nativeplugin",
+    "_dp_nativeplugin":{
+		"android":{
+			"plugins":[
+				{
+					"type":"module",
+					"name":"livefitsdk",
+					"class":"com.guangji.livefit.LivefitSDK_v1.0"
+				}
+			],
+			"integrateType":"jar",
+			"dependencies": {
+				
+			}
+			
+		}
+		
+	}
+    
+}

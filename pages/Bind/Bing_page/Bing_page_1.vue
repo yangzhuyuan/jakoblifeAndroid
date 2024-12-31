@@ -39,16 +39,17 @@
 			return {
 				cb: false,
 				SELECT_TYPE: '',
+				modelConnectType: '',
 				imagess: '../../../static/image/2.png',
 				imagess1: '../../../static/image/5.png'
 			}
 		},
 
-
 		onLoad(opt) {
-			console.log("上个页面带过来的数据", opt.SELECT_TYPE)
-
+			console.log("上个页面带过来的数据1：", opt.SELECT_TYPE)
+			console.log("上个页面带过来的数据2：", opt.modelConnectType)
 			this.SELECT_TYPE = opt.SELECT_TYPE
+			this.modelConnectType = opt.modelConnectType
 		},
 
 		onShow() {
@@ -82,10 +83,8 @@
 					return
 				}
 				uni.navigateTo({
-					url: "../Bing_page/Bind_page_2"
+					url: "../Bing_page/Bind_page_2?modelConnectType=" + this.modelConnectType+"&SELECT_TYPE="+this.SELECT_TYPE
 				})
-
-
 			},
 			bing_fail() {
 				this.$refs.popup.open("bottom")

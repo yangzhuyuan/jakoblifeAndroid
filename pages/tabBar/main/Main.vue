@@ -1,8 +1,9 @@
 <template>
 	<view class="all">
 		<view style="background: #3298F7;height: 300px;">
-			<view v-if="main_type" style="padding-top: 100px;">
-				<view class="title_zs">{{$t('shouye_item.title_0')}}</view>
+			<!-- 血压计 -->
+			<view v-if="main_type" style="padding-top: 110px;">
+				<view class="title_zs">注:本页面显示均为最近测量数据</view>
 				<view class="data_bg">
 					<view style="display: flex; flex-direction: row;">
 						<view class="icon_bg">
@@ -30,7 +31,7 @@
 								<view style="margin-left: 10px;">{{title_name}}</view>
 								<uni-icons type="help" size="15" style="margin-left: 5px;" @tap="xueya_tap"></uni-icons>
 							</view>
-							<view v-else style="display: flex;flex-direction: row;">
+							<view v-else-if="xueya == 4" style="display: flex;flex-direction: row;">
 								<view style="width: 20px; height:20px;background: #FFFFFF;border-radius: 50px;"></view>
 								<view style="margin-left: 10px;">{{title_name}}</view>
 								<uni-icons type="help" size="15" style="margin-left: 5px;" @tap="xueya_tap"></uni-icons>
@@ -38,19 +39,19 @@
 							<view style="border-top: 1px solid gainsboro;width: 65vw;margin-top: 5px;"></view>
 							<view style="display: flex;flex-direction: row;margin-top: 5px;">
 								<view>
-									<view style="color: gray;font-size: 12px;">{{$t('gongxiangitem.title_23')}}mmHg
+									<view style="color: gray;font-size: 12px;">舒张压/mmHg
 									</view>
 									<view style="font-weight: bold;margin-top: 10px;font-size: 18px;">{{lowPressure}}
 									</view>
 								</view>
-								<view style="margin-left: 20px;">
-									<view style="color: gray;font-size: 12px;">{{$t('gongxiangitem.title_24')}}mmHg
+								<view style="margin-left: 10px;">
+									<view style="color: gray;font-size: 12px;">收缩压/mmHg
 									</view>
 									<view style="font-weight: bold;margin-top: 10px;font-size: 18px;">{{highPressure}}
 									</view>
 								</view>
-								<view style="margin-left: 20px;">
-									<view style="color: gray;font-size: 12px;">{{$t('gongxiangitem.title_25')}}BMP
+								<view style="margin-left: 10px;">
+									<view style="color: gray;font-size: 12px;">脉搏/BMP
 									</view>
 									<view style="font-weight: bold;margin-top: 10px;font-size: 18px;">{{pulse}}</view>
 								</view>
@@ -62,13 +63,11 @@
 				<view class="data_bg_A">
 					<view v-show="binaji" class="tzkpsx" @click="tiaozhen()">编辑数据卡片</view>
 					<view class="drag-containersss">
-						<basic-drag v-model="list" :disableds="aaa" itemKey="title" :column="2" itemHeight="120px">
-
+						<basic-drag v-model="list" :disableds="aaa" itemKey="title" :column="2" itemHeight="130px">
 							<template #item="{element}">
-
 								<view class="data_item_bgsss" :class="'animation-' + animation">
 									<view class="icon_bgsss">
-										<image :src="element.image" class="img_stylesss" />
+										<image :src="element.image" class="img_style" />
 										<text class="icon_text_bgsss">{{element.title}}</text>
 									</view>
 									<view
@@ -137,7 +136,7 @@
 							</template>
 						</basic-drag>
 					</view>
-					<view v-show="button_show" style="display: flex;flex-direction: column;margin-top: 20px;">
+					<view v-show="button_show" style="display: flex;flex-direction: column;margin: 20px 0;">
 						<view style="display: flex;justify-content: center;color: gray;">拖动可调整数据卡片位置</view>
 						<view
 							style="display: flex;flex-direction: row;justify-content: space-between; align-items: center; margin-top: 20px;">
@@ -150,14 +149,14 @@
 						</view>
 					</view>
 					<view style="background: #F7F7F7;">
-						<image src="../../../static/image-active.png"
-							style="width: 88vw;height: 200px; margin: 20px 20px 120px 20px;border-radius: 20px;">
+						<image src="/static/image/yundomng.png"
+							style="width: 88vw;height: 200px; margin: 0 20px 120px 20px;border-radius: 20px;">
 						</image>
 					</view>
 				</view>
 			</view>
-
-			<view v-else style="margin-top: 95px;">
+			<!-- 体脂秤 -->
+			<view v-else style="margin-top: 105px;">
 				<view class="title_zs">{{$t('shouye_item.title_0')}}</view>
 				<view style="display: flex;flex-direction: row;margin-top: 20px;">
 
@@ -202,18 +201,14 @@
 						</view>
 					</view>
 				</view>
-
-
 				<view class="data_bg_A">
 					<view class="tzkpsx" v-show="binaji2" @click="tiaozhen2()">编辑数据卡片</view>
 					<view class="drag-containersss">
-						<basic-drag v-model="list2" :disableds="aaa2" itemKey="title" :column="2" itemHeight="120px">
-
+						<basic-drag v-model="list2" :disableds="aaa2" itemKey="title" :column="2" itemHeight="130px">
 							<template #item="{element}">
-
 								<view class="data_item_bgsss" :class="'animation-' + animation">
 									<view class="icon_bgsss">
-										<image :src="element.image" class="img_stylesss" />
+										<image :src="element.image" class="img_style" />
 										<text class="icon_text_bgsss">{{element.title}}</text>
 									</view>
 									<view
@@ -295,7 +290,7 @@
 						</view>
 					</view>
 
-					<view style="background: #F7F7F7; padding: 15px 10px 220px 10px;">
+					<view style="background: #F7F7F7; padding: 10px 20px 220px 20px;">
 						<view style="background: white; border-radius: 20px;padding: 10px;">
 							<view class="tiwei_bg">
 								<view style="font-weight: bold;">{{$t('shouye_item.title_10')}}</view>
@@ -331,12 +326,14 @@
 					</view>
 				</view>
 			</view>
+			<!-- 悬浮按钮 -->
 			<uni-fab ref="fab" :pattern="pattern" :content="content" :horizontal="horizontal" :vertical="vertical"
 				:direction="direction" @trigger="trigger" @fabClick="fabClick" />
 
+			<!-- 标题 -->
 			<view class="title_all">
 				<image @click="qiehuan()" src="../../../static/qiehuan.png" style="width: 25px; height: 25px;"></image>
-				<view class="title">{{$t('shouye')}}</view>
+				<view class="title">首页</view>
 			</view>
 		</view>
 
@@ -379,7 +376,7 @@
 				<view
 					style="border-radius: 20px;background:#fff;width: 280px;text-align: center; padding-bottom: 20px;">
 					<view>
-						<image style="width: 200px; height: 300px;" src="../../../static/image/3.png"></image>
+						<image style="width: 200px; height: 280px;" src="../../../static/image/3.png"></image>
 					</view>
 					<button @tap="knowe()"
 						style="margin: 0 50px 20px 50px; border-radius: 20px;background: #3298F7;color: white;">{{$t('BDSBitem.title_8')}}</button>
@@ -434,7 +431,6 @@
 				</view>
 			</uni-popup>
 		</view>
-
 
 		<!-- 血氧 -->
 		<view>
@@ -573,7 +569,6 @@
 			</uni-popup>
 		</view>
 
-
 		<view>
 			<uni-popup ref="qs_popup" :mask-click="true">
 				<view style="border-radius: 20px;background:#fff; padding-bottom: 10px;align-items: center;">
@@ -613,7 +608,6 @@
 				</view>
 			</uni-popup>
 		</view>
-
 
 		<!-- 体脂秤首页手动 -->
 		<view>
@@ -684,8 +678,6 @@
 					<view style="display: flex; justify-content: space-between; padding: 15px;">
 						<text @click="tz_closess()" style="font-size: 22px;">✖</text>
 						<view style="display: flex; flex-direction: row; ">
-							<!-- <text @click="dataclick2()">{{birthday2}}</text>
-							<uni-icons type="bottom" size="16"></uni-icons> -->
 							<view style="display: flex;justify-content: center;">
 								<picker fields="day" mode="date" :value="birthday2" @change="bindDateChange2"
 									:end='endtimesss'>
@@ -734,7 +726,6 @@
 			</uni-popup>
 		</view>
 
-
 		<view>
 			<yt-dateTimePicker ref="myPicker" @submit="handleSubmit" :start-year="2000" :end-year="2099"
 				:time-init="datass" :time-hide="[true, true, true, true, true, false]"
@@ -745,12 +736,6 @@
 				:time-init="datass" :time-hide="[true, true, true, true, true, false]"
 				:time-label="[$t('shouye_item.title_30'), $t('shouye_item.title_31'), $t('shouye_item.title_32'), $t('shouye_item.title_33'), $t('shouye_item.title_34'), $t('shouye_item.title_35')]" />
 		</view>
-		<!-- <view>
-			<yt-dateTimePicker ref="myPicker2" @submit="handleSubmit2" :start-year="2000" :end-year="2099"
-				:time-init="datass" :time-hide="[true, true, true, true, true, false]"
-				:time-label="[$t('shouye_item.title_30'), $t('shouye_item.title_31'), $t('shouye_item.title_32'), $t('shouye_item.title_33'), $t('shouye_item.title_34'), $t('shouye_item.title_35')]" />
-		</view> -->
-
 	</view>
 </template>
 <script>
@@ -772,10 +757,7 @@
 
 		data() {
 			return {
-
 				endtimesss: new Date().toISOString().slice(0, 10),
-
-
 				list: [{
 					bmi_show: false,
 					image: "../../../static/icons/1.png",
@@ -998,15 +980,8 @@
 				maibo: "",
 				birthday1111: this.$t('shouye_item.title_21'),
 				localData: uni.getStorageSync("settept"),
-
-
-
 			}
 		},
-
-
-
-
 
 		onBackPress() {
 			if (this.$refs.fab.isShow) {
@@ -1015,7 +990,6 @@
 			}
 			return false
 		},
-
 
 		onShow() {
 			console.log("token:", uni.getStorageSync("token"))
@@ -1029,12 +1003,8 @@
 			}
 		},
 
-
-
 		methods: {
 			...mapMutations(['getInfo']),
-
-
 
 			getUserInfo() {
 				let that = this
@@ -1140,14 +1110,11 @@
 			},
 
 
-
 			bindDateChange(e) {
-				console.log("dsakjhdsas", e.detail.value)
 				this.birthday1111 = e.detail.value
 			},
 
 			bindDateChange2(e) {
-				console.log("dsakjhdsas", e.detail.value)
 				this.birthday2 = e.detail.value
 			},
 
@@ -1274,10 +1241,6 @@
 						if (res.statusCode == 200) {
 							if (res.data.code == 200) {
 								if (res.data.rows == "") {
-									// uni.showToast({
-									// 	title: '当前未绑定任何设备',
-									// 	icon: 'none'
-									// })
 									that.main_type = true
 								} else {
 									uni.getStorageInfo({
@@ -1286,7 +1249,6 @@
 												for (let i = 0; res.data.rows.length > i; i++) {
 													if (uni.getStorageSync("deviceSn") == res.data.rows[i]
 														.deviceSn) {
-
 														if (res.data.rows[i].deviceTypeId == "10") {
 															that.get_device_info(res.data.rows[i].deviceSn)
 															that.get_device_data(res.data.rows[i]
@@ -1401,8 +1363,6 @@
 										}
 									});
 									that.list_recipe()
-
-
 								}
 							} else {
 
@@ -1437,9 +1397,6 @@
 										}
 									}
 								});
-
-
-
 
 								uni.showToast({
 									title: res.data.msg,
@@ -1524,27 +1481,22 @@
 								that.pulse = that.findValue(res.data.data, 'register',
 										'heartrate')
 									.registerVal
-								if (that.lowPressure < 85 && that.highPressure <
-									130) {
+								if (that.lowPressure < 85 && that.highPressure < 130) {
 									that.xueya = 0
 									that.title_name = "正常血压"
-								} else if ((85 <= that.lowPressure && that
-										.lowPressure <=
-										89) && (130 <= that.highPressure && that
-										.highPressure <= 139)) {
+								} else if ((85 <= that.lowPressure && that.lowPressure <= 89) && (130 <= that
+										.highPressure && that.highPressure <= 139)) {
 									that.xueya = 1
 									that.title_name = "正常高血压值"
-								} else if ((90 <= that.lowPressure && that
-										.lowPressure <=
-										99) && (140 <= that.highPressure && that
-										.highPressure <= 159)) {
+								} else if ((90 <= that.lowPressure && that.lowPressure <= 99) && (140 <= that
+										.highPressure && that.highPressure <= 159)) {
 									that.xueya = 2
 									that.title_name = "一级高血压"
-								} else if (100 <= that.lowPressure && 160 <= that
-									.highPressure) {
+								} else if (100 <= that.lowPressure && 160 <= that.highPressure) {
 									that.xueya = 3
 									that.title_name = "二级高血压"
 								} else {
+									that.xueya = 4
 									that.title_name = "未知"
 								}
 								if (that.main_type == true) {
@@ -1673,7 +1625,6 @@
 												.formatDate(that
 													.findValue(res.data.data, 'register', 'weight').updateTime)
 										}
-
 									}
 								} else {
 									for (let i = 0; uni.getStorageSync("kapianlist2").length > i; i++) {
@@ -1695,8 +1646,6 @@
 														that.findValue(that.list2, 'title',
 															"步数").Step_number = uni.getStorageSync(
 															"settept1")
-
-
 														that.findValue(that.list2, 'title',
 															"步数").Step_count = that.formatDate(
 															new Date().getTime())
@@ -2734,8 +2683,6 @@
 		color: white;
 	}
 
-
-
 	.showTotal {
 		.show {
 			width: 100vw;
@@ -2750,7 +2697,6 @@
 			margin: auto;
 			z-index: 10000;
 		}
-
 
 		.over {
 			width: 100%;
@@ -2767,7 +2713,7 @@
 	.title_all {
 		background: #3298F7;
 		width: 100vw;
-		height: 55px;
+		height: 65px;
 		padding: 30px 10px 10px 15px;
 		display: flex;
 		flex-direction: row;
@@ -2784,9 +2730,7 @@
 		font-size: 16px;
 	}
 
-
 	.xueya_bg {
-
 		width: 12px;
 		height: 12px;
 		background: #58BF78;
@@ -2800,11 +2744,6 @@
 		padding: 10px;
 		background: white;
 		border-radius: 10px;
-	}
-
-	.data_bg_2 {
-		display: flex;
-		flex-direction: row;
 	}
 
 	.data_bg_A {
@@ -2825,13 +2764,6 @@
 		color: #3298F7;
 	}
 
-	.data_bg_3 {
-		background: #F7F7F7;
-		display: flex;
-		margin-top: 15px;
-		flex-direction: row;
-	}
-
 	.data_item_bg {
 		display: flex;
 		flex-direction: row;
@@ -2843,19 +2775,6 @@
 		align-items: center;
 		border-radius: 10px;
 		padding: 10px;
-	}
-
-	.data_item_bg1 {
-		display: flex;
-		flex-direction: row;
-		background: white;
-		width: 45vw;
-		justify-content: space-between;
-		align-items: center;
-		border-radius: 10px;
-		padding: 5px;
-		margin-left: 10px;
-		margin-right: 10px;
 	}
 
 	.icon_bg {
@@ -2885,20 +2804,11 @@
 		height: 70vh;
 	}
 
-	.item_box_bg {
-		display: flex;
-		flex-direction: column;
-		margin-left: 20px;
-		padding-right: 10px;
-		font-weight: bold;
-	}
-
 	.title_select_ruler {
 		padding-left: 10px;
 		font-weight: bold;
 		width: 50px;
 		white-space: nowrap;
-		// text-overflow: ellipsis;
 		overflow: auto;
 	}
 
@@ -2944,8 +2854,6 @@
 		align-items: center;
 	}
 
-
-
 	.data_item_bgsss {
 		height: 90px;
 		line-height: 20px;
@@ -2968,24 +2876,16 @@
 	}
 
 	.icon_bgsss {
-
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
 	}
 
-	.img_stylesss {
-		width: 50px;
-		height: 50px;
-	}
-
 	.drag-containersss {
-
 		display: flex;
 		justify-content: center;
 		padding-left: 20px;
-		// padding-right: 20px;
 	}
 
 	.all {
@@ -3000,7 +2900,6 @@
 	}
 
 	@keyframes shake {
-
 		0% {
 			transform: translateX(0) rotate(-2deg)
 		}

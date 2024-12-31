@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <tableViewCell contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" rowHeight="360" id="KGk-i7-Jjw" customClass="LRecordDesCell" customModule="LifeFit" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="573" height="360"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+            <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="KGk-i7-Jjw" id="H2p-sc-9uM">
+                <rect key="frame" x="0.0" y="0.0" width="573" height="360"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="864-w4-a7s">
+                        <rect key="frame" x="0.0" y="0.0" width="573" height="360"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="230807_123456.wav" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="QmF-IG-UYm">
+                                <rect key="frame" x="42" y="65" width="489" height="33.666666666666657"/>
+                                <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="28"/>
+                                <color key="textColor" red="0.20000000000000001" green="0.20000000000000001" blue="0.20000000000000001" alpha="1" colorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="h5R-UL-Mt3">
+                                <rect key="frame" x="23" y="118.66666666666669" width="527" height="34"/>
+                            </slider>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Mxr-lf-58g">
+                                <rect key="frame" x="258.66666666666669" y="228.66666666666663" width="56" height="56"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="56" id="4hU-yp-EOH"/>
+                                    <constraint firstAttribute="height" constant="56" id="Zgj-VI-7LI"/>
+                                </constraints>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" image="icon_zanting"/>
+                                <state key="selected" image="icon_bofang"/>
+                                <connections>
+                                    <action selector="playButtonAction:" destination="KGk-i7-Jjw" eventType="touchUpInside" id="XkL-ck-apL"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SUA-cw-moZ">
+                                <rect key="frame" x="25" y="243.66666666666663" width="26" height="26"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="26" id="KbQ-A9-M7P"/>
+                                    <constraint firstAttribute="width" constant="26" id="Kmr-ts-dJm"/>
+                                </constraints>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" image="icon_fanyi"/>
+                            </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="OVv-Yb-vhA">
+                                <rect key="frame" x="522" y="243.66666666666663" width="26" height="26"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="26" id="IhA-kO-xbw"/>
+                                    <constraint firstAttribute="width" constant="26" id="KaN-gP-OsM"/>
+                                </constraints>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" image="icon_Extract_text"/>
+                            </button>
+                        </subviews>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="SUA-cw-moZ" firstAttribute="centerY" secondItem="Mxr-lf-58g" secondAttribute="centerY" id="7db-1f-nCi"/>
+                            <constraint firstItem="Mxr-lf-58g" firstAttribute="centerX" secondItem="864-w4-a7s" secondAttribute="centerX" id="IFQ-K7-mRZ"/>
+                            <constraint firstItem="h5R-UL-Mt3" firstAttribute="top" secondItem="QmF-IG-UYm" secondAttribute="bottom" constant="20" id="LCf-ly-BNy"/>
+                            <constraint firstItem="OVv-Yb-vhA" firstAttribute="centerY" secondItem="Mxr-lf-58g" secondAttribute="centerY" id="W3s-L8-mcU"/>
+                            <constraint firstAttribute="trailing" secondItem="QmF-IG-UYm" secondAttribute="trailing" constant="42" id="Zlu-Wt-Ebz"/>
+                            <constraint firstItem="QmF-IG-UYm" firstAttribute="top" secondItem="864-w4-a7s" secondAttribute="top" constant="65" id="d9J-hP-zHv"/>
+                            <constraint firstItem="QmF-IG-UYm" firstAttribute="leading" secondItem="864-w4-a7s" secondAttribute="leading" constant="42" id="kCj-Vp-fRY"/>
+                            <constraint firstItem="SUA-cw-moZ" firstAttribute="leading" secondItem="864-w4-a7s" secondAttribute="leading" constant="25" id="pwk-bo-DNU"/>
+                            <constraint firstItem="h5R-UL-Mt3" firstAttribute="leading" secondItem="864-w4-a7s" secondAttribute="leading" constant="25" id="qK3-J0-AsJ"/>
+                            <constraint firstAttribute="trailing" secondItem="OVv-Yb-vhA" secondAttribute="trailing" constant="25" id="tUm-9l-zQU"/>
+                            <constraint firstAttribute="trailing" secondItem="h5R-UL-Mt3" secondAttribute="trailing" constant="25" id="u2h-Ba-bm8"/>
+                            <constraint firstItem="Mxr-lf-58g" firstAttribute="top" secondItem="h5R-UL-Mt3" secondAttribute="bottom" constant="77" id="x99-ht-BEH"/>
+                        </constraints>
+                    </view>
+                </subviews>
+                <constraints>
+                    <constraint firstAttribute="trailing" secondItem="864-w4-a7s" secondAttribute="trailing" id="ZXq-wi-OmI"/>
+                    <constraint firstAttribute="bottom" secondItem="864-w4-a7s" secondAttribute="bottom" id="cqT-eq-9WQ"/>
+                    <constraint firstItem="864-w4-a7s" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" id="efC-IN-EMt"/>
+                    <constraint firstItem="864-w4-a7s" firstAttribute="top" secondItem="H2p-sc-9uM" secondAttribute="top" id="fnx-b6-tqL"/>
+                </constraints>
+            </tableViewCellContentView>
+            <viewLayoutGuide key="safeArea" id="njF-e1-oar"/>
+            <connections>
+                <outlet property="playButton" destination="Mxr-lf-58g" id="apy-uc-41Q"/>
+                <outlet property="playProgress" destination="h5R-UL-Mt3" id="pTj-dS-yhu"/>
+                <outlet property="titleLabel" destination="QmF-IG-UYm" id="bDb-ac-LZA"/>
+            </connections>
+            <point key="canvasLocation" x="180.91603053435114" y="151.40845070422537"/>
+        </tableViewCell>
+    </objects>
+    <resources>
+        <image name="icon_Extract_text" width="26" height="26"/>
+        <image name="icon_bofang" width="56" height="56"/>
+        <image name="icon_fanyi" width="26" height="26"/>
+        <image name="icon_zanting" width="56" height="56"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

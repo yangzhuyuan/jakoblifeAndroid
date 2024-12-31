@@ -29,7 +29,7 @@
 						:key="index">
 						<view>
 							<view class="icon_item_bg_1s">
-								<text @tap="tap($event, index)"
+								<text @tap="tap($event, index,item.deviceSn,item.object.details)"
 									style="width: 15px;line-height: 18px; display: flex;flex-direction: row;writing-mode: vertical-lr;text-orientation: upright;margin-right: 5px;">
 									删除记录
 								</text>
@@ -40,7 +40,7 @@
 									<view class="icon_item_bg">
 										<view class="icon_item_bg_1">
 											<image src="../../../static/icons/3.png" class="img_iocn_bg" />
-											<view style="margin-top: 10px;text-align: center;">平均血压</view>
+											<view style="margin-top: 10px;text-align: center; width: 60px;">平均血压</view>
 										</view>
 										<view>
 											<view
@@ -48,44 +48,43 @@
 												<view class="title_type_bg">
 													<view v-if="item.object.summary.xueyalist == 0" class="xueya_type"
 														style="background: #58BF78;"></view>
-													<view v-else-if="item.object.summary.xueyalist == 1" class="xueya_type"
-														style="background: #7AE545;"></view>
-													<view v-else-if="item.object.summary.xueyalist == 2" class="xueya_type"
-														style="background: #FCCD41;"></view>
-													<view v-else-if="item.object.summary.xueyalist == 3" class="xueya_type"
-														style="background: #F55A5A;"></view>
-													<view v-else-if="item.object.summary.xueyalist == 4" class="xueya_type"
-														style="background: white;"></view>
+													<view v-else-if="item.object.summary.xueyalist == 1"
+														class="xueya_type" style="background: #7AE545;"></view>
+													<view v-else-if="item.object.summary.xueyalist == 2"
+														class="xueya_type" style="background: #FCCD41;"></view>
+													<view v-else-if="item.object.summary.xueyalist == 3"
+														class="xueya_type" style="background: #F55A5A;"></view>
+													<view v-else-if="item.object.summary.xueyalist == 4"
+														class="xueya_type" style="background: white;"></view>
 
 													<view class="title_font_bg">{{item.object.summary.level}}</view>
 													<uni-icons type="help" size="15" style=""
 														@tap="BMI_tap"></uni-icons>
 												</view>
-												<view style="margin-right: 30px; color: gray;">{{item.modelName}}</view>
+												<view style="margin-right: 10px; color: gray;">{{item.modelName}}</view>
 											</view>
 											<view class="border_bg" />
-											<view style="display: flex; flex-direction: row; padding-left: 10px;">
+											<view style="display: flex; flex-direction: row;">
 												<view style="text-align: center;">
-													<view class="text_item_bg">舒张压mmHg
+													<view class="text_item_bg">舒张压/mmHg
 													</view>
 													<view class="text_item_bg_1">{{item.object.summary.lowPressureAvg}}
 													</view>
 												</view>
 												<view style="text-align: center;">
-													<view class="text_item_bg">收缩压mmHg
+													<view class="text_item_bg">收缩压/mmHg
 													</view>
 													<view class="text_item_bg_1">{{item.object.summary.highPressureAvg}}
 													</view>
 												</view>
-												
+
 												<view style="text-align: center;">
 													<view class="text_item_bgqqq">{{$t('gongxiangitem.title_25')}}/BMP
 													</view>
 													<view class="text_item_bg_1">{{item.object.summary.heartrateAvg}}
 													</view>
 												</view>
-												<view style="margin-top: 20px;"
-													@click="zhankai_cl(index)">
+												<view style="margin-top: 20px;" @click="zhankai_cl(index)">
 													<view v-if="item.object.summary.ss == true">
 														<uni-icons type="top" size="22"></uni-icons>
 													</view>
@@ -105,7 +104,7 @@
 								v-for="(item1,index1) in item.object.details" :key="index1">
 								<view>
 									<view class="icon_item_bg_1s">
-										<text @tap="tap1($event,index, index1)"
+										<text @tap="tap1($event,index, index1,item.deviceSn,item1.timestamp)"
 											style="width: 15px;line-height: 18px; display: flex;flex-direction: row;writing-mode: vertical-lr;text-orientation: upright;margin-right: 5px;">
 											删除记录
 										</text>
@@ -134,13 +133,13 @@
 																style="background: #F55A5A;"></view>
 															<view v-else-if="item1.xueyalist1 == 4" class="xueya_type"
 																style="background: white;"></view>
-															
+
 															<view class="title_font_bg">{{item1.level2}}</view>
-															
+
 															<uni-icons type="help" size="15" style=""
 																@tap="BMI_tap"></uni-icons>
 														</view>
-														<view style="margin-right: 20px; color: gray;">
+														<view style="margin-right: 10px; color: gray;">
 															{{item.modelName}}
 														</view>
 													</view>
@@ -148,7 +147,7 @@
 													<view style="display: flex; flex-direction: row; ">
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																舒张压mmHg
+																舒张压/mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item1.lowPressure}}
@@ -156,17 +155,17 @@
 														</view>
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																收缩压mmHg
+																收缩压/mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item1.highPressure}}
 															</view>
 														</view>
-														
+
 
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_25')}}BMP
+																{{$t('gongxiangitem.title_25')}}/BMP
 															</view>
 															<view class="text_item_bg_1">{{item1.heartrate}}</view>
 														</view>
@@ -186,7 +185,7 @@
 						:key="index">
 						<view>
 							<view class="icon_item_bg_1s">
-								<text @tap="tap($event, index)"
+								<text @tap="tap($event, index,item.deviceSn,item.object.details)"
 									style="width: 15px;line-height: 18px; display: flex;flex-direction: row;writing-mode: vertical-lr;text-orientation: upright;margin-right: 5px;">
 									删除记录
 								</text>
@@ -203,7 +202,7 @@
 												</view>
 												<view style="margin-top: 10px;width: 20vw;">{{item1.highPressure}}
 												</view>
-												
+
 												<view style="margin-top: 10px;">{{item1.heartrate}}</view>
 											</view>
 										</view>
@@ -225,19 +224,20 @@
 													<view
 														style="display: flex;flex-direction: row;justify-content: space-between; align-items: center;">
 														<view class="title_type_bg">
-															<view v-if="item.object.summary.xueyalist == 0" class="xueya_type"
-																style="background: #58BF78;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 1" class="xueya_type"
-																style="background: #7AE545;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 2" class="xueya_type"
-																style="background: #FCCD41;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 3" class="xueya_type"
-																style="background: #F55A5A;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 4" class="xueya_type"
-																style="background: white;"></view>
+															<view v-if="item.object.summary.xueyalist == 0"
+																class="xueya_type" style="background: #58BF78;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 1"
+																class="xueya_type" style="background: #7AE545;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 2"
+																class="xueya_type" style="background: #FCCD41;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 3"
+																class="xueya_type" style="background: #F55A5A;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 4"
+																class="xueya_type" style="background: white;"></view>
 
 
-															<view class="title_font_bg">{{item.object.summary.level}}</view>
+															<view class="title_font_bg">{{item.object.summary.level}}
+															</view>
 															<uni-icons type="help" size="15" style=""
 																@tap="BMI_tap"></uni-icons>
 														</view>
@@ -249,7 +249,7 @@
 													<view style="display: flex; flex-direction: row; ">
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_23')}}mmHg
+																{{$t('gongxiangitem.title_23')}}/mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.lowPressureAvg}}
@@ -257,7 +257,7 @@
 														</view>
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_24')}}mmHg
+																{{$t('gongxiangitem.title_24')}}/mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.highPressureAvg}}
@@ -265,7 +265,7 @@
 														</view>
 														<view style="text-align: center;">
 															<view class="text_item_bgqqq">
-																{{$t('gongxiangitem.title_25')}}BMP
+																{{$t('gongxiangitem.title_25')}}/BMP
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.heartrateAvg}}
@@ -297,19 +297,20 @@
 													<view
 														style="display: flex;flex-direction: row;justify-content: space-between; align-items: center;">
 														<view class="title_type_bg">
-															<view v-if="item.object.summary.xueyalist == 0" class="xueya_type"
-																style="background: #58BF78;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 1" class="xueya_type"
-																style="background: #7AE545;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 2" class="xueya_type"
-																style="background: #FCCD41;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 3" class="xueya_type"
-																style="background: #F55A5A;"></view>
-															<view v-else-if="item.object.summary.xueyalist == 4" class="xueya_type"
-																style="background: white;"></view>
-															
-															
-															<view class="title_font_bg">{{item.object.summary.level}}</view>
+															<view v-if="item.object.summary.xueyalist == 0"
+																class="xueya_type" style="background: #58BF78;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 1"
+																class="xueya_type" style="background: #7AE545;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 2"
+																class="xueya_type" style="background: #FCCD41;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 3"
+																class="xueya_type" style="background: #F55A5A;"></view>
+															<view v-else-if="item.object.summary.xueyalist == 4"
+																class="xueya_type" style="background: white;"></view>
+
+
+															<view class="title_font_bg">{{item.object.summary.level}}
+															</view>
 															<uni-icons type="help" size="15" style=""
 																@tap="BMI_tap"></uni-icons>
 														</view>
@@ -321,7 +322,7 @@
 													<view style="display: flex; flex-direction: row; ">
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_23')}}mmHg
+																{{$t('gongxiangitem.title_23')}}/mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.lowPressureAvg}}
@@ -329,7 +330,7 @@
 														</view>
 														<view style="text-align: center;">
 															<view class="text_item_bg">
-																{{$t('gongxiangitem.title_24')}}mmHg
+																{{$t('gongxiangitem.title_24')}}/mmHg
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.highPressureAvg}}
@@ -337,7 +338,7 @@
 														</view>
 														<view style="text-align: center;">
 															<view class="text_item_bgqqq">
-																{{$t('gongxiangitem.title_25')}}BMP
+																{{$t('gongxiangitem.title_25')}}/BMP
 															</view>
 															<view class="text_item_bg_1">
 																{{item.object.summary.heartrateAvg}}
@@ -368,7 +369,7 @@
 						:key="index">
 						<view>
 							<view class="icon_item_bg_1s">
-								<text @tap="tap($event, index)"
+								<text @tap="tap($event, index,item.deviceSn,item.object.details)"
 									style="width: 15px;line-height: 18px; display: flex;flex-direction: row;writing-mode: vertical-lr;text-orientation: upright;margin-right: 5px;">
 									删除记录
 								</text>
@@ -379,7 +380,7 @@
 									<view class="icon_item_bg">
 										<view class="icon_item_bg_1">
 											<image src="../../../static/icons/6.png" class="img_iocn_bg" />
-											<view style="margin-top: 10px;text-align: center;">平均体重</view>
+											<view style="margin-top: 10px;text-align: center;width: 60px;">平均体重</view>
 										</view>
 										<view>
 											<view
@@ -402,22 +403,25 @@
 													<uni-icons type="help" size="15" style=""
 														@tap="BMI_tap1"></uni-icons>
 												</view>
-												<view style="margin-right: 20px; color: gray;">{{item.modelName}}</view>
+												<view style="margin-right: 10px; color: gray;">{{item.modelName}}</view>
 											</view>
 											<view class="border_bg" />
 											<view style="display: flex; flex-direction: row; ">
 												<view>
-													<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
+													<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
 													</view>
-													<view class="text_item_bg_1" style="padding-left: 25px;">{{item.object.summary.weightAvg}}
+													<view class="text_item_bg_1" style="padding-left: 5px;">
+														{{item.object.summary.weightAvg}}
 													</view>
 												</view>
-												<view>
-													<view class="text_item_bgqqq" >BMI</view>
-													<view class="text_item_bg_1" style="padding-left: 5px;">{{item.object.summary.bmiAvg}}</view>
+												<view style="margin-left: 25px;">
+													<view class="text_item_bgqqq">BMI</view>
+													<view class="text_item_bg_1" style="padding-left: 5px;">
+														{{item.object.summary.bmiAvg}}
+													</view>
 												</view>
 												<view style="padding-left: 30px;">
-													<view class="text_item_bgqqq" ></view>
+													<view class="text_item_bgqqq"></view>
 													<view class="text_item_bg_2qqq">{{item.dateTime}}</view>
 												</view>
 												<view style="margin-top: 20px; margin-left: 10px;"
@@ -441,7 +445,7 @@
 								v-for="(item1,index1) in item.object.details" :key="index1">
 								<view>
 									<view class="icon_item_bg_1s">
-										<text @tap="tap1($event,index, index1)"
+										<text @tap="tap1($event,index, index1,item.deviceSn,item1.timestamp)"
 											style="width: 15px;line-height: 18px; display: flex;flex-direction: row;writing-mode: vertical-lr;text-orientation: upright;margin-right: 5px;">
 											删除记录
 										</text>
@@ -478,20 +482,20 @@
 															<uni-icons type="help" size="15" style=""
 																@tap="BMI_tap1"></uni-icons>
 														</view>
-														<view style="margin-right: 20px; color: gray;">
+														<view style="margin-right: 10px; color: gray;">
 															{{item.modelName}}
 														</view>
 													</view>
 													<view class="border_bg1" />
 													<view style="display: flex; flex-direction: row; ">
 														<view>
-															<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
+															<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
 															</view>
-															<view class="text_item_bg_1" style="padding-left: 25px;">
+															<view class="text_item_bg_1" style="padding-left: 5px;">
 																{{item1.weight}}
 															</view>
 														</view>
-														<view>
+														<view style="padding-left: 25px;">
 															<view class="text_item_bgqqq">BMI</view>
 															<view class="text_item_bg_1">{{item1.bmi}}
 															</view>
@@ -516,7 +520,7 @@
 						:key="index">
 						<view>
 							<view class="icon_item_bg_1s">
-								<text @tap="tap($event, index)"
+								<text @tap="tap($event, index,item.deviceSn,item.object.details)"
 									style="width: 15px;line-height: 18px; display: flex;flex-direction: row;writing-mode: vertical-lr;text-orientation: upright;margin-right: 5px;">
 									删除记录
 								</text>
@@ -579,15 +583,15 @@
 													</view>
 													<view class="border_bg" />
 													<view style="display: flex; flex-direction: row; ">
-														<view >
-															<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
+														<view>
+															<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
 															</view>
-															<view class="text_item_bg_1" style="padding-left: 25px;">
+															<view class="text_item_bg_1" style="padding-left: 5px;">
 																{{item.object.summary.weightAvg}}
 															</view>
 														</view>
-														<view>
-															<view class="text_item_bgqqq">BMI</view>
+														<view style="padding-left: 25px;">
+															<view class="text_item_bg">BMI</view>
 															<view class="text_item_bg_1">{{item.object.summary.bmiAvg}}
 															</view>
 														</view>
@@ -647,14 +651,14 @@
 													<view class="border_bg" />
 													<view style="display: flex; flex-direction: row; ">
 														<view>
-															<view class="text_item_bg" style="padding-left: 20px;">{{$t('zhuceitem.title_6')}}/kg
+															<view class="text_item_bg">{{$t('zhuceitem.title_6')}}/kg
 															</view>
-															<view class="text_item_bg_1"style="padding-left: 25px;">
+															<view class="text_item_bg_1" style="padding-left: 5px;">
 																{{item.object.summary.weightAvg}}
 															</view>
 														</view>
-														<view>
-															<view class="text_item_bgqqq">BMI</view>
+														<view style="padding-left: 25px;">
+															<view class="text_item_bg">BMI</view>
 															<view class="text_item_bg_1">{{item.object.summary.bmiAvg}}
 															</view>
 														</view>
@@ -1528,8 +1532,10 @@
 										if (res.data.data[index].object.details[index1]
 											.lowPressure < 85 && res.data.data[index].object
 											.details[index1].highPressure < 130) {
-											res.data.data[index].object.details[index1].level2 = "正常血压"
-											res.data.data[index].object.details[index1].xueyalist1 = 0
+											res.data.data[index].object.details[index1].level2 =
+												"正常血压"
+											res.data.data[index].object.details[index1]
+												.xueyalist1 = 0
 										} else if ((85 <= res.data.data[index].object.details[
 													index1].lowPressure &&
 												res.data.data[index].object.details[index1]
@@ -1538,8 +1544,10 @@
 													index1].highPressure && res.data.data[index]
 												.object.details[index1].highPressure <=
 												139)) {
-											res.data.data[index].object.details[index1].level2 = "正常高血压值"
-											res.data.data[index].object.details[index1].xueyalist1 = 1
+											res.data.data[index].object.details[index1].level2 =
+												"正常高血压值"
+											res.data.data[index].object.details[index1]
+												.xueyalist1 = 1
 										} else if ((90 <= res.data.data[index].object.details[
 													index1].lowPressure &&
 												res.data.data[index].object.details[index1]
@@ -1548,17 +1556,23 @@
 													index1].highPressure && res.data.data[index]
 												.object.details[index1].highPressure <=
 												159)) {
-											res.data.data[index].object.details[index1].level2 = "一级高血压"
-											res.data.data[index].object.details[index1].xueyalist1 = 2
+											res.data.data[index].object.details[index1].level2 =
+												"一级高血压"
+											res.data.data[index].object.details[index1]
+												.xueyalist1 = 2
 										} else if (100 <= res.data.data[index].object.details[
 												index1].lowPressure &&
 											160 <= res.data.data[index].object.details[index1]
 											.highPressure) {
-											res.data.data[index].object.details[index1].level2 = "二级高血压"
-											res.data.data[index].object.details[index1].xueyalist1 = 3
+											res.data.data[index].object.details[index1].level2 =
+												"二级高血压"
+											res.data.data[index].object.details[index1]
+												.xueyalist1 = 3
 										} else {
-											res.data.data[index].object.details[index1].xueyalist1 = 4
-											res.data.data[index].object.details[index1].level2 = "未知"
+											res.data.data[index].object.details[index1]
+												.xueyalist1 = 4
+											res.data.data[index].object.details[index1].level2 =
+												"未知"
 										}
 
 									})
@@ -2336,12 +2350,88 @@
 				}
 			},
 
-			tap(e, index) {
-				this.swipeList.splice(index, 1)
+			tap(e, index, deviceSn, details) {
+
+				console.log("dsakshdkhadashkj11111", deviceSn)
+				console.log("dsakshdkhadashkj11111", details)
+				let timestamp = []
+				for (let i = 0; details.length > i; i++) {
+					timestamp.push(parseInt(details[i].timestamp))
+				}
+				console.log("dsakshdkhadashkj", timestamp)
+				this.batch_del_data_log2(index, deviceSn, timestamp)
 			},
-			tap1(e, index, index1) {
-				this.swipeList[index].object.details.splice(index1, 1)
+			tap1(e, index, index1, deviceSn, timestamp) {
+				console.log("dsakshdkhadashkj", timestamp)
+				this.batch_del_data_log(index, index1, deviceSn, timestamp)
+
 			},
+
+
+			//删除历史记录
+			batch_del_data_log(index, index1, deviceSn, timestamp) {
+				let that = this
+				uni.request({
+					url: that.$url_batch_del_data_log,
+					method: 'POST',
+					data: {
+						deviceSn: deviceSn,
+						timeList: [timestamp]
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json' //自定义请求头信息
+					},
+					success(res) {
+
+						console.log("删除子历史记录", res)
+
+						if (res.data.code == 200) {
+							that.swipeList[index].object.details.splice(index1, 1)
+						} else {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						}
+					}
+
+				})
+
+			},
+
+			//删除大的历史记录
+			batch_del_data_log2(index, deviceSn, timestamp) {
+				let that = this
+				uni.request({
+					url: that.$url_batch_del_data_log,
+					method: 'POST',
+					data: {
+						deviceSn: deviceSn,
+						timeList: timestamp
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json' //自定义请求头信息
+					},
+					success(res) {
+
+						console.log("删除子历史记录", res)
+
+						if (res.data.code == 200) {
+							that.swipeList.splice(index, 1)
+						} else {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						}
+					}
+
+				})
+
+			},
+
 			onChange(e, index) {
 				console.log("aaa", e)
 				console.log("aa1a", index)
@@ -2542,11 +2632,9 @@
 		margin-left: 5px;
 		margin-right: 5px;
 		color: gray;
-		width: 80px;
 		margin-top: 5px;
-		/* white-space: nowrap;
-		overflow: auto; */
 	}
+
 	.text_item_bgqqq {
 		font-size: 12px;
 		margin-left: 5px;
@@ -2560,7 +2648,9 @@
 
 	.text_item_bg_1 {
 		font-size: 16px;
-		/* margin-left: 5px; */
+		text-align: left;
+		margin-top: 10px;
+		margin-left: 5px;
 	}
 
 	.icon_item_bg_ssss {
@@ -2599,7 +2689,7 @@
 		color: gray;
 		margin-top: 20px;
 	}
-	
+
 	.text_item_bg_2qqq {
 		font-size: 16px;
 		/* margin-left: 10px; */
@@ -2624,7 +2714,6 @@
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		margin-left: 15px;
 	}
 
 	.xueya_type {
@@ -2636,16 +2725,16 @@
 	}
 
 	.border_bg {
-		margin: 5px 10px 0 20px;
+		margin: 5px 10px 0 5px;
 		background: gainsboro;
 		width: 70vw;
 		height: 1px;
 	}
 
 	.border_bg1 {
-		margin: 5px 10px 0 20px;
+		margin: 5px 10px 0 5px;
 		background: gainsboro;
-		width: 66vw;
+		width: 70vw;
 		height: 1px;
 	}
 

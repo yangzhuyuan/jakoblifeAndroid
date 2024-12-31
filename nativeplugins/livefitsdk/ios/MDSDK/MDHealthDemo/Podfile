@@ -1,0 +1,33 @@
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '11.0'
+
+use_frameworks!
+inhibit_all_warnings!
+
+ 
+pod 'FDFullscreenPopGesture'
+ 
+#    相机控件
+pod 'TZImagePickerController'
+pod 'Alamofire'
+pod 'SDWebImage'
+pod 'MJExtension'
+pod 'SwiftyJSON'
+pod 'SnapKit'
+pod 'AFNetworking'
+pod 'SVProgressHUD'
+pod 'MBProgressHUD'
+pod 'mobile-ffmpeg-full-gpl'
+target 'Test001' do
+  
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      end
+    end
+  end
+end

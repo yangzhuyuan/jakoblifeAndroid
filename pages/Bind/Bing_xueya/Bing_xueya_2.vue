@@ -4,7 +4,7 @@
 			<view style="margin: 15px 0 0 15px; font-size: 14px; color: gray;">{{$t('BDSBitem.title_18')}}</view>
 
 			<view style="width: auto;margin: 20px; background: white; border-radius: 10px;padding: 20px;">
-				<image style="width: 100%;" :src="imagess"></image>
+				<image style="width: 100%;" :src="SELECT_TYPE === '0' ? imagess:imagess1"></image>
 			</view>
 			<view style="margin: 15px 0 0 15px;">
 				<view class="input_style">
@@ -38,6 +38,7 @@
 	export default {
 		data() {
 			return {
+				sn: '',
 				SELECT_TYPE: '',
 				imagess: '../../../static/image/2.png',
 				imagess1: '../../../static/image/5.png',
@@ -54,6 +55,9 @@
 		},
 
 		onLoad(res) {
+			this.sn = res.sn
+			console.log("的撒可怜见撒旦立刻", res)
+			this.SELECT_TYPE = res.SELECT_TYPE
 			this.deviceId = res.deviceId
 			this.serviceId = res.serviceId
 			this.uuid = res.uuid
@@ -75,9 +79,12 @@
 
 		methods: {
 
+			
+
 
 			//通过蓝牙发送AT命令的接口
 			sendATCommand(deviceId, serviceId, uuid, senddata) {
+				let that = this
 				// 向蓝牙设备发送一个0x00的16进制数据
 				let buffer = new ArrayBuffer(senddata.length)
 				let dataView = new DataView(buffer)
@@ -89,7 +96,7 @@
 				console.log("发送 _deviceId：" + deviceId)
 				console.log("发送_serviceId：" + serviceId)
 				console.log("发送_characteristicId：" + uuid)
-				console.log("发送_value：" + this.ab2hex(buffer))
+				console.log("发送_value：" + that.ab2hex(buffer))
 				uni.writeBLECharacteristicValue({
 					deviceId: deviceId,
 					serviceId: serviceId,
@@ -98,10 +105,10 @@
 					writeType: "writeNoResponse",
 					success(res) {
 						console.log('向低功耗蓝牙设备特征值中写入二进制数据', res)
+						console.log('向低功耗蓝牙设备特征值中写入二进制数据', that.sn)
 						uni.navigateTo({
-							url: '../Bing_page/Bind_success'
+							url: "../Bing_page/Bind_pg?sn=" + that.sn
 						})
-
 					},
 					fail: function(res) {
 						console.log('失败', res)
@@ -165,8 +172,8 @@
 				}
 
 			},
-			
-			open(){
+
+			open() {
 				plus.runtime.openURL("prefs:root=WIFI"); //打开wifi设置页面
 			},
 

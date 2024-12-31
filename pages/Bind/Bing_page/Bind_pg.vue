@@ -34,6 +34,7 @@
 		},
 
 		onLoad(ops) {
+			console.log("的萨哈克手机贺卡技术大会",ops)
 			this.change(ops.sn)
 		},
 
@@ -42,9 +43,9 @@
 				let that = this
 				// 开启定时器，定时器同样可以用在请求当中
 				let clearInt = setInterval(() => {
-					this.progress++;
-					this.prosgress_bg++;
-					if (this.progress === 100) {
+					that.progress++;
+					that.prosgress_bg++;
+					if (that.progress === 100) {
 						clearInterval(clearInt)
 						uni.showToast({
 							title: "设备绑定成功",
