@@ -1,6 +1,0 @@
-framework module OTASDK {
-  umbrella header "OTASDK.h"
-
-  export *
-  module * { export * }
-}

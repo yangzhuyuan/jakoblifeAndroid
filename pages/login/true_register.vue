@@ -1,37 +1,37 @@
 <template>
-	<view style="padding: 10px;background: #F7F7F7; color: black;height: 100vh;">
+	<view style="padding-top: 10px; background: #F7F7F7; color: black;height: 100vh;">
 		<view class="linear">
 			<image class="img_bg" src="../../static/icons/15.png" />
-			<input type="text" :placeholder="$t('zhuceitem.input_0')" maxlength="32"
-				style="width: 70vw;margin-left: 15px; " v-model="vip_unername" />
+			<input type="text" :placeholder="$t('请输入会员名')" maxlength="32" style="width: 70vw;margin-left: 15px; "
+				v-model="vip_unername" />
 		</view>
 		<view class="linear">
 			<image class="img_bg" src="../../static/icons/16.png" />
-			<input :password=isPassword1 type="text" maxlength="16" :placeholder="$t('login.input_1')"
-				style="width: 65vw;margin-left: 15px; " v-model="vip_password" />
+			<input :password=isPassword1 type="text" maxlength="16" :placeholder="$t('请输入密码')"
+				style="width: 60vw;margin-left: 15px; " v-model="vip_password" />
 			<image class="img_bg" :src="isPassword1 ? urlicon1 : urlicon2" @tap="img_mima1" />
 		</view>
-		<view class="title_tishi" :style="getcolor(act)">请输入不小于八位数密码</view>
-		<view class="linear">
+		<view class="title_tishi" :style="getcolor(act)">{{$t('请输入不小于八位数密码')}}</view>
+		<view class="linear_1">
 			<image class="img_bg" src="../../static/icons/16.png" />
-			<input :password=isPassword2 type="text" maxlength="16" :placeholder="$t('zhuceitem.input_1')"
-				style="width: 65vw;margin-left: 15px; " v-model="vip_password_2" />
+			<input :password=isPassword2 type="text" maxlength="16" :placeholder="$t('请确认密码')"
+				style="width: 60vw;margin-left: 15px; " v-model="vip_password_2" />
 			<image class="img_bg" :src="isPassword2 ? urlicon3 : urlicon4" @tap="img_mima2" />
 		</view>
-		<view v-show='act1' style="margin: 15px 0 0 30px;color: #F55A5A;">两次输入的密码不一致</view>
+		<view v-show='act1' style="margin: 15px 0 0 40px;color: #F55A5A;font-size: 14px;">{{$t('两次输入的密码不一致')}}</view>
 		<view style="position: fixed; bottom: 0;left: 0; width: 100vw;">
 			<view style="display: flex;flex-direction: column; ">
-				<view style="display: flex;flex-direction: row;justify-content: center;">
-					<checkbox style="font-size: 14px;margin-left: 15px;" class="round" color="#ffffff"
-						activeBorderColor="#D2D2D2" activeBackgroundColor="#3298F7" :checked="cb" @click="checked">
+				<view
+					style="display: flex;flex-direction: row;justify-content: left;align-items: center;margin-left: 20px;">
+					<checkbox style="font-size: 12px;" class="round" color="#ffffff" activeBorderColor="#D2D2D2"
+						activeBackgroundColor="#3298F7" :checked="cb" @click="checked">
 					</checkbox>
-					<view style="text-align: center;">{{$t('zhuceitem.check_text')}}</view>
-					<view style="color: cornflowerblue;font-size: 14px;" @tap="Service_Agreement">
-						{{$t('login.text_5')}}
+					<view style="text-align: center; font-size: 12px;">{{$t('已阅读并同意')}}</view>
+					<view style="color: cornflowerblue;font-size: 12px;" @tap="Service_Agreement">
+						{{$t('JakobLife软件服务使用协议')}}
 					</view>
 				</view>
-				<button class="button_back" :style="getback(cb)"
-					@click="True_Register()">{{$t('zhuceitem.btn_0')}}</button>
+				<button class="button_back" @click="True_Register()">{{$t('创建我的帐户')}}</button>
 			</view>
 		</view>
 
@@ -43,6 +43,9 @@
 		mapState,
 		mapMutations
 	} from 'vuex'
+	import {
+		isInChinaByIP
+	} from '../api/isInChinaByIP.js';
 	export default {
 		computed: {
 			...mapState(['tokens', 'unername'])
@@ -61,21 +64,36 @@
 				isPassword2: true,
 				urlicon3: "../../static/icons/mima_1.png",
 				urlicon4: "../../static/icons/mima_2.png",
+				loact: '',
 
 			}
 		},
 
 		onShow() {
 			let that = this;
-			//使用协议返回过来的数据
-			uni.$once('checked', function(data) {
-				that.cb = data
-			})
+			isInChinaByIP().then(isInChina => {
+				if (isInChina) {
+					console.log('用户在中国境内');
+					that.loact = "境内"
+					//使用协议返回过来的数据
+					uni.$once('checked', function(data) {
+						that.cb = data
+					})
+				} else {
+					console.log('用户在境外');
+					that.loact = "境外"
+					//使用协议返回过来的数据
+					uni.$once('checked', function(data) {
+						that.cb = data
+					})
+				}
+			});
+
 		},
 
 		onLoad(opeation) {
 			uni.setNavigationBarTitle({
-				title: this.$t('zhuce')
+				title: this.$t('注册')
 			})
 		},
 
@@ -126,39 +144,39 @@
 			True_Register() {
 				if (this.vip_unername == '' || this.vip_unername == undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_0'),
+						title: this.$t('会员名未设置'),
 						icon: 'none'
 					})
 					return
 				} else if (this.vip_password == '' || this.vip_password == undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_1'),
+						title: this.$t('密码未设置'),
 						icon: 'none'
 					})
 					return
 				} else if (this.vip_password.length < 8) {
 					this.act = "1"
 					uni.showToast({
-						title: "密码不可以低于8位数",
+						title: this.$t('密码不能低于8位数'),
 						icon: 'none'
 					})
 					return
 				} else if (this.vip_password_2 == '' || this.vip_password_2 == undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_2'),
+						title: this.$t('再次输入的密码未设置'),
 						icon: 'none'
 					})
 					return
 				} else if (this.vip_password != this.vip_password_2) {
 					this.act1 = true
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_3'),
+						title: this.$t('两次输入的密码不一致'),
 						icon: 'none'
 					})
 					return
 				} else if (this.cb == false) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_4'),
+						title: this.$t('请阅读并同意JakobLife软件服务使用协议'),
 						icon: 'none'
 					})
 					return
@@ -193,16 +211,26 @@
 							if (res.data.code == 200) {
 								that.register_token(res.data.token)
 								that.register_unername(that.vip_unername)
-								uni.setStorageSync("token", res.data.token)
 								uni.showToast({
-									title: res.data.msg,
+									title: that.$t("成功"),
 									icon: 'none'
 								})
 								setTimeout(function() {
-									uni.navigateTo({
-										url: '../login/Bind_phone'
-									})
+									if (that.loact === "境内") {
+										uni.navigateTo({
+											url: '../login/Bind_phone',
+										})
+									} else if (that.loact === "境外") {
+										uni.navigateTo({
+											url: "/pages/login/true_register_email"
+										})
+									}
 								}, 300)
+							} else if (res.data.code == 500) {
+								uni.showToast({
+									title: that.$t("注册账号已存在"),
+									icon: 'none'
+								})
 							} else {
 								uni.showToast({
 									title: res.data.msg,
@@ -224,31 +252,55 @@
 
 <style>
 	.title_tishi {
-		margin: 15px 0 0 30px;
+		margin: 15px 0 0 40px;
 		color: #3298F7;
+		font-size: 14px;
 	}
 
 	.linear {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 20px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 45px;
 		background-color: white;
-		border-radius: 30px;
-		margin: 20px 20px 0 20px;
-		padding: 0 15px 0 15px;
+		border-radius: 40px;
 	}
 
 	.img_bg {
 		width: 20px;
 		height: 20px;
+		margin-left: 20px;
 	}
 
+	.linear_1 {
+		width: auto;
+		height: 54px;
+		margin-top: 14px;
+		margin-left: 20px;
+		margin-right: 20px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		background-color: white;
+		border-radius: 40px;
+	}
+
+
 	.button_back {
+		width: auto;
+		margin: 20px 20px 108px 20px;
 		background: #3298F7;
 		color: white;
-		border-radius: 30px;
-		font-weight: bold;
-		margin: 20px 20px 20px 20px;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
 	}
 </style>

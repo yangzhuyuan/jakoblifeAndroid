@@ -4,36 +4,19 @@
 			<image class="img_bg" src="../../../static/icons/success.png">
 			</image>
 		</view>
-		<view class="name_bg">{{name}}{{$t('wodelist.xiaoxiitem.title_3')}}</view>
-
-		<button class="bt_Turn_down" @click="bt_ok()">{{$t('login.text_13')}}</button>
-
-	</view>
+		<view class="name_bg">{{$t('已与您共享健康数据')}}</view>
+		<button class="bt_Turn_down" @click="bt_ok()">{{$t('确定')}}</button>
 	</view>
 </template>
 
 <script>
 	export default {
-		data() {
-			return {
-				name: "aa"
-
-			}
-		},
-
-		onLoad: function(res) {
-			this.name = res.NAME
-
-		},
-
 		methods: {
 			bt_ok() {
 				uni.reLaunch({
 					url: "/pages/tabBar/my/My"
 				})
-
 			}
-
 		}
 	}
 </script>

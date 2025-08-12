@@ -1,22 +1,21 @@
 <template>
-	<view style="padding-top: 20px;color: black;">
+	<view style="padding-top: 20px; background: #F7F7F7; color: black;width: 100vw; height: 100vh;">
 		<view class="linear">
 			<image class="img_bg" src="../../../static/icons/17.png" />
-			<input type="number" :placeholder="$t('WJMMitem.input_0')" style="width: 70vw;margin-left: 10px; "
-				maxlength="11" v-model="unername_phone" />
+			<input type="number" :placeholder="loact==='境内'?$t('请输入手机号'):$t('请输入邮箱')"
+				style="width: 70vw;margin-left: 10px; " maxlength="11" v-model="unername_phone" />
 		</view>
 
 		<view style="display: flex; flex-direction: row;">
 			<view class="linear_1">
 				<image class="img_bg" src="../../../static/icons/18.png" />
-				<input type="number" :placeholder="$t('login.text_18')" style="margin-left: 10px;width: 35vw;"
-					maxlength="8" v-model="yanzhengma" />
+				<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+					v-model="yanzhengma" />
 			</view>
 			<button class="linear_btn" style="background: #3298F7; color: white;"
-				@tap="huoqu">{{yanzheng?$t('login.text_3'): codetime+msg}}</button>
+				@tap="huoqu">{{yanzheng?$t('获取验证码'): codetime+msg}}</button>
 		</view>
-		<button class="button_back" :style="getback(unername_phone,yanzhengma)"
-			@tap="btn_next">{{$t('zhuceitem.btn_0')}}</button>
+		<button class="button_back" @tap="btn_next">{{$t('下一步')}}</button>
 
 
 		<view class="container_bg" v-show="tanchuang">
@@ -24,22 +23,22 @@
 				<view style="background: white;  margin-left: 20px;margin-right: 20px;border-radius: 20px;">
 					<view
 						style="text-align: center; font-size: 16px; color: black; font-weight: bold;padding-top: 20px;">
-						{{$t('login.text_10')}}
+						{{$t('请填写图形验证码')}}
 					</view>
 					<view class="modal-content_bg">
-						<input class="edit_bg" type="number" :placeholder="$t('login.text_11')" v-model="yzm" />
+						<input class="edit_bg" type="number" :placeholder="$t('请输入图形验证码')" v-model="yzm" />
 						<view>
 							<image :src="yangzhengma_img" style="width: 120px; height: 45px;"></image>
 							<view style="text-align: center; color: dodgerblue;margin-top: 10px;" @click="clickCode">
-								{{$t('login.text_12')}}
+								{{$t('看不清')}}
 							</view>
 						</view>
 					</view>
 					<view style="display: flex; flex-direction: row; border-top: 1rpx solid gainsboro;">
-						<view class="text_yzm" @click="closeModal_cancle">{{$t('login.text_14')}}
+						<view class="text_yzm" @click="closeModal_cancle">{{$t('取消')}}
 						</view>
 						<view style="border-left: 1rpx solid gainsboro;"></view>
-						<view class="text_yzm_1" @click="closeModal">{{$t('login.text_13')}}</view>
+						<view class="text_yzm_1" @click="closeModal">{{$t('确定')}}</view>
 					</view>
 				</view>
 			</view>
@@ -60,13 +59,14 @@
 		data() {
 			return {
 				yangzhengma_img: '', //验证码图片
-				msg: this.$t('zhuceitem.input_3'),
+				msg: this.$t('s后可重发'),
 				unername_phone: '',
 				yanzhengma: '',
 				yanzheng: 1,
 				codetime: 0,
 				tanchuang: false,
 				yzm: '',
+				loact: "",
 			}
 		},
 
@@ -75,29 +75,30 @@
 			console.log(res)
 			//标题名称
 			uni.setNavigationBarTitle({
-				title: this.$t('WJMM')
+				title: this.$t('重置密码')
 			})
+			this.loact = res.loact
 		},
 
 		methods: {
 			...mapMutations(['login', 'getImgID']),
-			
+
 			getback(phone, yzm) {
 				return {
 					background: phone === "" || yzm === "" ? "#DBDBDB" : "#3298F7"
 				}
 			},
-			
+
 			huoqu() {
 				if (this.unername_phone == "" || this.unername_phone == undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.input_2'),
+						title: this.loact === '境内' ? this.$t('请输入手机号') : this.$t('请输入邮箱'),
 						icon: 'none'
 					})
 					return
 				} else if (this.codetime > 0) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_5'),
+						title: this.$t('不能重复获取'),
 						icon: "none"
 					})
 					return
@@ -110,31 +111,12 @@
 
 			//获取验证码图片
 			captchaImage() {
-				let _that = this
-				uni.request({
-					url: _that.$url_captchaImage,
-					method: 'GET',
-					header: {
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success(res) {
-						console.log('获取图形验证码', res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								_that.yangzhengma_img = "data:image/png;base64," + res.data.img;
-								_that.getImgID(res.data.uuid)
-							} else {
-								console.log(res.data.code)
-							}
-						} else {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
-						}
-					},
-					fail(erro) {
-						console.log(erro)
+				this.$get(this.$url_captchaImage, {}, {
+					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+				}).then(res => {
+					if (res.code == 200) {
+						this.yangzhengma_img = "data:image/png;base64," + res.img;
+						this.getImgID(res.uuid)
 					}
 				})
 			},
@@ -155,37 +137,32 @@
 			closeModal() {
 				if (this.yzm === "" || this.yzm === undefined) {
 					uni.showToast({
-						title: this.$t('login.text_19'),
+						title: this.$t('请输入验证码结果'),
 						icon: 'none'
 					})
 					return
 				} else {
-					let that = this
-					uni.request({
-						url: that.$url_check_code,
-						method: 'POST',
-						data: {
-							code: that.yzm,
-							uuid: that.uuid
-						},
-						header: {
-							'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-						},
-						success(res) {
-							if (res.statusCode == 200) {
-								if (res.data.code == 200) {
-									console.log("校验验证码", res.data)
-									that.tanchuang = false
-									that.send_phone_reset_code()
-								} else {
-									uni.showToast({
-										title: res.data.msg,
-										icon: 'none'
-									})
-									that.captchaImage();
-								}
-							}
+					const data = {
+						code: this.yzm,
+						uuid: this.uuid
+					}
+					this.$post(this.$url_check_code, data, {
+						'content-type': 'application/x-www-form-urlencoded'
+					}).then(res => {
+						if (res.code == 200) {
 							console.log("校验验证码", res)
+							this.tanchuang = false
+							if (this.loact === "境内") {
+								this.send_phone_reset_code()
+							} else if (this.loact === "境外") {
+								this.send_email_reset_code()
+							}
+						} else {
+							uni.showToast({
+								title: this.$t("图形验证错误"),
+								icon: 'none'
+							})
+							this.captchaImage();
 						}
 					})
 				}
@@ -195,18 +172,22 @@
 			btn_next() {
 				if (this.unername_phone === "" || this.unername_phone === undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.input_2'),
+						title: this.$t('请输入手机号'),
 						icon: 'none'
 					})
 					return
 				} else if (this.yanzhengma === "" || this.yanzhengma === undefined) {
 					uni.showToast({
-						title: this.$t('login.input_2'),
+						title: this.$t('请输入验证码'),
 						icon: 'none'
 					})
 					return
 				} else {
-					this.check_reset_code()
+					if (this.loact === "境内") {
+						this.check_reset_code()
+					} else if (this.loact === "境外") {
+						this.check_reset_code1()
+					}
 				}
 			},
 			//发送重置密码短信
@@ -225,26 +206,22 @@
 						console.log("发送重置密码短信", res)
 						if (res.statusCode == 200) {
 							if (res.data.code == 200) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
 								that.yanzheng = 0
 								if (that.codetime > 0) {
 									uni.showToast({
-										title: that.$t('zhuceitem.toast_5'),
+										title: that.$t('不能重复获取'),
 										icon: "none"
 									})
 									return
 								} else {
 									that.codetime = 60
-									that.msg = that.$t('zhuceitem.input_3')
+									that.msg = that.$t('s后可重发')
 									let timer = setInterval(() => {
 										that.codetime-- + that.msg;
 										if (that.codetime < 1) {
 											clearInterval(timer);
 											that.msg = ''
-											that.codetime = that.$t('zhuceitem.input_4')
+											that.codetime = that.$t('重新获取')
 										}
 									}, 1000)
 								}
@@ -258,6 +235,52 @@
 					}
 				})
 			},
+			//发送重置密码邮件
+			send_email_reset_code() {
+				let that = this
+				uni.request({
+					url: "https://jakoblife.jakob-techs.com/prod-api/app/send_email_reset_code",
+					method: 'POST',
+					data: {
+						email: that.unername_phone
+					},
+					header: {
+						'content-type': 'application/x-www-form-urlencoded'
+					},
+					success(res) {
+						console.log("发送重置密码短信", res)
+						if (res.statusCode == 200) {
+							if (res.data.code == 200) {
+								that.yanzheng = 0
+								if (that.codetime > 0) {
+									uni.showToast({
+										title: that.$t('不能重复获取'),
+										icon: "none"
+									})
+									return
+								} else {
+									that.codetime = 60
+									that.msg = that.$t('s后可重发')
+									let timer = setInterval(() => {
+										that.codetime-- + that.msg;
+										if (that.codetime < 1) {
+											clearInterval(timer);
+											that.msg = ''
+											that.codetime = that.$t('重新获取')
+										}
+									}, 1000)
+								}
+							} else {
+								uni.showToast({
+									title: res.data.msg,
+									icon: 'none'
+								})
+							}
+						}
+					}
+				})
+			},
+
 			//校验重置密码验证码
 			check_reset_code() {
 				let that = this
@@ -273,24 +296,22 @@
 					},
 					success: (res) => {
 						console.log("校验重置密码验证码：", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
+						if (res.data.code == 200) {
+							uni.showToast({
+								title: that.$t("成功"),
+								icon: 'none'
+							})
+							setTimeout(function() {
+								uni.navigateTo({
+									url: '../../login/Forget_password_2?phone=' + that
+										.unername_phone
 								})
-								setTimeout(function() {
-									uni.navigateTo({
-										url: '../../login/Forget_password_2?phone=' + that
-											.unername_phone
-									})
-								}, 300)
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
+							}, 300)
+						} else {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
 						}
 					},
 					fail(res) {
@@ -298,61 +319,97 @@
 					}
 
 				})
+			},
+			check_reset_code1() {
+				let that = this
+				uni.request({
+					url: that.$url_check_reset_code,
+					method: 'POST',
+					data: {
+						email: that.unername_phone,
+						code: that.yanzhengma,
+					},
+					header: {
+						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
+					},
+					success: (res) => {
+						console.log("校验重置密码验证码：", res)
+						if (res.data.code == 200) {
+							uni.showToast({
+								title: that.$t("成功"),
+								icon: 'none'
+							})
+							setTimeout(function() {
+								uni.navigateTo({
+									url: '../../pages/login/Forget_password_2?phone=' +
+										that.unername_phone
+								})
+							}, 300)
+						} else {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						}
+					},
+					fail(res) {
+						console.log("失败", res)
+					}
+				})
 			}
-
 		}
 	}
 </script>
 
 <style>
 	.linear {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 20px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 45px;
 		background-color: white;
-		border-radius: 30px;
-		margin: 0 20px 0 20px;
-		padding: 0 15px 0 15px;
+		border-radius: 40px;
 	}
 
 	.img_bg {
 		width: 20px;
 		height: 20px;
+		margin-left: 20px;
 	}
 
 	.linear_1 {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 5px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 45px;
 		background-color: white;
-		border-top-left-radius: 30px;
-		border-bottom-left-radius: 30px;
+		border-top-left-radius: 40px;
+		border-bottom-left-radius: 40px;
 		border-top-right-radius: 5px;
 		border-bottom-right-radius: 5px;
-		margin: 20px 5px 0 20px;
-		padding: 0 20px 0 15px;
 	}
 
 	.linear_btn {
+		width: 125px;
+		height: 54px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		margin-top: 20px;
+		margin-top: 24px;
 		margin-right: 20px;
-		height: 45px;
-		font-size: 12px;
+		font-size: 14px;
 		text-align: center;
-		width: 40vw;
-		border-top-right-radius: 30px;
-		border-bottom-right-radius: 30px;
+		border-radius: 10px 30px 30px 10px;
 		background: #3298F7;
 		color: white;
-		line-height: 18px;
-		/* white-space: nowrap;
-		text-overflow: ellipsis;
-		overflow: auto; */
 	}
 
 	.container_bg {
@@ -415,10 +472,16 @@
 	}
 
 	.button_back {
-		margin: 40px 15px 0 15px;
-		background: #3298F7;
-		color: white;
-		border-radius: 30px;
-		font-weight: bold;
+		width: auto;
+		margin: 40px 20px 0 20px;
+		background: #3298F7 !important;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+		color: #FFFFFF !important;
 	}
 </style>

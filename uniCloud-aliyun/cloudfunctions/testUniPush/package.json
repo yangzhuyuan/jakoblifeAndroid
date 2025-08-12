@@ -1,0 +1,10 @@
+{
+	"name": "testUniPush",
+	"version": "1.0.0",
+	"description": "云函数推送示例",
+	"main": "index.js",
+	"extensions": {
+		"uni-cloud-push": {}
+	},
+	"author": ""
+}

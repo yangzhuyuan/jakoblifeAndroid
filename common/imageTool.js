@@ -67,7 +67,9 @@ export function pathToBase64(path) {
 				return
 			}
 			var canvas = document.createElement('canvas')
-			var c2x = canvas.getContext('2d')
+			var c2x = canvas.getContext('2d', {
+				willReadFrequently: true
+			})
 			var img = new Image
 			img.onload = function() {
 				canvas.width = img.width

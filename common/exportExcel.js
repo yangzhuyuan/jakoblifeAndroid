@@ -127,7 +127,7 @@ async function formatTable(name, data, callback) {
 				if (src === 'fail') {
 					uni.hideLoading();
 					uni.showToast({
-						title: '导出失败,请确认是否授权文件权限',
+						title: this.$("失败"),
 						icon: 'none'
 					});
 					return;
@@ -172,7 +172,7 @@ function exportFile(fileData, documentName, callback) {
 					setTimeout(() => {
 						uni.hideLoading();
 						uni.showToast({
-							title: "成功导出",
+							title: this.$("成功"),
 							icon: "success"
 						});
 						console.log(`导出成功，文件位置：${path}/${documentName}.xlsx`);
@@ -185,7 +185,7 @@ function exportFile(fileData, documentName, callback) {
 				console.log(e.message);
 				uni.hideLoading();
 				uni.showToast({
-					title: '导出失败,请确认是否授权文件权限',
+					title: this.$("失败"),
 					icon: 'none'
 				});
 			});
@@ -193,7 +193,7 @@ function exportFile(fileData, documentName, callback) {
 			console.log(err);
 			uni.hideLoading();
 			uni.showToast({
-				title: '导出失败,请确认是否授权文件权限',
+				title: this.$("失败"),
 				icon: 'none'
 			});
 		});
@@ -246,7 +246,7 @@ function createDir(name, callback) {
 				console.log(err2);
 				uni.hideLoading();
 				uni.showToast({
-					title: '导出失败,请确认是否授权文件权限',
+					title: this.$("失败"),
 					icon: 'none'
 				});
 			});
@@ -254,7 +254,7 @@ function createDir(name, callback) {
 			console.log(err1);
 			uni.hideLoading();
 			uni.showToast({
-				title: '导出失败,请确认是否授权文件权限',
+				title: this.$("失败"),
 				icon: 'none'
 			});
 		});
@@ -262,7 +262,7 @@ function createDir(name, callback) {
 		console.log(err);
 		uni.hideLoading();
 		uni.showToast({
-			title: '导出失败,请确认是否授权文件权限',
+			title: this.$("失败"),
 			icon: 'none'
 		});
 	});

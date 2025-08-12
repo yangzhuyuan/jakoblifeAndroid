@@ -13,7 +13,7 @@
 		</view>
 		<view v-else class="aa">
 			<text>-</text>
-			<text>{{$t('qushiitem.title_16')}}</text>
+			<text>{{$t('暂无数据')}}</text>
 		</view>
 	</view>
 </template>
@@ -90,9 +90,9 @@
 			})
 		},
 
-		onLoad() {
+		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('wodelist.txsz')
+				title: this.$t('提醒设置')
 			})
 
 		},

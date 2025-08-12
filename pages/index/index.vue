@@ -1,17 +1,17 @@
 <template>
 	<view class="splash_bg">
 		<view>
-			<view style=" text-align: center;font-size: 26px;font-weight: bold;">欢迎使用</view>
+			<view style=" text-align: center;font-size: 26px;font-weight: bold;">{{$t("欢迎使用")}}</view>
 			<view style=" text-align: center;margin-top: 20px;font-size: 26px;font-weight: bold;">JakobLife
 			</view>
 			<view style="display: flex; justify-content:center;">
-				<image style="width: 180px;height: 180px;" src="../../static/icons/14.png" />
+				<image style="width: 180px;height: 180px;" :src="loginimg" />
 			</view>
-			<view class="warp">
+			<!-- <view class="warp">
 				<view class="view_circle1"></view>
 				<view class="view_circle2"></view>
 				<view class="view_circle3"></view>
-			</view>
+			</view> -->
 		</view>
 	</view>
 </template>
@@ -19,33 +19,36 @@
 <script>
 	export default {
 		data() {
-			return {}
+			return {
+				loginimg: ''
+			}
 		},
 		onShow() {
+			const lan = uni.getLocale()
+			if (lan == 'zh-Hans') {
+				this.loginimg = "/static/icons/14.png"
+			} else {
+				this.loginimg = "/static/icons/loginssss.png"
+			}
 			uni.getStorageInfo({
 				success(res) {
-					if(res.keys.includes("token")){
+					if (res.keys.includes("token")) {
 						setTimeout(function() {
 							uni.switchTab({
 								url: "../tabBar/main/Main"
 							})
-						}, 1000);
-					}else{
+						}, 3000);
+					} else {
 						setTimeout(function() {
 							uni.redirectTo({
 								url: "../login/login_land"
 							})
-						}, 1000);
+						}, 3000);
 					}
-					
+
 				}
 			})
 		},
-
-
-		methods: {
-			
-		}
 	}
 </script>
 

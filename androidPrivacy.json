@@ -1,43 +1,46 @@
 {
-    "version" : "1.0.0",
-    "prompt" : "none",
-    "title" : "服务协议和隐私政策",
-    "message" : "　　1.请你务必审慎阅读、充分理解“服务协议”和“隐私政策”各条款，包括但不限于：为了更好的向你提供服务，我们需要收集你的设备标识、操作日志等信息用于分析、优化应用性能。<br/>　　2.你可阅读<a href=\"static\\htmls\\androidPrivacy1.html\">《服务协议》</a>和<a href=\"static\\htmls\\androidPrivacy.html\">《隐私政策》</a>了解详细信息。如果你同意，请点击下面按钮开始接受我们的服务。",
-    "buttonAccept" : "同意并接受",
-    "buttonRefuse" : "暂不同意",
-    "hrefLoader" : "system",
-    "backToExit" : "false",
-    "second" : {
-        "title" : "确认提示",
-        "message" : "　　进入应用前，你需先同意<a href=\"static\\htmls\\androidPrivacy1.html\">《服务协议》</a>和<a href=\"static\\htmls\\androidPrivacy.html\">《隐私政策》</a>，否则将退出应用。",
-        "buttonAccept" : "同意并继续",
-        "buttonRefuse" : "退出应用"
+    "version" : "1",
+    "prompt" : "template",
+    "title" : "Service Agreement and Privacy Policy",
+    "titleLocales" : {
+        "en" : "Service Agreement and Privacy Policy",
+        "zh-Hans" : "服务协议和隐私政策"
     },
+    "message" : "　　Please read and fully understand the terms of the 'Service Agreement' and 'Privacy Policy', including but not limited to: In order to provide you with better services, we need to collect your device identifiers, operation logs, and other information for analysis and optimization of application performance.<br/>　　You can read the <a href=\"static/htmls/androidPrivacy1.html\">Service Agreement</a> and <a href=\"static/htmls/androidPrivacy.html\">Privacy Policy</a> for more details. If you agree, please click the button below to start using our service.",
+    "messageLocales" : {
+        "en" : "Please read and fully understand the terms of the 'Service Agreement' and 'Privacy Policy', including but not limited to: In order to provide you with better services, we need to collect your device identifiers, operation logs, and other information for analysis and optimization of application performance.<br/>　　You can read the <a href=\"static/htmls/androidPrivacy1.html\">Service Agreement</a> and <a href=\"static/htmls/androidPrivacy.html\">Privacy Policy</a> for more details. If you agree, please click the button below to start using our service.",
+        "zh-Hans" : "　　您需要阅读并充分理解“服务协议”和“隐私政策”的条款，包括但不限于：为了向您提供更好的服务，我们需要收集您的设备标识符、操作日志等信息，用于分析和优化应用性能。<br/> 设备信息：当您使用我们的服务时，我们可能会收集您的设备唯一识别码（如IMEI、设备序列号、OAID、MEID、Android ID、IMSI、GUID、MAC地址、SIM卡序列号等。）、设备型号、操作系统版本、设备设置、网络信息（如 IP 地址）等。位置信息：当您使用基于位置的服务时，我们可能会收集您的地理位置信息（如经纬度）。您可以通过关闭定位功能，停止对您的地理位置信息的收集。<br/>　　您可以阅读<a href=\"static/htmls/androidPrivacy1_zh.html\">服务协议</a>和<a href=\"static/htmls/androidPrivacy_zh.html\">隐私政策</a>了解更多详情。如果您同意，请点击下方按钮开始使用我们的服务。"
+    },
+    "buttonAccept" : "Agree and Accept",
+    "buttonAcceptLocales" : {
+        "en" : "Agree and Accept",
+        "zh-Hans" : "同意并接受"
+    },
+    "buttonRefuse" : "Disagree",
+    "buttonRefuseLocales" : {
+        "en" : "Disagree",
+        "zh-Hans" : "不同意"
+    },
+    "backToExit" : "false",
     "disagreeMode" : {
         "support" : false,
         "loadNativePlugins" : false,
-        "visitorEntry" : false,
-        "showAlways" : true
+        "showAlways" : false
     },
     "styles" : {
-        "padding" : "20px",
-        "backgroundColor" : "#FFFFFF",
-        "borderRadius" : "15px",
+        "backgroundColor" : "#FFF",
+        "borderRadius" : "5px",
         "title" : {
-            "color" : "#050606"
-        },
-        "message" : {
-            "color" : "#999999"
+            "color" : "#111118"
         },
         "buttonAccept" : {
-            "color" : "#3298F7",
-            "background" : "#3298F7"
+            "color" : "#ff8b0b"
         },
         "buttonRefuse" : {
-            "color" : "#FD0D24"
+            "color" : "#241943"
         },
         "buttonVisitor" : {
-            "color" : "#00ffff"
+            "color" : "#241943"
         }
     }
 }

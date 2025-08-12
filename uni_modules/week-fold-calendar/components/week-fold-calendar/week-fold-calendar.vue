@@ -3,7 +3,7 @@
 		<view class="controller">
 
 			<view class="today-btn_1">
-				<view style="font-weight: bold;font-size: 14px;">帮助</view>
+				<view style="font-weight: bold;font-size: 14px;">{{$t("帮助")}}</view>
 			</view>
 
 			<view class="action">
@@ -18,7 +18,7 @@
 			</view>
 
 			<view class="today-btn">
-				<view style="font-weight: bold;font-size: 14px;" @click="backToday">回到今天</view>
+				<view style="font-weight: bold;font-size: 14px;" @click="backToday">{{$t("回到今天")}}</view>
 			</view>
 
 		</view>
@@ -143,7 +143,8 @@
 		},
 		data() {
 			return {
-				week: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+				week: [this.$t("周日"), this.$t("周一"), this.$t("周二"), this.$t("周三"), this.$t("周四"), this.$t("周五"), this.$t(
+					"周六")],
 				virtually_data: [],
 				days: [],
 				current: currentDate(),
@@ -500,7 +501,7 @@
 				const isToday = today == date
 				const obj = {
 					date, // 日期  yyyy-mm-dd
-					day: isToday ? '今' : day, // 日期  dd
+					day: isToday ? this.$t("今") : day, // 日期  dd
 					today: isToday, // 今天
 					before: minDayDiff < 0, // 是否过往日期
 					after: dayDiff < 0, // 是否以后日期

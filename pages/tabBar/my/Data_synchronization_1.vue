@@ -6,8 +6,8 @@
 		</view>
 		<view class="bt_bg">
 			<view style="display: flex; flex-direction: column; ">
-				<button class="bt_Accept" @click="Accept()">{{$t('wodelist.bzzxitem.title_7')}}</button>
-				<button class="bt_Turn_down" @click="Turn_down()">{{$t('wodelist.bzzxitem.title_8')}}</button>
+				<button class="bt_Accept" @click="Accept()">{{$t('已解决')}}</button>
+				<button plain="true" class="bt_Turn_down" @click="Turn_down()">{{$t('继续反馈')}}</button>
 			</view>
 		</view>
 	</view>
@@ -40,6 +40,14 @@
 
 
 		methods: {
+			Accept() {
+				uni.navigateBack()
+			},
+			Turn_down() {
+				uni.navigateTo({
+					url: "/pages/tabBar/my/fankui"
+				})
+			},
 			article(id) {
 				let that = this
 				uni.request({
@@ -73,19 +81,32 @@
 	}
 
 	.bt_Accept {
-		margin-top: 20px;
-		background: #3298F7;
-		border-radius: 40px;
-		width: 90vw;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 0 20px 0 20px;
+		height: 48px;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+		width: auto;
 		color: white;
+		background: #3298F7;
+
 	}
 
 	.bt_Turn_down {
-		margin-top: 20px;
-		margin-bottom: 20px;
-		background: #DBDBDB;
-		border-radius: 40px;
-		width: 90vw;
-		color: white;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 20px;
+		height: 48px;
+		background: #DBDBDB !important;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+		width: auto;
+		color: white !important;
+		border: none !important;
 	}
 </style>

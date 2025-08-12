@@ -1,17 +1,17 @@
 <template>
 	<view style="color: black;width: 100vw;height: 100vh;">
 		<view style="display: flex; flex-direction: column;">
-			<view style="margin: 15px 0 0 15px; font-size: 14px; color: gray;">{{$t('BDSBitem.title_18')}}</view>
+			<view style="margin: 20px 0 0 20px; font-size: 12px; color: #969799">{{$t('请勿连接名称前有5G的WIFI')}}</view>
 
-			<view style="width: auto;margin: 20px; background: white; border-radius: 10px;padding: 20px;">
-				<image style="width: 100%;" :src="SELECT_TYPE === '0' ? imagess:imagess1"></image>
+			<view class="shebeistyle">
+				<image style="padding: 20px;" :src="SELECT_TYPE === '0' ? imagess:imagess1"></image>
 			</view>
-			<view style="margin: 15px 0 0 15px;">
+			<view style="margin: 20px 20px 0 20px;">
 				<view class="input_style">
-					<view style="font-weight: bold;">WIFI:</view>
+					<view style="font-weight: 400;font-size: 16px;color: #000000;">WIFI:</view>
 
 					<view style="width: 80vw;" v-if="shouji">
-						<uni-combox :border="false" :candidates="candidates" placeholder="请选择wifi"
+						<uni-combox :border="false" :candidates="candidates" :placeholder="$t('请选择wifi')"
 							v-model="wifi_name"></uni-combox>
 					</view>
 					<view v-else style="width: 80vw; margin-left: 20px;" @click="open()">
@@ -19,15 +19,15 @@
 					</view>
 				</view>
 			</view>
-			<view style="margin: 15px 0 0 15px;">
+			<view style="margin: 20px 20px 0 20px;">
 				<view class="input_style">
-					<view style="font-weight: bold;">{{$t('BDSBitem.title_19')}}</view>
+					<view style="font-weight: 400;font-size: 16px; color: #000000;">{{$t('WIFI密码')}}</view>
 					<input type="password" style="margin-left: 10px;" v-model="wifi_password"
-						:placeholder="$t('BDSBitem.title_20')" />
+						:placeholder="$t('请输入wifi密码')" />
 				</view>
 			</view>
 			<view style="position: fixed;bottom: 40px;width: 100vw;">
-				<button class="btn" @click="btn_start()">{{$t('BDSBitem.title_21')}}</button>
+				<button class="btn" @click="btn_start()">{{$t('开始连接')}}</button>
 			</view>
 
 		</view>
@@ -49,39 +49,30 @@
 				uuid: '',
 				shouji: '',
 				wifiArray: [], // 存储WiFi列表
-				candidates: []
+				candidates: [],
+				modelId: ''
 
 			}
 		},
 
 		onLoad(res) {
 			this.sn = res.sn
-			console.log("的撒可怜见撒旦立刻", res)
 			this.SELECT_TYPE = res.SELECT_TYPE
 			this.deviceId = res.deviceId
 			this.serviceId = res.serviceId
 			this.uuid = res.uuid
+			this.modelId = res.modelId
 		},
 
 		onShow() {
-
 			uni.setNavigationBarTitle({
-				title: this.$t('BDSBitem.title_17')
+				title: this.$t('为设备连接WiFi')
 			})
-
-
 			this.wifi()
-
-
-
 		},
 
 
 		methods: {
-
-			
-
-
 			//通过蓝牙发送AT命令的接口
 			sendATCommand(deviceId, serviceId, uuid, senddata) {
 				let that = this
@@ -106,19 +97,39 @@
 					success(res) {
 						console.log('向低功耗蓝牙设备特征值中写入二进制数据', res)
 						console.log('向低功耗蓝牙设备特征值中写入二进制数据', that.sn)
-						uni.navigateTo({
-							url: "../Bing_page/Bind_pg?sn=" + that.sn
-						})
+						that.bind_device(that.sn, deviceId, that.modelId)
 					},
 					fail: function(res) {
 						console.log('失败', res)
 						uni.navigateTo({
-							url: '../Bing_page/Bind_fail'
+							url: "../Bing_page/Bind_fail?bindcode=0"
 						})
 					}
 				})
 			},
 
+			//设备绑定
+			bind_device(sn, MACdeviceID, modelId) {
+				const data = {
+					deviceSn: sn,
+					mac: MACdeviceID.trim()
+				}
+				this.$post(this.$url_bind_device, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded;'
+				}).then(bind_device => {
+					if (bind_device.code == 200) {
+						uni.setStorageSync("deviceSn", sn)
+						uni.navigateTo({
+							url: "../Bing_page/Bind_success?modelId=" + modelId
+						})
+					} else {
+						uni.reLaunch({
+							url: "../Bing_page/Bind_fail?bindcode=" + bind_device.code
+						})
+					}
+				})
+			},
 
 			// ArrayBuffer转16进度字符串示例
 			ab2hex(buffer) {
@@ -131,9 +142,6 @@
 				return hexArr.join('');
 			},
 
-
-
-
 			wifi() {
 				let that = this
 				uni.startWifi({
@@ -141,6 +149,7 @@
 						console.log("res", res)
 					}
 				})
+
 
 				if (uni.getSystemInfoSync().platform === "android") {
 					that.shouji = true
@@ -233,15 +242,15 @@
 
 			btn_start() {
 				let that = this
-				if (that.wifi_name == "请选择wifi" || that.wifi_name == "") {
+				if (that.wifi_name == that.$t("请选择wifi") || that.wifi_name == "") {
 					uni.showToast({
-						title: "请选择或者输入一个wifi",
+						title: that.$t("请选择或者输入一个wifi"),
 						icon: 'none'
 					})
 					return
 				} else if (that.wifi_password == "") {
 					uni.showToast({
-						title: "请输入wifi密码",
+						title: that.$t("请输入wifi密码"),
 						icon: 'none'
 					})
 					return
@@ -256,6 +265,16 @@
 </script>
 
 <style>
+	.shebeistyle {
+		display: flex;
+		width: auto;
+		margin: 40px 20px 20px 20px;
+		align-items: center;
+		justify-content: center;
+		background: white;
+		border-radius: 20px;
+	}
+
 	.input_style {
 		padding: 10px;
 		border-bottom: 1px solid gainsboro;
@@ -266,8 +285,13 @@
 	}
 
 	.btn {
-		margin: 60px 40px 0 40px;
-		border-radius: 50rpx;
+		width: auto;
+		margin: 0 20px 88px 20px;
+		border-radius: 100px;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
 		background: #3298F7;
 		color: white;
 	}

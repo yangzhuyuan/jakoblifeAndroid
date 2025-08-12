@@ -1,13 +1,13 @@
 <template>
 	<view style="padding: 20px;color: black; height: 100vh;background: #F7F7F7;">
-		<view style="flex-direction: column; display: flex;padding-top: 80px; align-items: center; ">
-			<image src="../../static/icons/success.png" style="width: 100px; height: 100px;"></image>
-			<view style="margin-top: 40px;font-weight: bold;text-align: center;">{{$t('WJMMitem.title_0')}}</view>
+		<view style="flex-direction: column; display: flex;padding-top: 108px; align-items: center; ">
+			<image src="../../static/icons/success.png" style="width: 68px; height: 68px;"></image>
+			<view style="margin-top: 20px;font-weight: 400;font-size: 16px; text-align: center;">
+				{{$t('密码已重置成功')}}
+			</view>
 		</view>
 		<view style="position: fixed; bottom: 0;left: 0; width: 100vw;">
-			<button
-				style="background:#3298F7; color: white; border-radius: 30px;font-weight: bold;margin: 20px 20px 40px 20px;"
-				@click="back()">{{$t('zhuceitem.btn_0')}}</button>
+			<button class="btn_bg" @click="back()">{{$t('下一步')}}</button>
 		</view>
 	</view>
 </template>
@@ -15,7 +15,7 @@
 	export default {
 		onLoad(res) {
 			uni.setNavigationBarTitle({
-				title: this.$t('WJMM')
+				title: this.$t('重置密码')
 			})
 		},
 
@@ -39,5 +39,17 @@
 </script>
 
 <style>
-
+	.btn_bg {
+		width: auto;
+		margin: 20px 20px 108px 20px;
+		background: #3298F7;
+		color: white;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+	}
 </style>

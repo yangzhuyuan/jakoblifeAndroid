@@ -4,6 +4,9 @@
     "version" : "0.0",
     "configurations" : [
         {
+            "app" : {
+                "launchtype" : "remote"
+            },
             "app-plus" : {
                 "launchtype" : "remote"
             },
@@ -13,15 +16,21 @@
             "h5" : {
                 "launchtype" : "remote"
             },
+            "mp-weixin" : {
+                "launchtype" : "local"
+            },
             "provider" : "aliyun",
             "type" : "uniCloud"
         },
         {
+            "customPlaygroundType" : "local",
+            "localRepoPath" : "D:/workdemo/jianbo",
+            "packageName" : "com.work.jakob",
             "playground" : "custom",
             "type" : "uni-app:app-android"
         },
         {
-            "playground" : "standard",
+            "playground" : "custom",
             "type" : "uni-app:app-ios"
         }
     ]

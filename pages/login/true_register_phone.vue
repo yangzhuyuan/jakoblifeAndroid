@@ -2,43 +2,41 @@
 	<view style="padding-top: 20px; background: #F7F7F7; color: black;width: 100vw; height: 100vh;">
 		<view class="linear">
 			<image class="img_bg" src="../../static/icons/17.png" />
-			<input type="number" :placeholder="$t('zhuceitem.input_2')" style="width: 70vw;margin-left: 10px; "
-				maxlength="11" v-model="unername_phone" />
+			<input type="number" :placeholder="$t('请输入手机号')" style="width: 70vw;margin-left: 10px; " maxlength="11"
+				v-model="unername_phone" />
 		</view>
 
 		<view style="display: flex; flex-direction: row;">
 			<view class="linear_1">
 				<image class="img_bg" src="../../static/icons/18.png" />
-				<input type="text" :placeholder="$t('login.text_18')" style="margin-left: 10px;width: 35vw;"
-					maxlength="8" v-model="yanzhengma" />
+				<input type="text" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+					v-model="yanzhengma" />
 			</view>
 			<button class="linear_btn" style="background: #3298F7; color: white;"
-				@tap="huoqu">{{yanzheng?$t('login.text_3'): codetime+msg}}</button>
+				@tap="huoqu">{{yanzheng?$t('获取验证码'): codetime+msg}}</button>
 		</view>
-		<button
-			style=" margin:40px 15px 0 15px; background:#3298F7; color: white; border-radius: 30px;font-weight: bold;"
-			@tap="btn_next">{{$t('zhuceitem.btn_1')}}</button>
+		<button class="button_back" @tap="btn_next">{{$t('完成')}}</button>
 		<view class="container_bg" v-show="tanchuang">
 			<view class="modalss">
 				<view style="background: white;  margin-left: 20px;margin-right: 20px;border-radius: 20px;">
 					<view
 						style="text-align: center; font-size: 16px; color: black; font-weight: bold;padding-top: 20px;">
-						{{$t('login.text_10')}}
+						{{$t('请填写图形验证码')}}
 					</view>
 					<view class="modal-content_bg">
-						<input class="edit_bg" type="text" :placeholder="$t('login.text_11')" v-model="yzm" />
-						<view>
+						<input class="edit_bg" type="number" :placeholder="$t('请输入图形验证码')" v-model="yzm" />
+						<view style="margin-top: 8px;">
 							<image :src="yangzhengma_img" style="width: 120px; height: 45px;"></image>
 							<view style="text-align: center; color: dodgerblue;margin-top: 10px;" @click="clickCode">
-								{{$t('login.text_12')}}
+								{{$t('看不清')}}
 							</view>
 						</view>
 					</view>
 					<view style="display: flex; flex-direction: row; border-top: 1rpx solid gainsboro;">
-						<view class="text_yzm" @click="closeModal_cancle">{{$t('login.text_14')}}
+						<view class="text_yzm" @click="closeModal_cancle">{{$t('取消')}}
 						</view>
 						<view style="border-left: 1rpx solid gainsboro;"></view>
-						<view class="text_yzm_1" @click="closeModal">{{$t('login.text_13')}}</view>
+						<view class="text_yzm_1" @click="closeModal">{{$t('确定')}}</view>
 					</view>
 				</view>
 			</view>
@@ -59,7 +57,7 @@
 		data() {
 			return {
 				yangzhengma_img: '', //验证码图片
-				msg: this.$t('zhuceitem.input_3'),
+				msg: this.$t('s后可重发'),
 				unername_phone: '',
 				yanzhengma: '',
 				yanzheng: 1,
@@ -74,7 +72,7 @@
 		onLoad(res) {
 			//标题名称
 			uni.setNavigationBarTitle({
-				title: this.$t('zhuceitem.title_0')
+				title: this.$t('绑定手机号')
 			})
 		},
 
@@ -83,13 +81,13 @@
 			huoqu() {
 				if (this.unername_phone === "" || this.unername_phone === undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.input_2'),
+						title: this.$t('请输入手机号'),
 						icon: 'none'
 					})
 					return
 				} else if (this.codetime > 0) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_5'),
+						title: this.$t('不能重复获取'),
 						icon: "none"
 					})
 					return
@@ -144,7 +142,7 @@
 			closeModal() {
 				if (this.yzm === "" || this.yzm === undefined) {
 					uni.showToast({
-						title: this.$t('login.text_19'),
+						title: this.$t('请输入验证码结果'),
 						icon: 'error'
 					})
 					return
@@ -181,13 +179,13 @@
 			btn_next() {
 				if (this.unername_phone === "" || this.unername_phone === undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.input_2'),
+						title: this.$t('请输入手机号'),
 						icon: 'none'
 					})
 					return
 				} else if (this.yanzhengma == "" || this.yanzhengma == undefined) {
 					uni.showToast({
-						title: this.$t('login.input_2'),
+						title: this.$t('请输入验证码'),
 						icon: 'none'
 					})
 					return
@@ -212,33 +210,29 @@
 						if (res.statusCode == 200) {
 							console.log("发送手机绑定验证码:", res)
 							if (res.data.code == 200) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
 								that.yanzheng = 0
 								if (that.codetime > 0) {
 									uni.showToast({
-										title: that.$t('zhuceitem.toast_5'),
+										title: that.$t('不能重复获取'),
 										icon: "none"
 									})
 									return
 								} else {
 									that.codetime = 60
-									that.msg = that.$t('zhuceitem.input_3')
+									that.msg = that.$t('s后可重发')
 									let timer = setInterval(() => {
 										that.codetime-- + that.msg;
 										if (that.codetime < 1) {
 											clearInterval(timer);
 											that.msg = ''
-											that.codetime = that.$t('zhuceitem.input_4')
+											that.codetime = that.$t('重新获取')
 										}
 									}, 1000)
 								}
 							} else {
 								uni.showToast({
-									title: res.data.msg,
-									icon: 'error'
+									title: that.$t("该手机号已被绑定"),
+									icon: 'none'
 								})
 							}
 						}
@@ -264,23 +258,26 @@
 					},
 					success(res) {
 						console.log("第三方登录后用户绑定手机号:", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
+						if (res.data.code == 200) {
+							uni.showToast({
+								title: that.$t("成功"),
+								icon: 'none'
+							})
+							setTimeout(function() {
+								uni.switchTab({
+									url: '/pages/tabBar/main/Main'
 								})
-								setTimeout(function() {
-									uni.switchTab({
-										url: '/pages/tabBar/main/Main'
-									})
-								}, 300)
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'error'
-								})
-							}
+							}, 300)
+						} else if (res.data.code === 500) {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						} else {
+							uni.showToast({
+								title: that.$t("该手机号已被绑定"),
+								icon: 'none'
+							})
 						}
 					},
 					fail(res) {
@@ -296,54 +293,55 @@
 
 <style>
 	.linear {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 20px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 45px;
 		background-color: white;
-		border-radius: 30px;
-		margin: 0 20px 0 20px;
-		padding: 0 15px 0 15px;
+		border-radius: 40px;
 	}
 
 	.img_bg {
 		width: 20px;
 		height: 20px;
+		margin-left: 20px;
 	}
 
 	.linear_1 {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 5px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 45px;
 		background-color: white;
-		border-top-left-radius: 30px;
-		border-bottom-left-radius: 30px;
+		border-top-left-radius: 40px;
+		border-bottom-left-radius: 40px;
 		border-top-right-radius: 5px;
 		border-bottom-right-radius: 5px;
-		margin: 20px 5px 0 20px;
-		padding: 0 20px 0 15px;
 	}
 
 	.linear_btn {
+		width: 125px;
+		height: 54px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		margin-top: 20px;
+		margin-top: 24px;
 		margin-right: 20px;
-		height: 45px;
-		font-size: 12px;
+		font-size: 14px;
 		text-align: center;
-		width: 40vw;
-		border-top-right-radius: 30px;
-		border-bottom-right-radius: 30px;
+		border-radius: 10px 30px 30px 10px;
 		background: #3298F7;
 		color: white;
-		line-height: 18px;
-		/* white-space: nowrap;
-		text-overflow: ellipsis;
-		overflow: auto; */
 	}
+
 
 	.container_bg {
 		display: flex;
@@ -364,10 +362,29 @@
 		align-items: center;
 	}
 
+
+	.tanchuangstyle {
+		width: auto;
+		background: white;
+		margin-left: 20px;
+		margin-right: 20px;
+		border-radius: 20px;
+	}
+
+	.tanchuangstyle_1 {
+		text-align: center;
+		height: 22px;
+		font-size: 16px;
+		color: #1A1A1A;
+		font-weight: 600;
+		padding-top: 20px;
+	}
+
 	.edit_bg {
 		color: black;
 		margin-left: 10px;
 		padding: 10px;
+		height: 35px;
 		margin-top: 5px;
 		font-size: 14px;
 		border-radius: 10px;
@@ -383,13 +400,14 @@
 		border-radius: 8px;
 	}
 
+
 	.text_yzm {
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 45px;
 		font-size: 16px;
-		font-weight: bold;
+		height: 62px;
+		font-weight: 400;
 		width: 45vw;
 	}
 
@@ -397,10 +415,24 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 45px;
 		width: 45vw;
+		height: 62px;
 		font-size: 16px;
-		font-weight: bold;
+		font-weight: 400;
 		color: dodgerblue
+	}
+
+	.button_back {
+		width: auto;
+		margin: 40px 20px 0 20px;
+		background: #3298F7;
+		color: white;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
 	}
 </style>

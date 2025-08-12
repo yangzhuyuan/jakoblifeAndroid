@@ -64,7 +64,6 @@ export default function() {
 						uni.removeStorageSync(PACKAGE_INFO_KEY)
 					}
 				})
-				
 				return
 			} else if (code < 0) {
 				// TODO 云函数报错处理

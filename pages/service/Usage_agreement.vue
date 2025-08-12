@@ -1,10 +1,9 @@
 <template>
-	<view style="color: black;height: 100vh; padding: 0 15px 15px 15px;">
+	<view style="color: black;height: 100vh;background: #F7F7F7;">
 		<view class="title_bg">{{title}}</view>
-		<view style="padding: 20px;">
+		<view style="padding: 10px 20px 60px 20px">
 			<rich-text :nodes="content"></rich-text>
 		</view>
-
 	</view>
 </template>
 
@@ -13,36 +12,52 @@
 		data() {
 			return {
 				title: '',
-				content: ''
+				content: '',
+				id: '',
 			}
 		},
 		onLoad(opt) {
 			console.log(opt)
-			if (opt.id == "1131") {
+			this.id = opt.id
+
+		},
+
+		onShow() {
+			if (this.id == "1131") {
 				uni.setNavigationBarTitle({
-					title: this.$t('SYXYitem.pos_2')
+					title: this.$t('JakobLife软件移动客户端用户使用规范')
 				})
 				this.article(1131)
-			} else if (opt.id == "1130") {
+			} else if (this.id == "1130") {
 				uni.setNavigationBarTitle({
-					title: this.$t('SYXYitem.pos_3')
+					title: this.$t('JakobLife隐私政策1')
 				})
-				this.article(1130)
-			} else if (opt.id == "1135") {
+				const lan = uni.getLocale();
+				if (lan == 'zh-Hans') {
+					this.article(1150)
+				} else {
+					this.article(1130)
+				}
+			} else if (this.id == "1135") {
 				uni.setNavigationBarTitle({
-					title: this.$t('SYXYitem.pos_4')
+					title: this.$t('敏感个人信息处理情况的说明')
 				})
 				this.article(1135)
-			} else if (opt.id == "1111") {
+			} else if (this.id == "1111") {
 				uni.setNavigationBarTitle({
-					title: this.$t('SYXYitem.pos_5')
+					title: this.$t('向第三方提供个人信息情况的说明')
 				})
 				this.article(1111)
-			} else if (opt.id == "1") {
+			} else if (this.id == "1") {
 				uni.setNavigationBarTitle({
-					title: "服务协议"
+					title: this.$t('服务协议1')
 				})
-				this.article(1)
+				const lan = uni.getLocale();
+				if (lan == 'zh-Hans') {
+					this.article(1149)
+				} else {
+					this.article(1)
+				}
 			}
 		},
 		methods: {
@@ -64,17 +79,18 @@
 					}
 				})
 			},
-
 		}
 	}
 </script>
 
 <style>
 	.title_bg {
+		width: auto;
+		height: 28px;
 		display: flex;
-		justify-content: left;
-		font-size: 16px;
-		font-weight: bold;
+		justify-content: center;
+		font-size: 20px;
+		font-weight: 500;
 		padding-top: 40px;
 	}
 </style>

@@ -1,0 +1,24 @@
+{
+	"name": "TestThirdSdkPlugin",
+	"id": "ThirdSdkPlugin",
+	"version": "1.0.0",
+	"description": "LHZL蓝牙SDK插件 for UniApp",
+	"_dp_type": "nativeplugin",
+	"_dp_nativeplugin": {
+		"android": {
+			"plugins": [{
+				"type": "module",
+				"name": "ThirdSdkPlugin-ThirdSdkModule",
+				"class": "com.example.thirdsdkplugin.ThirdSdkModule"
+			}],
+			"integrateType": "aar",
+			"aar": [
+				"android/ThirdSdkPlugin.aar",
+				"android/LHZLSDK.aar"
+			],
+			"dependencies": [
+				"com.alibaba:fastjson:1.1.46.android"
+			]
+		}
+	}
+}

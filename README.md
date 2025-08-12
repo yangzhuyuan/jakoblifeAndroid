@@ -54,3 +54,4 @@ export default {
 <img src="https://i.328888.xyz/2023/02/28/zV27Q.jpeg" alt="alipay" width="100"><img src="https://i.328888.xyz/2023/02/28/zVw2H.jpeg" alt="wechat" width="100">
 
 
+# jakoblifeAndroid

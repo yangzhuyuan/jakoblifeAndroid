@@ -1,25 +1,26 @@
 <template>
-	<view style="background: #F1F1F1;height: 100vh;color: black;width: 100vw;">
+	<view style="background: #F5F5F5;height: 100vh;color: black;">
 		<view class="title_bg">{{title}}</view>
-		<view style="padding: 20px 20px 260px 20px; background: #F1F1F1;">
+		<view style="padding: 40px 20px 280px 20px; background: #F5F5F5; font-size: 12px;">
 			<rich-text :nodes="content"></rich-text>
 		</view>
-		<view style="width:100vw;position:fixed;bottom: 0; background: #F1F1F1;">
+		<view style="width:100vw;position:fixed;bottom: 0; background: #F5F5F5;">
 			<view class="pos_title">
-				<checkbox style="font-size: 14px;" color="#ffffff" class="round" activeBorderColor="#D2D2D2"
-					activeBackgroundColor="#3298F7" :checked="cb" @click="checked()">{{$t('SYXYitem.pos_0')}}
+				<checkbox color="#ffffff" class="round" activeBorderColor="#D2D2D2" activeBackgroundColor="#3298F7"
+					:checked="cb" @click="checked()">{{$t('我确认已满14周岁')}}
 				</checkbox>
-				<view style="margin-left: 32px; margin-top: 5px;">{{$t('SYXYitem.pos_1')}}</view>
-				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1131)">{{$t('SYXYitem.pos_2')}}
+				<view style="margin-top: 5px; ">{{$t('勾选表示已阅读并同意')}}</view>
+				<view style="margin-top: 5px;" @click="click_button(1)">{{$t('JakobLife软件移动客户端用户使用规范')}}
 				</view>
-				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1130)">{{$t('SYXYitem.pos_3')}}
+				<view style="margin-top: 5px;" @click="click_button(1130)">{{$t('JakobLife隐私政策')}}
 				</view>
-				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1135)">{{$t('SYXYitem.pos_4')}}
+			<!-- 	<view style="margin-top: 5px;" @click="click_button(1135)">{{$t('敏感个人信息处理情况的说明')}}
 				</view>
-				<view style="margin-left: 35px; margin-top: 5px;" @click="click_button(1111)">{{$t('SYXYitem.pos_5')}}
-				</view>
+				<view style=" margin-top: 5px;" @click="click_button(1111)">{{$t('向第三方提供个人信息情况的说明')}}
+				</view> -->
 			</view>
-			<button class="button_back" :style="getback(cb)" @tap="btn_agree">{{$t('SYXYitem.button')}}</button>
+			<button class="button_back" plain="true" :style="getback(cb)"
+				@tap="btn_agree">{{$t('我已阅读并同意')}}</button>
 		</view>
 
 	</view>
@@ -37,9 +38,15 @@
 
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('SYXY_title')
+				title: this.$t('使用协议')
 			})
-			this.article(1)
+			const lan = uni.getLocale();
+			if (lan == 'zh-Hans') {
+				this.article(1149)
+			} else {
+				this.article(1)
+			}
+			
 		},
 
 		onLoad(res) {
@@ -65,7 +72,6 @@
 						'content-type': 'application/json' //自定义请求头信息
 					},
 					success(res) {
-						console.log("根据文章id获取内容详细信息", res)
 						that.title = res.data.data.title
 						that.content = res.data.data.content
 					}
@@ -96,7 +102,7 @@
 			btn_agree() {
 				if (this.cb == false) {
 					uni.showToast({
-						title: "请同意使用协议",
+						title: this.$t("请同意使用协议"),
 						icon: "none"
 					})
 					return
@@ -112,25 +118,32 @@
 
 <style>
 	.title_bg {
+		width: auto;
+		height: 28px;
 		display: flex;
 		justify-content: center;
-		font-size: 22px;
-		font-weight: bold;
+		font-size: 20px;
+		font-weight: 500;
 		padding-top: 40px;
 	}
 
 	.pos_title {
-
-		margin: 20px 20px 0 20px;
+		width: auto;
+		margin: 40px 40px 0 40px;
 		display: flex;
+		font-size: 12px;
+		color: #333333;
 		flex-direction: column;
 		margin-bottom: 10px;
 	}
 
 	.button_back {
+		width: auto;
+		height: 48px;
 		background: #3298F7;
-		color: white;
 		border-radius: 30px;
-		margin: 20px
+		color: #FFFFFF !important;
+		border: none !important;
+		margin: 20px 20px 40px 20px
 	}
 </style>

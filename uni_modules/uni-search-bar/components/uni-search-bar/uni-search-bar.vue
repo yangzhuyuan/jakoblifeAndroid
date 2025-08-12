@@ -80,7 +80,7 @@
 			},
 			cancelText: {
 				type: String,
-				default: '取消'
+				default: "取消"
 			},
 			bgColor: {
 				type: String,
@@ -226,7 +226,7 @@
 </script>
 
 <style lang="scss">
-	$uni-searchbar-height: 36px;
+	$uni-searchbar-height: 49px;
 
 	.uni-searchbar {
 		/* #ifndef APP-NVUE */

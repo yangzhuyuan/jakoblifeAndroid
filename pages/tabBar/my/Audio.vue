@@ -2,43 +2,43 @@
 	<view style="padding: 20px 10px 10px 10px;background: #F7F7F7; color: black; height: 100vh;">
 		<view style="background: white; padding: 10px;border-radius: 15px;">
 			<view style="display: flex;flex-direction: row; padding:5px 0" @click="Select_a_song()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_14')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('选取歌曲')}}</view>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
 		</view>
 		<view style="background: white; padding: 0 10px;border-radius: 15px; margin-top: 20px;">
 			<view class="audio_title_bg" @click="radar()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_15')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('雷达')}}</view>
 				<uni-icons v-show="radar_show" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="audio_title_bg" @click="wavy()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_16')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('波浪')}}</view>
 				<uni-icons v-show="wavy_show" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="audio_title_bg" @click="Inverted_reflection()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_17')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('倒影')}}</view>
 				<uni-icons v-show="Inverted_reflection_show" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="audio_title_bg" @click="Lighthouse()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_18')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('灯塔')}}</view>
 				<uni-icons v-show="Lighthouse_show" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="audio_title_bg" @click="hilltop()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_19')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('山顶')}}</view>
 				<uni-icons v-show="hilltop_show" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="audio_title_bg" @click="Crystal()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_20')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('水晶')}}</view>
 				<uni-icons v-show="Crystal_show" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="audio_title_bg" @click="There_is_no()">
-				<view style="width: 80vw; margin-left: 5px;">{{$t('wodelist.txszitem.title_21')}}</view>
+				<view style="width: 80vw; margin-left: 5px;">{{$t('无')}}</view>
 				<uni-icons v-show="There_is_no_show" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 		</view>
@@ -65,12 +65,12 @@
 
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('wodelist.txszitem.title_4')
+				title: this.$t('铃声')
 			})
 		},
 
 		onLoad(res) {
-			if (res.data == this.$t('wodelist.txszitem.title_15')) {
+			if (res.data == this.$t('雷达')) {
 				this.radar_show = true
 				this.wavy_show = false
 				this.Inverted_reflection_show = false
@@ -78,7 +78,7 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-			} else if (res.data == this.$t('wodelist.txszitem.title_16')) {
+			} else if (res.data == this.$t('波浪')) {
 				this.radar_show = false
 				this.wavy_show = true
 				this.Inverted_reflection_show = false
@@ -86,7 +86,7 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-			} else if (res.data == this.$t('wodelist.txszitem.title_17')) {
+			} else if (res.data == this.$t('倒影')) {
 				this.radar_show = false
 				this.wavy_show = false
 				this.Inverted_reflection_show = true
@@ -94,7 +94,7 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-			} else if (res.data == this.$t('wodelist.txszitem.title_18')) {
+			} else if (res.data == this.$t('灯塔')) {
 				this.radar_show = false
 				this.wavy_show = false
 				this.Inverted_reflection_show = false
@@ -102,7 +102,7 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = false
-			} else if (res.data == this.$t('wodelist.txszitem.title_19')) {
+			} else if (res.data == this.$t('山顶')) {
 				this.radar_show = false
 				this.wavy_show = false
 				this.Inverted_reflection_show = false
@@ -110,7 +110,7 @@
 				this.hilltop_show = true
 				this.Crystal_show = false
 				this.There_is_no_show = false
-			} else if (res.data == this.$t('wodelist.txszitem.title_20')) {
+			} else if (res.data == this.$t('水晶')) {
 				this.radar_show = false
 				this.wavy_show = false
 				this.Inverted_reflection_show = false
@@ -118,7 +118,7 @@
 				this.hilltop_show = false
 				this.Crystal_show = true
 				this.There_is_no_show = false
-			} else if (res.data == this.$t('wodelist.txszitem.title_21')) {
+			} else if (res.data == this.$t('无')) {
 				this.radar_show = false
 				this.wavy_show = false
 				this.Inverted_reflection_show = false
@@ -126,7 +126,7 @@
 				this.hilltop_show = false
 				this.Crystal_show = false
 				this.There_is_no_show = true
-			} else if (res.data == this.$t('wodelist.txszitem.title_14')) {
+			} else if (res.data == this.$t('选取歌曲')) {
 				this.radar_show = false
 				this.wavy_show = false
 				this.Inverted_reflection_show = false
@@ -147,21 +147,21 @@
 
 		onBackPress() {
 			if (this.radar_show == true) {
-				this.Audios = this.$t('wodelist.txszitem.title_15')
+				this.Audios = this.$t('雷达')
 			} else if (this.wavy_show == true) {
-				this.Audios = this.$t('wodelist.txszitem.title_16')
+				this.Audios = this.$t('波浪')
 			} else if (this.Inverted_reflection_show == true) {
-				this.Audios = this.$t('wodelist.txszitem.title_17')
+				this.Audios = this.$t('倒影')
 			} else if (this.Lighthouse_show == true) {
-				this.Audios = this.$t('wodelist.txszitem.title_18')
+				this.Audios = this.$t('灯塔')
 			} else if (this.hilltop_show == true) {
-				this.Audios = this.$t('wodelist.txszitem.title_19')
+				this.Audios = this.$t('山顶')
 			} else if (this.Crystal_show == true) {
-				this.Audios = this.$t('wodelist.txszitem.title_20')
+				this.Audios = this.$t('水晶')
 			} else if (this.There_is_no_show == true) {
-				this.Audios = this.$t('wodelist.txszitem.title_21')
+				this.Audios = this.$t('无')
 			} else {
-				this.Audios = this.$t('wodelist.txszitem.title_14')
+				this.Audios = this.$t('选取歌曲')
 			}
 			uni.$emit('Audio', this.Audios)
 			delta: 1

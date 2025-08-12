@@ -2,13 +2,173 @@
     "name" : "JakobLife",
     "appid" : "__UNI__F833FCF",
     "description" : "JakobLife 是针对消费者开发的自我健康管理的APP，您可以使用JakobLife记录或查询自己和家人的健康和数据，通过可视化图表直观地了解每天、每周、每月的数据变化趋势。",
-    "versionName" : "1.0.0",
-    "versionCode" : 1,
+    "versionName" : "2.0.0",
+    "versionCode" : 150,
     "transformPx" : false,
     "app-plus" : {
+        "ios" : {
+            "appid" : "io.dcloud.jakob", //必填，字符串类型，iOS平台Bundle ID
+            "mobileprovision" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifeDistribution.mobileprovision", //必填，字符串类型，iOS打包使用的profile文件路径
+            "p12" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifes.p12", //必填，字符串类型，iOS打包使用的证书文件路径
+            "password" : "CW0881ab@", //必填，字符串类型，iOS打包使用的证书密码
+            "devices" : "iphone", //必填，字符串类型，iOS支持的设备类型，可取值iphone、ipad、universal
+            "urltypes" : "", //可选，字符串类型，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemes
+            "frameworks" : [
+                //可选，字符串数组类型，依赖的系统库，已废弃，推荐使用uni原生插件扩展使用系统依赖库
+                "CoreLocation.framework"
+            ],
+            "deploymentTarget" : "10.0", //可选，字符串类型，iOS支持的最低版本
+            "UIBackgroundModes" : [
+                "location",
+                "processing",
+                "bluetooth-central",
+                "bluetooth-peripheral",
+                "fetch",
+                "remote-notification"
+            ], //可选，字符串类型，应用后台运行模式，参考：https://uniapp.dcloud.io/tutorial/app-ios-uibackgroundmodes
+            "plistcmds" : [ "Set :UIRequiredDeviceCapabilities bluetooth-le" ],
+            "urlschemewhitelist" : [ "baidumap", "iosamap" ], //可选，字符串类型，应用访问白名单列表，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemewhitelist
+            "dSYMs" : false,
+            "capabilities" : {
+                "entitlements" : {
+                    "com.apple.developer.associated-domains" : [
+                        "applinks:static-mp-004fb899-a6b7-4e46-870a-731f1209749f.next.bspapp.com",
+                        "applinks:jakob-techs.com"
+                    ]
+                }
+            },
+            "optimize" : true,
+            "subPackages" : true,
+            "privacyDescription" : {
+                "NSCameraUsageDescription" : "允许访问相机以拍摄健康记录照片。",
+                "NSBluetoothAlwaysUsageDescription" : "此应用需要访问蓝牙以连接到设备。",
+                "NSBluetoothPeripheralUsageDescription" : "此应用需要访问蓝牙以连接到设备。",
+                "NSLocationWhenInUseUsageDescription" : "此应用需要访问您的位置以提供相关服务。",
+                "NSLocationAlwaysUsageDescription" : "此应用需要始终访问您的位置以提供相关服务。",
+                "NSLocalNetworkUsageDescription" : "此应用需要访问您的本地网络以连接到设备。",
+                "NSCalendarsUsageDescription" : "此应用需要访问您的日历以管理事件。",
+                "NSLocationAlwaysAndWhenInUseUsageDescription" : "此应用需要始终访问您的位置以提供相关服务。",
+                "NSRemindersUsageDescription" : "此应用需要访问您的提醒事项以管理任务。",
+                "BGTaskSchedulerPermittedIdentifiers" : "DCTestUniPlugin-TestModule"
+            },
+            "idfa" : false
+        },
+        "locales" : {
+            "en" : {
+                "ios" : {
+                    "appid" : "io.dcloud.jakob", //必填，字符串类型，iOS平台Bundle ID
+                    "mobileprovision" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifeDistribution.mobileprovision", //必填，字符串类型，iOS打包使用的profile文件路径
+                    "p12" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifes.p12", //必填，字符串类型，iOS打包使用的证书文件路径
+                    "password" : "CW0881ab@", //必填，字符串类型，iOS打包使用的证书密码
+                    "devices" : "iphone", //必填，字符串类型，iOS支持的设备类型，可取值iphone、ipad、universal
+                    "urltypes" : "", //可选，字符串类型，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemes
+                    "frameworks" : [
+                        //可选，字符串数组类型，依赖的系统库，已废弃，推荐使用uni原生插件扩展使用系统依赖库
+                        "CoreLocation.framework"
+                    ],
+                    "deploymentTarget" : "10.0", //可选，字符串类型，iOS支持的最低版本
+                    "UIBackgroundModes" : [
+                        "location",
+                        "processing",
+                        "bluetooth-central",
+                        "bluetooth-peripheral",
+                        "fetch",
+                        "remote-notification"
+                    ], //可选，字符串类型，应用后台运行模式，参考：https://uniapp.dcloud.io/tutorial/app-ios-uibackgroundmodes
+                    "plistcmds" : [ "Set :UIRequiredDeviceCapabilities bluetooth-le" ],
+                    "urlschemewhitelist" : [ "baidumap", "iosamap" ], //可选，字符串类型，应用访问白名单列表，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemewhitelist
+                    "dSYMs" : false,
+                    "capabilities" : {
+                        "entitlements" : {
+                            "com.apple.developer.associated-domains" : [
+                                "applinks:static-mp-004fb899-a6b7-4e46-870a-731f1209749f.next.bspapp.com",
+                                "applinks:jakob-techs.com"
+                            ]
+                        }
+                    },
+                    "optimize" : true,
+                    "subPackages" : true,
+                    "privacyDescription" : {
+                        "NSCameraUsageDescription" : "Allow camera access to capture photos for your health records.",
+                        "NSBluetoothAlwaysUsageDescription" : "This app needs access to Bluetooth to connect to devices.",
+                        "NSBluetoothPeripheralUsageDescription" : "This app needs access to Bluetooth to connect to devices.",
+                        "NSLocationWhenInUseUsageDescription" : "This app needs access to your location to provide relevant services.",
+                        "NSLocationAlwaysUsageDescription" : "This app needs access to your location at all times to provide relevant services.",
+                        "NSLocalNetworkUsageDescription" : "This app needs access to your local network to connect to devices.",
+                        "NSCalendarsUsageDescription" : "This app needs access to your calendar to manage events.",
+                        "NSLocationAlwaysAndWhenInUseUsageDescription" : "This app needs access to your location at all times to provide relevant services.",
+                        "NSRemindersUsageDescription" : "This app needs access to your reminders to manage tasks.",
+                        "BGTaskSchedulerPermittedIdentifiers" : "DCTestUniPlugin-TestModule"
+                    },
+                    "idfa" : false
+                }
+            },
+            "zh" : {
+                "ios" : {
+                    "appid" : "io.dcloud.jakob", //必填，字符串类型，iOS平台Bundle ID
+                    "mobileprovision" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifeDistribution.mobileprovision", //必填，字符串类型，iOS打包使用的profile文件路径
+                    "p12" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifes.p12", //必填，字符串类型，iOS打包使用的证书文件路径
+                    "password" : "CW0881ab@", //必填，字符串类型，iOS打包使用的证书密码
+                    "devices" : "iphone", //必填，字符串类型，iOS支持的设备类型，可取值iphone、ipad、universal
+                    "urltypes" : "", //可选，字符串类型，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemes
+                    "frameworks" : [
+                        //可选，字符串数组类型，依赖的系统库，已废弃，推荐使用uni原生插件扩展使用系统依赖库
+                        "CoreLocation.framework"
+                    ],
+                    "deploymentTarget" : "10.0", //可选，字符串类型，iOS支持的最低版本
+                    "UIBackgroundModes" : [
+                        "location",
+                        "processing",
+                        "bluetooth-central",
+                        "bluetooth-peripheral",
+                        "fetch",
+                        "remote-notification"
+                    ], //可选，字符串类型，应用后台运行模式，参考：https://uniapp.dcloud.io/tutorial/app-ios-uibackgroundmodes
+                    "plistcmds" : [ "Set :UIRequiredDeviceCapabilities bluetooth-le" ],
+                    "urlschemewhitelist" : [ "baidumap", "iosamap" ], //可选，字符串类型，应用访问白名单列表，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemewhitelist
+                    "dSYMs" : false,
+                    "capabilities" : {
+                        "entitlements" : {
+                            "com.apple.developer.associated-domains" : [
+                                "applinks:static-mp-004fb899-a6b7-4e46-870a-731f1209749f.next.bspapp.com",
+                                "applinks:jakob-techs.com"
+                            ]
+                        }
+                    },
+                    "optimize" : true,
+                    "subPackages" : true,
+                    "privacyDescription" : {
+                        "NSCameraUsageDescription" : "允许访问相机以拍摄健康记录照片。",
+                        "NSBluetoothAlwaysUsageDescription" : "此应用需要访问蓝牙以连接到设备。",
+                        "NSBluetoothPeripheralUsageDescription" : "此应用需要访问蓝牙以连接到设备。",
+                        "NSLocationWhenInUseUsageDescription" : "此应用需要访问您的位置以提供相关服务。",
+                        "NSLocationAlwaysUsageDescription" : "此应用需要始终访问您的位置以提供相关服务。",
+                        "NSLocalNetworkUsageDescription" : "此应用需要访问您的本地网络以连接到设备。",
+                        "NSCalendarsUsageDescription" : "此应用需要访问您的日历以管理事件。",
+                        "NSLocationAlwaysAndWhenInUseUsageDescription" : "此应用需要始终访问您的位置以提供相关服务。",
+                        "NSRemindersUsageDescription" : "此应用需要访问您的提醒事项以管理任务。",
+                        "BGTaskSchedulerPermittedIdentifiers" : "DCTestUniPlugin-TestModule"
+                    },
+                    "idfa" : false
+                }
+            }
+        },
+        "privacy" : {
+            "prompt" : "template", // 使用 androidPrivacy.json 模板
+            "template" : {} // 留空，实际内容由 androidPrivacy.json 提供
+        },
+        "checkPermissionDenied" : true,
+        "nvue" : true,
+        "safearea" : {
+            "background" : "#EFEFF4", // 设置安全区域外的背景颜色，与页面背景一致
+            "bottom" : {
+                "offset" : "none" // 不空出底部安全区域
+            }
+        },
         "compatible" : {
-            "runtimeVersion" : "4.41", //根据实际情况填写  
-            "compilerVersion" : "4.41" //根据实际情况填写  
+            "runtimeVersion" : "4.75", //根据实际情况填写  
+            "compilerVersion" : "4.75", //根据实际情况填写  
+            "ignoreVersion" : true
         },
         "usingComponents" : true,
         "nvueCompiler" : "uni-app",
@@ -16,45 +176,68 @@
         "compilerVersion" : 3,
         "nvueLaunchMode" : "",
         "splashscreen" : {
-            "alwaysShowBeforeRender" : true,
-            "waiting" : false,
-            "autoclose" : true,
-            "delay" : 5000
+            "alwaysShowBeforeRender" : false, // 不等待首页渲染完成就关闭启动屏
+            "autoclose" : false, // 禁止自动关闭启动屏
+            "waiting" : true, // 是否显示等待动画
+            "delay" : 0 // 启动屏延迟关闭时间（仅在 autoclose 为 true 时有效）
         },
         "modules" : {
-            "Speech" : {},
             "Barcode" : {},
             "OAuth" : {},
-            "Bluetooth" : {}
+            "Bluetooth" : {},
+            "iBeacon" : {},
+            "Push" : {}
         },
         "distribute" : {
             "android" : {
+                "pushRegisterMode" : "manual",
                 "packagename" : "com.work.jakob", //必填，字符串类型，Android包名
                 "keystore" : "jakob.keystore", //必填，字符串类型，Android签名证书文件路径
                 "password" : "111111", //必填，字符串类型，Android签名证书文件的密码
                 "aliasname" : "key0", //必填，字符串类型，Android签名证书别名
+                "abiFilters" : [ "armeabi-v7a", "arm64-v8a" ],
                 "permissions" : [
                     "<uses-permission android:name=\"android.permission.INTERNET\" />",
-                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" />",
-                    "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" />",
-                    "<uses-permission android:name=\"android.permission.READ_PHONE_STATE\" />",
-                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
-                    "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />",
                     "<uses-permission android:name=\"com.asus.msa.SupplementaryDID.ACCESS\" />",
                     "<uses-permission android:name=\"com.huawei.android.launcher.permission.CHANGE_BADGE\" />",
                     "<uses-permission android:name=\"android.permission.INSTALL_PACKAGES\" />",
                     "<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\" />",
+                    "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
+                    "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_LOGS\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
+                    "<uses-feature android:name=\"android.hardware.camera.autofocus\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>",
-                    "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>"
+                    "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
+                    "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
+                    "<uses-feature android:name=\"android.hardware.camera\"/>",
+                    "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>",
+                    "<uses-permission android:name=\"android.permission.BLUETOOTH\" />",
+                    "<uses-permission android:name=\"android.permission.BLUETOOTH_ADMIN\" />",
+                    "<uses-permission android:name=\"android.permission.BLUETOOTH_ADVERTISE\" />",
+                    "<uses-permission android:name=\"android.permission.BLUETOOTH_CONNECT\" />",
+                    "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />",
+                    "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
+                    "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\"/>",
+                    "<uses-permission android:name=\"android.permission.BLUETOOTH_SCAN\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />",
+                    "<uses-permission android:name=\"android.permission.READ_MEDIA_AUDIO\" />",
+                    "<uses-permission android:name=\"android.permission.READ_MEDIA_VIDEO\" />",
+                    "<uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\" />",
+                    "<uses-permission android:name=\"android.permission.RECORD_AUDIO\" />",
+                    "<uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\" />"
                 ],
-                "targetSdkVersion" : 30,
-                "minSdkVersion" : 19
+                "targetSdkVersion" : 33,
+                "minSdkVersion" : 26
             },
             "ios" : {
                 "appid" : "io.dcloud.jakob", //必填，字符串类型，iOS平台Bundle ID
-                "mobileprovision" : "C:/Users/27474/Desktop/Jakob/ios发布证书/JakobLifeDistribution.mobileprovision", //必填，字符串类型，iOS打包使用的profile文件路径
-                "p12" : "C:/Users/27474/Desktop/Jakob/ios发布证书/JakobLifes.p12", //必填，字符串类型，iOS打包使用的证书文件路径
+                "mobileprovision" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifeDistribution.mobileprovision", //必填，字符串类型，iOS打包使用的profile文件路径
+                "p12" : "/Users/yangzhuyuan/Desktop/ios发布证书/JakobLifes.p12", //必填，字符串类型，iOS打包使用的证书文件路径
                 "password" : "CW0881ab@", //必填，字符串类型，iOS打包使用的证书密码
                 "devices" : "iphone", //必填，字符串类型，iOS支持的设备类型，可取值iphone、ipad、universal
                 "urltypes" : "", //可选，字符串类型，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemes
@@ -63,7 +246,15 @@
                     "CoreLocation.framework"
                 ],
                 "deploymentTarget" : "10.0", //可选，字符串类型，iOS支持的最低版本
-                "UIBackgroundModes" : [ "audio" ], //可选，字符串类型，应用后台运行模式，参考：https://uniapp.dcloud.io/tutorial/app-ios-uibackgroundmodes
+                "UIBackgroundModes" : [
+                    "location",
+                    "processing",
+                    "bluetooth-central",
+                    "bluetooth-peripheral",
+                    "fetch",
+                    "remote-notification"
+                ], //可选，字符串类型，应用后台运行模式，参考：https://uniapp.dcloud.io/tutorial/app-ios-uibackgroundmodes
+                "plistcmds" : [ "Set :UIRequiredDeviceCapabilities bluetooth-le" ],
                 "urlschemewhitelist" : [ "baidumap", "iosamap" ], //可选，字符串类型，应用访问白名单列表，参考：https://uniapp.dcloud.io/tutorial/app-ios-schemewhitelist
                 "dSYMs" : false,
                 "capabilities" : {
@@ -73,7 +264,22 @@
                             "applinks:jakob-techs.com"
                         ]
                     }
-                }
+                },
+                "optimize" : true,
+                "subPackages" : true,
+                "privacyDescription" : {
+                    "NSCameraUsageDescription" : "允许访问相机以拍摄健康记录照片。",
+                    "NSBluetoothAlwaysUsageDescription" : "此应用需要访问蓝牙以连接到设备。",
+                    "NSBluetoothPeripheralUsageDescription" : "此应用需要访问蓝牙以连接到设备。",
+                    "NSLocationWhenInUseUsageDescription" : "此应用需要访问您的位置以提供相关服务。",
+                    "NSLocationAlwaysUsageDescription" : "此应用需要始终访问您的位置以提供相关服务。",
+                    "NSLocalNetworkUsageDescription" : "此应用需要访问您的本地网络以连接到设备。",
+                    "NSCalendarsUsageDescription" : "此应用需要访问您的日历以管理事件。",
+                    "NSLocationAlwaysAndWhenInUseUsageDescription" : "此应用需要始终访问您的位置以提供相关服务。",
+                    "NSRemindersUsageDescription" : "此应用需要访问您的提醒事项以管理任务。",
+                    "BGTaskSchedulerPermittedIdentifiers" : "DCTestUniPlugin-TestModule"
+                },
+                "idfa" : false
             },
             "sdkConfigs" : {
                 "oauth" : {
@@ -88,16 +294,80 @@
                     },
                     "univerify" : {},
                     "apple" : {}
+                },
+                "geolocation" : {
+                    "system" : {
+                        "__platform__" : [ "ios", "android" ]
+                    }
+                },
+                "push" : {
+                    "unipush" : {
+                        "icons" : {
+                            // 推送图片配置
+                            "push" : {
+                                // push图标，规格与应用图片一致，不配置则默认使用push图标
+                                "ldpi" : "static/icons/48x48.png",
+                                "mdpi" : "static/icons/48x48.png",
+                                "hdpi" : "static/icons/72x72.png",
+                                "xhdpi" : "static/icons/96x96.png",
+                                "xxhdpi" : "static/icons/144x144.png",
+                                "xxxhdpi" : "static/icons/192x192.png"
+                            },
+                            "small" : {
+                                //  小图标，png格式图片，仅使用alpha图层
+                                "ldpi" : "static/icons/18x18.png",
+                                "mdpi" : "static/icons/24x24.png",
+                                "hdpi" : "static/icons/36x36.png",
+                                "xhdpi" : "static/icons/48x48.png",
+                                "xxhdpi" : "static/icons/72x72.png"
+                            }
+                        },
+                        "description" : "推送图标",
+                        "version" : "2",
+                        "offline" : true,
+                        "appid" : "SGUjlHfXqd6q85dZH2Khv4",
+                        "android" : {
+                            "icon" : "static/icons/48x48.png",
+                            "vibrate" : true,
+                            "lights" : true,
+                            "clearNotification" : true,
+                            "importance" : "default",
+                            "channel" : "default_channel"
+                        },
+                        "force_notification" : true, // 确保通知栏消息被创建
+                        "ios" : {
+                            "badge" : 0,
+                            "sound" : "default",
+                            "alert" : true
+                        },
+                        "background" : true,
+                        "foreground" : true,
+                        "clickAction" : "openApp",
+                        "oppo" : {
+                            "appid" : "33427333",
+                            "appKey" : "461702f0a06e4467a71a9dbf236b2b40"
+                        },
+                        "vivo" : {
+                            "appid" : "105873156",
+                            "appKey" : "c84b7d6dd7a86c3095cb5d45e0811cfc"
+                        },
+                        "mi" : {
+                            "appid" : "2882303761520420913",
+                            "appKey" : "5922042033913"
+                        }
+                    }
                 }
             },
+            // "url": "https://example.com",
+            // "activity": "com.example.MainActivity"
             "orientation" : [ "portrait-primary" ],
             "splashscreen" : {
-                "useOriginalMsgbox" : false,
-                "androidStyle" : "default",
+                "useOriginalMsgbox" : true,
+                "androidStyle" : "common",
                 "android" : {
-                    "hdpi" : "unpackage/res/480.png",
-                    "xhdpi" : "unpackage/res/720.png",
-                    "xxhdpi" : "unpackage/res/1080.png"
+                    "hdpi" : "",
+                    "xhdpi" : "",
+                    "xxhdpi" : "unpackage/res/c.9.png"
                 },
                 "iosStyle" : "common",
                 "ios" : {
@@ -106,33 +376,33 @@
             },
             "icons" : {
                 "android" : {
-                    "hdpi" : "static/icons/72x72.png",
-                    "xhdpi" : "static/icons/96x96.png",
-                    "xxhdpi" : "static/icons/144x144.png",
-                    "xxxhdpi" : "static/icons/192x192.png"
+                    "hdpi" : "unpackage/icons/72x72.png",
+                    "xhdpi" : "unpackage/icons/96x96.png",
+                    "xxhdpi" : "unpackage/icons/144x144.png",
+                    "xxxhdpi" : "unpackage/icons/192x192.png"
                 },
                 "ios" : {
-                    "appstore" : "static/icons/1024x1024.png",
+                    "appstore" : "unpackage/icons/1024x1024.png",
                     "ipad" : {
-                        "app" : "",
-                        "app@2x" : "",
-                        "notification" : "",
-                        "notification@2x" : "",
-                        "proapp@2x" : "",
-                        "settings" : "",
-                        "settings@2x" : "",
-                        "spotlight" : "",
-                        "spotlight@2x" : ""
+                        "app" : "unpackage/res/icons/76x76.png",
+                        "app@2x" : "unpackage/res/icons/152x152.png",
+                        "notification" : "unpackage/res/icons/20x20.png",
+                        "notification@2x" : "unpackage/res/icons/40x40.png",
+                        "proapp@2x" : "unpackage/res/icons/167x167.png",
+                        "settings" : "unpackage/res/icons/29x29.png",
+                        "settings@2x" : "unpackage/res/icons/58x58.png",
+                        "spotlight" : "unpackage/res/icons/40x40.png",
+                        "spotlight@2x" : "unpackage/res/icons/80x80.png"
                     },
                     "iphone" : {
-                        "app@2x" : "static/icons/120x120.png",
-                        "app@3x" : "static/icons/180x180.png",
-                        "notification@2x" : "static/icons/40x40.png",
-                        "notification@3x" : "static/icons/60x60.png",
-                        "settings@2x" : "static/icons/58x58.png",
-                        "settings@3x" : "static/icons/87x87.png",
-                        "spotlight@2x" : "static/icons/80x80.png",
-                        "spotlight@3x" : "static/icons/120x120.png"
+                        "app@2x" : "unpackage/icons/120x120.png",
+                        "app@3x" : "unpackage/icons/180x180.png",
+                        "notification@2x" : "unpackage/icons/40x40.png",
+                        "notification@3x" : "unpackage/icons/60x60.png",
+                        "settings@2x" : "unpackage/icons/58x58.png",
+                        "settings@3x" : "unpackage/icons/87x87.png",
+                        "spotlight@2x" : "unpackage/icons/80x80.png",
+                        "spotlight@3x" : "unpackage/icons/120x120.png"
                     }
                 }
             }
@@ -140,7 +410,36 @@
         "uniStatistics" : {
             "enable" : true
         },
-        "nativePlugins" : {}
+        "nativePlugins" : {
+            "DCTestUniPlugin" : {
+                "__plugin_info__" : {
+                    "name" : "TestUniPlugin",
+                    "description" : "ailink uni插件",
+                    "platforms" : "Android,iOS",
+                    "url" : "",
+                    "android_package_name" : "",
+                    "ios_bundle_id" : "",
+                    "isCloud" : false,
+                    "bought" : -1,
+                    "pid" : "",
+                    "parameters" : {}
+                }
+            },
+            "ThirdSdkPlugin" : {
+                "__plugin_info__" : {
+                    "name" : "TestThirdSdkPlugin",
+                    "description" : "LHZL蓝牙SDK插件 for UniApp",
+                    "platforms" : "Android",
+                    "url" : "",
+                    "android_package_name" : "",
+                    "ios_bundle_id" : "",
+                    "isCloud" : false,
+                    "bought" : -1,
+                    "pid" : "",
+                    "parameters" : {}
+                }
+            }
+        }
     },
     "quickapp" : {},
     "quickapp-native" : {

@@ -30,7 +30,7 @@
 								<view style="width: 13%;padding: 2px;">是</view>
 							</view>
 						</view>
-						<view v-for="(item1,index1) in item.object.details" :key="index"
+						<view v-for="(item1,index1) in item.object.details" :key="index1"
 							style="border-top: 1px solid black;">
 							<view style="display: flex;flex-direction: row;border-top: 1px solid black;padding: 10px;">
 								<view style="display: flex;flex-direction: row;width: 98%;">
@@ -75,7 +75,7 @@
 								<view style="width: 13%;padding: 2px;">是</view>
 							</view>
 						</view>
-						<view v-for="(item1,index1) in item.object.details" :key="index"
+						<view v-for="(item1,index1) in item.object.details" :key="index1"
 							style="border-top: 1px solid black;">
 							<view style="display: flex;flex-direction: row;border-top: 1px solid black;padding: 10px;">
 								<view style="display: flex;flex-direction: row;width: 98%;">
@@ -94,7 +94,7 @@
 
 		<view
 			style="width:100vw;height: 80px;  display: flex;position: fixed;bottom: 0; flex-direction: column; padding-top: 40rpx; padding-bottom: 50rpx;">
-			<button class="button_bg_color" @click="canvasImage.save">打印</button>
+			<button class="button_bg_color" @click="canvasImage.save">{{$t("打印")}}</button>
 		</view>
 	</view>
 </template>
@@ -213,11 +213,8 @@
 					success(res) {
 						console.log('历史记录V2 - 血压', res)
 						if (res.data.code == 200) {
-
 							that.swipeList2222 = []
 							that.swipeList2222 = res.data.data
-
-
 						} else {
 							uni.showToast({
 								title: res.data.msg,
@@ -298,7 +295,9 @@
 						// backgroundColor: null //避免图片有白色边框
 					}).then((canvas) => {
 						setTimeout(() => {
-							var context = canvas.getContext('2d');
+							var context = canvas.getContext('2d', {
+								willReadFrequently: true
+							});
 							context.mozImageSmoothingEnabled = false;
 							context.webkitImageSmoothingEnabled = false;
 							context.msImageSmoothingEnabled = false;
@@ -334,9 +333,6 @@
 				})
 			},
 			async save(e, ownerFun) {
-				console.log("esdadadadaqdadsad")
-				console.log("esdadadadaqdadsad111111", ownerFun)
-				console.log("aaa", "asdasdgadgasd、111")
 				let img = await this.generateImage().then()
 				ownerFun.callMethod('receiveRenderData', img)
 			},

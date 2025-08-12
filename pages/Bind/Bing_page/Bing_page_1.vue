@@ -1,32 +1,38 @@
 <template>
-	<view style="width: 100vw; color: black;height: 100vh;background: #EFEFF4;">
+	<view style=" color: black;height: 100vh;background: #EFEFF4;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
-			<view
-				style="display: flex; width: auto; margin: 20px;justify-content: center; background: white; border-radius: 10px;">
-				<image style="width: 80%; " :src="SELECT_TYPE === '0' ? imagess:imagess1" />
+			<view class="shebeistyle">
+				<image style="padding: 40px;" :src="SELECT_TYPE === '0' ? imagess:imagess1" />
 			</view>
-			<view style="margin: 15px 0 0 15px; font-size: 16px;">{{$t('BDSBitem.title_0')}}</view>
-			<text style="margin: 0 25px 0 15px; font-size: 16px;">{{$t('BDSBitem.title_1')}}</text>
-			<view style="position: fixed;bottom: 0; width: 100vw;">
-				<view style="flex-direction: row; display: flex; margin-top: 120px; justify-content: center;">
-					<checkbox style="font-size: 16px;" color="#ffffff" class="round" activeBackgroundColor="#3298F7"
-						active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('BDSBitem.title_2')}}
+			<view v-show="modelConnectType === '0' ? true : false "
+				style="margin: 20px 20px 0 20px; font-size: 16px; font-weight: 400;">
+				{{$t("绑定提醒1")}}
+			</view>
+			<view v-if="modelConnectType === '0'" style="margin: 20px 20px 0 20px; font-size: 16px; font-weight: 400;">
+				{{$t("绑定提醒2")}}
+			</view>
+			<view v-else style="margin: 20px 20px 0 20px; font-size: 16px; font-weight: 400;">
+				{{$t("绑定提醒3")}}
+			</view>
+			<!-- <view style="position: fixed;bottom: 0; width: 100vw;"> -->
+				<view style="flex-direction: row; display: flex; justify-content: center;margin-top: 118px;">
+					<checkbox style="font-size: 12px;" color="#ffffff" class="round" activeBackgroundColor="#3298F7"
+						active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('准备就绪')}}
 					</checkbox>
 				</view>
-				<button class="btn" :style="getback(cb)" @click="btn_next()">{{$t('zhuceitem.btn_0')}}</button>
-				<view class="textsss" @click="bing_fail()">{{$t('BDSBitem.title_3')}}</view>
-			</view>
+				<button plain="true" class="btn" :style="getback(cb)" @click="btn_next()">{{$t('下一步')}}</button>
+				<view class="textsss" @click="bing_fail()">{{$t('绑定失败')}}</view>
+			<!-- </view> -->
 		</view>
 		<view>
 			<uni-popup ref="popup" type="bottom" border-radius="10px 10px 0 0" :mask-click="false">
 				<view class="popup_bg">
-					<view class="pupup_title" style="margin-top: 10px;">{{$t('BDSBitem.title_3')}}</view>
-					<view style="margin-top: 20px; color: #999999;">{{$t('BDSBitem.title_4')}}</view>
-					<view style="margin-top: 10px;color: #999999;">{{$t('BDSBitem.title_5')}}</view>
-					<view style="margin-top: 10px;margin-bottom: 10px; color: #999999;">{{$t('BDSBitem.title_6')}}
-					</view>
-					<text style="color: #999999;">{{$t('BDSBitem.title_7')}}</text>
-					<button class="btn" @tap="knowe()">{{$t('BDSBitem.title_8')}}</button>
+					<view class="pupup_title">{{$t('绑定失败')}}</view>
+					<view style="margin-top: 20px; font-size: 12px; color: #999999;">{{$t('绑定失败1')}}</view>
+					<view style="margin-top: 5px; font-size: 12px; color: #999999;">{{$t('绑定失败2')}}</view>
+					<view style="margin-top: 5px; font-size: 12px; color: #999999;">{{$t('绑定失败3')}}</view>
+					<view style="margin-top: 5px; font-size: 12px; color: #999999;">{{$t('绑定失败4')}}</view>
+					<button class="btn_1" @tap="knowe()">{{$t('知道了')}}</button>
 				</view>
 			</uni-popup>
 		</view>
@@ -46,15 +52,14 @@
 		},
 
 		onLoad(opt) {
-			console.log("上个页面带过来的数据1：", opt.SELECT_TYPE)
-			console.log("上个页面带过来的数据2：", opt.modelConnectType)
+			console.log("当前页面Bind_page_1:", "上个页面带过来的数据----------" + JSON.stringify(opt))
 			this.SELECT_TYPE = opt.SELECT_TYPE
 			this.modelConnectType = opt.modelConnectType
 		},
 
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('BDSB')
+				title: this.$t("绑定设备")
 			})
 		},
 
@@ -77,13 +82,14 @@
 			btn_next() {
 				if (this.cb == false) {
 					uni.showToast({
-						title: "是否准备就绪",
+						title: this.$t("是否准备就绪"),
 						icon: 'none'
 					})
 					return
 				}
 				uni.navigateTo({
-					url: "../Bing_page/Bind_page_2?modelConnectType=" + this.modelConnectType+"&SELECT_TYPE="+this.SELECT_TYPE
+					url: "../Bing_page/Bind_page_2?modelConnectType=" + this.modelConnectType + "&SELECT_TYPE=" +
+						this.SELECT_TYPE
 				})
 			},
 			bing_fail() {
@@ -98,32 +104,72 @@
 </script>
 
 <style>
+	.shebeistyle {
+		display: flex;
+		width: auto;
+		height: 301px;
+		margin: 20px;
+		align-items: center;
+		justify-content: center;
+		background: white;
+		border-radius: 20px;
+	}
+
+
 	.btn {
-		margin: 20px 40px 0 40px;
+		width: auto;
+		height: 48px;
+		font-size: 16px;
+		font-weight: 600;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 20px 20px 0 20px;
 		border-radius: 30px;
 		background: #3298F7;
-		color: white;
+		color: white !important;
+		border: none !important;
 	}
 
 	.textsss {
 		text-align: center;
 		margin-top: 20px;
+		font-size: 12px;
+		font-weight: 400;
 		margin-bottom: 50px;
 		color: #3298F7;
-		font-size: 28rpx;
+		margin-left: 10px;
+
 	}
 
 	.popup_bg {
+		width: auto;
+		margin-left: 20px;
+		margin-right: 20px;
+		margin-bottom: 88px;
 		background: white;
-		margin: 15px;
-		border-radius: 30px;
-		padding: 40rpx;
+		border-radius: 24px;
+		padding: 20px;
+	}
+
+	.btn_1 {
+		width: 120px;
+		margin-top: 20px;
+		height: 48px;
+		display: flex;
+		font-size: 17px;
+		font-weight: 600px;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100px;
+		background: #3298F7;
+		color: white;
 	}
 
 	.pupup_title {
-		font-weight: bold;
-		font-size: 16px;
 		text-align: center;
-		margin-top: 5px;
+		margin-top: 20rpx;
+		font-size: 16px;
+		font-weight: 600;
 	}
 </style>

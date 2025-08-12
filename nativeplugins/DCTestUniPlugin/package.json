@@ -1,0 +1,41 @@
+{
+	"name": "TestUniPlugin",
+	"id": "DCTestUniPlugin",
+	"version": "1.0",
+	"description": "ailink uni插件",
+	"_dp_type": "nativeplugin",
+	"_dp_nativeplugin": {
+		"android": {
+			"hooksClass": "com.bby.plugin.XmBBYProxy",
+			"plugins": [{
+				"type": "module",
+				"name": "DCTestUniPlugin-TestModule",
+				"class": "com.bby.plugin.JBWDeviceModule"
+			}],
+			"dependencies": [
+				"pub.devrel:easypermissions:2.0.1",
+				"com.alibaba:fastjson:1.1.67.android",
+				"com.github.elinkthings:AILinkSDKRepositoryAndroid:1.14.21",
+				"com.github.elinkthings:AILinkSDKParsingLibraryAndroid:1.9.7"
+			],
+			"integrateType": "aar",
+			"targetSdkVersion" : 33,
+			"minSdkVersion": 26
+		},
+		"ios": {
+			"plugins": [{
+				"type": "module",
+				"name": "DCTestUniPlugin-TestModule",
+				"class": "TestModule"
+			}],
+			"capabilities": {
+				"entitlements": {
+					"com.apple.security.device.bluetooth": true
+				}
+			},
+			"frameworks": ["MapKit.framework", "CoreBluetooth.framework", "AILinkBleSDK.framework"],
+			"integrateType": "framework",
+			"deploymentTarget": "11.0"
+		}
+	}
+}

@@ -1,12 +1,15 @@
 <template>
 	<view>
-		<view class="subtitle">{{listTitle}}</view>
+		<!-- <view class="subtitle">{{listTitle}}</view> -->
 		<scroll-view scroll-x="true" class="scroll-box">
-			<view :class="'item-box'+' bg'+((index+'').slice(-1))" v-for="(item,index) in goodsList" :key="index"
-				@click="chooseItem(item)">
-				<!-- <image :src="item.icon" :style="'width:'+imgWidth+'rpx;'+'height:'+imgHeight+'rpx;'" mode=""></image> -->
-				<view class="item-name" :style="getback(item.name)">{{item.name}}</view>
-				<!-- <view class="item-descr">{{item.descr}}</view> -->
+			<view class="nav-container">
+				<view style="display: flex;justify-content: space-between; align-items: center;"
+					:class="'item-box'+' bg'+((index+'').slice(-1))" v-for="(item,index) in goodsList" :key="index"
+					@click="chooseItem(item)">
+					<!-- <image :src="item.icon" :style="'width:'+imgWidth+'rpx;'+'height:'+imgHeight+'rpx;'" mode=""></image> -->
+					<view class="item-name" :style="getback(item.name)">{{item.name}}</view>
+					<!-- <view class="item-descr">{{item.descr}}</view> -->
+				</view>
 			</view>
 		</scroll-view>
 	</view>
@@ -75,6 +78,8 @@
 	.scroll-box {
 		display: flex;
 		white-space: nowrap;
+		justify-content: center;
+		align-items: center;
 		width: 100%;
 	}
 
@@ -96,14 +101,16 @@
 		width: 100%;
 		font-size: 16px;
 		line-height: 25px;
+		padding: 0 5px;
 		/* font-weight: bold; */
-		white-space: pre-wrap;
+		/* white-space: pre-wrap; */
 		color: gray;
 		/* margin-top: 8rpx; */
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 1;
-		overflow: hidden;
+		/* display: -webkit-box; */
+		/* -webkit-box-orient: vertical;
+		-webkit-line-clamp: 1; */
+		/* overflow: hidden; */
+		align-items: center;
 		border-radius: 12rpx;
 		border: 1px solid gainsboro;
 	}
@@ -120,6 +127,12 @@
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 1;
 		overflow: hidden;
+	}
+
+	/* 导航项容器 - 用于水平排列 */
+	.nav-container {
+		display: inline-flex;
+
 	}
 
 	/* .bg0 {

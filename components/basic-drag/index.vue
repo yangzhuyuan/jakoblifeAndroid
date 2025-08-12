@@ -1,28 +1,32 @@
 <template>
-	<scroll-view scroll-y :style="[getScrollStyle]" :scroll-top="scrollTop" @scroll="handleScroll">
-		<movable-area :style="[getAreaStyle]">
-			<movable-view v-for="(item, index) in list" :animation="animation" :direction="direction" :key="item.key"
-				:damping="damping" :x="item.x" :y="item.y" :disabled="disableds" @longpress="handleLongpress()"
-				@touchstart="handleDragStart(index)" @change="handleMoving" @touchend="handleDragEnd"
-				:style="[getViewStyle]" class="base-drag-wrapper" :class="{ active: activeIndex === index }">
-				<!-- #ifdef MP-WEIXIN -->
-				<view class="drag-item">{{ item[itemKey] }}</view>
-				<!-- #endif -->
-
-				<!-- #ifndef MP-WEIXIN -->
-				<slot name="item" :element="item" :index="index"></slot>
-				<!-- #endif -->
+	<scroll-view scroll-y :style="scrollStyle" :scroll-top="scrollTop" @scroll="handleScroll">
+		<movable-area :style="areaStyle">
+			<movable-view v-for="(item, index) in formattedList" :key="item.key" :animation="animation"
+				:direction="direction" :damping="damping" :x="item.x" :y="item.y" :disabled="disabled"
+				@longpress="toggleDrag" @touchstart="handleDragStart(index)" @change="handleMoving"
+				@touchend="handleDragEnd" :style="viewStyle" class="drag-item-wrapper"
+				:class="{ active: activeIndex === index }">
+				<!-- 微信小程序专用视图 -->
+				<view v-if="isWeixinMiniProgram" class="drag-item">
+					{{ item[itemKey] }}
+				</view>
+				<!-- 其他平台使用插槽 -->
+				<slot v-else name="item" :element="item" :index="index"></slot>
 			</movable-view>
 		</movable-area>
 	</scroll-view>
 </template>
 
 <script>
+	const DIRECTION_TYPES = ['all', 'vertical', 'horizontal', 'none'];
+
 	export default {
+		name: 'DragSortList',
 		props: {
 			column: {
 				type: Number,
-				default: 2
+				default: 2,
+				validator: value => value > 0
 			},
 			value: {
 				type: Array,
@@ -47,9 +51,7 @@
 			direction: {
 				type: String,
 				default: 'all',
-				validator: value => {
-					return ['all', 'vertical', 'horizontal', 'none'].includes(value);
-				}
+				validator: value => DIRECTION_TYPES.includes(value)
 			},
 			animation: {
 				type: Boolean,
@@ -57,221 +59,225 @@
 			},
 			damping: {
 				type: Number,
-				default: 20
+				default: 20,
+				validator: value => value >= 0
 			},
 			longpress: {
 				type: Boolean,
 				default: true
 			},
-			disableds: {
+			disabled: {
 				type: Boolean,
 				default: true
-			},
-
+			}
 		},
 		data() {
 			return {
-				list: [],
-				// disableds: false,
+				formattedList: [],
 				activeIndex: -1,
 				moveToIndex: -1,
 				oldIndex: -1,
 				tempDragInfo: {
-					x: '',
-					y: ''
+					x: 0,
+					y: 0
 				},
-				cloneList: [],
-				scrollTop: 0
+				scrollTop: 0,
+				windowWidth: 375, // 默认值，会在created中更新
+				systemInfo: null
 			};
 		},
 		computed: {
-			getScrollStyle() {
-				const width = this.getRealWidth(this.width);
+			isWeixinMiniProgram() {
+				return process.env.VUE_APP_PLATFORM === 'mp-weixin';
+			},
+
+			scrollStyle() {
 				return {
-					width: width + 'px',
+					width: this.computedWidth,
 					height: this.height
 				};
 			},
-			getAreaStyle() {
-				const width = this.getRealWidth(this.width);
+
+			areaStyle() {
+				const rowCount = Math.ceil(this.formattedList.length / this.column);
 				return {
-					width: width + 'px',
-					height: Math.ceil(this.list.length / this.column) * this.getItemHeight + 'px'
+					width: this.computedWidth,
+					height: `${rowCount * this.parsedItemHeight}px`
 				};
 			},
-			getViewStyle() {
-				const {
-					itemHeight,
-					getItemWidth
-				} = this;
+
+			viewStyle() {
 				return {
-					width: getItemWidth + 'px',
-					height: itemHeight
+					width: this.itemWidth,
+					height: this.itemHeight
 				};
 			},
-			getItemHeight() {
+
+			computedWidth() {
+				return this.parseWidth(this.width);
+			},
+
+			parsedItemHeight() {
 				return parseFloat(this.itemHeight);
 			},
-			getItemWidth() {
-				if (this.column === 0) return;
-				const width = this.getRealWidth(this.width);
-				return (parseFloat(width) / this.column).toFixed(2);
+
+			itemWidth() {
+				const width = parseFloat(this.computedWidth);
+				return `${(width / this.column).toFixed(2)}px`;
+			}
+		},
+		created() {
+			this.systemInfo = uni.getSystemInfoSync();
+			this.windowWidth = this.systemInfo.windowWidth;
+
+			// 在App中需要特殊处理一些样式
+			if (this.systemInfo.platform === 'android' || this.systemInfo.platform === 'ios') {
+				// 可以在这里添加App特有的初始化逻辑
 			}
 		},
 		methods: {
-			//获取实际的宽度
-			getRealWidth(width) {
+			parseWidth(width) {
 				if (width.includes('%')) {
-					const windowWidth = uni.getSystemInfoSync().windowWidth;
-					width = windowWidth * (parseFloat(width) / 100);
+					return `${this.windowWidth * (parseFloat(width) / 100)}px`;
 				}
 				return width;
 			},
-			
 
 			initList(list = []) {
-				const newList = this.deepCopy(list);
-				this.list = newList.map((item, index) => {
-					const [x, y] = this.getPosition(index);
-					return {
-						...item,
-						x,
-						y,
-						key: Math.random() + index
-					};
-				});
-				this.cloneList = this.deepCopy(this.list);
+				this.formattedList = list.map((item, index) => ({
+					...item,
+					...this.getPosition(index),
+					key: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
+				}));
 			},
 
-			//长按
-			handleLongpress() {
-				if (this.disableds == true) {
-					this.disableds = true;
-				} else {
-					this.disableds = false;
+			toggleDrag() {
+				if (this.longpress) {
+					this.$emit('update:disabled', !this.disabled);
 				}
 			},
 
-			//拖拽开始
 			handleDragStart(index) {
 				this.activeIndex = index;
 				this.oldIndex = index;
+				this.$emit('drag-start', {
+					index,
+					item: this.formattedList[index]
+				});
 			},
 
-			//拖拽中
 			handleMoving(e) {
-				if (e.detail.source !== 'touch' || this.disableds) return;
+				if (e.detail.source !== 'touch' || this.disabled) return;
+
 				const {
 					x,
 					y
 				} = e.detail;
-				Object.assign(this.tempDragInfo, {
+				this.tempDragInfo = {
 					x,
 					y
-				});
-				const currentX = Math.floor((x + this.getItemWidth / 2) / this.getItemWidth);
-				const currentY = Math.floor((y + this.getItemHeight / 2) / this.getItemHeight);
+				};
 
-				this.moveToIndex = Math.min(currentY * this.column + currentX, this.list.length - 1);
+				const currentX = Math.floor((x + parseFloat(this.itemWidth) / 2) / parseFloat(this.itemWidth));
+				const currentY = Math.floor((y + this.parsedItemHeight / 2) / this.parsedItemHeight);
+				this.moveToIndex = Math.min(currentY * this.column + currentX, this.formattedList.length - 1);
 
 				if (this.oldIndex !== this.moveToIndex && this.oldIndex !== -1 && this.moveToIndex !== -1) {
-					const newList = this.deepCopy(this.cloneList);
-					newList.splice(this.moveToIndex, 0, ...newList.splice(this.activeIndex, 1));
-
-					this.list.forEach((item, index) => {
-						if (index !== this.activeIndex) {
-							const itemIndex = newList.findIndex(val => val[this.itemKey] === item[this.itemKey]);
-							[item.x, item.y] = this.getPosition(itemIndex);
-						}
-					});
+					this.updateListPositions();
 					this.oldIndex = this.moveToIndex;
 					this.scrollIntoView();
 				}
+
+				this.$emit('dragging', {
+					fromIndex: this.activeIndex,
+					toIndex: this.moveToIndex,
+					x,
+					y
+				});
 			},
 
-			//获取当前的位置
+			updateListPositions() {
+				const newList = [...this.formattedList];
+				const [movedItem] = newList.splice(this.activeIndex, 1);
+				newList.splice(this.moveToIndex, 0, movedItem);
+
+				newList.forEach((item, index) => {
+					const position = this.getPosition(index);
+					item.x = position.x;
+					item.y = position.y;
+				});
+
+				this.formattedList = newList;
+			},
+
 			getPosition(index) {
-				const x = (index % this.column) * this.getItemWidth;
-				const y = Math.floor(index / this.column) * this.getItemHeight;
-				return [x, y];
+				const x = (index % this.column) * parseFloat(this.itemWidth);
+				const y = Math.floor(index / this.column) * this.parsedItemHeight;
+				return {
+					x,
+					y
+				};
 			},
 
-			//拖拽结束
-			handleDragEnd(e) {
-				if (this.disableds) return;
-				if (this.moveToIndex !== -1 && this.activeIndex !== -1 && this.moveToIndex !== this.activeIndex) {
-					this.cloneList.splice(this.moveToIndex, 0, ...this.cloneList.splice(this.activeIndex, 1));
-				} else {
-					this.$set(this.list[this.activeIndex], 'x', this.tempDragInfo.x);
-					this.$set(this.list[this.activeIndex], 'y', this.tempDragInfo.y);
-				}
-				this.initList(this.cloneList);
-				const endList = this.list.map(item => this.omit(item, ['x', 'y', 'key']));
-				this.$emit('input', endList);
-				this.$emit('end', endList);
+			handleDragEnd() {
+				if (this.disabled) return;
 
-				this.activeIndex = -1;
-				this.oldIndex = -1;
-				this.moveToIndex = -1;
-				this.disableds = true;
+				const resultList = this.formattedList.map(item => {
+					const {
+						x,
+						y,
+						key,
+						...rest
+					} = item;
+					return rest;
+				});
+
+				this.$emit('input', resultList);
+				this.$emit('drag-end', {
+					oldIndex: this.activeIndex,
+					newIndex: this.moveToIndex,
+					list: resultList
+				});
+
+				this.resetDragState();
 			},
 
 			scrollIntoView() {
 				if (this.height === 'auto') return;
-				const {
-					height,
-					moveToIndex,
-					getItemHeight,
-					scrollTop
-				} = this;
 
-				if ((moveToIndex + 1) * this.getItemHeight >= scrollTop + parseFloat(height)) {
-					this.scrollTop = Math.min(parseFloat(this.getAreaStyle.height), scrollTop + Math.ceil(moveToIndex /
-						2) * this.getItemHeight);
-				} else if ((moveToIndex - 1) * this.getItemHeight <= scrollTop) {
-					this.scrollTop = Math.max(0, scrollTop - Math.ceil(moveToIndex / 2) * this.getItemHeight);
+				const itemHeight = this.parsedItemHeight;
+				const visibleHeight = parseFloat(this.height);
+				const currentPosition = (this.moveToIndex + 1) * itemHeight;
+
+				if (currentPosition >= this.scrollTop + visibleHeight) {
+					this.scrollTop = Math.min(
+						parseFloat(this.areaStyle.height),
+						this.scrollTop + Math.ceil(this.moveToIndex / 2) * itemHeight
+					);
+				} else if ((this.moveToIndex - 1) * itemHeight <= this.scrollTop) {
+					this.scrollTop = Math.max(
+						0,
+						this.scrollTop - Math.ceil(this.moveToIndex / 2) * itemHeight
+					);
 				}
 			},
 
-			setScrollTop(index) {
-				this.scrollTop = index * this.getItemHeight;
+			resetDragState() {
+				this.activeIndex = -1;
+				this.oldIndex = -1;
+				this.moveToIndex = -1;
+				this.$emit('update:disabled', true);
 			},
 
 			handleScroll(e) {
 				this.scrollTop = e.detail.scrollTop;
-			},
-
-			deepCopy(source) {
-				return JSON.parse(JSON.stringify(source));
-			},
-
-			/**
-			 * 排除掉obj里面的key值
-			 * @param {object} obj
-			 * @param {Array|string} args
-			 * @returns {object}
-			 */
-			omit(obj, args) {
-				if (!args) return obj;
-				const newObj = {};
-				const isString = typeof args === 'string';
-				const keys = Object.keys(obj).filter(item => {
-					if (isString) {
-						return item !== args;
-					}
-					return !args.includes(item);
-				});
-
-				keys.forEach(key => {
-					if (obj[key] !== undefined) newObj[key] = obj[key];
-				});
-				return newObj;
+				this.$emit('scroll', e.detail);
 			}
 		},
 		watch: {
 			value: {
-				handler() {
-					this.initList(this.value);
+				handler(newVal) {
+					this.initList(newVal);
 				},
 				immediate: true,
 				deep: true
@@ -281,16 +287,32 @@
 </script>
 
 <style lang="scss" scoped>
-	.base-drag-wrapper {
-		// opacity: 1;
-		// z-index: 888888;
-	
+	.drag-item-wrapper {
+		// transition: all 0.3s ease;
+		// box-sizing: border-box;
+		/* App中需要添加这些样式以确保拖动流畅 */
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
 
 		&.active {
-			// opacity: 0.7;
-			// transform: scale(1);
-			// z-index: 999999;
+			// opacity: 0.8;
+			// z-index: 9999;
+			// box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+			// transform: scale(1.02);
+
+			// /* App中需要添加这个样式以防止拖动时闪烁 */
+			// background-color: #ffffff;
+		}
+
+		.drag-item {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			pointer-events: none;
+			/* 防止在App中拖动时触发子元素事件 */
 		}
 	}
-	
 </style>

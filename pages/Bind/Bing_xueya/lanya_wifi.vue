@@ -1,7 +1,9 @@
 <template>
 	<view class="tablebody">
-		<view style="padding-bottom: 50px;">
-			<view style="padding: 15px;font-size: 16px;font-weight: bold;">已连接过的设备</view>
+		<view style="padding-bottom: 50px;padding-top: 108px;">
+			<view style="margin: 0 20px 10px 20px; color: gray;font-size: 12px; font-weight: 400;">{{$t("如果出现超时")}}
+			</view>
+			<view style="padding: 15px;font-size: 16px;font-weight: bold;">{{$t("已连接过的设备")}}</view>
 			<view class="tableitem" v-for="(item,index) in bluetoothList1" :key="index" @click="selectBluetooth(item)">
 				<view class="listback">
 					<view style="display: flex;flex-direction: row;align-items: center;">
@@ -28,7 +30,7 @@
 		<view style="padding-bottom: 50px;">
 			<view
 				style="padding: 15px;font-size: 16px;font-weight: bold;display: flex;align-items: center; justify-content: space-between;">
-				<view>未连接过的设备</view>
+				<view>{{$t("未连接过的设备")}}</view>
 				<switch :checked="checked" @change="switch1Change" style="transform:scale(0.7)" />
 			</view>
 			<view class="tableitem" v-for="(item,index) in bluetoothList" :key="index" @click="selectBluetooth1(item)">
@@ -58,13 +60,19 @@
 				</view>
 			</view>
 		</view>
-
+		<view style="position: fixed;top: 0;left: 0; right: 0;">
+			<view class="titlestyle">
+				<uni-icons style="margin-top: 30px;" @click="back()" type="left" size="24" color="black"></uni-icons>
+				<view style="font-size: 16px; font-weight: 600;margin-top: 30px;">{{$t('蓝牙搜索页面')}}</view>
+				<view @click="batch_del()" style="margin-top: 30px;">{{$t('刷新')}}</view>
+			</view>
+		</view>
 		<view>
 			<uni-popup ref="popup" :mask-click="false">
 				<view
 					style="border-radius: 20px;background:#fff;width: 80vw;text-align: center; margin: 0 40px 60px 40px;">
 					<view style="padding: 30px; 0 40px 0">
-						<view style="font-size: 18px; font-weight: bold; margin-bottom: 40px;">正在配对</view>
+						<view style="font-size: 18px; font-weight: bold; margin-bottom: 40px;">{{$t("正在配对")}}</view>
 						<yi-loading center></yi-loading>
 					</view>
 				</view>
@@ -75,11 +83,11 @@
 				<view
 					style="border-radius: 20px;background:#fff;width: 80vw;text-align: center; margin: 0 40px 60px 40px; padding-bottom: 20px;">
 					<view style="padding: 30px; 0 40px 0">
-						<view style="font-size: 18px; font-weight: bold; margin-bottom: 40px;">配对成功</view>
-						<view>蓝牙已连接成功</view>
+						<view style="font-size: 18px; font-weight: bold; margin-bottom: 40px;">{{$t("配对成功")}}</view>
+						<view>{{$t("蓝牙已连接成功")}}</view>
 					</view>
 					<button @tap="turesss()"
-						style="margin: 10px 50px 20px 50px; border-radius: 20px;background: #3298F7;color: white;">确定</button>
+						style="margin: 10px 50px 20px 50px; border-radius: 20px;background: #3298F7;color: white;">{{$t("确定")}}</button>
 				</view>
 			</uni-popup>
 		</view>
@@ -93,7 +101,6 @@
 			uni.getStorageInfo({
 				success(res) {
 					if (res.keys.includes("listdadsa")) {
-						console.log("daskasdhadha", uni.getStorageSync("listdadsa"))
 						// 假设我们要根据 'id' 属性去重
 						let uniqueArr = uni.getStorageSync("listdadsa").filter((item, index, self) => {
 							return self.findIndex(t => t.name === item.name) === index;
@@ -106,10 +113,10 @@
 			})
 		},
 
-
 		onLoad(res) {
 			this.sn = res.sn
 			this.SELECT_TYPE = res.SELECT_TYPE
+			this.modelId = res.modelId
 
 		},
 
@@ -132,10 +139,11 @@
 				deviceId: '',
 				serviceId: '',
 				uuid: '',
+				modelId: '',
 			}
 		},
 
-
+		//刷新按钮
 		onNavigationBarButtonTap(e) {
 			console.log(e)
 			if (e.text == "刷新") {
@@ -143,14 +151,14 @@
 					this.bluetoothList = []
 					this.initBluetooth()
 				} else {
-					this.bluetoothList = []
+					uni.stopBluetoothDevicesDiscovery()
 					uni.closeBluetoothAdapter({
 						success(res) {
-							console.log(res)
+							console.log("关闭蓝牙模块")
 						}
 					})
+					this.bluetoothList = []
 				}
-
 			}
 		},
 
@@ -165,11 +173,6 @@
 				} else {
 					this.checked = false
 					this.bluetoothList = []
-					uni.closeBluetoothAdapter({
-						success(res) {
-							console.log(res)
-						}
-					})
 				}
 			},
 
@@ -187,23 +190,60 @@
 			selectBluetooth1(item) {
 				let that = this
 				console.log("选中蓝牙", item)
-				// uni.openBluetoothAdapter({
-				// 	success: res => {
 				that.createBLEConnection(item.deviceId, item)
-				// 	}
-				// })
-
-
 			},
 			selectBluetooth(item) {
 				let that = this
-				uni.openBluetoothAdapter({
-					success: res => {
-						that.createBLEConnection(item.deviceId, "")
+				uni.closeBluetoothAdapter({
+					success(res) {
+						console.log(res)
+						uni.openBluetoothAdapter({
+							success: res => {
+								that.createBLEConnection(item.deviceId, "")
+							},
+							fail: function(err) {
+								console.log('蓝牙模块初始化失败', err);
+								// 处理蓝牙模块初始化失败的情况，例如提示用户打开蓝牙
+								if (err.errCode === 10001) {
+									uni.showModal({
+										content: that.$t("当前蓝牙未开启"),
+										showCancel: false,
+										success: modalres => {
+											if (modalres.confirm) {
+												if (plus.os.name === 'Android') {
+													var main = plus.android
+														.runtimeMainActivity();
+													var BluetoothAdapter = plus.android
+														.importClass(
+															"android.bluetooth.BluetoothAdapter"
+														);
+													var BAdapter = new BluetoothAdapter
+														.getDefaultAdapter();
+													if (!BAdapter.isEnabled()) {
+														BAdapter.enable();
+													}
+												} else {
+													var UIApplication = plus.ios.import(
+														"UIApplication");
+													var application2 = UIApplication
+														.sharedApplication();
+													var NSURL2 = plus.ios.import("NSURL");
+													var setting2 = NSURL2.URLWithString(
+														"app-settings:");
+													application2.openURL(setting2);
+													plus.ios.deleteObject(setting2);
+													plus.ios.deleteObject(NSURL2);
+													plus.ios.deleteObject(application2);
+												}
+											}
+										}
+									});
+								}
+							}
+
+						})
 					}
 				})
-
-
 			},
 			/*蓝牙初始化*/
 			initBluetooth() {
@@ -211,39 +251,64 @@
 				uni.openBluetoothAdapter({
 					success: res => {
 						console.log('蓝牙初始化', res)
-						// if (uni.getSystemInfoSync().platform == 'ios') {
-						// 	that.enableBluetooth()
-						// } else {
-						// 	that.android()
-						// }
 						that.connectBluetooth()
 					},
-					fail: error => {
-						uni.showToast({
-							title: JSON.stringify(error.errorMessage)
-						})
-					},
+					fail: function(err) {
+						console.log('蓝牙模块初始化失败', err);
+						// 处理蓝牙模块初始化失败的情况，例如提示用户打开蓝牙
+						if (err.errCode === 10001) {
+							uni.showModal({
+								content: that.$t("当前蓝牙未开启"),
+								showCancel: false,
+								success: modalres => {
+									if (modalres.confirm) {
+										if (plus.os.name === 'Android') {
+											var main = plus.android
+												.runtimeMainActivity();
+											var BluetoothAdapter = plus.android
+												.importClass(
+													"android.bluetooth.BluetoothAdapter"
+												);
+											var BAdapter = new BluetoothAdapter
+												.getDefaultAdapter();
+											if (!BAdapter.isEnabled()) {
+												BAdapter.enable();
+											}
+										} else {
+											var UIApplication = plus.ios.import(
+												"UIApplication");
+											var application2 = UIApplication
+												.sharedApplication();
+											var NSURL2 = plus.ios.import("NSURL");
+											var setting2 = NSURL2.URLWithString(
+												"app-settings:");
+											application2.openURL(setting2);
+											plus.ios.deleteObject(setting2);
+											plus.ios.deleteObject(NSURL2);
+											plus.ios.deleteObject(application2);
+										}
+									}
+								}
+							});
+						}
+					}
+
 				});
 			},
-
 
 			createBLEConnection(deviceId, item) {
 				let that = this;
 				that.$refs.popup.open("bottom")
-
-
 				uni.createBLEConnection({
 					deviceId: deviceId,
 					success: (res) => {
 						that.$refs.popup1.open("bottom")
 						console.log("连接低功耗蓝牙设备成功", res);
 						that.$refs.popup.close()
-
 						if (item != "") {
 							that.bluetoothList1.push(item)
 							uni.setStorageSync("listdadsa", that.bluetoothList1)
 						}
-
 						//需延时连接，不然会报错
 						setTimeout(function() {
 							that.getBLEDeviceServices(deviceId)
@@ -259,10 +324,10 @@
 					},
 					fail(erro) {
 						that.$refs.popup.close()
-						uni.showToast({
-							title: "连接失败或设备已经连接",
-							icon: 'none'
-						})
+						// uni.showToast({
+						// 	title: "连接失败或设备已经连接",
+						// 	icon: 'none'
+						// })
 						console.log("连接低功耗蓝牙设备失败", erro);
 					}
 				});
@@ -312,7 +377,7 @@
 				uni.navigateTo({
 					url: '../../Bind/Bing_xueya/Bing_xueya_2?deviceId=' + that.deviceId +
 						"&serviceId=" + that.serviceId + "&uuid=" + that.uuid + "&sn=" + that.sn +
-						"&SELECT_TYPE=" + that.SELECT_TYPE
+						"&SELECT_TYPE=" + that.SELECT_TYPE + "&modelId=" + that.modelId
 				})
 
 			},
@@ -382,27 +447,29 @@
 							var deviceArray = res.devices;
 							for (let item of deviceArray) {
 								that.idList.push(item)
-
 								let uniqueArr = that.idList.filter((item, index, self) => {
 									return self.findIndex(t => t.deviceId === item.deviceId) ===
 										index;
 								});
-
-
-								// console.log("dasdkjagdadkakdj111111", uniqueArr)
-
 								let uniqueArr1 = uniqueArr.filter((item, index, self) => {
 									return self.findIndex(t => t.name === item.name) === index;
 								});
-								console.log("dasdkjagdadkakdj111111", uniqueArr1)
 								that.bluetoothList = uniqueArr1
-								console.log("dasdkjagdadkakdj", that.idList)
 							}
-							// 1秒后停止搜索释放系统资源
-							let timer = setTimeout(() => {
-								uni.stopBluetoothDevicesDiscovery()
-								clearTimeout(timer)
-							}, 5000);
+							if (that.checked == true) {
+								// 5秒后停止搜索释放系统资源
+								let timer = setTimeout(() => {
+									uni.stopBluetoothDevicesDiscovery()
+									clearTimeout(timer)
+								}, 5000);
+							} else {
+								uni.stopBluetoothDevicesDiscovery({
+									success(res) {
+										console.log("停止搜寻附近的蓝牙外围设备")
+										that.bluetoothList = []
+									}
+								})
+							}
 						})
 					}
 				})
@@ -433,5 +500,16 @@
 		width: 80vw;
 		line-height: 25px;
 		background: white;
+	}
+
+	.titlestyle {
+		background: #F5F5F5;
+		width: auto;
+		height: 88px;
+		padding-left: 20px;
+		padding-right: 20px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 	}
 </style>

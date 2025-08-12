@@ -1,15 +1,14 @@
 <template>
 	<view style="color: black;height: 100vh;width: 100vw;">
 		<view class="view_bg">
-			<image :src="avatar" class="img_bg">
-			</image>
+			<image :src="avatar" class="img_bg"></image>
 		</view>
 		<view class="name_bg_1">{{name}}</view>
-		<view style="text-align: center;font-size: 12px;color: gray;">{{id}}</view>
-		<view class="name_bg">{{name}}{{$t('wodelist.xiaoxiitem.title_2')}}</view>
+		<view style="text-align: center;font-size: 14px;color: gray;margin-top: 15px;">{{sharePhone}}</view>
+		<view class="name_bg">{{$t('想和您共享健康数据')}}</view>
 		<view class="bt_bg">
-			<button class="bt_Accept" @click="Accept()">{{$t('wodelist.xiaoxiitem.button_1')}}</button>
-			<button class="bt_Turn_down" @click="Turn_down()">{{$t('XZGLLXitem.button_3')}}</button>
+			<button class="bt_Accept" @click="Accept()">{{$t('接受')}}</button>
+			<button class="bt_Turn_down" @click="Turn_down()">{{$t('拒绝')}}</button>
 		</view>
 	</view>
 </template>
@@ -19,37 +18,62 @@
 		data() {
 			return {
 				avatar: "../../../static/icons/40x40.png",
-				name: "a",
-				id: "123456789"
-
+				name: '',
+				id: '',
+				sharePhone: ''
 			}
 		},
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t("wodelist.xiaoxiitem.title_1")
+				title: this.$t("邀请")
 			})
 		},
 		onLoad: function(option) {
 			console.log(option)
-			this.avatar = option.AVATAR
-			this.name = option.NAME
+			this.avatar = option.AVATAR === "" ? '../../../static/icons/40x40.png' : option.AVATAR
+			this.name = option.NAME === "null" ? this.$t("未设置会员名") : option.NAME
+			this.id = option.ID
+			this.sharePhone = option.sharePhone
 		},
 
 		methods: {
 			Turn_down() {
-				// uni.showToast({
-				// 	title: "您拒绝了" + this.name + "的共享健康数据",
-				// 	icon: "none"
-				// })
-				uni.navigateBack()
+				this.accepted(false)
 			},
 			Accept() {
-				uni.navigateTo({
-					url: "../my/Invite_2?NAME=" + this.name
+				this.accepted(true)
+			},
+			//处理分享请求（同意/拒绝
+			accepted(isAccepted) {
+				let that = this
+				uni.request({
+					url: "https://jakoblife.jakob-techs.com/prod-api/share/data/accepted",
+					method: 'POST',
+					data: {
+						id: that.id,
+						isAccepted: isAccepted
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
+					},
+					success(pending) {
+						console.log("获取待处理分享请求列表", pending)
+						if (pending.data.code == 200) {
+							if (isAccepted === true) {
+								uni.navigateTo({
+									url: "../my/Invite_2"
+								})
+							} else if (isAccepted === false) {
+								uni.navigateBack()
+							}
+						}
+					},
+					fail(erro) {
+						console.log("获取待处理分享请求列表失败", erro)
+					}
 				})
 			}
-
-
 		}
 	}
 </script>
@@ -71,13 +95,13 @@
 	.name_bg_1 {
 		text-align: center;
 		margin-top: 10px;
-		font-size: 14px;
+		font-size: 16px;
 		font-weight: bold;
 	}
 
 	.name_bg {
 		text-align: center;
-		margin-top: 10px;
+		margin-top: 15px;
 		font-size: 14px;
 		font-weight: bold;
 	}

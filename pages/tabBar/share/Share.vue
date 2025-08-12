@@ -1,330 +1,199 @@
 <template>
-	<view style="color: black; height: 100vh;">
-		<view style=" padding-bottom: 80px; color: black;">
-			<view style=" padding-top: 100px;">
-				<view v-if="share_show"
-					style="background: white; margin: 20px 20px 0 20px; padding: 10px; border-radius: 20px;">
-					<view style=" display: flex; justify-content: center; margin: 10px 0 10px 0;">
-						<view class="swich_bg_0">
-							<view @click="clicked1()">
-								<view v-if="show1" class="swich_bg">{{$t('gongxiangitem.title_0')}}</view>
-								<view v-else class="swich_bg_1">{{$t('gongxiangitem.title_0')}}</view>
-							</view>
-							<view @click="clicked2()">
-								<view v-if="show2" class="swich_bg_1">{{$t('gongxiangitem.title_1')}}</view>
-								<view v-else class="swich_bg">{{$t('gongxiangitem.title_1')}}</view>
+	<view class="paginds">
+		<view style="padding-bottom: 80px; color: black;">
+			<view style="padding-top: 90px;">
+				<view v-if="shareShow" class="shared-content">
+					<SwitchComponent :show1="show1" :show2="show2" @click1="clicked1" @click2="clicked2" />
+					<view v-if="show1" class="no-data-container">
+						<view class="no-data-text">{{$t('暂无用户与您共享健康数据')}}</view>
+						<view class="shared-title">{{$t('健康共享')}}</view>
+						<view class="shared-details">
+							<view class="textstyles">{{$t('掌握权在您手中')}}</view>
+							<view class="textstyles_1">{{$t('安全共享您的健康数据')}}</view>
+							<view class="textstyles">{{$t('图标汇总和通知')}}</view>
+							<view class="textstyles_1">{{$t('您共享的数据将在其')}}</view>
+							<view class="textstyles">{{$t('私密且安全')}}</view>
+							<view class="textstyles_1">{{$t('仅分享每个主题的摘要')}}</view>
+							<view class="shared-warning">
+								<image src="../../../static/icons/warning.png" class="warning-icon" mode="aspectFit" />
+								<view class="textstyles_1">{{$t('共享对象')}}</view>
 							</view>
 						</view>
+						<button @tap="Share_with_others" class="buttonstyle">{{$t('共享')}}</button>
 					</view>
-					<view v-if="show1">
-						<view
-							style="text-align: center; color: gray;margin-top: 30px;font-weight: bold; font-size: 16px;">
-							{{$t('gongxiangitem.title_2')}}
-						</view>
-						<view
-							style="text-align: center; color: black;margin-top: 30px;font-weight: bold; font-size: 18px;">
-							{{$t('gongxiangitem.title_3')}}
-						</view>
-						<view
-							style="display: flex; align-items: left; flex-direction: column; padding-left: 15px;margin-top: 20px;">
-							<text
-								style="margin-top: 10px;font-weight: bold; font-size: 16px;">{{$t('gongxiangitem.title_4')}}</text>
-							<text style="font-size: 14px;">{{$t('gongxiangitem.title_5')}}</text>
-							<text
-								style="margin-top: 15px;font-weight: bold; font-size: 16px;">{{$t('gongxiangitem.title_6')}}</text>
-							<text style="mfont-size: 14px;">{{$t('gongxiangitem.title_7')}}</text>
-							<text
-								style="margin-top: 10px;font-weight: bold; font-size: 16px;">{{$t('gongxiangitem.title_8')}}</text>
-							<text style="font-size: 14px;">{{$t('gongxiangitem.title_9')}}</text>
-							<view style="display:flex;flex-direction: column;align-items: left;margin-top: 30px;">
-								<view>
-									<image src="../../../static/icons/warning.png" style="width: 25px;height: 25px;">
-									</image>
-									<text
-										style="margin-left: 5px; font-size: 14px;">{{$t('gongxiangitem.title_10')}}</text>
-								</view>
-							</view>
-						</view>
-						<button @tap="Share_with_others()"
-							style="background: #3298F7;width: 200px; color: white;border-radius: 40px; margin-top: 40px; margin-bottom: 20px;">{{$t('gongxiangitem.title_0')}}</button>
-					</view>
-					<view v-else style="height: 72vh;">
-						<view style="display: flex;flex-direction: column; align-items: center;margin-top: 30px;">
-							<image src="../../../static/icons/60x60.png"
-								style="width: 60px; height: 60px; border: 1px gainsboro solid;border-radius: 30px;" />
-							<view style="margin-top: 20px;">-</view>
-							<view style="margin-top: 20px;">-</view>
-							<view
-								style="text-align: center; margin-top: 20px;color: black;font-weight: bold;font-size: 16px;">
-								{{$t('gongxiangitem.title_15')}}
-							</view>
-						</view>
+					<view v-else class="no-data-container-empty">
+						<image class="imgas" mode="aspectFit" src="../../../static/icons/60x60.png" />
+						<view class="empty-text">-</view>
+						<view class="empty-text">-</view>
+						<view class="textstyles">{{$t('暂无用户与您共享健康数据')}}</view>
 					</view>
 				</view>
-
-
-				<view v-else style="background: white; margin: 15px 20px 0 20px; padding: 10px; border-radius: 20px;">
-					<view style=" display: flex; justify-content: center; margin: 10px 0 10px 0;">
-						<view class="swich_bg_0">
-							<view @click="clicked1()">
-								<view v-if="show1" class="swich_bg">{{$t('gongxiangitem.title_0')}}</view>
-								<view v-else class="swich_bg_1">{{$t('gongxiangitem.title_0')}}</view>
-							</view>
-							<view @click="clicked2()">
-								<view v-if="show2" class="swich_bg_1">{{$t('gongxiangitem.title_1')}}</view>
-								<view v-else class="swich_bg">{{$t('gongxiangitem.title_1')}}</view>
-							</view>
-						</view>
-					</view>
-					<swiper class="swiper" indicator-active-color='#3298F7' :indicator-dots="indicatorDots"
-						:autoplay="autoplay">
-						<swiper-item v-for="(item,index) in swiperlist" :key="index">
+				<view v-else class="shared-content-active">
+					<SwitchComponent :show1="show1" :show2="show2" @click1="clicked1" @click2="clicked2" />
+					<swiper v-if="show1" class="swiper" indicator-active-color='#3298F7' :indicator-dots="indicatorDots"
+						:autoplay="autoplay" @change="swipeIndex1" :current="currentIndex1">
+						<swiper-item v-for="(item, index) in swiperlist" :key="index">
 							<view style="margin-top: 20px;">
-								<view style="display: flex; align-items: center; flex-direction: column;">
-									<view style="display: inline-block;">
-										<image :src="item.avatar"
-											style="display: flex;width: 80px; height: 80px;border-radius: 40px;border: 1px solid gainsboro;">
-										</image>
-									</view>
-									<text
-										style="font-weight: bold; font-size: 18px;margin-top: 10px;">{{item.name}}</text>
-									<text style="margin-top: 10px;">{{item.phone}}</text>
-								</view>
-								<view
-									style="display: flex; align-items: center; flex-direction: column; padding-left: 15px;margin-top: 20px;">
-									<view v-if="show1 == true">
-										<view
-											style="margin-top: 10px;font-weight: bold; font-size: 16px;text-align: center;">
-											{{$t('gongxiangitem.title_16')}}{{item.name}}{{$t('gongxiangitem.title_17')}}
-										</view>
-									</view>
-									<view v-else>
-										<view
-											style="margin-top: 10px;font-weight: bold; font-size: 16px;color: black;text-align: center;">
-											{{item.name}} {{$t('gongxiangitem.title_18')}}
-										</view>
-									</view>
-									<view style="font-size: 12px;color: gray; margin-top: 5px; margin-bottom: 10px;">
-										{{$t('gongxiangitem.title_19')}}
-									</view>
-								</view>
-
-								<view style="display: flex;flex-direction: row; padding: 10px;">
-									<view style="font-weight: bold;width: 65vw;font-size: 16px;">
-										{{$t('gongxiangitem.title_23')}}
-									</view>
-									<view
-										style="width: 20vw;color: gray; font-size: 16px;text-align: right;margin-right: 5px;">
-										{{item.Diastolic_blood_pressure}}mmHg
-									</view>
-									<uni-icons type="right" size="16"></uni-icons>
-								</view>
-								<view style="background: gainsboro; height: 1px; width: 100vw;" />
-								<view style="display: flex;flex-direction: row; padding: 10px;">
-									<view style="font-weight: bold;width: 65vw;font-size: 16px;">
-										{{$t('gongxiangitem.title_24')}}
-									</view>
-									<view style="width: 20vw;font-size: 16px;text-align: right;color: gray;">
-										{{item.Systolic_blood_pressure}}mmHg
-									</view>
-									<uni-icons type="right" size="16"></uni-icons>
-								</view>
-								<view style="background: gainsboro; height: 1px; width: 100vw;" />
-								<view style="display: flex;flex-direction: row; padding: 10px;">
-									<view style="font-weight: bold;width: 65vw;font-size: 16px;">
-										{{$t('gongxiangitem.title_25')}}
-									</view>
-									<view style="width: 20vw;font-size: 16px;text-align: right; color: gray;">
-										{{item.Pulse_rate}}BMP
-									</view>
-									<uni-icons type="right" size="16"></uni-icons>
-								</view>
-								<button @click="EDITOR(item.avatar, item.name,item.phone,)"
-									style="background: #3298F7;color: white;width: 50vw; border-radius: 40px; margin-top: 50px; ">{{$t('gongxiangitem.title_31')}}</button>
+								<UserInfo :show1="true" :item="item" />
+								<SharedData :show1="true" :item="item" :dataPoints="swiperlist[index].dataPoints" />
+								<button class="buttonstylesss"
+									@click="EDITOR(item.id, item.shareAvatar, item.receiverName, item.receiverPhone)">
+									{{$t('编辑')}}
+								</button>
+							</view>
+						</swiper-item>
+					</swiper>
+					<swiper v-else class="swiper" indicator-active-color='#3298F7' :indicator-dots="indicatorDots"
+						:autoplay="autoplay" @change="swipeIndex2" :current="currentIndex2">
+						<swiper-item v-for="(item, index) in swiperlist" :key="index">
+							<view style="margin-top: 20px;">
+								<UserInfo :item="item" />
+								<SharedData :item="item" :dataPoints="swiperlist[index].dataPoints" />
 							</view>
 						</swiper-item>
 					</swiper>
 				</view>
 			</view>
-
-			<view
-				style="background: #F5F5F5; position: fixed; top: 0;display: flex; align-items: center; justify-content: space-between;height: auto;padding: 60px 10px 10px 10px; width: 95vw;">
-
-				<image @click="zengjia()" src="../../../static/page_icon/zengjia.png"
-					style="width: 28px; height: 28px;"></image>
-
-				<view style="font-size: 18px; font-weight: bold;width: 60vw;text-align: center;">共享</view>
-
-				<image @click="caidan()" src="../../../static/page_icon/caidan.png" style="width: 28px; height: 28px;">
-				</image>
-
+			<view class="header">
+				<image @click="zengjia" src="../../../static/page_icon/zengjia.png" class="header-icon"
+					mode="aspectFit" />
+				<view class="header-title">{{$t('共享')}}</view>
+				<image @click="caidan" src="../../../static/page_icon/caidan.png" class="header-icon_1"
+					mode="aspectFit" />
 			</view>
-
 		</view>
-
-
 	</view>
 </template>
 
 <script>
+	import SwitchComponent from "../../../components/sharevue/SwitchComponent.vue";
+	import UserInfo from "../../../components/sharevue/UserInfo.vue";
+	import SharedData from "../../../components/sharevue/SharedData.vue";
+	const postheader = {
+		'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+		'content-type': 'application/x-www-form-urlencoded;'
+	}
 	export default {
+		components: {
+			SwitchComponent,
+			UserInfo,
+			SharedData
+		},
 		data() {
 			return {
-				share_show: true,
+				shareShow: false,
 				show1: true,
-				show2: true,
-				swiperlist: [{
-						avatar: "../../../static/icons/60x60.png",
-						name: "小明",
-						phone: "1234",
-						Step_number: "2000",
-						Sleep_Hour: "5",
-						Sleep_minute: "20",
-						Blood_pressure: "120",
-						Heart_rate: "72",
-						Blood_oxygen: "92",
-
-						Diastolic_blood_pressure: '100',
-						Systolic_blood_pressure: '80',
-						Pulse_rate: '70'
-					},
-					{
-						avatar: "",
-						name: "b",
-						phone: "1234",
-						Step_number: "3000",
-						Sleep_Hour: "15",
-						Sleep_minute: "36",
-						Blood_pressure: "126",
-						Heart_rate: "76",
-						Blood_oxygen: "94",
-
-						Diastolic_blood_pressure: '122',
-						Systolic_blood_pressure: '90',
-						Pulse_rate: '80'
-					},
-					{
-						avatar: "",
-						name: "c",
-						phone: "1234",
-						Step_number: "1500",
-						Sleep_Hour: "12",
-						Sleep_minute: "26",
-						Blood_pressure: "118",
-						Heart_rate: "78",
-						Blood_oxygen: "98",
-
-						Diastolic_blood_pressure: '118',
-						Systolic_blood_pressure: '78',
-						Pulse_rate: '86'
-					}
-				],
+				show2: false,
+				swiperlist: [],
 				indicatorDots: true,
 				autoplay: false,
+				lettimer: null,
+				currentIndex1: 0,
+				currentIndex2: 0,
 			}
+		},
+
+		onHide() {
+			this.clearTimer();
 		},
 
 		onShow() {
-			console.log("token:", uni.getStorageSync("token"))
-			let that = this
-			uni.setNavigationBarTitle({
-				title: that.$t('gongxiang')
-			})
-			if (uni.getStorageSync("token") === "" || uni.getStorageSync("token") === undefined) {
-				uni.redirectTo({
-					url: "/pages/login/login_land"
-				})
-			} else {
-				uni.request({
-					url: that.$url_getInfo,
-					method: 'GET',
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success: function(res) {
-						console.log("获取用户信息成功:", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
-						} else {
-							console.log("获取数据错误")
-						}
-					},
-					fail(err) {
-						console.log(err)
-					}
-				})
-			}
-
+			this.startTimer();
 		},
 
-
 		methods: {
+			clearTimer() {
+				if (this.lettimer) {
+					clearInterval(this.lettimer);
+					this.lettimer = null;
+				}
+			},
+			startTimer() {
+				const timerLogic = () => {
+					if (this.show1) {
+						this.shareList();
+					} else if (this.show2) {
+						this.receiverList();
+					}
+				};
+				this.lettimer = setInterval(timerLogic, 300);
+			},
+			swipeIndex1(e) {
+				this.currentIndex1 = e.detail.current;
+			},
+			swipeIndex2(e) {
+				this.currentIndex2 = e.detail.current;
+			},
+			shareList() {
+				const data = {
+					shareId: uni.getStorageSync("userid")
+				}
+				this.$post(this.$url_share_list, data, postheader).then(pending => {
+					if (pending.code === 200) {
+						this.shareShow = !pending.data || pending.data.length === 0;
+						if (pending.data && pending.data.length > 0) {
+							this.swiperlist = pending.data;
+						}
+					}
+				})
+			},
+			receiverList() {
+				const data = {
+					receiverId: uni.getStorageSync("userid")
+				}
+				this.$post(this.$url_receiver_list, data, postheader).then(pending => {
+					if (pending.code === 200) {
+						this.shareShow = !pending.data || pending.data.length === 0;
+						if (pending.data && pending.data.length > 0) {
+							this.swiperlist = pending.data;
+						}
+					}
+				})
+			},
+			clicked1() {
+				this.show1 = true;
+				this.show2 = false;
+			},
+			clicked2() {
+				this.show1 = false;
+				this.show2 = true;
+			},
 			Share_with_others() {
 				uni.navigateTo({
 					url: "./Share_with_3"
-				})
+				});
 			},
-
 			zengjia() {
-				uni.navigateTo({
-					url: '/pages/tabBar/share/Share_with_3'
-				})
+				this.Share_with_others();
 			},
-
 			caidan() {
 				uni.navigateTo({
 					url: '../share/Shared_list'
-				})
+				});
 			},
-			//与他人共享
-			clicked1() {
-				this.show1 = true
-				this.show2 = true
+			EDITOR(id, avatar, name, phone) {
+				uni.navigateTo({
+					url: `./Share_with_2?AVATAR=${avatar}&NAME=${name}&PHONE=${phone}&ID=${id}`
+				});
 			},
-			EDITOR(avatar, name, phone) {
-				if (this.show1 == true) {
-					console.log("这里是1")
-					uni.navigateTo({
-						url: "./Share_with_2?AVATAR=" + avatar + "&NAME=" + name + "&PHONE=" + phone + "&typeid=0"
-					})
-				} else {
-					console.log("这里是2")
-					uni.navigateTo({
-						url: "./Share_with_2?AVATAR=" + avatar + "&NAME=" + name + "&PHONE=" + phone + "&typeid=1"
-					})
-				}
-
-
-			},
-
-			//他人与我共享
-			clicked2() {
-				this.show1 = false
-				this.show2 = false
-			},
-
-
-
-
 		}
 	};
 </script>
 
 <style>
+	.paginds {
+		color: black;
+		height: 100vh;
+	}
+
 	.swich_bg_0 {
 		display: flex;
 		flex-direction: row;
-		height: 30px;
+		height: 40px;
 		padding: 3px;
 		width: 280px;
 		background: #3298F7;
-		border-radius: 20px
+		border-radius: 100px;
 	}
 
 	.swich_bg {
@@ -335,7 +204,9 @@
 		color: black;
 		width: 140px;
 		line-height: 15px;
-		height: 30px;
+		height: 40px;
+		font-size: 14px;
+		font-weight: 600;
 		background: white;
 		border-radius: 20px;
 	}
@@ -348,44 +219,173 @@
 		line-height: 15px;
 		text-align: center;
 		width: 140px;
-		height: 30px;
+		height: 40px;
+		font-size: 14px;
+		font-weight: 600;
 	}
-
-	.popup_bg {
-		height: 500px;
-		background: white;
-		border-top-left-radius: 20px;
-		border-top-right-radius: 20px;
-		padding: 10px;
-		margin-left: 15px;
-		margin-right: 15px;
-		margin-bottom: 50px;
-	}
-
-	.list {
-		&>view {
-			padding: 20rpx;
-
-			&+view {
-				border-top: #e5e5e5 solid 1px;
-			}
-		}
-	}
-
-	.scroll-Y {
-		height: 80vw;
-	}
-
 
 	.swiper {
-		height: 80vh;
+		height: 100vh;
 	}
 
-	.scroll-Ys {
-		height: 30vh;
+	.imgas {
+		object-fit: contain;
+		display: flex;
+		width: 85px;
+		height: 85px;
+		border-radius: 100px;
+		border: 1px solid gainsboro;
 	}
 
-	.scroll-Ys_1 {
-		height: 90vh;
+	.scroll-view {
+		margin-top: 20px;
+		height: 300px;
+	}
+
+	.textstyles {
+		margin-top: 20px;
+		font-weight: 600;
+		font-size: 14px;
+		color: #1A1A1A;
+	}
+
+	.textstyles_1 {
+		font-size: 12px;
+		font-weight: 400;
+		color: #999999;
+	}
+
+	.buttonstyle {
+		background: #3298F7;
+		width: 154px;
+		color: white;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		font-size: 17px;
+		font-weight: 600;
+		border-radius: 40px;
+		margin-top: 40px;
+		margin-bottom: 20px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.buttonstylesss {
+		font-size: 16px;
+		font-weight: 600;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background: #3298F7;
+		color: white;
+		width: 120px;
+		border-radius: 100px;
+		margin-top: 50px;
+		height: 48px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.shared-content {
+		background: white;
+		margin: 20px;
+		padding: 10px;
+		border-radius: 20px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+	}
+
+	.shared-content-active {
+		background: white;
+		margin: 15px 20px 0 20px;
+		padding: 10px;
+		border-radius: 20px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+	}
+
+	.no-data-container {
+		margin-top: 30px;
+	}
+
+	.no-data-container-empty {
+		height: 72vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.no-data-text {
+		text-align: center;
+		color: #CCCCCC;
+		margin-top: 30px;
+		font-weight: 600;
+		font-size: 16px;
+	}
+
+	.shared-title {
+		text-align: center;
+		color: #1A1A1A;
+		margin-top: 30px;
+		font-weight: 600;
+		font-size: 16px;
+	}
+
+	.shared-details {
+		display: flex;
+		align-items: left;
+		flex-direction: column;
+		padding-left: 15px;
+		margin-top: 10px;
+	}
+
+	.shared-warning {
+		display: flex;
+		flex-direction: row;
+		margin-top: 20px;
+		align-items: center;
+	}
+
+	.warning-icon {
+		width: 20px;
+		height: 20px;
+		object-fit: contain;
+		margin-right: 10px;
+	}
+
+	.empty-text {
+		margin-top: 20px;
+	}
+
+	.header {
+		background: #F5F5F5;
+		position: fixed;
+		top: 0;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 50px 10px 10px 10px;
+		width: 95vw;
+		z-index: 100;
+	}
+
+	.header-icon {
+		width: 20px;
+		height: 20px;
+		margin-left: 10px;
+		object-fit: contain;
+	}
+
+	.header-icon_1 {
+		width: 20px;
+		height: 20px;
+		margin-right: 10px;
+		object-fit: contain;
+	}
+
+	.header-title {
+		font-size: 18px;
+		font-weight: bold;
+		width: 60vw;
+		text-align: center;
 	}
 </style>

@@ -1,62 +1,85 @@
 <template>
-	<view style="color: black;height: 100vh;background: #EFEFF4;">
-		<view style="">
-			<view style="padding:20px;color: black;font-weight: bold;">
-				{{SELECT_TYPE==="0" ? $t('XZGLLXitem.title_9') : $t('XZGLLXitem.title_10')}}
-			</view>
-			<view class="list-container" v-if="listshow">
-				<view class="list-item" :class="index == active ? 'active' : ''" v-for="(item, index) in list"
-					:key="index">
-					<view class="list_item_bg" @click="check_click(index,item.modelConnectType,item.name)">
-						<image style="width: 80px; height: 80px;" :src="item.modelPicturePath" />
-						<view style="text-align: center; margin-top: 20px;">{{item.name}}</view>
-					</view>
-				</view>
-			</view>
-			<view style="text-align: center;" v-else>
-				<view style="margin-top: 100px;font-weight: bold;">
-					暂无设备型号数据
+	<view class="backstye">
+		<view class="typesstyles">
+			{{ SELECT_TYPE === "0" ? $t('请选择血压计型号') : $t('请选择体脂秤型号') }}
+		</view>
+		<view class="list-container" v-if="listshow">
+			<view class="list-item" :class="index == active ? 'active' : ''" v-for="(item, index) in list" :key="index">
+				<view class="list_item_bg" @click="check_click(index, item.modelConnectType, item.name)">
+					<image class="imagsest" mode="aspectFit" :src="item.modelPicturePath" />
+					<view class="namstysle">{{item.name}}</view>
 				</view>
 			</view>
 		</view>
-		<view class="button_bg_view">
-			<button class="button_bg" :style="getbutton(active)" @tap="True()">{{$t('login.text_13')}}</button>
-			<button class="button_bg" style="margin-top: 10px;" @tap="Unbind()">{{$t('XZGLLXitem.button_4')}}</button>
+		<view v-else class="nullstye">
+			<view class="nullstye_1">
+				{{ $t("暂无设备型号数据") }}
+			</view>
+		</view>
+		<view v-if="SHEBEI === '0'" class="button_bg_view">
+			<button class="button_bg" plain="true" :style="{background: active===$t('未选') ? '#DBDBDB' : '#3298F7'}"
+				@tap="True()">{{ $t('确定') }}
+			</button>
+			<button class="button_bg_1" style="margin-top: 10px;" @tap="Unbind()">
+				{{ $t('暂不绑定') }}
+			</button>
+		</view>
+		<view v-else class="button_bg_view">
+			<button class="button_bg" plain="true" :style="{background: active ===$t('未选') ? '#DBDBDB' : '#3298F7'}"
+				@tap="True()">{{ $t('下一步') }}
+			</button>
+			<view class="viewstylesss" @click="NOclick()">
+				{{ $t("不知道设备型号") }}
+			</view>
 		</view>
 	</view>
 </template>
+
 
 <script>
 	import {
 		mapState,
 		mapMutations
 	} from 'vuex';
+	const lan = uni.getLocale();
+	// 定义图片路径映射表
+	const modelIdToImagePath = {
+		30000: "/static/image/shoubiao1.png", // 手表
+		30001: "/static/image/shoubiao1.png", // 手表
+		20000: "/static/image/tizhi1.jpg", // 体脂秤
+		20001: "/static/image/tizhi1.jpg", // 体脂秤
+		10000: "/static/image/xueya1.png", // 血压计
+		10001: "/static/image/xueya1.png", // 血压计
+		10002: "/static/image/xueya1.png", // 血压计
+		10003: "/static/image/xueya1.png", // 血压计
+		10004: "/static/image/xueya1.png", // 血压计
+		10005: "/static/image/xueya1.png", // 血压计
+		10006: "/static/image/xueya1.png", // 血压计
+	};
 	export default {
-
 		computed: {
 			...mapState(['tokens'])
 		},
-
 		data() {
 			return {
 				per: 0,
 				listshow: true,
 				PageSize: '0',
 				list: [],
-				picture: '../../../static/image.png',
-				active: "未选",
+				active: this.$t("未选"),
 				modelConnectType: '',
+				SELECT_TYPE: '',
 				name: '',
+				SHEBEI: '',
 			}
 		},
 
 		onShow() {
-			let that = this
 			uni.setNavigationBarTitle({
-				title: that.$t('BDSB')
-			})
-			that.per = 1
-			that.getlist()
+				title: this.$t('绑定设备')
+			});
+			this.per = 1;
+			this.getlist();
 		},
 
 		/*下拉刷新*/
@@ -66,44 +89,46 @@
 		},
 		/*上拉刷新*/
 		onReachBottom() {
-			console.log("ssss")
 			this.per++
 			this.getlist()
 		},
 
 		onLoad(opt) {
-			console.log("上个页面带过来的数据", opt.SELECT_TYPE)
-
 			this.SELECT_TYPE = opt.SELECT_TYPE
+			this.SHEBEI = opt.SHEBEI
 		},
 
 		methods: {
+
+			// 封装图片路径处理逻辑
+			updateModelPicturePath(row, lan) {
+				if (row.modelPicturePath) {
+					if (lan === 'zh-Hans') {
+						return this.$url_APP_IP + row.modelPicturePath;
+					} else {
+						return modelIdToImagePath[row.modelId];
+					}
+				} else {
+					return modelIdToImagePath[row.modelId];
+				}
+			},
 			check_click(index, modelConnectType, name) {
 				this.active = index;
 				this.modelConnectType = modelConnectType
 				this.name = name
 			},
-
-			getbutton(bg) {
-				return {
-					background: bg == "未选" ? "#DBDBDB" : "#3298F7"
-				}
-			},
-
 			True() {
-				if (this.active == "未选") {
+				if (this.active == this.$t("未选")) {
 					uni.showToast({
-						title: this.SELECT_TYPE === "0" ? this.$t('XZGLLXitem.title_9') : this.$t(
-							'XZGLLXitem.title_10'),
+						title: this.SELECT_TYPE === "0" ? this.$t('请选择血压计型号') : this.$t(
+							'请选择体脂秤型号'),
 						icon: "none"
 					})
 					return
 				} else {
-					console.log("0-扫码  1-蓝牙 2-WiFi设备类型：" + this.modelConnectType)
 					uni.navigateTo({
-						url: '../../Bind/Bing_page/Bing_page_1?SELECT_TYPE=' + this.SELECT_TYPE +
-							"&modelConnectType=" + this.modelConnectType
-					})
+						url: `../Bing_page/Bind_page_2?modelConnectType=${this.modelConnectType}&SELECT_TYPE=${this.SELECT_TYPE}&name=${this.name}`
+					});
 				}
 			},
 			Unbind() {
@@ -111,78 +136,107 @@
 					url: "/pages/tabBar/main/Main"
 				})
 			},
+			NOclick() {
+				const id = lan === 'zh-Hans' ? 1153 : 1154;
+				uni.navigateTo({
+					url: `../../Bind/Bing_page/helpcenterss?id=${id}`
+				});
+			},
 
-			//获取设备型号列表
 			getlist() {
-				let that = this
-				console.log(uni.getStorageSync("token"))
-				uni.request({
-					url: that.$url_list,
-					method: 'GET',
-					data: {
-						pageNum: that.per,
-						pageSize: 10,
-						reasonable: false,
-						modelType: that.SELECT_TYPE
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success(res) {
-						console.log("获取设备型号列表", res)
-						uni.stopPullDownRefresh()
-						if (res.data.code == 200) {
-							if (that.per == 1) {
-								that.list = []
-							}
-							for (let i = 0; res.data.rows.length > i; i++) {
-								that.list.push(res.data.rows[i])
-							}
-						} else {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
+				const data = {
+					pageNum: this.per,
+					pageSize: 10,
+					reasonable: false,
+					modelType: this.SELECT_TYPE
+				}
+				this.$get(this.$url_list, data, {
+					'Authorization': 'Bearer ' + (this.tokens === '0' ? uni.getStorageSync("token") : this
+						.tokens),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
+					uni.stopPullDownRefresh();
+					if (res.code == 200) {
+						if (this.per == 1) {
+							this.list = [];
 						}
+						res.rows.forEach((row) => {
+							row.modelPicturePath = this.updateModelPicturePath(row, lan);
+						});
+						this.list.push(...res.rows);
+						const filteredNames = lan === 'zh-Hans' ? ["BPW6"] : ["BPW6"];
+						this.list = this.list.filter(item => !filteredNames.includes(item.name));
+					} else {
+						uni.showToast({
+							title: res.msg,
+							icon: 'none'
+						});
 					}
 				})
-			}
-
+			},
 		}
 	}
 </script>
 
 <style>
+	.backstye {
+		color: black;
+		height: 100vh;
+		background: #EFEFF4;
+	}
+
+	.typesstyles {
+		padding: 20px;
+		color: black;
+		font-weight: 400;
+		font-size: 16px;
+	}
+
 	.list-container {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, calc((100vw - 40px) / 2));
-		padding: 0 15px 0 15px;
+		grid-template-columns: repeat(2, 1fr);
+		padding: 0 10px 160px 10px;
 		justify-content: space-between;
-		padding-bottom: 160px;
 	}
 
 	.list-item {
-		/* 两列宽度分配比例 */
-		margin-bottom: 10px;
-		/* 列表项间距 */
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+		background-color: #f3f3f3;
 		background: white;
-		border-radius: 30px;
-		/* 背景色 */
-		padding: 15px;
-		/* 内边距 */
+		border-radius: 20px;
+		margin: 5px 5px 10px 5px;
+		padding: 5px;
 		box-sizing: border-box;
-		/* 盒模型 */
-
 	}
-
 
 	.list_item_bg {
 		display: flex;
 		flex-direction: column;
+		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 160px;
+		height: 180px;
+	}
+
+	.imagsest {
+		width: 100%;
+		object-fit: contain;
+		margin-top: 10px;
+	}
+
+	.namstysle {
+		text-align: center;
+		margin-bottom: 10px;
+		margin-top: 10px;
+	}
+
+	.nullstye {
+		text-align: center;
+	}
+
+	.nullstye_1 {
+		margin-top: 100px;
+		font-weight: bold;
 	}
 
 	.active {
@@ -193,22 +247,51 @@
 	.button_bg_view {
 		background: #EFEFF4;
 		width: 100vw;
-		height: 100px;
 		display: flex;
 		position: fixed;
 		bottom: 0;
 		flex-direction: column;
 		padding-top: 20px;
-		padding-bottom: 25px;
 	}
 
 	.button_bg {
+		width: auto;
+		height: 48px;
+		font-size: 16px;
+		margin-left: 20px;
+		margin-bottom: 10px;
+		margin-right: 20px;
 		display: flex;
+		font-weight: 600;
 		justify-content: center;
 		align-items: center;
-		width: 80vw;
-		color: white;
+		color: white !important;
+		border: none !important;
 		background: #DBDBDB;
 		border-radius: 30px;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	}
+
+	.button_bg_1 {
+		width: auto;
+		height: 48px;
+		font-size: 16px;
+		margin: 20px 20px 48px 20px;
+		display: flex;
+		font-weight: 600;
+		justify-content: center;
+		align-items: center;
+		color: white;
+		background: #3298F7;
+		border-radius: 30px;
+	}
+
+	.viewstylesss {
+		text-align: center;
+		margin-bottom: 20px;
+		color: #3298F7;
+		margin-top: 10px;
+		font-size: 12px;
+		font-weight: 400;
 	}
 </style>

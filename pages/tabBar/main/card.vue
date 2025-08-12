@@ -1,29 +1,21 @@
 <template>
 	<view style="color: black;height: 100vh;background: #EFEFF4;">
 		<view class="list-container">
-
 			<view v-for="(item, index) in list" :key="index" @click="dianji(index, item.checkbox)">
 				<view class="list-item">
-
 					<view style="position: relative;top:-15px; left: 95%;">
 						<image v-if="item.checkbox === true" src="../../../static/icons/check_true.png"
-							style="height: 25px; width: 25px;"></image>
-						<image v-else src="../../../static/icons/check_false.png" style="height: 25px; width: 25px;">
-						</image>
+							class="img_style" />
+						<image v-else src="../../../static/icons/check_false.png" class="img_style" />
 					</view>
-
 					<view class="data_item_bgsss">
 						<view class="icon_bgsss">
-							<image :src="item.image" class="img_stylesss" />
+							<image :src="item.image" class="img_stylesss" mode="aspectFit" />
 							<text class="icon_text_bgsss">{{item.title}}</text>
 						</view>
-
-
-
-						<view style="display: flex; flex-direction: column;font-weight: bold;margin-right: 5px;">
-
+						<view
+							style="display: flex; flex-direction: column;font-weight: bold;margin-right: 5px; flex: 2;">
 							<view v-if="item.bmi_show">
-
 								<view
 									style="display: flex; flex-direction: row;align-items: center; justify-content: flex-end;">
 									<view
@@ -33,13 +25,9 @@
 									<uni-icons type="help" size="15" @tap="BMI_tap(item.title)"></uni-icons>
 								</view>
 							</view>
-
-
 							<view
 								style="display: flex; flex-direction: row; align-items: center; justify-content: flex-end;">
-
 								<view v-if="item.bmi_show">
-
 									<view v-if="item.BMI_TF == 0">
 										<view style="width: 10px; height:10px;background: #FCCD41;border-radius: 50px;">
 										</view>
@@ -64,109 +52,99 @@
 										<view style="width: 10px; height:10px;background: #7A0101;border-radius: 50px;">
 										</view>
 									</view>
+									<view v-else-if="item.BMI_TF ==10"
+										style="display: flex; flex-direction: row;align-items: center;justify-content: flex-end;">
+										<view style="width: 10px; height:10px;background: #58BF78;border-radius: 50px;">
+										</view>
+									</view>
 									<view v-else
 										style="display: flex; flex-direction: row;align-items: center;justify-content: flex-end;">
 										<view style="width: 10px; height:10px;background: #333333;border-radius: 50px;">
 										</view>
 									</view>
 								</view>
-
 								<text
 									style="text-align: right;font-size: 16px;margin-left: 10px;">{{item.Step_number}}</text>
 							</view>
-
-							<text style="text-align: right;color: gray;font-size: 12px;">{{item.type_LX}}</text>
-							<text style="text-align: right;font-size: 14px;">{{item.Step_count}}</text>
+							<text style="text-align: right;color: gray;font-size: 10px;">{{item.type_LX}}</text>
+							<text style="text-align: right;font-size: 13px;">{{item.Step_count}}</text>
 						</view>
 					</view>
 				</view>
 			</view>
 		</view>
-		<view style="height: auto;  display: flex;position: fixed;left: 10vw; bottom: 40px; flex-direction: column;">
-			<button class="button_bg_color" @click="turess()">确认</button>
+		<view style="position: fixed;bottom: 0; width: 100vw;"><button class="button_bg_color"
+				@click="turess()">{{$t('确认')}}</button>
 		</view>
 		<!-- BMI普通弹窗 -->
 		<view>
 			<uni-popup ref="popup1" :mask-click="false">
-				<view style="border-radius: 20px;background:#fff;padding-bottom: 20px;width: 280px;text-align: center;">
-					<view>
-						<image style="width: 200px; height: 260px;" src="../../../static/image/4.png"></image>
+				<view
+					style="background: #FFFFFF; border-radius: 24px; width: 90vw; padding-bottom: 20px;  margin: 0 10vw 0 10vw;">
+					<view style="padding: 20px; ">
+						<view style="font-weight: 600;text-align: center; font-size: 16px;">{{$t('BMI分类')}}</view>
+						<view style="color: #999999;font-size: 10px;margin-top: 20px;text-align: center;">
+							{{$t('根据世界卫生组织的最新BMI分类')}}
+						</view>
+						<view
+							style="display: flex; flex-direction: row; padding: 5px; align-items: center;margin-top: 20px; margin-left: 10px;">
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;">{{$t('BMI范围')}}</view>
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;">{{$t('分类')}}</view>
+						</view>
+						<view
+							style="padding: 5px;background: #FCCD41; width: 88%;margin-top: 10px; display: flex; flex-direction: row; align-items: center;margin-left: 10px;">
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">&lt;18.5</view>
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">{{$t('体重过轻')}}
+							</view>
+						</view>
+						<view
+							style="padding: 5px;background: #58BF78; width: 88%;display: flex; flex-direction: row; align-items: center;margin-left: 10px;">
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">18.5-24.9</view>
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">{{$t('正常体重')}}
+							</view>
+						</view>
+						<view
+							style="padding: 5px;background: #FC7F41; width: 88%;display: flex; flex-direction: row; align-items: center;margin-left: 10px;">
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">25.0-29.9</view>
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">{{$t('超重')}}</view>
+						</view>
+						<view
+							style="padding: 5px;background: #F55A5A; width: 88%;display: flex; flex-direction: row; align-items: center;margin-left: 10px;">
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">25.0-29.9</view>
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">{{$t('一级肥胖')}}
+							</view>
+						</view>
+						<view
+							style="padding: 5px;background: #7A0101; width: 88%;display: flex; flex-direction: row; align-items: center;margin-left: 10px;">
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">25.0-29.9</view>
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">{{$t('二级肥胖')}}
+							</view>
+						</view>
+						<view
+							style="padding: 5px;background: #333333; width: 88%;display: flex; flex-direction: row; align-items: center;margin-left: 10px;">
+							<view style="font-weight: 600;width: 20vw;font-size: 8px;color: white;">25.0-29.9</view>
+							<view style="font-weight: 600;width: 40vw;font-size: 8px;color: white;">{{$t('三级肥胖或病态肥胖')}}
+							</view>
+						</view>
 					</view>
 					<button @tap="knowe1()"
-						style="margin: 10px 50px 20px 50px;border-radius: 20px;background: #3298F7;color: white;">{{$t('BDSBitem.title_8')}}</button>
+						style="width: 120px; height: 48px; border-radius: 100px;background: #3298F7;color: white;display: flex;justify-content: center;align-items: center;">{{$t('知道了')}}</button>
 				</view>
 			</uni-popup>
 		</view>
-
-
-		<!-- 血氧 -->
-		<view>
-			<uni-popup ref="popup2" :mask-click="false">
-				<view style="border-radius: 20px;background:#fff;padding-bottom: 20px;width: 280px;text-align: center;">
-					<view>
-						<view style="font-weight: bold;padding-top: 20px;font-size: 16px;">血氧分类</view>
-						<view
-							style="color: gray;font-size: 12px;margin-top: 10px;display: flex; justify-content: center; align-items: center;flex-direction: row;">
-							<view style="width: 90px;display: flex;justify-content: flex-end;">95%</view>
-							<view style="width: 60px;"></view>
-							<view style="width: 90px;display: flex;justify-content: flex-start;">98%</view>
-						</view>
-						<view
-							style="color: gray;font-size: 12px;margin-top: 10px;display: flex; justify-content: center; align-items: center;flex-direction: row;">
-							<view style="background: #FCCD41; width: 80px;height: 10px;"></view>
-							<view style="background: #7AE545;width: 80px;height: 10px;"></view>
-							<view style="background: #58BF78;width: 80px;height: 10px;"></view>
-						</view>
-						<view
-							style="color: gray;font-size: 12px;margin-top: 10px;display: flex; justify-content: center; align-items: center;flex-direction: row;">
-							<view style="width: 80px;height: 10px;">偏低</view>
-							<view style="width: 80px;height: 10px;">正常</view>
-							<view style="width: 80px;height: 10px;">偏高</view>
-						</view>
-						<view
-							style="padding: 10px; color: gray;font-size: 12px;margin-top: 10px;display: flex; justify-content: center; align-items: center;flex-direction: row;">
-							1.检测注意：情绪激动、憋气或检测中的不规范处理均可能会导致动脉血氧饱和度结果不准确
-						</view>
-						<view
-							style="padding: 10px; color: gray;font-size: 12px;margin-top: 10px;display: flex; justify-content: center; align-items: center;flex-direction: row;">
-							2.偏高提示：动脉血氧饱和度>98%，提示若当机体摄入氧浓度过高，一般没有临床意义。在接受高浓度吸氧、高压氧治疗的人群，动脉血氧饱和度可接近100%。
-						</view>
-						<view
-							style="padding: 10px; color: gray;font-size: 12px;margin-top: 10px;display: flex; justify-content: center; align-items: center;flex-direction: row;">
-							3.偏低提示：动脉血氧饱和度&lt;90%，需考虑机体存在缺氧的可能，提示机体存在低氧血症。
-						</view>
-					</view>
-					<button @tap="knowe2()"
-						style="margin: 40px 50px 20px 50px;border-radius: 20px;background: #3298F7;color: white;">{{$t('BDSBitem.title_8')}}</button>
-				</view>
-			</uni-popup>
-		</view>
-
 	</view>
-
-
-
 </template>
 
 <script>
-	import {
-		mapState,
-		mapMutations
-	} from 'vuex';
 	export default {
-
-		computed: {
-			...mapState(['info'])
-		},
-
 		data() {
 			return {
 				list: [{
 						bmi_show: false,
 						image: "../../../static/icons/1.png",
 						Step_number: "-",
-						title: this.$t('shouye_item.title_3'),
-						type_LX: this.$t('shouye_item.title_4'),
+						title: this.$t('步数'),
+						type_LX: this.$t('计步'),
 						Step_count: "-",
 						checkbox: false,
 
@@ -174,19 +152,12 @@
 						bmi_show: false,
 						image: "../../../static/icons/2.png",
 						Step_number: "-",
-						title: this.$t('zhuceitem.title_5'),
+						title: this.$t('身高'),
 						type_LX: "cm",
 						Step_count: "-",
 						checkbox: false,
-					}, {
-						bmi_show: false,
-						image: "../../../static/icons/6.png",
-						Step_number: "-",
-						title: this.$t('zhuceitem.title_6'),
-						type_LX: "kg",
-						Step_count: "-",
-						checkbox: false,
-					}, {
+					},
+					{
 						BMI_TF: 0,
 						BMI_ys: "-",
 						bmi_show: true,
@@ -198,21 +169,10 @@
 						checkbox: false,
 					},
 					{
-						BMI_TF: 0,
-						BMI_ys: "-",
-						bmi_show: true,
-						image: "../../../static/page_icon/10.png",
-						Step_number: "-",
-						title: '血氧',
-						type_LX: "%",
-						Step_count: "-",
-						checkbox: false,
-					},
-					{
 						bmi_show: false,
 						image: "../../../static/page_icon/3.png",
 						Step_number: "-",
-						title: "骨含BM",
+						title: this.$t("骨含量"),
 						type_LX: "kg",
 						Step_count: "-",
 						checkbox: false,
@@ -221,7 +181,7 @@
 						bmi_show: false,
 						image: "../../../static/page_icon/7.png",
 						Step_number: "-",
-						title: "肌肉量",
+						title: this.$t("肌肉量"),
 						type_LX: "%",
 						Step_count: "-",
 						checkbox: false,
@@ -230,7 +190,7 @@
 						bmi_show: false,
 						image: "../../../static/page_icon/4.png",
 						Step_number: "-",
-						title: "蛋白率",
+						title: this.$t("蛋白率"),
 						type_LX: "%",
 						Step_count: "-",
 						checkbox: false,
@@ -239,7 +199,7 @@
 						bmi_show: false,
 						image: "../../../static/page_icon/5.jpg",
 						Step_number: "-",
-						title: "水分",
+						title: this.$t("水分"),
 						type_LX: "%",
 						Step_count: "-",
 						checkbox: false,
@@ -248,7 +208,7 @@
 						bmi_show: false,
 						image: "../../../static/page_icon/8.png",
 						Step_number: "-",
-						title: "内脏脂肪指数",
+						title: this.$t("内脏脂肪指数"),
 						type_LX: "%",
 						Step_count: "-",
 						checkbox: false,
@@ -257,7 +217,7 @@
 						bmi_show: false,
 						image: "../../../static/page_icon/6.png",
 						Step_number: "-",
-						title: "脂肪率",
+						title: this.$t("脂肪率"),
 						type_LX: "%",
 						Step_count: "-",
 						checkbox: false,
@@ -266,7 +226,7 @@
 						bmi_show: false,
 						image: "../../../static/page_icon/1.png",
 						Step_number: "-",
-						title: "基础代谢率",
+						title: this.$t("基础代谢率"),
 						type_LX: "KCAL",
 						Step_count: "-",
 						checkbox: false,
@@ -274,8 +234,8 @@
 					{
 						bmi_show: false,
 						image: "../../../static/page_icon/2.png",
-						Step_number: "-",
-						title: "皮下脂肪率",
+						Step_number: "0",
+						title: this.$t("皮下脂肪率"),
 						type_LX: "%",
 						Step_count: "-",
 						checkbox: false,
@@ -284,8 +244,8 @@
 						bmi_show: false,
 						image: "../../../static/page_icon/9.png",
 						Step_number: "-",
-						title: "身体年龄",
-						type_LX: "岁",
+						title: this.$t("身体年龄"),
+						type_LX: this.$t("岁"),
 						Step_count: "-",
 						checkbox: false,
 					}
@@ -293,30 +253,28 @@
 			}
 		},
 		onShow() {
-			if (uni.getStorageSync('kapianlist2') != [] || uni.getStorageSync(
-					'kapianlist2') != undefined || uni.getStorageSync(
-					'kapianlist2') != null) {
-				for (let i = 0; uni.getStorageSync('kapianlist2').length > i; i++) {
-					var index0 = this.list.findIndex(item => {
-						if (item.title == uni.getStorageSync('kapianlist2')[i].title) {
-							return true
-						}
-					})
-					this.list.splice(index0, 1)
-				}
-				this.list_recipe()
-				this.queryDevices()
-			} else {
-				this.list_recipe()
-				this.queryDevices()
+			uni.setNavigationBarTitle({
+				title: this.$t("编辑数据卡片")
+			})
+			// 获取存储的卡片列表
+			const kapianlist = uni.getStorageSync('kapianlist2');
+			if (kapianlist && kapianlist.length > 0) {
+				// 遍历存储的卡片列表
+				kapianlist.forEach(item => {
+					// 找到匹配的卡片并移除
+					const index = this.list.findIndex(listItem => listItem.title === item.title);
+					if (index !== -1) {
+						this.list.splice(index, 1);
+					}
+				});
 			}
+			// // 调用相关方法
+			this.list_recipe();
+			this.queryDevices()
 		},
 
 
 		methods: {
-			...mapMutations(['getInfo']),
-
-
 			dianji(id, checkid) {
 				if (checkid == true) {
 					this.list[id].checkbox = false
@@ -324,347 +282,80 @@
 					this.list[id].checkbox = true
 				}
 			},
-
-
+			//确认卡片
 			turess() {
-				let list1 = []
-				let list2 = []
-				list2 = uni.getStorageSync("kapianlist2")
-				this.list.forEach((item, index) => {
-					if (item.checkbox == true) {
-						console.log("aasdafa", item)
-						list1.push(item)
-						console.log("aasdafa", this.list)
-					}
-				})
-				let newarr = list2.concat(list1)
-				uni.setStorageSync("kapianlist2", newarr)
+				// 获取本地存储的卡片列表
+				let list2 = uni.getStorageSync("kapianlist2") || [];
+				// 筛选出当前列表中选中的项
+				let list1 = this.list.filter(item => item.checkbox);
+				// 合并两个列表
+				let newarr = list2.concat(list1);
+				// 更新本地存储
+				uni.setStorageSync("kapianlist2", newarr);
+				// 返回上一页
 				uni.navigateBack();
 			},
-
-
 			BMI_tap(title) {
-				if (title == "血氧") {
-					this.$refs.popup2.open("center")
-				} else {
-					this.$refs.popup1.open("center")
-				}
+				this.$refs.popup1.open("center")
 			},
-
 			knowe1() {
 				this.$refs.popup1.close()
 			},
-
-			knowe2() {
-				this.$refs.popup2.close()
-			},
-
-
 			// 查询用户的绑定设备
 			queryDevices() {
-				let that = this
-				uni.request({
-					url: that.$url_queryDevices,
-					method: 'POST',
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success(res) {
-						console.log("查询用户的绑定设备", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								if (res.data.rows == null) {
-									uni.showToast({
-										title: '当前未绑定任何设备',
-										icon: 'none'
-									})
-									that.main_type = true
-								} else {
-									for (let i = 0; res.data.rows.length > i; i++) {
-										if (res.data.rows[i].deviceTypeId == 10) {
-											that.get_device_data(res.data.rows[i].deviceSn)
-										} else {
-											that.get_device_data1(res.data.rows[i].deviceSn)
-										}
-
-									}
+				this.$post(this.$url_queryDevices, {}, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+				}).then(res => {
+					if (res.code == 200) {
+						if (res.rows !== "") {
+							for (let i = 0; res.rows.length > i; i++) {
+								if (res.rows[i].deviceTypeId === "11") {
+									this.get_device_data(res.rows[i].deviceSn)
 								}
-
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
 							}
 						}
-
 					}
 				})
 			},
 
-
-
-
-			//获取体脂秤身体指数
 			get_device_data(deviceSn) {
-				let that = this
-				console.log("获取体脂秤身体指数000000000", deviceSn)
-				uni.request({
-					url: that.$url_get_device_data,
-					method: 'POST',
-					data: {
-						deviceSn: deviceSn
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(res) {
-						console.log("获取体脂秤身体指数", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								for (let i = 0; that.list.length > i; i++) {
-									if (that.list[i].title.includes("BMI")) {
-										that.findValue(that.list, 'title', "BMI").Step_number = res.data.data
-											.BMI
-										that.findValue(that.list, 'title', "BMI").Step_count = "--/--"
-										if (that.findValue(that.list, 'title', 'BMI').Step_number < 18.5) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 0
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "体重过轻"
-										} else if (18.5 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number &&
-											that
-											.findValue(that.list, 'title', 'BMI').Step_number <= 24.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 1
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "正常体重"
-										} else if (20.5 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number &&
-											that
-											.findValue(that.list, 'title', 'BMI').Step_number <= 29.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 2
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "超重"
-										} else if (30 <= that.findValue(that.list2, 'title', 'BMI')
-											.Step_number && that.findValue(that.list, 'title', 'BMI')
-											.Step_number <= 34.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 3
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "一级肥胖"
-										} else if (35.0 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number && that.findValue(that.list, 'title', 'BMI')
-											.Step_number <= 39.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 4
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "二级肥胖"
-										} else if (40 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 5
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "三级肥胖或病态肥胖"
-										}
-									}
-									if (that.list[i].title.includes("血氧")) {
-										that.findValue(that.list, 'title', "血氧").BMI_ys = "--"
-										that.findValue(that.list, 'title', "血氧").Step_number = "--"
-										that.findValue(that.list, 'title', "血氧").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("骨含BM")) {
-										that.findValue(that.list, 'title', "骨含BM").Step_number = res.data.data
-											.BM == "" ? "--" : res.data.data
-											.BM
-										that.findValue(that.list, 'title', "骨含BM").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("肌肉量")) {
-										that.findValue(that.list, 'title', "肌肉量").Step_number = res.data.data
-											.ROM == "" ? "--" : res.data.data
-											.ROM
-										that.findValue(that.list, 'title', "肌肉量").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("蛋白率")) {
-										that.findValue(that.list, 'title', "蛋白率").Step_number = res.data.data
-											.PP == "" ? "--" : res.data.data
-											.PP
-										that.findValue(that.list, 'title', "蛋白率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("水分")) {
-										that.findValue(that.list, 'title', "水分").Step_number = res.data.data
-											.MOI == "" ? "--" : res.data.data
-											.MOI
-										that.findValue(that.list, 'title', "水分").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("内脏脂肪指数")) {
-										that.findValue(that.list, 'title', "内脏脂肪指数").Step_number = res.data
-											.data
-											.UVI == "" ? "--" : res.data.data
-											.UVI
-										that.findValue(that.list, 'title', "内脏脂肪指数").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("脂肪率")) {
-										that.findValue(that.list, 'title', "脂肪率").Step_number = res.data.data
-											.BFR == "" ? "--" : res.data.data
-											.BFR
-										that.findValue(that.list, 'title', "脂肪率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("基础代谢率")) {
-										that.findValue(that.list, 'title', "基础代谢率").Step_number = res.data
-											.data
-											.BMR == "" ? "--" : res.data.data
-											.BMR
-										that.findValue(that.list, 'title', "基础代谢率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("皮下脂肪率")) {
-										that.findValue(that.list, 'title', "皮下脂肪率").Step_number = res.data
-											.data
-											.SFR == "" ? "--" : res.data.data
-											.SFR
-										that.findValue(that.list, 'title', "皮下脂肪率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("身体年龄")) {
-										that.findValue(that.list, 'title', "身体年龄").Step_number = res.data.data
-											.PA == "" ? "--" : res.data.data
-											.PA
-										that.findValue(that.list, 'title', "身体年龄").Step_count = "--/--"
-									}
-								}
-
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
+				const data = {
+					deviceSn: deviceSn
+				}
+				this.$post(this.$url_get_device_data, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
+				}).then(res => {
+					if (res.code == 200) {
+						const data = res.data;
+						for (let i = 0; i < this.list.length; i++) {
+							const item = this.list[i];
+							if (item.title === "BMI") {
+								this.updateBMI(data);
+							} else if (item.title === this.$t("骨含量")) {
+								this.updateCard(data, this.$t("骨含量"), "BM");
+							} else if (item.title === this.$t("肌肉量")) {
+								this.updateCard(data, this.$t("肌肉量"), "ROM");
+							} else if (item.title === this.$t("蛋白率")) {
+								this.updateCard(data, this.$t("蛋白率"), "PP");
+							} else if (item.title === this.$t("水分")) {
+								this.updateCard(data, this.$t("水分"), "MOI");
+							} else if (item.title === this.$t("内脏脂肪指数")) {
+								this.updateCard(data, this.$t("内脏脂肪指数"), "UVI");
+							} else if (item.title === this.$t("脂肪率")) {
+								this.updateCard(data, this.$t("脂肪率"), "BFR");
+							} else if (item.title === this.$t("基础代谢率")) {
+								this.updateCard(data, this.$t("基础代谢率"), "BMR");
+							} else if (item.title === this.$t("皮下脂肪率")) {
+								this.updateCard(data, this.$t("皮下脂肪率"), "SFR");
+							} else if (item.title === this.$t("身体年龄")) {
+								this.updateCard(data, this.$t("身体年龄"), "PA");
 							}
 						}
-
 					}
 				})
 			},
-			//获取体脂秤身体指数
-			get_device_data1(deviceSn) {
-				let that = this
-				console.log("获取体脂秤身体指数1111111111", deviceSn)
-				uni.request({
-					url: that.$url_get_device_data,
-					method: 'POST',
-					data: {
-						deviceSn: deviceSn
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(res) {
-						console.log("获取体脂秤身体指数", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								for (let i = 0; that.list.length > i; i++) {
-									if (that.list[i].title.includes("BMI")) {
-										that.findValue(that.list, 'title', "BMI").Step_number = res.data.data
-											.BMI
-										if (that.findValue(that.list, 'title', 'BMI').Step_number < 18.5) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 0
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "体重过轻"
-										} else if (18.5 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number &&
-											that
-											.findValue(that.list, 'title', 'BMI').Step_number <= 24.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 1
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "正常体重"
-										} else if (20.5 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number &&
-											that
-											.findValue(that.list, 'title', 'BMI').Step_number <= 29.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 2
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "超重"
-										} else if (30 <= that.findValue(that.list2, 'title', 'BMI')
-											.Step_number && that.findValue(that.list, 'title', 'BMI')
-											.Step_number <= 34.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 3
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "一级肥胖"
-										} else if (35.0 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number && that.findValue(that.list, 'title', 'BMI')
-											.Step_number <= 39.9) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 4
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "二级肥胖"
-										} else if (40 <= that.findValue(that.list, 'title', 'BMI')
-											.Step_number) {
-											that.findValue(that.list, 'title', 'BMI').BMI_TF = 5
-											that.findValue(that.list, 'title', 'BMI').BMI_ys = "三级肥胖或病态肥胖"
-										}
-									}
-									if (that.list[i].title.includes("血氧")) {
-										that.findValue(that.list, 'title', "血氧").BMI_ys = "--"
-										that.findValue(that.list, 'title', "血氧").Step_number = "--"
-										that.findValue(that.list, 'title', "血氧").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("骨含BM")) {
-										that.findValue(that.list, 'title', "骨含BM").Step_number = res.data.data
-											.BM == "" ? "--" : res.data.data
-											.BM
-										that.findValue(that.list, 'title', "骨含BM").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("肌肉量")) {
-										that.findValue(that.list, 'title', "肌肉量").Step_number = res.data.data
-											.ROM == "" ? "--" : res.data.data
-											.ROM
-										that.findValue(that.list, 'title', "肌肉量").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("蛋白率")) {
-										that.findValue(that.list, 'title', "蛋白率").Step_number = res.data.data
-											.PP == "" ? "--" : res.data.data
-											.PP
-										that.findValue(that.list, 'title', "蛋白率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("水分")) {
-										that.findValue(that.list, 'title', "水分").Step_number = res.data.data
-											.MOI == "" ? "--" : res.data.data
-											.MOI
-										that.findValue(that.list, 'title', "水分").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("内脏脂肪指数")) {
-										that.findValue(that.list, 'title', "内脏脂肪指数").Step_number = res.data
-											.data
-											.UVI == "" ? "--" : res.data.data
-											.UVI
-										that.findValue(that.list, 'title', "内脏脂肪指数").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("脂肪率")) {
-										that.findValue(that.list, 'title', "脂肪率").Step_number = res.data.data
-											.BFR == "" ? "--" : res.data.data
-											.BFR
-										that.findValue(that.list, 'title', "脂肪率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("基础代谢率")) {
-										that.findValue(that.list, 'title', "基础代谢率").Step_number = res.data
-											.data
-											.BMR == "" ? "--" : res.data.data
-											.BMR
-										that.findValue(that.list, 'title', "基础代谢率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("皮下脂肪率")) {
-										that.findValue(that.list, 'title', "皮下脂肪率").Step_number = res.data
-											.data
-											.SFR == "" ? "--" : res.data.data
-											.SFR
-										that.findValue(that.list, 'title', "皮下脂肪率").Step_count = "--/--"
-									}
-									if (that.list[i].title.includes("身体年龄")) {
-										that.findValue(that.list, 'title', "身体年龄").Step_number = res.data.data
-											.PA == "" ? "--" : res.data.data
-											.PA
-										that.findValue(that.list, 'title', "身体年龄").Step_count = "--/--"
-									}
-
-								}
-
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
-						}
-
-					}
-				})
-			},
-
 			findValue(arr, key, value) {
 				for (let i = 0; i < arr.length; i++) {
 					if (arr[i][key] == value) {
@@ -673,7 +364,46 @@
 				}
 				return null
 			},
+			// 定义BMI分类逻辑
+			updateBMI(data) {
+				const bmiItem = this.findValue(this.list, 'title', "BMI");
+				const bmiValue = data.BMI || 0;
+				bmiItem.Step_number = bmiValue;
+				if (bmiValue < 18.5) {
+					bmiItem.BMI_TF = 0;
+					bmiItem.BMI_ys = this.$t("体重过轻");
+				} else if (bmiValue <= 24.9) {
+					bmiItem.BMI_TF = 1;
+					bmiItem.BMI_ys = this.$t("正常体重");
+				} else if (bmiValue <= 29.9) {
+					bmiItem.BMI_TF = 2;
+					bmiItem.BMI_ys = this.$t("超重");
+				} else if (bmiValue <= 34.9) {
+					bmiItem.BMI_TF = 3;
+					bmiItem.BMI_ys = this.$t("一级肥胖");
+				} else if (bmiValue <= 39.9) {
+					bmiItem.BMI_TF = 4;
+					bmiItem.BMI_ys = this.$t("二级肥胖");
+				} else {
+					bmiItem.BMI_TF = 5;
+					bmiItem.BMI_ys = this.$t("三级肥胖或病态肥胖");
+				}
+			},
 
+			// 定义一个通用的处理函数
+			updateCard(data, titleKey, dataKey) {
+				const item = this.findValue(this.list, 'title', titleKey);
+				item.Step_number = data[dataKey] || '-/-';
+			},
+			// 封装获取存储信息的通用函数
+			getStorageInfo(keys, callback) {
+				uni.getStorageInfo({
+					success: (res) => {
+						const hasAllKeys = keys.every(key => res.keys.includes(key));
+						callback(hasAllKeys, res);
+					}
+				});
+			},
 			//时间戳转时间
 			formatDate(value) {
 				const data = new Date(value);
@@ -683,68 +413,90 @@
 				const hours = data.getHours();
 				const minutes = data.getMinutes();
 				const seconds = data.getSeconds();
-				const formattedTime = `${month}/${day}`;
-				return formattedTime;
+				return `${month}/${day}`;
 			},
 
 			//设备数据概览
 			list_recipe() {
-				let that = this
-				console.log("userId", that.info.userId)
-				uni.request({
-					url: that.$url_list_recipe,
-					method: 'POST',
-					data: {
-						userId: that.info.userId
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(res) {
-						console.log("设备数据概览", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								for (let i = 0; that.list.length > i; i++) {
-									console.log("dsjkhdhada", that.list)
-									if (that.list[i].title.includes("步数")) {
-										that.findValue(that.list, 'title',
-												"步数").Step_number = uni.getStorageSync("settept") == "" ?
-											"--" :
-											uni.getStorageSync("settept")
-										that.findValue(that.list, 'title',
-											"步数").Step_count = that.formatDate(new Date().getTime())
-									}
-									if (that.list[i].title.includes("身高")) {
-										let height = that.findValue(res.data.data, 'register', 'height')
-											.registerVal
-										that.findValue(that.list, 'title', "身高").Step_number = height ==
-											null ?
-											'--' : height
-										that.findValue(that.list, 'title', "身高").Step_count = that.formatDate(
-											that.findValue(res.data.data, 'register', 'height').updateTime)
-									}
-									if (that.list[i].title.includes("体重")) {
-										that.findValue(that.list, 'title',
-											"体重").Step_number = that.findValue(res.data.data, 'register',
-											'weight').registerVal
-										that.findValue(that.list, 'title',
-											that.$t('zhuceitem.title_6')).Step_count = that.formatDate(that
-											.findValue(res.data.data, 'register', 'weight').updateTime)
-									}
-								}
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
+				const data = {
+					userId: uni.getStorageSync("userid")
+				}
+				this.$post(this.$url_list_recipe, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then(res => {
+					if (res.code == 200) {
+						this.list.forEach(item => {
+							if (item.title === this.$t('步数')) {
+								this.processSteps(res.data);
+							} else if (item.title === this.$t('身高')) {
+								this.processHeight(res.data);
+							} else if (item.title === "BMI") {
+								this.processGenericData(res.data, "BMI", "weight");
+							} else if (item.title === this.$t("骨含量")) {
+								this.processGenericData(res.data, "骨含量", "weight");
+							} else if (item.title === this.$t("肌肉量")) {
+								this.processGenericData(res.data, "肌肉量", "weight");
+							} else if (item.title === this.$t("蛋白率")) {
+								this.processGenericData(res.data, "蛋白率", "weight");
+							} else if (item.title === this.$t("水分")) {
+								this.processGenericData(res.data, "水分", "weight");
+							} else if (item.title === this.$t("内脏脂肪指数")) {
+								this.processGenericData(res.data, "内脏脂肪指数", "weight");
+							} else if (item.title === this.$t("脂肪率")) {
+								this.processGenericData(res.data, "脂肪率", "weight");
+							} else if (item.title === this.$t("基础代谢率")) {
+								this.processGenericData(res.data, "基础代谢率", "weight");
+							} else if (item.title === this.$t("皮下脂肪率")) {
+								this.processGenericData(res.data, "皮下脂肪率", "weight");
+							} else if (item.title === this.$t("身体年龄")) {
+								this.processGenericData(res.data, "身体年龄", "weight");
 							}
-						}
-
+						});
 					}
 				})
 			},
-
+			// 处理步数卡片
+			processSteps(item) {
+				let that = this
+				const stepKey = 'settept';
+				const stepCacheKey = 'settept1';
+				const now = new Date().getTime();
+				that.getStorageInfo([stepKey, stepCacheKey], (hasAllKeys, res) => {
+					const currentStep = uni.getStorageSync(stepKey);
+					const cachedStep = uni.getStorageSync(stepCacheKey);
+					const stepItem = that.findValue(that.list, 'title', that.$t('步数'));
+					if (hasAllKeys) {
+						const stepDiff = currentStep - cachedStep;
+						if (stepDiff > 0) {
+							uni.setStorageSync(stepCacheKey, cachedStep + stepDiff);
+						}
+					} else {
+						uni.setStorageSync(stepCacheKey, currentStep);
+					}
+					stepItem.Step_number = uni.getStorageSync(stepCacheKey);
+					stepItem.Step_count = that.formatDate(now);
+					that.bushu = stepItem.Step_number;
+					that.bushu_time = stepItem.Step_count;
+				});
+			},
+			// 处理身高卡片
+			processHeight(item) {
+				let that = this
+				const heightItem = that.findValue(that.list, 'title', that.$t('身高'));
+				const height = that.findValue(item, 'register', 'height')?.registerVal;
+				const unit = uni.getStorageSync("danwei1") === 0 ? "inch" : "cm";
+				heightItem.type_LX = unit;
+				heightItem.Step_number = height !== null ? height : '-/-';
+				heightItem.Step_count = that.formatDate(that.findValue(item, 'register', 'height')?.updateTime);
+			},
+			// 封装处理BMI和其他通用逻辑
+			processGenericData(itemdata, titleKey, dataKey) {
+				let that = this
+				const item = that.findValue(that.list, "title", that.$t(titleKey));
+				const data = that.findValue(itemdata, "register", dataKey);
+				item.Step_count = that.formatDate(data?.updateTime);
+			},
 
 		}
 	}
@@ -760,7 +512,6 @@
 	}
 
 	.list-item {
-
 		/* 两列宽度分配比例 */
 		margin: 5px 5px 10px 5px;
 		/* 列表项间距 */
@@ -771,11 +522,11 @@
 		/* 内边距 */
 		box-sizing: border-box;
 		/* 盒模型 */
-
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 	}
 
-
 	.icon_bgsss {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -783,39 +534,51 @@
 	}
 
 	.data_item_bgsss {
-		height: 65px;
+		height: 60px;
 		line-height: 25px;
 		display: flex;
 		flex-direction: row;
 		background: white;
-		justify-content: space-between;
+		justify-content: left;
 		align-items: center;
 		border-radius: 10px;
-		padding: 0 10px 10px 10px;
+		padding-bottom: 15px;
 	}
 
 	.img_stylesss {
-		width: 50px;
-		height: 50px;
+		width: 48px;
+		height: 48px;
+		object-fit: contain;
 	}
 
+	.img_style {
+		width: 25px;
+		height: 25px;
+	}
 
 	.icon_text_bgsss {
 		margin-top: 10px;
 		line-height: 15px;
-		width: 60px;
+		font-size: 13px;
 		text-align: center;
-		font-weight: bold;
+		font-weight: 600;
 	}
 
 	.button_bg_color {
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		width: 80vw;
+		width: auto;
+		height: 48px;
+		margin-left: 20px;
+		margin-right: 20px;
+		margin-bottom: 68px;
 		background: #3298F7;
 		color: white;
+		font-size: 16px;
+		font-weight: 600;
 		border-radius: 50px;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 	}
 
 	.list_item_bg {
@@ -824,14 +587,6 @@
 		justify-content: center;
 		align-items: center;
 		height: 160px;
-	}
-
-	.icon_bgsss {
-
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
 	}
 
 	.button_bg_view {

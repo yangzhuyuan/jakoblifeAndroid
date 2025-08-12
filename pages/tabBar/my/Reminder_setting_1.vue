@@ -1,7 +1,7 @@
  <template>
- 	<view style="padding: 15px;color: black;height: 100vh;">
- 		<view style="padding: 10px;border-radius: 15px;background: white; ">
- 			<view style="font-weight: bold;margin-left: 10px;">{{$t('wodelist.txszitem.title_2')}}</view>
+ 	<view style="padding:100px 15px 15px 15px;color: black;height: 100vh;">
+ 		<view style="padding:10px;border-radius: 15px;background: white;">
+ 			<view style="font-weight: bold;margin-left: 10px;">{{$t('时间')}}</view>
  			<picker-view v-if="visible" indicator-class="picker-box" :value="value" @change="bindChange"
  				class="picker-view">
  				<picker-view-column class="view-column second" style="">
@@ -19,7 +19,7 @@
  		<view style="background: white; border-radius: 15px; margin: 25px 0 0 0;">
  			<view style="background: white; border-radius: 20px; margin-top: 10px;">
  				<view class="bt_BG" @click="repeat()">
- 					<view class="text1">{{$t('wodelist.txszitem.title_3')}}</view>
+ 					<view class="text1">{{$t('重复')}}</view>
  					<view style="width: 60vw;  display: flex;flex-direction: row;align-items: center;">
  						<view class="text_ct">{{weekly}}</view>
  						<uni-icons type="forward" size="20" style="margin-left: 5px;"></uni-icons>
@@ -27,7 +27,7 @@
  				</view>
  				<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
  				<view class="bt_BG" @click="click_tag()">
- 					<view class="text1">{{$t('wodelist.txszitem.tx_title1')}}</view>
+ 					<view class="text1">{{$t('标签')}}</view>
  					<view style="width: 60vw; display: flex;flex-direction: row;align-items: center;">
  						<view class="text_ct">{{tag}}</view>
  						<uni-icons type="forward" size="20" style="margin-left: 5px;"></uni-icons>
@@ -35,7 +35,7 @@
  				</view>
  				<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
  				<view class="bt_BG" @click="Audio()">
- 					<view class="text1">{{$t('wodelist.txszitem.title_4')}}</view>
+ 					<view class="text1">{{$t('铃声')}}</view>
  					<view style="width: 60vw; display: flex;flex-direction: row;align-items: center;">
  						<view class="text_ct">{{Audios}}</view>
  						<uni-icons type="forward" size="20" style="margin-left: 5px;"></uni-icons>
@@ -43,18 +43,26 @@
  				</view>
  				<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
  				<view class="btn_BG_1" @click="Vibration()">
- 					<view class="text">{{$t('wodelist.txszitem.title_5')}}</view>
+ 					<view class="text">{{$t('震动')}}</view>
  					<switch style="transform:scale(0.6);margin-left: 5px;" :checked="chexk" color="#0686CC"></switch>
  				</view>
  				<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
  				<view class="btn_BG_1" @click="Remind_later()">
- 					<view class="text">{{$t('wodelist.txszitem.title_6')}}</view>
+ 					<view class="text">{{$t('稍后提醒')}}</view>
  					<switch style="transform:scale(0.6);margin-left: 5px;" :checked="chexk1" color="#0686CC"></switch>
  				</view>
  			</view>
 
  		</view>
-
+ 		<view style="position: fixed;top: 0;left: 0; right: 0;z-index: 4;">
+ 			<view class="titlestyle">
+ 				<uni-icons style="margin-top: 20px;" @click="back()" type="left" size="24" color="black"></uni-icons>
+ 				<view style="font-size: 16px; font-weight: 600;margin-top: 20px;">{{$t('提醒设置')}}</view>
+ 				<view @click="batch_del()" style="margin-top: 20px;display: flex;flex-direction: row;color: #3298F7;">
+ 					{{$t('保存')}}
+ 				</view>
+ 			</view>
+ 		</view>
  	</view>
  </template>
 
@@ -112,51 +120,7 @@
  			}
  		},
 
- 		onNavigationBarButtonTap(e) {
- 			console.log(e)
- 			if (e.text === "保存") {
- 				if (this.weekly == "") {
- 					uni.showToast({
- 						title: "选择重复时间",
- 						icon: 'none'
- 					})
- 					return
- 				} else if (this.tag == "") {
- 					uni.showToast({
- 						title: "请填写标签",
- 						icon: 'none'
- 					})
- 					return
- 				} else if (this.Audios == "") {
- 					uni.showToast({
- 						title: "请选择铃声",
- 						icon: 'none'
- 					})
- 					return
- 				} else {
- 					let aaa = {
- 						times: this.times,
- 						weekly: this.weekly,
- 						tag: this.tag,
- 						Audios: this.Audios,
- 						chexk: this.chexk,
- 						chexk1: this.chexk1,
- 						switch: true
- 					}
- 					let bb = uni.getStorageSync("tixing1")
- 					bb.push(aaa)
- 					console.log(bb)
- 					uni.setStorageSync("tixing", bb)
- 					uni.showToast({
- 						title: '保存成功',
- 						icon: 'none'
- 					})
- 					setTimeout(() => {
- 						uni.navigateBack()
- 					}, 300)
- 				}
- 			}
- 		},
+
 
 
 
@@ -165,9 +129,7 @@
 
  			console.log(this.times)
 
- 			uni.setNavigationBarTitle({
- 				title: this.$t('wodelist.txsz')
- 			})
+
 
  			let that = this
 
@@ -193,6 +155,55 @@
  		},
 
  		methods: {
+
+ 			back() {
+ 				uni.navigateBack()
+ 			},
+
+ 			batch_del() {
+
+ 				if (this.weekly == "") {
+ 					uni.showToast({
+ 						title: this.$t("选择重复时间"),
+ 						icon: 'none'
+ 					})
+ 					return
+ 				} else if (this.tag == "") {
+ 					uni.showToast({
+ 						title: this.$t("请填写标签"),
+ 						icon: 'none'
+ 					})
+ 					return
+ 				} else if (this.Audios == "") {
+ 					uni.showToast({
+ 						title: this.$t("请选择铃声"),
+ 						icon: 'none'
+ 					})
+ 					return
+ 				} else {
+ 					let aaa = {
+ 						times: this.times,
+ 						weekly: this.weekly,
+ 						tag: this.tag,
+ 						Audios: this.Audios,
+ 						chexk: this.chexk,
+ 						chexk1: this.chexk1,
+ 						switch: true
+ 					}
+ 					let bb = uni.getStorageSync("tixing1")
+ 					bb.push(aaa)
+ 					console.log(bb)
+ 					uni.setStorageSync("tixing", bb)
+ 					uni.showToast({
+ 						title: this.$t('保存成功'),
+ 						icon: 'none'
+ 					})
+ 					setTimeout(() => {
+ 						uni.navigateBack()
+ 					}, 300)
+ 				}
+
+ 			},
 
 
  			//时间
@@ -441,5 +452,16 @@
  		width: 25vw;
  		font-size: 16px;
  		margin-left: 15px;
+ 	}
+
+ 	.titlestyle {
+ 		background: #F5F5F5;
+ 		width: auto;
+ 		height: 88px;
+ 		padding-left: 20px;
+ 		padding-right: 20px;
+ 		display: flex;
+ 		justify-content: space-between;
+ 		align-items: center;
  	}
  </style>

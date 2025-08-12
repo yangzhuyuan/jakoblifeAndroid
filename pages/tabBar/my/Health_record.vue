@@ -1,8 +1,8 @@
 <template>
-	<view style="padding:10px 10px 0 10px;background: #F7F7F7; color: black;width: 100vw;height: 100vh;">
-		<view style="background: white; border-radius: 20px;">
+	<view class="health_page">
+		<view class="health_avatr">
 			<view class="context_btn" @click="btn_avatar()">
-				<view class="context_title">{{$t('wodelist.wdjkdaitem.title_0')}}</view>
+				<view class="context_title">{{$t('头像')}}</view>
 				<view style="width: 35vw; display: flex;justify-content: flex-end;">
 					<image :src="avatar"
 						style="border: 1px solid gainsboro; width: 30px; height: 30px;border-radius: 20px;">
@@ -10,19 +10,19 @@
 				</view>
 				<uni-icons style="margin-left: 5px;" type="forward" size="20"></uni-icons>
 			</view>
-			<view style="width: 80vw; height: 1px; background: gainsboro; margin-left:25px;"></view>
-			<view class="context_btn" @click="member()">
-				<view class="context_title">{{$t('wodelist.wdjkdaitem.title_1')}}</view>
+			<!-- <view style="width: 80vw; height: 1px; background: gainsboro; margin-left:25px;"></view> -->
+			<!-- <view class="context_btn" @click="member()">
+				<view class="context_title">{{$t('会员名')}}</view>
 				<view style="width: 35vw; display: flex;justify-content: flex-end;">{{username}}</view>
 				<uni-icons style="margin-left: 5px;" type="forward" size="20"></uni-icons>
-			</view>
+			</view> -->
 		</view>
 
-		<view style="margin: 20px 0 20px 15px; color: gray;">{{$t('wodelist.wdjkdaitem.title_2')}}</view>
+		<view style="margin: 20px 0 20px 15px; color: black;">{{$t('身体基础信息')}}：</view>
 
-		<view style="background: white; border-radius: 20px; margin-top: 10px;">
+		<view class="health_avatr">
 			<view class="bt_BG">
-				<view class="text">{{$t('zhuceitem.title_3')}}</view>
+				<view class="text">{{$t('性别')}}</view>
 				<view
 					style="width: 40vw; justify-content: flex-end; display: flex;flex-direction: row;align-items: center;">
 					<view class="color_bg" :style="getcolor(select)" @click="select_click()">
@@ -33,7 +33,7 @@
 			</view>
 			<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
 			<view class="bt_BG">
-				<view class="text">{{$t('zhuceitem.title_4')}}</view>
+				<view class="text">{{$t('出生日期')}}</view>
 				<view style="width: 40vw; justify-content: flex-end; display: flex;flex-direction: row;">
 					<picker fields="day" mode="date" :value="date" @change="bindDateChange">
 						<view style="display: flex;flex-direction: row;align-items: center;">
@@ -45,32 +45,39 @@
 			</view>
 			<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
 			<view class="bt_BG">
-				<view class="text">{{$t('zhuceitem.title_5')}}</view>
-				<view
-					style="width: 40vw; justify-content: flex-end; display: flex;flex-direction: row; align-items: center;">
-					<input type="number" :placeholder="$t('zhuceitem.title_8')" v-model="height"
-						style="color: black;  width: 50vw;margin-right: 5px; text-align: right; font-size: 14px;"
-						maxlength="5" />
-					<view>CM</view>
+				<view class="text">{{$t('身高')}}</view>
+				<view style="justify-content: flex-end; display: flex;flex-direction: row; align-items: center;">
+					<input type="number" :placeholder="$t('请输入')" v-model="height"
+						style="color: black; text-align: right; font-size: 14px;" maxlength="5" />
+					<view style="margin-right: 10px;width: 80px;">
+						<picker @change="bindPickerChange_Height" :value="Height_index" :range="Height_array">
+							<view class="uni-input" style="text-align: right;">{{Height_array[Height_index]}}</view>
+						</picker>
+					</view>
 				</view>
 			</view>
 			<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
 			<view class="bt_BG">
-				<view class="text">{{$t('zhuceitem.title_6')}}</view>
-				<view style="width: 40vw; justify-content: flex-end;display: flex;flex-direction: row;">
-					<input type="number" :placeholder="$t('zhuceitem.title_8')" v-model="width"
-						style="color: black; text-align: right;width: 50vw;margin-right: 5px; font-size: 14px;"
-						maxlength="5" />
-					<view>KG</view>
+				<view class="text">{{$t('体重')}}</view>
+				<view style="justify-content: flex-end;display: flex;flex-direction: row;align-items: center;">
+					<input type="number" :placeholder="$t('请输入')" v-model="width"
+						style="color: black; text-align: right; font-size: 14px;" maxlength="5" />
+					<view style="margin-right: 10px;width: 80px;">
+						<picker @change="bindPickerChange_Width" :value="Width_index" :range="Width_array">
+							<view class="uni-input" style="text-align: right;background: none;">
+								{{Width_array[Width_index]}}
+							</view>
+						</picker>
+					</view>
 				</view>
 			</view>
 		</view>
 		<view>
 			<uni-popup ref="popup" type="bottom" border-radius="10px 10px 0 0" :mask-click="true">
 				<view class="popup_bg">
-					<view class="select_text" @click="sex_nan()">{{$t('zhuceitem.select_0')}}</view>
+					<view class="select_text" @click="sex_nan()">{{$t('男')}}</view>
 					<view style="border-top: 1px solid gainsboro;"></view>
-					<view class="select_text" @click="sex_nv()">{{$t('zhuceitem.select_1')}}</view>
+					<view class="select_text" @click="sex_nv()">{{$t('女')}}</view>
 				</view>
 			</uni-popup>
 		</view>
@@ -82,17 +89,20 @@
 		data() {
 			return {
 				avatar: "../../../static/icons/40x40.png",
-				username: this.$t('wodelist.name'),
-				select: this.$t('zhuceitem.title_8'),
+				username: this.$t('未登录'),
+				select: this.$t('请选择'),
 				height: '',
 				width: '',
-				date: this.$t('zhuceitem.title_8'),
+				date: this.$t('请选择'),
 				phone: '',
+				Height_array: ["inch", 'cm'],
+				Height_index: uni.getStorageSync("danwei1") !== "" ? uni.getStorageSync("danwei1") : 0,
+				Width_array: ["kg", "lb"],
+				Width_index: uni.getStorageSync("danwei2") !== "" ? uni.getStorageSync("danwei2") : 0,
 			}
 		},
 
 		onBackPress(options) {
-			console.log('from:' + options.from)
 			if (options.from === 'backbutton') {
 				this.update_info()
 			}
@@ -104,7 +114,7 @@
 		onShow() {
 			let that = this;
 			uni.setNavigationBarTitle({
-				title: that.$t('wodelist.wdjkdaitem.title_3')
+				title: that.$t('健康档案')
 			})
 
 			//头像返回的数据
@@ -121,7 +131,6 @@
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				},
 				success: function(res) {
-					console.log("获取用户信息成功1111:", res)
 					if (res.statusCode == 200) {
 						if (res.data.code == 200) {
 							if (res.data.data.avatar === "" || res.data.data.avatar === undefined) {
@@ -129,9 +138,9 @@
 							} else {
 								that.avatar = res.data.data.avatar
 							}
-							that.username = res.data.data.nickName
-							that.select = res.data.data.sex === '0' ? that.$t('zhuceitem.select_0') : that.$t(
-								'zhuceitem.select_1')
+							that.username = res.data.data.nickName === null ? res.data.data.userName : res.data
+								.data.nickName
+							that.select = res.data.data.sex === '0' ? that.$t('男') : that.$t('女')
 							that.date = res.data.data.birthTime
 							that.height = res.data.data.height
 							that.width = res.data.data.weight
@@ -154,6 +163,16 @@
 		},
 
 		methods: {
+
+			bindPickerChange_Height: function(e) {
+				console.log('picker发送选择改变，携带值为', e.detail.value)
+				this.Height_index = e.detail.value
+			},
+			bindPickerChange_Width: function(e) {
+				console.log('picker发送选择改变，携带值为', e.detail.value)
+				this.Width_index = e.detail.value
+			},
+
 			//更新个人信息
 			update_info() {
 				let that = this
@@ -162,7 +181,7 @@
 					method: 'POST',
 					data: {
 						nickName: that.username,
-						sex: that.select === that.$t('zhuceitem.select_0') ? "0" : "1",
+						sex: that.select === that.$t('男') ? "0" : "1",
 						birthTime: that.date,
 						height: that.height,
 						weight: that.width
@@ -175,7 +194,10 @@
 					success(res) {
 						console.log("更新个人信息", res)
 						if (res.statusCode == 200) {
-							if (res.data.code == 200) {} else {
+							if (res.data.code == 200) {
+								uni.setStorageSync("danwei1", that.Height_index)
+								uni.setStorageSync("danwei2", that.Width_index)
+							} else {
 								uni.showToast({
 									title: res.data.msg,
 									icon: 'none'
@@ -195,12 +217,12 @@
 				this.$refs.popup.open("bottom")
 			},
 			sex_nan() {
-				this.select = this.$t('zhuceitem.select_0')
+				this.select = this.$t('男')
 				this.$refs.popup.close()
 			},
 			sex_nv() {
 
-				this.select = this.$t('zhuceitem.select_1')
+				this.select = this.$t('女')
 				this.$refs.popup.close()
 			},
 			bindDateChange(e) {
@@ -220,7 +242,7 @@
 			},
 			getcolor(id) {
 				return {
-					color: id == this.$t('zhuceitem.title_8') ? "gray" : "black"
+					color: id == this.$t('请输入') ? "gray" : "black"
 				}
 			},
 
@@ -229,7 +251,22 @@
 </script>
 
 <style>
+	.health_page {
+		padding: 10px 10px 0 10px;
+		color: black;
+		height: 100vh;
+	}
+
+	.health_avatr {
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		background: white;
+		border-radius: 20px;
+		margin-left: 10px;
+		margin-right: 10px;
+	}
+
 	.context_btn {
+		height: 48px;
 		display: flex;
 		flex-direction: row;
 		background: white;
@@ -237,6 +274,7 @@
 		padding-top: 10px;
 		padding-left: 10px;
 		padding-bottom: 10px;
+		padding-right: 10px;
 		border-radius: 50px;
 	}
 
@@ -269,6 +307,10 @@
 	}
 
 	.select_text {
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
 		text-align: center;
 		padding: 10px;
 		font-size: 16px;
@@ -277,10 +319,12 @@
 
 	.bt_BG {
 		display: flex;
+		height: 48px;
 		flex-direction: row;
 		align-items: center;
 		padding-top: 10px;
 		padding-left: 10px;
+		padding-right: 10px;
 		padding-bottom: 10px;
 
 	}

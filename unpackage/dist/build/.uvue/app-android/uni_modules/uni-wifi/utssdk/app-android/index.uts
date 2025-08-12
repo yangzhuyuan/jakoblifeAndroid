@@ -370,10 +370,10 @@ export function getWifiList(option: WifiOption) {
     }
     let wifiManager: WifiManager = UTSAndroid.getAppContext()!.getSystemService(Context.WIFI_SERVICE) as WifiManager;
     if (option.success != null) {
-        Global.supendGetWifiSuccess = option.success;
+        Global.supendGetWifiSuccess = option.success!;
     }
     if (option.complete != null) {
-        Global.supendGetWifiComplete = option.complete;
+        Global.supendGetWifiComplete = option.complete!;
     }
     wifiManager.startScan();
 }

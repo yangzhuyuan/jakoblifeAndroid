@@ -8,8 +8,8 @@
 		</view>
 		<view class="bt_bg">
 			<view style="display: flex; flex-direction: column; ">
-				<button class="bt_Accept" @click="Accept()">{{$t('wodelist.bzzxitem.title_7')}}</button>
-				<button class="bt_Turn_down" @click="Turn_down()">{{$t('wodelist.bzzxitem.title_8')}}</button>
+				<button class="bt_Accept" @click="Accept()">{{$t('已解决')}}</button>
+				<button plain="true" class="bt_Turn_down" @click="Turn_down()">{{$t('继续反馈')}}</button>
 
 			</view>
 		</view>
@@ -29,22 +29,22 @@
 		onLoad(res) {
 			if (res.id == "1") {
 				uni.setNavigationBarTitle({
-					title: this.$t('wodelist.bzzxitem.title_3')
+					title: this.$t('款血压计绑定教程')
 				})
 				this.article(1139)
 			} else if (res.id == "2") {
 				uni.setNavigationBarTitle({
-					title: this.$t('wodelist.bzzxitem.title_4')
+					title: this.$t('款血压计绑定不了')
 				})
 				this.article(1140)
 			} else if (res.id == "3") {
 				uni.setNavigationBarTitle({
-					title: this.$t('wodelist.bzzxitem.title_5')
+					title: this.$t('WIFI款血压计绑定教程')
 				})
 				this.article(1141)
 			} else if (res.id == "4") {
 				uni.setNavigationBarTitle({
-					title: this.$t('wodelist.bzzxitem.title_6')
+					title: this.$t('WIFI款血压计绑定不了')
 				})
 				this.article(1142)
 			}
@@ -53,6 +53,15 @@
 
 
 		methods: {
+
+			Accept() {
+				uni.navigateBack()
+			},
+			Turn_down() {
+				uni.navigateTo({
+					url: "/pages/tabBar/my/fankui"
+				})
+			},
 			article(id) {
 				let that = this
 				uni.request({
@@ -86,19 +95,32 @@
 	}
 
 	.bt_Accept {
-		margin-top: 20px;
-		background: #3298F7;
-		border-radius: 40px;
-		width: 90vw;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 0 20px 0 20px;
+		height: 48px;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+		width: auto;
 		color: white;
+		background: #3298F7;
+
 	}
 
 	.bt_Turn_down {
-		margin-top: 20px;
-		margin-bottom: 20px;
-		background: #DBDBDB;
-		border-radius: 40px;
-		width: 90vw;
-		color: white;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin: 20px;
+		height: 48px;
+		background: #DBDBDB !important;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+		width: auto;
+		color: white !important;
+		border: none !important;
 	}
 </style>

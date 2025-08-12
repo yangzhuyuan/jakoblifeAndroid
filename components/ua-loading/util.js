@@ -1,25 +1,28 @@
 /**
  * 常用函数类Util
  */
-import { ref, computed } from 'vue'
+import {
+	ref,
+	computed
+} from 'vue'
 export function formatCls(props, prefix, prefixCls) {
 	const mergeClass = computed(() => {
 		let mergeCls = ref([])
 		let preCls
-		for(let key in props) {
-			if(isArray(prefixCls) && prefixCls.includes(key) && props[key]) {
-				if(isBool(props[key])) {
-					if(JSON.parse(props[key])) {
+		for (let key in props) {
+			if (isArray(prefixCls) && prefixCls.includes(key) && props[key]) {
+				if (isBool(props[key])) {
+					if (JSON.parse(props[key])) {
 						preCls = `${prefix}${key}`
 					}
-				}else {
+				} else {
 					preCls = `${prefix}${props[key]}`
 				}
 				// 去重
 				const index = mergeCls.value.findIndex(v => v == preCls)
-				if(index == -1) {
+				if (index == -1) {
 					mergeCls.value.push(preCls)
-				}else {
+				} else {
 					mergeCls.value.splice(index, 1)
 				}
 			}
@@ -39,7 +42,8 @@ export function isTrue(str) {
 }
 export function isString(val) {
 	const type = typeof val
-	return type === 'string' || (type === 'object' && val != null && !Array.isArray(val) && Object.prototype.toString.call(val) === '[object String]')
+	return type === 'string' || (type === 'object' && val != null && !Array.isArray(val) && Object.prototype.toString
+		.call(val) === '[object String]')
 }
 export function isNumber(val) {
 	return !isNaN(parseFloat(val)) && isFinite(val)
@@ -57,23 +61,23 @@ export function isPromise(str) {
 	return isObject(str) && isFunction(str.then) && isFunction(str.catch)
 }
 export function isEmpty(val) {
-	if(val == null) return true
-	if(typeof val == 'boolean') return false
-	if(typeof val == 'number') return !isNumber(val)
-	if(val instanceof Error) return val.message == ''
-	switch(Object.prototype.toString.call(val)) {
+	if (val == null) return true
+	if (typeof val == 'boolean') return false
+	if (typeof val == 'number') return !isNumber(val)
+	if (val instanceof Error) return val.message == ''
+	switch (Object.prototype.toString.call(val)) {
 		// String or Array
 		case '[object String]':
 		case '[object Array]':
 			return !val.length
 
-		// Map or Set or File
+			// Map or Set or File
 		case '[object File]':
 		case '[object Map]':
 		case '[object Set]':
 			return !val.size
 
-		// Plain Object
+			// Plain Object
 		case '[object Object]':
 			return !Object.keys(val).length;
 	}
@@ -92,32 +96,32 @@ export function getClient(type) {
 	return document.documentElement['client' + _s] || document.body['client' + _s]
 }
 export function getOffset(el, type) {
-	if(!el || !type) return
+	if (!el || !type) return
 	const _s = convert(type)
 	return el['offset' + _s]
 }
 export function getStyle(el, style) {
-	if(!el || !style) return
+	if (!el || !style) return
 	return el.currentStyle ? el.currentStyle[style] : document.defaultView.getComputedStyle(el, null)[style]
 }
 // 获取弹窗最大层级
 export function getZIndex(zIndex) {
-	for(var zIdx = parseInt(zIndex), el = document.getElementsByTagName('*'), i = 0, len = el.length; i < len; i++)
+	for (var zIdx = parseInt(zIndex), el = document.getElementsByTagName('*'), i = 0, len = el.length; i < len; i++)
 		zIdx = Math.max(zIdx, el[i].style.zIndex)
 	return zIdx
 }
 export function hasLenUnit(value) {
-	if(!value) return false
-	if(typeof value == 'boolean') return false
-	if(!isNaN(value)) return true
-	if(/\%|px|rem/.test(value)) return true
+	if (!value) return false
+	if (typeof value == 'boolean') return false
+	if (!isNaN(value)) return true
+	if (/\%|px|rem/.test(value)) return true
 	return false
 }
 export function addUnit(value, defaultUnit = 'px') {
-	if(!value && value != 0) return ''
-	if(/\%|px|rem/.test(value)) {
+	if (!value && value != 0) return ''
+	if (/\%|px|rem/.test(value)) {
 		return value
-	}else {
+	} else {
 		return `${value}${defaultUnit}`
 	}
 }
@@ -155,7 +159,7 @@ export function throttle(fn, wait = 500, immediate = true) {
 
 	let flag = false
 	return function() {
-		if(flag) return
+		if (flag) return
 		flag = true
 		setTimeout(() => {
 			fn.apply(this, arguments)
@@ -182,35 +186,35 @@ export const listener = {
  * @param map 克隆容器map
  */
 export function deepClone(target, map = new Map()) {
-	if(typeof target == 'object' && target != null) {
+	if (typeof target == 'object' && target != null) {
 		let cache = map.get(target)
-		if(cache) return cache
+		if (cache) return cache
 		let isArray = Array.isArray(target)
 		const result = isArray ? [] : {}
 		map.set(target, result)
-		if(isArray) {
+		if (isArray) {
 			// 数组
 			target.forEach((item, index) => {
 				result[index] = deepClone(item, map)
 			})
-		}else {
+		} else {
 			// 对象
 			Object.keys(target).forEach(key => {
 				result[key] = deepClone(target[key], map)
 			})
 		}
 		return result
-	}else {
+	} else {
 		return target
 	}
 }
 export function objectAssign(target) {
-	for(let i = 1, j = arguments.length; i < j; i++) {
+	for (let i = 1, j = arguments.length; i < j; i++) {
 		let source = arguments[i] || {}
-		for(let prop in source) {
-			if(source.hasOwnProperty(prop)) {
+		for (let prop in source) {
+			if (source.hasOwnProperty(prop)) {
 				let val = source[prop]
-				if(val != undefined) {
+				if (val != undefined) {
 					target[prop] = val
 				}
 			}
@@ -226,7 +230,7 @@ export function isIE() {
  */
 export function getScrollBarSize() {
 	let scrollBarWidth
-	if(scrollBarWidth !== undefined) return scrollBarWidth
+	if (scrollBarWidth !== undefined) return scrollBarWidth
 
 	const outer = document.createElement('div')
 	outer.style.visibility = 'hidden'
@@ -276,38 +280,38 @@ export function getFollowPos(follow, placement, ow, oh, gap) {
 	let prefixPlacement = placement.split('-')[1]
 
 	// 定位元素(#xxx | .xxx)
-	if(ftype == 'string') {
+	if (ftype == 'string') {
 		reference = document.querySelector(follow)
 		referenceRect = getBoundingClientRect(reference)
 
 		followOffset.direction = basePlacement
 		// top/right/bottom/left
-		if(['right', 'left'].indexOf(basePlacement) != -1) {
+		if (['right', 'left'].indexOf(basePlacement) != -1) {
 			followOffset.top = referenceRect.top + referenceRect.height / 2 - oh / 2
-			if(basePlacement == 'left') {
+			if (basePlacement == 'left') {
 				followOffset.left = referenceRect.left - ow - gap
-				if(followOffset.left < 0) {
+				if (followOffset.left < 0) {
 					followOffset.left = referenceRect.right + gap
 					followOffset.direction = 'right'
 				}
-			}else {
+			} else {
 				followOffset.left = referenceRect.right + gap
-				if(referenceRect.right + ow > wW) {
+				if (referenceRect.right + ow > wW) {
 					followOffset.left = referenceRect.left - ow - gap
 					followOffset.direction = 'left'
 				}
 			}
-		}else {
+		} else {
 			followOffset.left = referenceRect.left + referenceRect.width / 2 - ow / 2
-			if(basePlacement == 'top') {
+			if (basePlacement == 'top') {
 				followOffset.top = referenceRect.top - oh - gap
-				if(followOffset.top < 0) {
+				if (followOffset.top < 0) {
 					followOffset.top = referenceRect.bottom + gap
 					followOffset.direction = 'bottom'
 				}
-			}else {
+			} else {
 				followOffset.top = referenceRect.bottom + gap
-				if(referenceRect.bottom + oh > wH) {
+				if (referenceRect.bottom + oh > wH) {
 					followOffset.top = referenceRect.top - oh - gap
 					followOffset.direction = 'top'
 				}
@@ -315,7 +319,7 @@ export function getFollowPos(follow, placement, ow, oh, gap) {
 		}
 
 		// top-start|top-end|right-start|right-end|bottom-start|bottom-end|left-start|left-end
-		if(prefixPlacement) {
+		if (prefixPlacement) {
 			let prefixOffset = {
 				y: {
 					start: {
@@ -341,7 +345,7 @@ export function getFollowPos(follow, placement, ow, oh, gap) {
 		followOffset.top += getScroll('top')
 	}
 	// 定位元素(坐标点clientX|clientY)
-	if(ftype == 'object') {
+	if (ftype == 'object') {
 		let l = follow[0]
 		let t = follow[1]
 		let sL = l + getScroll('left')
@@ -365,7 +369,9 @@ export function downloadBlob(url, name) {
 		let canvas = document.createElement('canvas')
 		canvas.width = img.width
 		canvas.height = img.height
-		let ctx = canvas.getContext('2d')
+		let ctx = canvas.getContext('2d', {
+			willReadFrequently: true
+		})
 		ctx.drawImage(img, 0, 0, img.width, img.height)
 		canvas.toBlob(blob => {
 			let url = URL.createObjectURL(blob)
@@ -385,4 +391,3 @@ export function download(url, name) {
 	a.click()
 	a.remove()
 }
-

@@ -1,46 +1,45 @@
 <template>
 	<view style="padding-top: 20px;background: #F7F7F7; color: black;width: 100vw; height: 100vh;">
 		<view style="margin:20px;font-size: 14px;color: gray;">
-			{{$t('wodelist.aqzxitem.title_6')}}
+			{{loact==='境内'?$t('请输入您新绑定的手机号'):$t('请输入您新绑定的邮箱')}}
 		</view>
 		<view class="linear">
 			<image class="img_bg" src="../../static/icons/17.png" />
-			<input type="number" :placeholder="$t('zhuceitem.input_2')" style="width: 70vw;margin-left: 10px; "
-				maxlength="11" v-model="unername_phone" />
+			<input :placeholder="loact==='境内'?$t('请输入手机号') :$t('请输入邮箱')" style="width: 70vw;margin-left: 10px; "
+				v-model="unername_phone" />
 		</view>
 
 		<view style="display: flex; flex-direction: row;">
 			<view class="linear_1">
 				<image class="img_bg" src="../../static/icons/18.png" />
-				<input type="number" :placeholder="$t('login.text_18')" style="margin-left: 10px;width: 35vw;"
-					maxlength="8" v-model="yanzhengma" />
+				<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+					v-model="yanzhengma" />
 			</view>
 			<button class="linear_btn" style="background: #3298F7; color: white;"
-				@tap="huoqu">{{yanzheng?$t('login.text_3'): codetime+msg}}</button>
+				@tap="huoqu">{{yanzheng?$t('获取验证码'): codetime+msg}}</button>
 		</view>
-		<button class="button_back" :style="getback(unername_phone,yanzhengma)"
-			@tap="btn_next">{{$t('zhuceitem.btn_1')}}</button>
+		<button class="button_back" @tap="btn_next">{{$t('完成')}}</button>
 		<view class="container_bg" v-show="tanchuang">
 			<view class="modalss">
 				<view style="background: white;  margin-left: 20px;margin-right: 20px;border-radius: 20px;">
 					<view
 						style="text-align: center; font-size: 16px; color: black; font-weight: bold;padding-top: 20px;">
-						{{$t('login.text_10')}}
+						{{$t('请填写图形验证码')}}
 					</view>
 					<view class="modal-content_bg">
-						<input class="edit_bg" type="number" :placeholder="$t('login.text_11')" v-model="yzm" />
-						<view>
+						<input class="edit_bg" type="number" :placeholder="$t('请输入图形验证码')" v-model="yzm" />
+						<view style="margin-top: 8px;">
 							<image :src="yangzhengma_img" style="width: 120px; height: 45px;"></image>
 							<view style="text-align: center; color: dodgerblue;margin-top: 10px;" @click="clickCode">
-								{{$t('login.text_12')}}
+								{{$t('看不清')}}
 							</view>
 						</view>
 					</view>
 					<view style="display: flex; flex-direction: row; border-top: 1rpx solid gainsboro;">
-						<view class="text_yzm" @click="closeModal_cancle">{{$t('login.text_14')}}
+						<view class="text_yzm" @click="closeModal_cancle">{{$t('取消')}}
 						</view>
 						<view style="border-left: 1rpx solid gainsboro;"></view>
-						<view class="text_yzm_1" @click="closeModal">{{$t('login.text_13')}}</view>
+						<view class="text_yzm_1" @click="closeModal">{{$t('确定')}}</view>
 					</view>
 				</view>
 			</view>
@@ -54,6 +53,9 @@
 		mapState,
 		mapMutations
 	} from 'vuex';
+	import {
+		isInChinaByIP
+	} from '../api/isInChinaByIP.js';
 	export default {
 		computed: {
 			...mapState(['tokens', 'uuid'])
@@ -67,15 +69,28 @@
 				yzm: '', //输入图形验证码的值
 				yanzheng: 1,
 				codetime: 0,
-				msg: this.$t('zhuceitem.input_3'),
+				msg: this.$t('s后可重发'),
+				loact: "",
 			}
 		},
 
 		onLoad(res) {
-			//标题名称
-			uni.setNavigationBarTitle({
-				title: this.$t('wodelist.aqzxitem.title_7')
-			})
+			let that = this
+			that.loact = res.loact
+		},
+
+
+		onShow() {
+			let that = this
+			if (that.loact === "境内") {
+				uni.setNavigationBarTitle({
+					title: that.$t('新手机号验证')
+				})
+			} else {
+				uni.setNavigationBarTitle({
+					title: that.$t('新邮箱验证')
+				})
+			}
 		},
 
 		methods: {
@@ -89,13 +104,13 @@
 			huoqu() {
 				if (this.unername_phone === "" || this.unername_phone === undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.input_2'),
+						title: this.loact === '境内' ? this.$t('请输入手机号') : this.$t('请输入邮箱'),
 						icon: 'none'
 					})
 					return
 				} else if (this.codetime > 0) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_5'),
+						title: this.$t('不能重复获取'),
 						icon: "none"
 					})
 					return
@@ -150,7 +165,7 @@
 			closeModal() {
 				if (this.yzm === "" || this.yzm === undefined) {
 					uni.showToast({
-						title: this.$t('login.text_19'),
+						title: this.$t('请输入验证码结果'),
 						icon: 'error'
 					})
 					return
@@ -171,7 +186,12 @@
 							if (res.statusCode == 200) {
 								if (res.data.code == 200) {
 									that.tanchuang = false
-									that.send_phone_bind_code()
+									if (that.loact === "境内") {
+										that.send_phone_bind_code()
+									} else if (that.loact === "境外") {
+										that.send_email_bind_code()
+									}
+
 								} else {
 									uni.showToast({
 										title: res.data.msg,
@@ -188,18 +208,24 @@
 			btn_next() {
 				if (this.unername_phone === "" || this.unername_phone === undefined) {
 					uni.showToast({
-						title: this.$t('zhuceitem.input_2'),
+						title: this.loact === '境内' ? this.$t('请输入手机号') : this.$t('请输入邮箱'),
 						icon: 'none'
 					})
 					return
 				} else if (this.yanzhengma == "" || this.yanzhengma == undefined) {
 					uni.showToast({
-						title: this.$t('login.input_2'),
+						title: this.$t('请输入验证码'),
 						icon: 'none'
 					})
 					return
 				} else {
-					this.check_phone_bind_code()
+					if (this.loact === "境内") {
+						this.check_phone_bind_code()
+					} else if (this.loact === "境外") {
+						this.check_phone_bind_code1()
+					}
+
+
 				}
 			},
 			//发送换绑手机号新手机验证码
@@ -219,32 +245,28 @@
 						console.log("发送换绑手机号新手机验证码", res)
 						if (res.statusCode == 200) {
 							if (res.data.code == 200) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
 								that.yanzheng = 0
 								if (that.codetime > 0) {
 									uni.showToast({
-										title: that.$t('zhuceitem.toast_5'),
+										title: that.$t('不能重复获取'),
 										icon: "none"
 									})
 									return
 								} else {
 									that.codetime = 60
-									that.msg = that.$t('zhuceitem.input_3')
+									that.msg = that.$t('s后可重发')
 									let timer = setInterval(() => {
 										that.codetime-- + that.msg;
 										if (that.codetime < 1) {
 											clearInterval(timer);
 											that.msg = ''
-											that.codetime = that.$t('zhuceitem.input_4')
+											that.codetime = that.$t('重新获取')
 										}
 									}, 1000)
 								}
 							} else {
 								uni.showToast({
-									title: res.data.msg,
+									title: that.$t("该手机号已被绑定"),
 									icon: 'none'
 								})
 							}
@@ -255,6 +277,55 @@
 					}
 				})
 			},
+			send_email_bind_code() {
+				let that = this
+				uni.request({
+					url: "https://jakoblife.jakob-techs.com/prod-api/app/user/profile/send_email_bind_code",
+					method: 'POST',
+					data: {
+						email: that.unername_phone
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
+					},
+					success(res) {
+						console.log("发送换绑邮箱新手机验证码", res)
+						if (res.statusCode == 200) {
+							if (res.data.code == 200) {
+								that.yanzheng = 0
+								if (that.codetime > 0) {
+									uni.showToast({
+										title: that.$t('不能重复获取'),
+										icon: "none"
+									})
+									return
+								} else {
+									that.codetime = 60
+									that.msg = that.$t('s后可重发')
+									let timer = setInterval(() => {
+										that.codetime-- + that.msg;
+										if (that.codetime < 1) {
+											clearInterval(timer);
+											that.msg = ''
+											that.codetime = that.$t('重新获取')
+										}
+									}, 1000)
+								}
+							} else {
+								uni.showToast({
+									title: that.$t("该邮箱已被绑定"),
+									icon: 'none'
+								})
+							}
+						}
+					},
+					fail(res) {
+						console.log("失败", res)
+					}
+				})
+			},
+
 			//校验换绑手机号新手机验证码
 			check_phone_bind_code() {
 				let that = this
@@ -271,23 +342,69 @@
 					},
 					success(res) {
 						console.log("校验换绑手机号新手机验证码:", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
+						if (res.data.code == 200) {
+							uni.showToast({
+								title: that.$t("成功"),
+								icon: 'none'
+							})
+							setTimeout(function() {
+								uni.navigateTo({
+									url: '../../pages/login/new_phone_bind'
 								})
-								setTimeout(function() {
-									uni.navigateTo({
-										url: '../../pages/login/new_phone_bind'
-									})
-								}, 300)
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
+							}, 300)
+						} else if (res.data.code === 500) {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						} else {
+							uni.showToast({
+								title: that.$t("该手机号已被绑定"),
+								icon: 'none'
+							})
+						}
+					},
+					fail(res) {
+						console.log("失败", res)
+					}
+				})
+
+			},
+			check_phone_bind_code1() {
+				let that = this
+				uni.request({
+					url: that.$url_check_phone_bind_code,
+					method: 'POST',
+					data: {
+						code: that.yanzhengma,
+						email: that.unername_phone
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
+					},
+					success(res) {
+						console.log("校验换绑手机号新手机验证码:", res)
+						if (res.data.code == 200) {
+							uni.showToast({
+								title: that.$t("成功"),
+								icon: 'none'
+							})
+							setTimeout(function() {
+								uni.navigateTo({
+									url: '../../pages/login/new_phone_bind'
 								})
-							}
+							}, 300)
+						} else if (res.data.code === 500) {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						} else {
+							uni.showToast({
+								title: that.$t("该邮箱已被绑定"),
+								icon: 'none'
+							})
 						}
 					},
 					fail(res) {
@@ -303,54 +420,55 @@
 
 <style>
 	.linear {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 20px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 45px;
 		background-color: white;
-		border-radius: 30px;
-		margin: 0 20px 0 20px;
-		padding: 0 15px 0 15px;
+		border-radius: 40px;
 	}
 
 	.img_bg {
 		width: 20px;
 		height: 20px;
+		margin-left: 20px;
 	}
 
 	.linear_1 {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 5px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 45px;
 		background-color: white;
-		border-top-left-radius: 30px;
-		border-bottom-left-radius: 30px;
+		border-top-left-radius: 40px;
+		border-bottom-left-radius: 40px;
 		border-top-right-radius: 5px;
 		border-bottom-right-radius: 5px;
-		margin: 20px 5px 0 20px;
-		padding: 0 20px 0 15px;
 	}
 
 	.linear_btn {
+		width: 125px;
+		height: 54px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		margin-top: 20px;
+		margin-top: 24px;
 		margin-right: 20px;
-		height: 45px;
-		font-size: 12px;
+		font-size: 14px;
 		text-align: center;
-		width: 40vw;
-		border-top-right-radius: 30px;
-		border-bottom-right-radius: 30px;
+		border-radius: 10px 30px 30px 10px;
 		background: #3298F7;
 		color: white;
-		line-height: 18px;
-		/* white-space: nowrap;
-		text-overflow: ellipsis;
-		overflow: auto; */
 	}
+
 
 	.container_bg {
 		display: flex;
@@ -371,10 +489,29 @@
 		align-items: center;
 	}
 
+
+	.tanchuangstyle {
+		width: auto;
+		background: white;
+		margin-left: 20px;
+		margin-right: 20px;
+		border-radius: 20px;
+	}
+
+	.tanchuangstyle_1 {
+		text-align: center;
+		height: 22px;
+		font-size: 16px;
+		color: #1A1A1A;
+		font-weight: 600;
+		padding-top: 20px;
+	}
+
 	.edit_bg {
 		color: black;
 		margin-left: 10px;
 		padding: 10px;
+		height: 35px;
 		margin-top: 5px;
 		font-size: 14px;
 		border-radius: 10px;
@@ -390,13 +527,14 @@
 		border-radius: 8px;
 	}
 
+
 	.text_yzm {
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 45px;
 		font-size: 16px;
-		font-weight: bold;
+		height: 62px;
+		font-weight: 400;
 		width: 45vw;
 	}
 
@@ -404,18 +542,24 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 45px;
 		width: 45vw;
+		height: 62px;
 		font-size: 16px;
-		font-weight: bold;
+		font-weight: 400;
 		color: dodgerblue
 	}
 
 	.button_back {
-		margin: 40px 15px 0 15px;
+		width: auto;
+		margin: 40px 20px 0 20px;
 		background: #3298F7;
-		color: white;
-		border-radius: 30px;
-		font-weight: bold;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+		color: #FFFFFF !important;
 	}
 </style>

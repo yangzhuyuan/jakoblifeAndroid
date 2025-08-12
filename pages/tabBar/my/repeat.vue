@@ -3,37 +3,37 @@
 		<view style="background: white; padding: 0 10px 0 10px; border-radius: 10px;">
 
 			<view class="check_week_bg" @click="ck_Every_Monday()">
-				<view style="width: 90%;">{{$t('wodelist.txszitem.title_7')}}</view>
+				<view style="width: 90%;">{{$t('周一')}}</view>
 				<uni-icons v-show="Every_Monday" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="check_week_bg" @click="ck_Every_Tuesday()">
-				<view style="width: 90%;">{{$t('wodelist.txszitem.title_8')}}</view>
+				<view style="width: 90%;">{{$t('周二')}}</view>
 				<uni-icons v-show="Every_Tuesday" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="check_week_bg" @click="ck_Every_Wednesday()">
-				<view style="width: 90%;">{{$t('wodelist.txszitem.title_9')}}</view>
+				<view style="width: 90%;">{{$t('周三')}}</view>
 				<uni-icons v-show="Every_Wednesday" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="check_week_bg" @click="ck_Every_Thursday()">
-				<view style="width: 90%;">{{$t('wodelist.txszitem.title_10')}}</view>
+				<view style="width: 90%;">{{$t('周四')}}</view>
 				<uni-icons v-show="Every_Thursday" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="check_week_bg" @click="ck_Every_Friday()">
-				<view style="width: 90%;">{{$t('wodelist.txszitem.title_11')}}</view>
+				<view style="width: 90%;">{{$t('周五')}}</view>
 				<uni-icons v-show="Every_Friday" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="check_week_bg" @click="ck_Every_Saturday()">
-				<view style="width: 90%;">{{$t('wodelist.txszitem.title_12')}}</view>
+				<view style="width: 90%;">{{$t('周六')}}</view>
 				<uni-icons v-show="Every_Saturday" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
 			<view class="check_week_bg" @click="ck_Every_Sunday()">
-				<view style="width: 90%;">{{$t('wodelist.txszitem.title_13')}}</view>
+				<view style="width: 90%;">{{$t('周日')}}</view>
 				<uni-icons v-show="Every_Sunday" type="checkmarkempty" size="16"></uni-icons>
 			</view>
 		</view>
@@ -63,14 +63,14 @@
 
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('wodelist.txszitem.title_3')
+				title: this.$t('重复')
 			})
 
 		},
 
 		onLoad(res) {
 			console.log(res.data)
-			if (res.data == "永不") {
+			if (res.data == this.$t("永不")) {
 				this.Every_Sunday = false
 				this.Every_Monday = false
 				this.Every_Tuesday = false
@@ -79,25 +79,25 @@
 				this.Every_Friday = false
 				this.Every_Saturday = false
 			} else {
-				if (res.data.includes(this.$t('wodelist.txszitem.title_13'))) {
+				if (res.data.includes(this.$t('周日'))) {
 					this.Every_Sunday = true
 				}
-				if (res.data.includes(this.$t('wodelist.txszitem.title_7'))) {
+				if (res.data.includes(this.$t('周一'))) {
 					this.Every_Monday = true
 				}
-				if (res.data.includes(this.$t('wodelist.txszitem.title_8'))) {
+				if (res.data.includes(this.$t('周二'))) {
 					this.Every_Tuesday = true
 				}
-				if (res.data.includes(this.$t('wodelist.txszitem.title_9'))) {
+				if (res.data.includes(this.$t('周三'))) {
 					this.Every_Wednesday = true
 				}
-				if (res.data.includes(this.$t('wodelist.txszitem.title_10'))) {
+				if (res.data.includes(this.$t('周四'))) {
 					this.Every_Thursday = true
 				}
-				if (res.data.includes(this.$t('wodelist.txszitem.title_11'))) {
+				if (res.data.includes(this.$t('周五'))) {
 					this.Every_Friday = true
 				}
-				if (res.data.includes(this.$t('wodelist.txszitem.title_12'))) {
+				if (res.data.includes(this.$t('周六'))) {
 					this.Every_Saturday = true
 				}
 			}
@@ -108,43 +108,43 @@
 
 
 			if (this.Every_Sunday == true) {
-				this.Every_Sundays = this.$t('wodelist.txszitem.title_13') + "、"
+				this.Every_Sundays = this.$t('周日') + "、"
 			} else {
 				this.Every_Sundays = ""
 			}
 
 			if (this.Every_Monday == true) {
-				this.Every_Mondays = this.$t('wodelist.txszitem.title_7') + "、"
+				this.Every_Mondays = this.$t('周一') + "、"
 			} else {
 				this.Every_Mondays = ""
 			}
 
 			if (this.Every_Tuesday == true) {
-				this.Every_Tuesdays = this.$t('wodelist.txszitem.title_8') + "、"
+				this.Every_Tuesdays = this.$t('周二') + "、"
 			} else {
 				this.Every_Tuesdays = ""
 			}
 
 			if (this.Every_Wednesday == true) {
-				this.Every_Wednesdays = this.$t('wodelist.txszitem.title_9') + "、"
+				this.Every_Wednesdays = this.$t('周三') + "、"
 			} else {
 				this.Every_Wednesdays = ""
 			}
 
 			if (this.Every_Thursday == true) {
-				this.Every_Thursdays = this.$t('wodelist.txszitem.title_10') + "、"
+				this.Every_Thursdays = this.$t('周四') + "、"
 			} else {
 				this.Every_Thursdays = ""
 			}
 
 			if (this.Every_Friday == true) {
-				this.Every_Fridays = this.$t('wodelist.txszitem.title_11') + "、"
+				this.Every_Fridays = this.$t('周五') + "、"
 			} else {
 				this.Every_Fridays = ""
 			}
 
 			if (this.Every_Saturday == true) {
-				this.Every_Saturdays = this.$t('wodelist.txszitem.title_12') + "、"
+				this.Every_Saturdays = this.$t('周六') + "、"
 			} else {
 				this.Every_Saturdays = ""
 			}

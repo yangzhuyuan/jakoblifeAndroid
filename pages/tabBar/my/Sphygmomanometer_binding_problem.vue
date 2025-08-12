@@ -1,36 +1,31 @@
 <template>
-	<view style="padding: 20px;color: black;height: 100vh;">
-		<view style="background: white;border-radius: 10px;padding: 10px;">
-			<view style="padding: 10px;">
-				<view @click="binding_Tutorials_4G()" style="display: flex; flex-direction: row; align-items: center; ">
-					<text
-						style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_3')}}</text>
-					<uni-icons type="right" size="16"></uni-icons>
+	<view style="padding:40px 20px 0 20px; black; background: #F5F5F5 ; height: 100vh;font-size: 16px;">
+		<view style="background: white;border-radius: 20px;width: auto;">
+			<view class="title_btn_bg">
+				<view @click="binding_Tutorials_4G()" style="display: flex; flex-direction: column; align-items: left;">
+					<view class="textstyles">{{$t('款血压计绑定教程')}}</view>
+					<view style="font-size: 10px; color: #999999; font-weight: 400;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">{{$t("网络问题2")}}
+					</view>
 				</view>
-				<text style="font-size: 12px; color: gray;margin-left: 10px;">TSB-617B-T、JL-BP67G、JL-BP68G为4G网络连接</text>
-			</view>
-			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
-			<view @click="binding_problem_4G()"
-				style="display: flex; flex-direction: row; align-items: center;padding: 10px;">
-				<text
-					style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_4')}}</text>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
-			<view style="padding: 10px;">
-				<view @click="binding_Tutorials_wifi()"
-					style="display: flex; flex-direction: row; align-items: center; ">
-					<text
-						style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_5')}}</text>
-					<uni-icons type="right" size="16"></uni-icons>
-				</view>
-				<text style="font-size: 12px; color: gray;margin-left: 10px;">JL-BP67W、JL-BP68W为WIFI网络连接</text>
+			<view @click="binding_problem_4G()" class="title_btn_bg">
+				<view class="textstyles">{{$t('款血压计绑定不了')}}</view>
+				<uni-icons type="right" size="16"></uni-icons>
 			</view>
 			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
-			<view @click="binding_problem_wifi()"
-				style="display: flex; flex-direction: row; align-items: center;padding: 10px;">
-				<text
-					style="width: 90%; margin-left: 10px;font-weight: bold;">{{$t('wodelist.bzzxitem.title_6')}}</text>
+			<view class="title_btn_bg">
+				<view @click="binding_Tutorials_wifi()"
+					style="display: flex; flex-direction: column; align-items: left;">
+					<view class="textstyles">{{$t('WIFI款血压计绑定教程')}}</view>
+					<view style="font-size: 10px; color: #999999; font-weight: 400;">{{$t("网络问题3")}}</view>
+				</view>
+				<uni-icons type="right" size="16"></uni-icons>
+			</view>
+			<view style="background: gainsboro; width: 90%; height: 1px;margin-left: 15px;"></view>
+			<view @click="binding_problem_wifi()" class="title_btn_bg">
+				<view class="textstyles">{{$t('WIFI款血压计绑定不了')}}</view>
 				<uni-icons type="right" size="16"></uni-icons>
 			</view>
 		</view>
@@ -48,7 +43,7 @@
 
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('wodelist.bzzxitem.title_0')
+				title: this.$t('传统血压计使用指南')
 			})
 		},
 
@@ -79,5 +74,20 @@
 </script>
 
 <style>
+	.title_btn_bg {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		height: 56px;
+		padding-left: 20px;
+		padding-right: 20px;
+		padding-top: 5px;
+		align-items: center;
+	}
 
+	.textstyles {
+		font-size: 16px;
+		color: #1A1A1A;
+		font-weight: 400;
+	}
 </style>

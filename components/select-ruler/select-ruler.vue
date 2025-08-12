@@ -10,20 +10,21 @@
 		<view class="mask mask-right"></view>
 		<!-- 刻度尺 -->
 		<scroll-view :scroll-x="true" @scroll="handleScroll" :scroll-left="scroll_left">
-			<span class="ruler-item span-item" v-for="(item, index) in (max - min + 1)">
-				<span>{{((index + min)/multiple).toFixed(point)}}</span>
-			</span>
+			<view class="ruler-item" v-for="(item, index) in rulerItems" :key="index">
+				<view class="ruler-line" :class="{ 'ruler-line-major': index % 10 === 0 }"></view>
+				<text v-if="index % 10 === 0"
+					class="ruler-label">{{ (index + min) / multiple | fixedPoint(point) }}</text>
+			</view>
 		</scroll-view>
 	</view>
 </template>
-
 <script>
 	export default {
 		name: "select-ruler",
 		data() {
 			return {
 				number: 0,
-				scroll_left: 1,
+				scroll_left: 0,
 				scroll: {
 					detail: {},
 				},
@@ -33,22 +34,22 @@
 			// 最小值
 			min: {
 				type: Number,
-				default: 0
+				default: 0,
 			},
 			// 最大值
 			max: {
 				type: Number,
-				default: 500
+				default: 500,
 			},
 			// 缩放比例
 			multiple: {
 				type: Number,
-				default: 1
+				default: 1,
 			},
 			// 默认值
 			defaultValue: {
 				type: Number,
-				default: 1000
+				default: 1000,
 			},
 			// 是否禁用
 			disable: {
@@ -59,13 +60,22 @@
 			point: {
 				type: Number,
 				default: 0,
-			}
+			},
+		},
+		computed: {
+			rulerItems() {
+				return Array.from({
+					length: this.max - this.min + 1
+				}, (_, i) => i + this.min);
+			},
+		},
+		filters: {
+			fixedPoint(value, point) {
+				return value.toFixed(point);
+			},
 		},
 		created() {
-			// 等待滚动条初始化完成
-			setTimeout(() => {
-				this.setDefault(this.defaultValue);
-			}, 500);
+			this.setDefault(this.defaultValue);
 		},
 		methods: {
 			// 刻度尺滚动监听
@@ -76,23 +86,17 @@
 			},
 			// 初始化刻度尺
 			initScroll() {
-				console.log("默认值1：", this.number)
-				console.log("默认值1：", Math.round((this.scroll.detail.scrollWidth) / this.max))
 				this.scroll_left = this.number * 5;
 			},
 			// 设置默认值
 			setDefault(number) {
-				console.log("默认值：", number)
-				console.log("最小值：", this.min)
-				console.log("最大值：", this.max)
 				if (number < this.min || number > this.max) {
 					uni.showToast({
-						title: `数值超出范围(${this.min/this.multiple}-${this.max/this.multiple})`,
-						icon: 'none'
+						title: `数值超出范围(${this.min / this.multiple}-${this.max / this.multiple})`,
+						icon: 'none',
 					});
 				}
-				if (number < this.min) number = this.min;
-				if (number > this.max) number = this.max;
+				number = Math.max(this.min, Math.min(number, this.max));
 				this.number = number - this.min;
 				this.initScroll();
 			},
@@ -104,29 +108,31 @@
 			reduceValue(step) {
 				this.setDefault(this.number + this.min - Math.floor(step));
 			},
-		}
-	}
+		},
+	};
 </script>
-
 <style scoped lang="scss">
 	.select-ruler {
-		// width: 100vw;
-		// height: 30px;
 		position: relative;
+		height: 80px; // 增加高度以容纳刻度值
 
 		.tap-mask {
-			width: 90vw;
-			height: 20px;
+			width: 100%;
+			height: 100%;
 			position: absolute;
 			z-index: 10;
 			top: 0;
 			left: 0;
+			background: rgba(0, 0, 0, 0.5);
 		}
 
 		.line {
 			width: 10px;
 			position: absolute;
-			left: 180px;
+			left: 50%;
+			transform: translateX(-50%);
+			top: 0;
+			height: 100%;
 			text-align: center;
 
 			&:before {
@@ -136,20 +142,23 @@
 				background: #3298F7;
 				display: inline-block;
 				vertical-align: text-top;
+				position: absolute;
+				top: 10px;
+				transform: translateY(-50%);
 			}
 		}
 
 		.row-line {
-			width: 90vw;
+			width: 100%;
 			height: 1px;
-			// background: rgba(#3A414B, .07);
-			left: 0;
+			background: rgba(#3A414B, .07);
 			position: absolute;
+			bottom: 0;
 		}
 
 		.mask {
 			width: 50px;
-			height: 20px;
+			height: 100%;
 			position: absolute;
 			top: 0;
 			z-index: 2;
@@ -168,7 +177,7 @@
 
 		scroll-view {
 			width: 100%;
-			height: 80px;
+			height: 100%;
 			white-space: nowrap;
 
 			.ruler-item {
@@ -177,50 +186,36 @@
 				display: inline-block;
 				position: relative;
 
-
 				//开始值
 				&:first-child {
-					margin-left: 56%;
+					margin-left: 50%;
 				}
 
 				//结束值
 				&:last-child {
-					margin-right: 43%;
+					margin-right: calc(50% - 2px);
 				}
 
-				//子线
-				&:before {
-					content: '';
+				.ruler-line {
 					width: 1px;
-					height: 10px;
+					height: 20px; // 增加刻度线的高度
 					background: rgba(#3A414B, .07);
 					display: inline-block;
 					vertical-align: text-top;
+
+					&.ruler-line-major {
+						height: 30px; // 主刻度线更高
+					}
 				}
 
-				span {
+				.ruler-label {
 					position: absolute;
-					top: 20;
+					top: 50px; // 调整刻度值的位置
 					left: 50%;
 					transform: translateX(-50%);
 					color: #3D3D3D;
 					font-size: 12px;
-					display: none;
 				}
-
-
-				//值的线
-				&:nth-child(10n+1) {
-					&::before {
-						width: 1px;
-						height: 20px;
-					}
-
-					span {
-						display: block;
-					}
-				}
-
 			}
 		}
 	}

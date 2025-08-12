@@ -1,94 +1,99 @@
 <template>
-	<view style="padding:80px 0 0 0; background: #F7F7F7; color: black;height: 100vh;">
-		<view style="background: #F7F7F7; padding: 20px;">
-			<view class="title_bg">{{$t('login.title_0')}}</view>
-			<view class="title_bg">{{$t('login.title_1')}}</view>
-			<view class="linear">
-				<image class="img_style" src="../../static/icons/15.png" />
-				<input type="text" :placeholder="$t('login.input_0')" style="width: 70vw;margin-left: 10px;"
-					v-model="unername" />
-			</view>
+	<view style=" background: #EFEFF4;height: 100vh;">
+		<view class="title_bg">
+			<view>{{$t('您好')}},</view>
+			<view>{{$t('欢迎来到JakobLife')}}</view>
+		</view>
+		<view style="display: flex; align-items: left;flex-direction: column;">
 			<view v-if="mm_yzm">
 				<view class="linear">
+					<image class="img_style" src="../../static/icons/15.png" />
+					<input type="text" :placeholder="loact === '境内' ? $t('请输入会员名或绑定的手机号') : $t('请输入会员名或邮箱')"
+						style="width: 60vw;margin-left: 10px;" v-model="unername" />
+				</view>
+				<view class="linear">
 					<image class="img_style" src="../../static/icons/16.png" />
-					<input type="text" :password=isPassword :placeholder="$t('login.input_1')"
-						style="width: 55vw; margin-left: 10px;margin-right: 20px;" v-model="passwrod" />
+					<input type="text" :password=isPassword :placeholder="$t('请输入密码')"
+						style="width: 55vw; margin-left: 10px;margin-right: 10px;" v-model="passwrod" />
 					<image class="img_style" :src="isPassword ? urlicon1 : urlicon2" @tap="img_mima" />
 				</view>
-				<view style="margin-top: 20px; display: flex;flex-direction:row;">
-					<view class="text_bg" @tap="Forget">{{$t('login.text_0')}}</view>
-					<view class="text_bg_1" @click="duanxiuan">{{$t('login.text_1')}}</view>
+				<view style="margin-top: 20px; display: flex;flex-direction:row;justify-content: space-between;">
+					<view class="text_bg" @tap="Forget">{{$t('忘记密码')}}</view>
+					<view class="text_bg_1" @click="duanxiuan">{{$t('验证码登录')}}</view>
 				</view>
 			</view>
 			<view v-else>
-				<view style="display: flex; flex-direction: row;">
+				<view class="linear">
+					<image class="img_style" src="../../static/icons/15.png" />
+					<input type="text" :placeholder="$t('请输入绑定的手机号或绑定的邮箱')" style="width: 60vw;margin-left: 10px;"
+						v-model="unername" />
+				</view>
+				<view style="display: flex; flex-direction: row;align-items: center;">
 					<view class="linear_1">
 						<image class="img_style" src="../../static/icons/18.png" />
-						<input type="text" :placeholder="$t('login.input_2')" style="margin-left: 10px; width: 35vw;"
-							maxlength="8" v-model="yanzhengma" />
+						<input type="text" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+							v-model="yanzhengma" />
 					</view>
-					<button class="linear_btn" @tap="huoqu">{{yanzheng?$t('login.text_3'): codetime+msg}}</button>
+					<button class="linear_btn" @tap="huoqu">{{yanzheng?$t('获取验证码'): codetime+msg}}</button>
 				</view>
-				<view style="margin-top: 20px; display: flex;flex-direction:row;">
+				<view style="margin-top: 20px; display: flex;flex-direction:row; justify-content: space-between;">
 					<view class="text_bg"></view>
-					<view class="text_bg_1" @click="MMDL()">{{$t('login.text_2')}}</view>
+					<view class="text_bg_2" @click="MMDL()">{{$t('密码登录')}}</view>
 				</view>
 			</view>
 			<view class="linear_ck">
 				<checkbox class="round" color="#ffffff" activeBorderColor="#D2D2D2" activeBackgroundColor="#3298F7"
 					:checked="cb" @click="checked">
 				</checkbox>
-				<view style="display: flex;flex-direction: row;align-items: center;">
-					<view style="color: black; font-size: 16px;">{{$t('login.text_4')}}</view>
-					<view style="color: #3298F7;font-size: 14px;" @tap="Service_Agreement">{{$t('login.text_5')}}
+				<view class="yinisstyle">
+					<view class="yinisstyle_1">{{$t('已阅读并同意')}}</view>
+					<view class="yinisstyle_2" @tap="Service_Agreement">
+						{{$t('JakobLife软件服务使用协议')}}
 					</view>
 				</view>
 			</view>
-			<button class="button_back" :style="getback(unername,passwrod,yanzhengma,cb)"
-				@tap="login_sumbit1">{{$t('login.text_6')}}</button>
-			<view
-				style="display: flex; flex-direction: row;margin-top: 30px;justify-content: center;align-items: center;">
-				<view style="font-size: 16px;text-align: center;color: black;">{{$t('login.text_7')}}
+			<button class="button_back" plain="true" :style="getback(unername,passwrod,yanzhengma,cb)"
+				@tap="login_submit1">{{$t('登录')}}</button>
+			<view class="zhucestyle">
+				<view class="zhucestyle_1">{{$t('还没有JakobLife账号')}}
 				</view>
-				<view style="color: #3298F7;font-size: 16px;" @click="login_land()">
-					{{$t('login.text_8')}}
+				<view class="zhucestyle_2" @click="login_land()">
+					{{$t('新用户去注册')}}
 				</view>
 			</view>
-			<view
-				style=" display: flex;justify-content: center; align-items: center;flex-direction: column;padding-top: 120px;">
-				<view style="display: flex;justify-content: center;align-items: center; display: flex;font-size: 14px;">
-					<view style="background: gainsboro; width: 80px; height: 1px; margin-right: 10px"></view>
-					<view style="font-size: 16px;">其它登录方式</view>
-					<view style="background: gainsboro; width: 80px; height: 1px;margin-left: 10px;"></view>
+			<view class="otherstyle" v-show="otherloginssd">
+				<view class="otherstyle_1">
+					<view class="otherstyle_2"></view>
+					<view style="font-size: 12px; color: grey;">{{$t("其它登录方式")}}</view>
+					<view class="otherstyle_3"></view>
 				</view>
 				<view style="display:flex;justify-content: center;margin-top: 40px;">
-					<image @click="other_sbuitm('weixin')" class="img_dsf1" src="../../static/weixin.jpg" />
-					<image @click="other_sbuitm('qq')" class="img_dsf" src="../../static/qq.jpg" />
-					<image @click="other_sbuitm('apple')" class="img_dsf" src="../../static/pingguodenglu.png" />
+					<image @click="other_sbuitm('weixin')" class="img_dsf1" src="../../static/weixin.png" />
+					<image @click="other_sbuitm('qq')" class="img_dsf" src="../../static/qq.png" />
+					<!-- <image v-show="xinghao == false" @click="other_sbuitm('apple')" class="img_dsf"
+						src="../../static/pingguodenglu.png" /> -->
 				</view>
 			</view>
 		</view>
 		<view class="container_bg" v-show="tanchuang">
 			<view class="modalss">
-				<view style="background: white;  margin-left: 20px;margin-right: 20px;border-radius: 20px;">
-					<view
-						style="text-align: center; font-size: 16px; color: black; font-weight: bold;padding-top: 20px;">
-						{{$t('login.text_10')}}
+				<view class="tanchuangstyle">
+					<view class="tanchuangstyle_1">{{$t('请填写图形验证码')}}
 					</view>
 					<view class="modal-content_bg">
-						<input class="edit_bg" type="number" :placeholder="$t('login.text_11')" v-model="yzm" />
-						<view>
-							<image :src="yangzhengma_img" style="width: 120px; height: 45px;"></image>
-							<view style="text-align: center; color: dodgerblue;margin-top: 10px;" @click="clickCode">
-								{{$t('login.text_12')}}
+						<input class="edit_bg" type="number" :placeholder="$t('请输入图形验证码')" v-model="yzm" />
+						<view style="margin-top: 8px;">
+							<image :src="yangzhengma_img" style="width: 105px; height: 44px;"></image>
+							<view style="text-align: center; color: dodgerblue;margin-top: 5px;" @click="clickCode">
+								{{$t('看不清')}}
 							</view>
 						</view>
 					</view>
-					<view style="display: flex; flex-direction: row; border-top: 1rpx solid gainsboro;">
-						<view class="text_yzm" @click="closeModal_cancle">{{$t('login.text_14')}}
+					<view style=" display: flex; flex-direction: row; border-top: 1px solid gainsboro;">
+						<view class="text_yzm" @click="closeModal_cancle">{{$t('取消')}}
 						</view>
-						<view style="border-left: 1rpx solid gainsboro;"></view>
-						<view class="text_yzm_1" @click="closeModal">{{$t('login.text_13')}}</view>
+						<view style="background: gainsboro; width: 1px;"></view>
+						<view class="text_yzm_1" @click="closeModal">{{$t('确定')}}</view>
 					</view>
 				</view>
 			</view>
@@ -101,12 +106,16 @@
 		mapState,
 		mapMutations
 	} from 'vuex';
+	import {
+		isInChinaByIP
+	} from '../api/isInChinaByIP.js';
 	export default {
 		computed: {
 			...mapState(['uuid'])
 		},
 		data() {
 			return {
+				loact: "",
 				yangzhengma_img: '',
 				unername: uni.getStorageSync("unername") != "" ? uni.getStorageSync("unername") : '', //会员名或手机号
 				passwrod: "", //密码
@@ -116,18 +125,15 @@
 				yanzheng: 1, //验证码读秒后显示的内容
 				isPassword: true, //判断密码是否可见
 				codetime: 0, //验证码秒数
-				cb: true, //选择框
+				cb: false, //选择框
 				urlicon1: "../../static/icons/mima_1.png", //密码可见iocn
 				urlicon2: "../../static/icons/mima_2.png", //密码不可见icon
-				msg: this.$t('zhuceitem.input_3'),
+				msg: this.$t('s后可重发'),
 				yzm: "", //验证码
+				xinghao: true,
+				otherloginssd: true
 			}
 		},
-
-		// onReady() {
-		// 	plus.navigator.setStatusBarStyle('dark'); // light（白色）、dark（黑色）
-		// },
-
 		//禁止手机物理按键返回上一层
 		onBackPress(options) {
 			if (options.from === 'backbutton') {
@@ -136,27 +142,42 @@
 			return false
 		},
 
-
 		onShow() {
 			let that = this;
-			//使用协议返回过来的数据
-			uni.$once('checked', function(data) {
-				that.cb = data
-			})
+			isInChinaByIP().then(isInChina => {
+				if (isInChina) {
+					that.loact = "境内"
+					that.otherloginssd = true
+					//使用协议返回过来的数据
+					uni.$once('checked', function(data) {
+						that.cb = data
+					})
+					const platform = uni.getSystemInfoSync().osName
+					if (platform === 'android') {
+						that.xinghao = true
+					} else {
+						that.xinghao = false
+					}
+				} else {
+					that.loact = "境外"
+					that.otherloginssd = false
+					//使用协议返回过来的数据
+					uni.$once('checked', function(data) {
+						that.cb = data
+					})
+					const platform = uni.getSystemInfoSync().osName
+					if (platform === 'android') {
+						that.xinghao = true
+					} else {
+						that.xinghao = false
+					}
+				}
+			});
 		},
 
-
-		onLoad() {
-			// if (uni.getStorageSync("token") == "" || uni.getStorageSync("token") == undefined) {
-			// 	this.fastLoginFn()
-			// 	console.log('bbbbb')
-			// }
-		},
 
 		methods: {
 			...mapMutations(['getImgID', 'other_sign_access_token', 'other_sign_openid', 'other_sign_other_types']),
-
-
 			getback(name, mm, yzm, cb) {
 				if (this.mm_yzm == true) {
 					return {
@@ -168,8 +189,6 @@
 					}
 				}
 			},
-
-
 			//服务协议
 			Service_Agreement() {
 				uni.navigateTo({
@@ -182,14 +201,12 @@
 					url: '/pages/login/Forget_password'
 				})
 			},
-
 			//注册
 			login_land() {
 				uni.navigateTo({
 					url: "/pages/login/true_register"
 				})
 			},
-
 			//点击切换验证码图片
 			clickCode() {
 				this.captchaImage()
@@ -204,37 +221,32 @@
 			closeModal() {
 				if (this.yzm === "" || this.yzm === undefined) {
 					uni.showToast({
-						title: this.$t('login.text_19'),
+						title: this.$t('请输入验证码结果'),
 						icon: 'none'
 					})
 					return
 				} else {
-					let that = this
-					uni.request({
-						url: that.$url_check_code,
-						method: 'POST',
-						data: {
-							code: that.yzm,
-							uuid: that.uuid
-						},
-						header: {
-							'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-						},
-						success(res) {
-							if (res.statusCode == 200) {
-								if (res.data.code == 200) {
-									console.log("校验验证码", res.data)
-									that.tanchuang = false
-									that.send_login_code()
-								} else {
-									uni.showToast({
-										title: res.data.msg,
-										icon: 'none'
-									})
-									that.captchaImage()
-								}
+					let data = {
+						code: this.yzm,
+						uuid: this.uuid
+					}
+					this.$post(this.$url_check_code, data, {
+						'content-type': 'application/x-www-form-urlencoded'
+					}).then(res => {
+						console.log(res)
+						if (res.code === 200) {
+							this.tanchuang = false
+							if (!this.validateEmail(this.unername)) {
+								this.send_login_code()
+							} else {
+								this.send_login_code1()
 							}
-							console.log("校验验证码", res)
+						} else {
+							uni.showToast({
+								title: this.$t("失败"),
+								icon: 'none'
+							})
+							this.captchaImage()
 						}
 					})
 				}
@@ -243,15 +255,22 @@
 			//点击获取验证码
 			huoqu() {
 				if (this.unername == "" || this.unername == undefined) {
-					uni.showToast({
-						title: this.$t('login.text_16'),
-						icon: "none"
-					})
+					if (this.mm_yzm) {
+						uni.showToast({
+							title: this.$t('请输入会员名或绑定的手机号'),
+							icon: "none"
+						})
+					} else {
+						uni.showToast({
+							title: this.$t('请输入绑定的手机号或绑定的邮箱'),
+							icon: "none"
+						})
+					}
 					return
 				}
 				if (this.codetime > 0) {
 					uni.showToast({
-						title: this.$t('zhuceitem.toast_5'),
+						title: this.$t('不能重复获取'),
 						icon: "none"
 					})
 					return
@@ -264,220 +283,226 @@
 
 			//获取验证码图片
 			captchaImage() {
-				let _that = this
-				uni.request({
-					url: _that.$url_captchaImage,
-					method: 'GET',
-					header: {
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success(res) {
-						console.log('获取图形验证码', res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								_that.yangzhengma_img = "data:image/png;base64," + res.data.img;
-								_that.getImgID(res.data.uuid)
-							} else {
-								console.log(res.data.code)
-							}
-						} else {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
-						}
-					},
-					fail(erro) {
-						console.log(erro)
+				this.$get(this.$url_captchaImage, {}, {
+					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+				}).then(res => {
+					if (res.code == 200) {
+						this.yangzhengma_img = "data:image/png;base64," + res.img;
+						this.getImgID(res.uuid)
 					}
 				})
 			},
 
 			//发送手机登录验证码
 			send_login_code() {
-				let that = this
-				uni.request({
-					url: that.$url_send_login_code,
-					method: 'POST',
-					data: {
-						phone: that.unername
-					},
-					header: {
-						'content-type': 'application/x-www-form-urlencoded'
-					},
-					success(res) {
-						console.log("发送手机登录验证码", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-								that.yanzheng = 0
-								if (that.codetime > 0) {
-									uni.showToast({
-										title: that.$t('zhuceitem.toast_5'),
-										icon: "none"
-									})
-									return
-								} else {
-									that.codetime = 60
-									that.msg = that.$t('zhuceitem.input_3')
-									let timer = setInterval(() => {
-										that.codetime-- + that.msg;
-										if (that.codetime < 1) {
-											clearInterval(timer);
-											that.msg = ''
-											that.codetime = that.$t('zhuceitem.input_4')
-										}
-									}, 1000)
-
+				const data = {
+					phone: this.unername
+				}
+				this.$post(this.$url_send_login_code, data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then(res => {
+					if (res.code === 200) {
+						this.yanzheng = 0
+						if (this.codetime > 0) {
+							uni.showToast({
+								title: this.$t('不能重复获取'),
+								icon: "none"
+							})
+							return
+						} else {
+							this.codetime = 60
+							this.msg = this.$t('s后可重发')
+							let timer = setInterval(() => {
+								this.codetime-- + this.msg;
+								if (this.codetime < 1) {
+									clearInterval(timer);
+									this.msg = ''
+									this.codetime = this.$t('重新获取')
 								}
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
+							}, 1000)
 						}
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: 'none'
+						})
+					}
+				})
+			},
+			//发送邮箱登录验证码
+			send_login_code1() {
+				const data = {
+					email: this.unername
+				}
+				this.$post(this.$url_send_login_code, data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then(res => {
+					if (res.code === 200) {
+						this.yanzheng = 0
+						if (this.codetime > 0) {
+							uni.showToast({
+								title: this.$t('不能重复获取'),
+								icon: "none"
+							})
+							return
+						} else {
+							this.codetime = 60
+							this.msg = this.$t('s后可重发')
+							let timer = setInterval(() => {
+								this.codetime-- + this.msg;
+								if (this.codetime < 1) {
+									clearInterval(timer);
+									this.msg = ''
+									this.codetime = this.$t('重新获取')
+								}
+							}, 1000)
+						}
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: 'none'
+						})
+					}
+				})
+			},
+			//判断是否是邮箱
+			validateEmail(email) {
+				const reg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+				return reg.test(email);
+			},
+			//登录
+			login_submit1() {
+				let that = this;
+				if (!that.unername) {
+					uni.showToast({
+						title: that.$t('请输入会员名或绑定的手机号'),
+						icon: 'none'
+					});
+					return;
+				}
+				if (that.mm_yzm) {
+					if (!that.passwrod) {
+						uni.showToast({
+							title: that.$t('请输入密码'),
+							icon: 'none'
+						});
+						return;
+					}
+				} else {
+					if (!that.yanzhengma) {
+						uni.showToast({
+							title: that.$t('请输入验证码'),
+							icon: 'none'
+						});
+						return;
+					}
+				}
+				if (!that.cb) {
+					uni.showToast({
+						title: that.$t('请同意服务协议'),
+						icon: 'none'
+					});
+					return;
+				}
+				if (that.mm_yzm) {
+					that.user_login();
+				} else {
+					if (!that.validateEmail(that.unername)) {
+						that.app_login();
+					} else {
+						that.app_email_login();
+					}
+				}
+			},
+			//用户名/手机号/邮箱+密码登录
+			user_login() {
+				const data = {
+					username: this.unername,
+					password: this.passwrod,
+				}
+				this.$post(this.$url_user_login, data, {
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
+					if (res.code === 200) {
+						uni.showToast({
+							title: this.$t("成功"),
+							icon: 'none'
+						})
+						uni.setStorageSync("token", res.token)
+						uni.setStorageSync("unername", this.unername)
+						setTimeout(function() {
+							uni.switchTab({
+								url: "../tabBar/main/Main"
+							})
+						}, 500)
+					} else {
+						uni.showToast({
+							title: this.$t("账户不存在或密码错误"),
+							icon: 'none'
+						})
+					}
+				})
+			},
+			//手机验证码登录
+			app_login() {
+				const data = {
+					smsCode: this.yanzhengma,
+					phoneNum: this.unername
+				}
+				this.$post(this.$url_app_login, data, {
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
+					if (res.code == 200) {
+						uni.setStorageSync("token", res.token)
+						uni.setStorageSync("unername", this.unername)
+						uni.showToast({
+							title: this.$t("短信验证成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.switchTab({
+								url: "../tabBar/main/Main"
+							})
+						}, 300)
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: 'none'
+						})
 					}
 				})
 			},
 
-			//登录
-			login_sumbit1() {
-				if (this.mm_yzm == true) {
-					if (this.unername == "" || this.unername == undefined) {
-						uni.showToast({
-							title: this.$t('login.input_0'),
-							icon: 'none',
-						})
-						return
-					} else if (this.passwrod == "" || this.passwrod == undefined) {
-						uni.showToast({
-							title: this.$t('login.input_1'),
-							icon: 'none'
-						})
-						return
-					} else if (this.cb == false) {
-						uni.showToast({
-							title: this.$t('login.text_17'),
-							icon: "none"
-						})
-						return
-					} else {
-						this.user_login()
-					}
-				} else {
-					if (this.unername === "" || this.unername === undefined) {
-						uni.showToast({
-							title: this.$t('login.input_0'),
-							icon: 'none'
-						})
-						return
-					} else if (this.yanzhengma === "" || this.yanzhengma === undefined) {
-						uni.showToast({
-							title: this.$t('login.text_18'),
-							icon: 'none'
-						})
-						return
-					} else if (this.cb == false) {
-						uni.showToast({
-							title: this.$t('login.text_17'),
-							icon: "none"
-						})
-						return
-					} else {
-						this.app_login()
-					}
+			//邮箱验证码登录
+			app_email_login() {
+				const data = {
+					smsCode: this.yanzhengma,
+					email: this.unername
 				}
+				this.$post("https://jakoblife.jakob-techs.com/prod-api/app/app_email_login", data, {
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
+					if (res.code == 200) {
+						uni.setStorageSync("token", res.token)
+						uni.setStorageSync("unername", this.unername)
+						uni.showToast({
+							title: this.$t("邮箱验证成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.switchTab({
+								url: "../tabBar/main/Main"
+							})
+						}, 300)
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: 'none'
+						})
+					}
+				})
 			},
 
-			//用户名登录
-			user_login() {
-				uni.request({
-					url: this.$url_user_login,
-					method: 'POST',
-					data: {
-						username: this.unername,
-						password: this.passwrod,
-						code: this.yzm,
-						uuid: this.uuid,
-						smsCode: this.yanzhengma,
-						email: '',
-						phone: this.unername,
-					},
-					header: {
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success: (res) => {
-						console.log("用户名登录", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.setStorageSync("token", res.data.token)
-								uni.setStorageSync("unername", this.unername)
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-								setTimeout(function() {
-									uni.switchTab({
-										url: "../tabBar/main/Main"
-									})
-								}, 300)
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
-						}
-					},
-					fail(res) {
-						console.log("失败", res)
-					}
-				});
-			},
-			//手机验证码登录
-			app_login() {
-				uni.request({
-					url: this.$url_app_login,
-					method: 'POST',
-					data: {
-						smsCode: this.yanzhengma,
-						phoneNum: this.unername
-					},
-					header: {
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success: (res) => {
-						console.log("手机验证码登录", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.setStorageSync("token", res.data.token)
-								uni.setStorageSync("unername", this.unername)
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-								setTimeout(function() {
-									uni.switchTab({
-										url: "../tabBar/main/Main"
-									})
-								}, 300)
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
-						}
-					},
-					fail(res) {
-						console.log("失败", res)
-					}
-				});
-			},
 			//判断点击是否选中服务协议
 			checked() {
 				if (this.cb == true) {
@@ -567,7 +592,6 @@
 						},
 					},
 					success: (res) => {
-						console.log("一键登录调用返回的数据", res)
 						uniCloud.callFunction({
 								name: "getPhoneNumber", // 云函数名称
 								data: {
@@ -576,17 +600,9 @@
 								}
 							})
 							.then((dataRes) => {
-								console.log("云函数返回的参数", dataRes)
 								let phone = dataRes.result.phoneNumber
-								console.log("云函数返回的参数手机号", phone)
-								// this.userPhone = dataRes.result.data.phoneNumber
-								// // 这里进行登录操作
-								// this.loginFast({
-								// 	phone
-								// })
 							})
 							.catch((err) => {
-								console.log("云函数报错", err)
 								uni.showToast({
 									title: err.errMsg,
 									icon: "none"
@@ -601,11 +617,9 @@
 							title: res.authResult,
 							icon: "none"
 						})
-						// console.log("云函数调用返回数据", dataRes)
 					},
 					fail(err) {
 						// 登录失败或者点击其他登录方式,自定义按钮等
-						console.log("一键登录uni.login失败", err)
 						setTimeout(() => {
 							uni.closeAuthView() //关闭一键登录弹出窗口
 							this_.onClickMsgLogin()
@@ -616,95 +630,88 @@
 			//第三方登录
 			other_sbuitm(type) {
 				let that = this
-				switch (type) {
-					case "weixin":
-						uni.login({
-							provider: 'weixin',
-							// onlyAuthorize: true, // 微信登录仅请求授权认证
-							success: function(res) {
-								console.log("客户端成功获取授权", res);
-								that.check_auth(res.authResult.access_token, res.authResult.openid, "weixin")
-							},
-							fail: function(err) {
-								// 登录授权失败
-								// err.code是错误码
-								uni.showToast({
-									title: err,
-									icon: 'none'
-								})
-							}
-						});
-						break;
-					case "qq":
-						uni.login({
-							provider: 'qq',
-							success: function(loginRes) {
-								console.log(loginRes);
-								that.check_auth(loginRes.authResult.access_token, loginRes.authResult.openid,
-									"qq")
-							},
-							fail: function(err) {
-								// 登录授权失败
-								// err.code是错误码
-								uni.showToast({
-									title: err,
-									icon: 'none'
-								})
-							}
-						});
-						break
-					case "apple":
-						uni.login({
-							provider: 'apple',
-							success: function(loginRes) {
-								console.log(loginRes.authResult);
-								that.check_auth(loginRes.authResult.access_token, loginRes.authResult.openid,
-									"apple")
-							},
-							fail: function(err) {
-								// 登录授权失败
-								// err.code是错误码
-								uni.showToast({
-									title: err,
-									icon: 'none'
-								})
-							}
-						});
-						break
+				if (!that.cb) {
+					uni.showToast({
+						title: that.$t('请同意服务协议'),
+						icon: 'none'
+					});
+					return;
+				} else {
+					switch (type) {
+						case "weixin":
+							uni.login({
+								provider: 'weixin',
+								// onlyAuthorize: true, // 微信登录仅请求授权认证
+								success: function(res) {
+									that.check_auth(res.authResult.access_token, res.authResult.openid,
+										"weixin")
+								},
+								fail: function(err) {
+									uni.showToast({
+										title: err,
+										icon: 'none'
+									})
+								}
+							});
+							break;
+						case "qq":
+							uni.login({
+								provider: 'qq',
+								success: function(loginRes) {
+									console.log(loginRes);
+									that.check_auth(loginRes.authResult.access_token, loginRes.authResult
+										.openid,
+										"qq")
+								},
+								fail: function(err) {
+									uni.showToast({
+										title: err,
+										icon: 'none'
+									})
+								}
+							});
+							break
+						case "apple":
+							uni.login({
+								provider: 'apple',
+								success: function(loginRes) {
+									console.log(loginRes.authResult);
+									that.check_auth(loginRes.authResult.access_token, loginRes.authResult
+										.openid,
+										"apple")
+								},
+								fail: function(err) {
+									uni.showToast({
+										title: err,
+										icon: 'none'
+									})
+								}
+							});
+							break
+					}
+
 				}
 			},
 
 			//校验第三方账号是否已注册
 			check_auth(access_token, openid, othersss_types) {
-				let that = this
-				uni.request({
-					url: that.$url_check_auth,
-					method: 'POST',
-					data: {
-						openId: openid
-					},
-					header: {
-						'content-type': 'application/x-www-form-urlencoded'
-					},
-					success(res) {
-						console.log("校验第三方账号是否已注册", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.setStorageSync("token", res.data.data)
-								uni.switchTab({
-									url: '/pages/tabBar/main/Main'
-								})
-							} else {
-								that.other_sign_access_token(access_token)
-								that.other_sign_openid(openid)
-								that.other_sign_other_types(othersss_types)
-								uni.reLaunch({
-									url: '../login/Force_binding_phone'
-								})
-							}
-						} else {
-							console.log(res)
-						}
+				this.$post(this.$url_check_auth, {
+					openId: openid
+				}, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then(res => {
+					if (res.code === 200) {
+						uni.setStorageSync("token", res.data)
+						uni.switchTab({
+							url: '/pages/tabBar/main/Main'
+						})
+					} else if (res.code === 500) {
+						this.other_sign_access_token(access_token)
+						this.other_sign_openid(openid)
+						this.other_sign_other_types(othersss_types)
+						uni.reLaunch({
+							url: "/pages/login/Force_binding_phone_frist"
+						})
 					}
 				})
 			},
@@ -714,99 +721,197 @@
 
 <style>
 	.title_bg {
-		color: black;
-		height: 50px;
-		margin-left: 10px;
-		font-size: 28px;
-		font-weight: bold;
+		width: auto;
+		margin-top: 104px;
+		margin-left: 40px;
+		margin-right: 40px;
+		font-weight: 500;
+		font-size: 32px;
+		line-height: 45px;
+		color: #1A1A1A;
 	}
 
 	.linear {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 20px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 50px;
 		background-color: white;
 		border-radius: 40px;
-		margin: 20px 0 0 0;
-		padding: 0 20px 0 20px;
 	}
 
 	.linear_1 {
+		width: auto;
+		height: 54px;
+		margin-top: 24px;
+		margin-left: 20px;
+		margin-right: 5px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		height: 50px;
 		background-color: white;
 		border-top-left-radius: 40px;
 		border-bottom-left-radius: 40px;
 		border-top-right-radius: 5px;
 		border-bottom-right-radius: 5px;
-		margin: 20px 0 0 0;
-		padding: 0 20px 0 20px;
 	}
 
 	.linear_btn {
+		width: 125px;
+		height: 54px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		margin-top: 20px;
-		margin-left: 10px;
-		height: 50px;
-		font-size: 12px;
+		margin-top: 24px;
+		margin-right: 20px;
+		font-size: 14px;
 		text-align: center;
-		width: 60vw;
-		line-height: 18px;
-		border-top-right-radius: 40px;
-		border-bottom-right-radius: 40px;
+		border-radius: 10px 30px 30px 10px;
 		background: #3298F7;
 		color: white;
-		/* white-space: nowrap;
-		text-overflow: ellipsis;
-		overflow: auto; */
 	}
 
 	.img_style {
 		width: 20px;
 		height: 20px;
+		margin-left: 20px;
 	}
 
 	.text_bg {
-		font-size: 16px;
-		color: cornflowerblue;
-		width: 50vw;
-		margin-left: 10px;
+		font-weight: 500;
+		height: 20px;
+		font-size: 13px;
+		color: #3298F7;
+		margin-left: 40px;
+
 	}
 
 	.text_bg_1 {
-		font-size: 16px;
-		color: cornflowerblue;
-		width: 50vw;
-		text-align: right;
-		margin-right: 10px
+		font-weight: 500;
+		height: 20px;
+		font-size: 13px;
+		color: #3298F7;
+		margin-right: 40px;
+	}
+
+	.text_bg_2 {
+		font-weight: 500;
+		height: 20px;
+		font-size: 13px;
+		color: #3298F7;
+		margin-right: 40px;
 	}
 
 	.linear_ck {
+		width: auto;
+		height: 20px;
+		margin-top: 30px;
+		margin-left: 30px;
+		margin-right: 30px;
 		flex-direction: row;
 		display: flex;
-		margin-top: 40px;
-		margin-left: 30px;
-		/* align-items: center; */
+		align-items: center;
+	}
+
+
+	.yinisstyle {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.yinisstyle_1 {
+		font-size: 13px;
+		color: #1A1A1A;
+	}
+
+	.yinisstyle_2 {
+		font-size: 13px;
+		color: #3298F7;
 	}
 
 	.button_back {
+		width: auto;
+		margin: 30px 20px 0 20px;
 		background: #3298F7;
-		margin: 20px 30px 0 30px;
-		color: white;
-		border-radius: 30px;
-		font-weight: bold;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100px;
+		font-size: 16px;
+		font-weight: 600;
+		color: #FFFFFF !important;
+		border: none !important;
+	}
+
+
+	.zhucestyle {
+		width: auto;
+		margin-left: 40px;
+		margin-right: 40px;
+		display: flex;
+		flex-direction: row;
+		margin-top: 20px;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.zhucestyle_1 {
+		font-size: 13px;
+		text-align: center;
+		color: black;
+	}
+
+	.zhucestyle_2 {
+		color: #3298F7;
+		text-align: center;
+		font-size: 13px;
+	}
+
+
+	.otherstyle {
+		width: auto;
+		height: 88px;
+		margin-bottom: 80px;
+		margin-top: 60px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		flex-direction: column;
+	}
+
+	.otherstyle_1 {
+		display: flex;
+		height: 24px;
+		justify-content: center;
+		align-items: center;
+		display: flex;
+	}
+
+	.otherstyle_2 {
+		background: gainsboro;
+		width: 52px;
+		height: 1px;
+		margin-right: 10px
+	}
+
+	.otherstyle_3 {
+		background: gainsboro;
+		width: 52px;
+		height: 1px;
+		margin-left: 10px;
 	}
 
 	.img_dsf {
 		border-radius: 20px;
 		height: 50px;
 		width: 50px;
-		margin-left: 15px;
+		margin-left: 20px;
 	}
 
 	.img_dsf1 {
@@ -814,9 +919,6 @@
 		height: 50px;
 		width: 50px;
 	}
-
-
-
 
 	.container_bg {
 		display: flex;
@@ -837,10 +939,29 @@
 		align-items: center;
 	}
 
+
+	.tanchuangstyle {
+		width: auto;
+		background: white;
+		margin-left: 20px;
+		margin-right: 20px;
+		border-radius: 20px;
+	}
+
+	.tanchuangstyle_1 {
+		text-align: center;
+		height: 22px;
+		font-size: 16px;
+		color: #1A1A1A;
+		font-weight: 600;
+		padding-top: 20px;
+	}
+
 	.edit_bg {
 		color: black;
 		margin-left: 10px;
 		padding: 10px;
+		height: 35px;
 		margin-top: 5px;
 		font-size: 14px;
 		border-radius: 10px;
@@ -861,9 +982,9 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 45px;
 		font-size: 16px;
-		font-weight: bold;
+		height: 62px;
+		font-weight: 400;
 		width: 45vw;
 	}
 
@@ -871,10 +992,10 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 45px;
 		width: 45vw;
+		height: 62px;
 		font-size: 16px;
-		font-weight: bold;
+		font-weight: 400;
 		color: dodgerblue
 	}
 </style>

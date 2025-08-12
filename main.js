@@ -1,20 +1,27 @@
 import App from './App'
 import store from './store'
-
 import VueI18n from 'vue-i18n';
 import Messages from './pages/api/language.js'
 import Vue from 'vue'
 
-
-import htmlToPdf from './store/htmlToPdf'
-Vue.use(htmlToPdf)
-
-
-
-
+import {
+	myRequest,
+	getRequest,
+	postRequest,
+	putRequest,
+} from './pages/api/request.js'
 
 Vue.config.productionTip = false
 Vue.prototype.$store = store
+Vue.prototype.$myRequest = myRequest;
+Vue.prototype.$get = getRequest;
+Vue.prototype.$post = postRequest;
+Vue.prototype.$put = putRequest;
+
+// 全局定时任务管理器
+Vue.prototype.$globalTimers = {
+	heartbeatInterval: null
+};
 
 
 
@@ -109,11 +116,16 @@ Vue.prototype.$url_query_weight_day = "https://jakoblife.jakob-techs.com/prod-ap
 Vue.prototype.$url_query_log_v2 = "https://jakoblife.jakob-techs.com/prod-api/device_app/query_log_v2"
 //根据文章id获取内容详细信息
 Vue.prototype.$url_article = "https://jakoblife.jakob-techs.com/prod-api/cms/article/get"
-
+//查看别人分享给我的数据点列表
+Vue.prototype.$url_receiver_list = "https://jakoblife.jakob-techs.com/prod-api/share/data/receiver_list"
+//查看我分享给别人的数据点列表
+Vue.prototype.$url_share_list = "https://jakoblife.jakob-techs.com/prod-api/share/data/share_list"
 //删除历史记录
 Vue.prototype.$url_batch_del_data_log = "https://jakoblife.jakob-techs.com/prod-api/device_app/batch_del_data_log"
-
-
+//上报体脂秤或血压计数据
+Vue.prototype.$url_jakoblife_fat_scale = "https://jakoblife.jakob-techs.com/prod-api/jakoblife/fat_scale"
+//获取待处理分享请求列表
+Vue.prototype.$url_pending = "https://jakoblife.jakob-techs.com/prod-api/share/data/pending"
 
 
 Vue.prototype.$backgroundAudioData = {
@@ -121,9 +133,7 @@ Vue.prototype.$backgroundAudioData = {
 	playTime: 0,
 	formatedPlayTime: '00:00:00'
 }
-
 Vue.use(VueI18n);
-
 Vue.config.productionTip = false;
 const i18n = new VueI18n({
 	locale: 'zh-CN', //zh-CN en-US

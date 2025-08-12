@@ -1,11 +1,11 @@
 <template>
 	<view style=" height: 100vh;background: #EFEFF4; color: black;padding: 20px;">
 		<view class="avatar_bg" @click="choessimg()">
-			<view style="width: 75vw;margin-left: 10px;">从手机相册选择</view>
+			<view style="width: 75vw;margin-left: 10px;">{{$t("从手机相册选择")}}</view>
 			<uni-icons type="right" size="18"></uni-icons>
 		</view>
 		<view style="margin-top: 20px;font-weight: bold;">
-			<view>选择头像</view>
+			<view>{{$t("选择头像")}}</view>
 			<view style="margin-top: 20px;align-items: center">
 				<image class="avatar_img_bg" :src="image_1" @click="click_avatar_1()" :style="getback('0')"></image>
 				<image class="avatar_img_bg" :src="image_2" @click="click_avatar_2()" :style="getback('1')"></image>
@@ -18,11 +18,19 @@
 
 			</view>
 		</view>
-
+		<view>
+			<!-- 普通弹窗 -->
+			<uni-popup ref="popup" :mask-click="true">
+				<view class="popup-content">
+					{{$t("允许访问多媒体相册修改头像")}}
+				</view>
+			</uni-popup>
+		</view>
 	</view>
 </template>
 
 <script>
+	import permision from "@/js_sdk/wa-permission/permission.js"
 	export default {
 		data() {
 			return {
@@ -35,14 +43,11 @@
 				image_7: '/static/page_icon/laotou.png',
 				image_8: '/static/page_icon/laoniannian.png',
 				images: '',
-				action: ''
+				action: '',
 			}
 		},
 
-
-
 		onBackPress(options) {
-			console.log('from:' + options.from)
 			let that = this
 			if (options.from === 'backbutton') {
 				that.get_url_avatar(that.images)
@@ -50,14 +55,24 @@
 			}
 		},
 
+		onShow() {
+			let that = this
+			uni.setNavigationBarTitle({
+				title: that.$t("头像设置")
+			})
+		},
 
 
 		methods: {
-
 			choessimg() {
 				let that = this
+				// 检查存储权限
+				if (uni.getStorageSync("quanxian") !== 1) {
+					that.$refs.popup.open('top')
+				}
 				that.action = ""
 				that.images = ""
+				uni.setStorageSync("quanxian", 1)
 				uni.chooseImage({
 					count: 1, //默认9
 					sizeType: ['original', 'compressed'], //可以指定是原图还是压缩图，默认二者都有
@@ -155,5 +170,18 @@
 		border-radius: 30px;
 		border: 1px solid gray;
 
+	}
+
+
+	.popup-content {
+		display: flex;
+		text-align: center;
+		align-items: center;
+		justify-content: center;
+		border-radius: 20px;
+		padding: 15px;
+		height: 50px;
+		margin: 20px;
+		background-color: #fff;
 	}
 </style>

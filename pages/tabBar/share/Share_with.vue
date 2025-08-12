@@ -1,79 +1,171 @@
 <template>
-	<view style="color: black;height: 100vh;width: 100vw;">
-		<view style=" padding-top: 5px;padding-bottom: 60px; ">
-			<view style="background: white; margin: 15px;  border-radius: 20px; padding:20px 0 20px 0;">
+	<view style="color: black;height: 100vh;background: #EFEFF4;">
+		<view style=" padding-top: 20px;padding-bottom: 60px; ">
+			<view class="gongxiangstyle">
 				<view style="display: flex; align-items: center;  flex-direction: column;">
-					<image src="../../../static/icons/80x80.png"
-						style="width: 80px; height: 80px;border-radius: 40px;border: 1px solid gainsboro;"></image>
-					<text style="margin-top: 20px;font-weight: bold; font-size: 18px;">{{name}}</text>
-					<text style="font-weight: bold; font-size: 12px;color: gray;">{{phone}}</text>
+					<image :src="avatar"
+						style="width: 85px; height: 85px;border-radius: 100px;border: 1px solid gainsboro;"></image>
+					<view style="margin-top: 10px;font-weight: 600; font-size: 16px;">{{name}}</view>
+					<view style="font-weight: 400; font-size: 16px;color: #999999;margin-top: 10px;">{{phone}}</view>
 				</view>
 				<view
 					style="display: flex; align-items: left; flex-direction: column; padding-left: 15px;margin-top: 20px;">
-					<view style="margin-top: 10px;font-weight: bold; font-size: 16px;text-align: center;">
-						{{$t('gongxiangitem.title_21')}} {{name}} {{$t('gongxiangitem.title_17')}}。
+					<view style="margin-top: 10px;font-weight: 600; font-size: 16px;text-align: center;color: #1A1A1A;">
+						{{$t('您将与')}} {{name}} {{$t('共享以下健康数据')}}
 					</view>
-					<text style="font-size: 14px; margin-top: 10px;">{{$t('gongxiangitem.title_21')}}
-						{{name}}（{{phone}}）{{$t('gongxiangitem.title_17')}}{{$t('gongxiangitem.title_22')}}</text>
+					<view style="font-size: 13px; margin-top: 10px; font-weight: 400; color: #999999;">
+						{{$t('您将与')}}
+						{{name}}（{{phone}}）{{$t('共享以下健康数据')}}{{$t('您始终可以更改共享或停止共享')}}
+					</view>
 				</view>
-				<view style="padding: 10px;border-radius: 15px; margin-top: 20px;">
-					<view style="display: flex;flex-direction: row; padding:5px; align-items: center;"
-						@click="Step_number()">
-						<view style="width: 90%; margin: 5px;">{{$t('gongxiangitem.title_23')}}</view>
-						<uni-icons v-show="Step_number_show" type="checkmarkempty" size="16"></uni-icons>
+				<view style="border-radius: 15px; margin-top: 20px;">
+					<view style="display: flex;flex-direction: row; align-items: center;height: 56px;"
+						@click="lowPressure()">
+						<view style="width: 90%; margin: 10px; font-size: 16px;font-weight: 400;">
+							{{$t('舒张压')}}
+						</view>
+						<uni-icons v-show="lowPressure_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
 					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px; align-items: center;" @click="Sleep()">
-						<view style="width: 90%; margin: 5px;">{{$t('gongxiangitem.title_24')}}</view>
-						<uni-icons v-show="Sleep_show" type="checkmarkempty" size="16"></uni-icons>
+					<view style="display: flex;flex-direction: row; align-items: center;height: 56px;"
+						@click="highPressure()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('收缩压')}}
+						</view>
+						<uni-icons v-show="highPressure_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
 					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px;align-items: center;"
-						@click="Blood_pressure()">
-						<view style="width: 90%; margin: 5px;">{{$t('gongxiangitem.title_25')}}</view>
-						<uni-icons v-show="Blood_pressure_show" type="checkmarkempty" size="16"></uni-icons>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="heartrate()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('脉搏')}}
+						</view>
+						<uni-icons v-show="heartrate_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
-					<!-- 	<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px;align-items: center;"
-						@click="Heart_rate()">
-						<view style="width: 90%; margin: 5px;">心率</view>
-						<uni-icons v-show="Heart_rate_show" type="checkmarkempty" size="16"></uni-icons>
+
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="xueyang()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('血氧')}}
+						</view>
+						<uni-icons v-show="xueyang_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
 					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px;align-items: center;"
-						@click="Blood_oxygen()">
-						<view style="width: 90%; margin: 5px;">血氧</view>
-						<uni-icons v-show="Blood_oxygen_show" type="checkmarkempty" size="16"></uni-icons>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;" @click="yali()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('压力')}}
+						</view>
+						<uni-icons v-show="yali_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
 					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px;align-items: center;" @click="Width()">
-						<view style="width: 90%; margin: 5px;">体重</view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="tiwen()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('体温')}}
+						</view>
+						<uni-icons v-show="tiwen_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+
+
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="start_weight()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('初始体重')}}
+						</view>
+						<uni-icons v-show="start_weight_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="goal_weight()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('目标体重')}}
+						</view>
+						<uni-icons v-show="goal_weight_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="Width()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('体重')}}
+						</view>
 						<uni-icons v-show="Width_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
 					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px;align-items: center;" @click="Height()">
-						<view style="width: 90%; margin: 5px;">身高</view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="Height()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('身高')}}
+						</view>
 						<uni-icons v-show="Height_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
 					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px;align-items: center;" @click="Bmi()">
-						<view style="width: 90%; margin: 5px;">BMI</view>
-						<uni-icons v-show="Bmi_show" type="checkmarkempty" size="16"></uni-icons>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="chest_circumference()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('胸围')}}
+						</view>
+						<uni-icons v-show="chest_circumference_show" type="checkmarkempty" size="16"></uni-icons>
 					</view>
 					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-					<view style="display: flex;flex-direction: row; padding:5px;align-items: center;"
-						@click="Body_circumference_data()">
-						<view style="width: 90%; margin: 5px;">体围数据</view>
-						<uni-icons v-show="Body_circumference_data_show" type="checkmarkempty" size="16"></uni-icons>
-					</view>-->
+
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="waistline()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('腰围')}}
+						</view>
+						<uni-icons v-show="waistline_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="hipline()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('臀围')}}
+						</view>
+						<uni-icons v-show="hipline_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="biceps_circumference()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('上臂围')}}
+						</view>
+						<uni-icons v-show="biceps_circumference_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="thigh_circumference()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('大腿围')}}
+						</view>
+						<uni-icons v-show="thigh_circumference_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;"
+						@click="calf_circumference()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							{{$t('小腿围')}}
+						</view>
+						<uni-icons v-show="calf_circumference_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+					<view style="background: gainsboro; width: 100%; height: 1px;"></view>
+					<view style="display: flex;flex-direction: row; align-items: center; height: 56px;" @click="BMI()">
+						<view style="width: 90%; margin: 10px;font-size: 16px;font-weight: 400;">
+							BMI
+						</view>
+						<uni-icons v-show="BMI_show" type="checkmarkempty" size="16"></uni-icons>
+					</view>
+
 				</view>
 				<view :style="getbk1(action)" class="check_bg">
-					<checkbox style="font-size: 16px; font-weight: bold;" color="#ffffff" class="round"
-						activeBorderColor="#D2D2D2" activeBackgroundColor="#3298F7" :checked="cb" @click="checked()">{{$t('gongxiangitem.title_27')}}
+					<checkbox style="font-size: 12px; font-weight: 400;" color="#ffffff" class="round"
+						activeBorderColor="#D2D2D2" activeBackgroundColor="#3298F7" :checked="cb" @click="checked()">
+						{{$t('全选')}}
 					</checkbox>
 				</view>
 			</view>
-			<button @tap="next()" class="btn_backgroud" :style="getbk(action)">{{$t('gongxiang')}}</button>
+			<button plain="true" @tap="next()" class="btn_backgroud" :style="getbk(action)">{{$t('共享')}}</button>
 
 		</view>
 
@@ -81,87 +173,129 @@
 </template>
 
 <script>
+	import {
+		mapState,
+		mapMutations
+	} from 'vuex'
 	export default {
+		computed: {
+			...mapState(['info']),
+		},
 		data() {
 			return {
+				avatar: '../../../static/icons/80x80.png',
 				name: "小明",
 				phone: "12",
-				Step_number_show: false,
-				Sleep_show: false,
-				Blood_pressure_show: false,
-				Heart_rate_show: false,
-				Blood_oxygen_show: false,
+				lowPressure_show: false,
+				highPressure_show: false,
+				heartrate_show: false,
+
+				xueyang_show: false,
+				yali_show: false,
+				tiwen_show: false,
+
+				start_weight_show: false,
+				goal_weight_show: false,
 				Width_show: false,
 				Height_show: false,
-				Bmi_show: false,
-				Body_circumference_data_show: false,
+				chest_circumference_show: false,
+				waistline_show: false,
+				hipline_show: false,
+				biceps_circumference_show: false,
+				thigh_circumference_show: false,
+				calf_circumference_show: false,
+				BMI_show: false,
 				cb: false,
-				action: ['0']
+				action: ['0'],
+				receiverId: ''
 			}
-		},
-
-		onShow() {
-			uni.setNavigationBarTitle({
-				title: this.$t('gongxiangitem.title_11')
-			})
 		},
 
 		onLoad(res) {
 			this.name = res.NAME
 			this.phone = res.PHONE
+			this.avatar = res.AVATAR
+			this.receiverId = res.receiverId
+		},
+
+		onShow() {
+			uni.setNavigationBarTitle({
+				title: this.$t("共享给")
+			})
 		},
 
 		methods: {
+			lowPressure() {
+				if (this.lowPressure_show == true) {
+					this.lowPressure_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.lowPressure_show = true
+					this.action.push('lowPressure')
+				}
+			},
+			highPressure() {
+				if (this.highPressure_show == true) {
+					this.highPressure_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.highPressure_show = true
+					this.action.push("highPressure")
+				}
+			},
+			heartrate() {
+				if (this.heartrate_show == true) {
+					this.heartrate_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.heartrate_show = true
+					this.action.push("heartrate")
+				}
+			},
+
+			xueyang() {
+				if (this.xueyang_show == true) {
+					this.xueyang_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.xueyang_show = true
+					this.action.push("oxygen")
+				}
+			},
+			yali() {
+				if (this.yali_show == true) {
+					this.yali_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.yali_show = true
+					this.action.push("pressure")
+				}
+			},
+			tiwen() {
+				if (this.tiwen_show == true) {
+					this.tiwen_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.tiwen_show = true
+					this.action.push("temperature")
+				}
+			},
 
 
-			Step_number() {
-				if (this.Step_number_show == true) {
-					this.Step_number_show = false
+			start_weight() {
+				if (this.start_weight_show == true) {
+					this.start_weight_show = false
 					this.cb = false
 					this.action.pop()
 				} else {
-					this.Step_number_show = true
-					this.action.push('1')
-				}
-			},
-			Sleep() {
-				if (this.Sleep_show == true) {
-					this.Sleep_show = false
-					this.cb = false
-					this.action.pop()
-				} else {
-					this.Sleep_show = true
-					this.action.push("1")
-				}
-			},
-			Blood_pressure() {
-				if (this.Blood_pressure_show == true) {
-					this.Blood_pressure_show = false
-					this.cb = false
-					this.action.pop()
-				} else {
-					this.Blood_pressure_show = true
-					this.action.push("1")
-				}
-			},
-			Heart_rate() {
-				if (this.Heart_rate_show == true) {
-					this.Heart_rate_show = false
-					this.cb = false
-					this.action.pop()
-				} else {
-					this.Heart_rate_show = true
-					this.action.push("1")
-				}
-			},
-			Blood_oxygen() {
-				if (this.Blood_oxygen_show == true) {
-					this.Blood_oxygen_show = false
-					this.cb = false
-					this.action.pop()
-				} else {
-					this.Blood_oxygen_show = true
-					this.action.push("1")
+					this.start_weight_show = true
+					this.action.push("start_weight")
 				}
 			},
 			Width() {
@@ -171,7 +305,17 @@
 					this.action.pop()
 				} else {
 					this.Width_show = true
-					this.action.push("1")
+					this.action.push("weight")
+				}
+			},
+			goal_weight() {
+				if (this.goal_weight_show == true) {
+					this.goal_weight_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.goal_weight_show = true
+					this.action.push("goal_weight")
 				}
 			},
 			Height() {
@@ -181,103 +325,194 @@
 					this.action.pop()
 				} else {
 					this.Height_show = true
-					this.action.push("1")
+					this.action.push("height")
 				}
 			},
-			Bmi() {
-				if (this.Bmi_show == true) {
-					this.Bmi_show = false
+			chest_circumference() {
+				if (this.chest_circumference_show == true) {
+					this.chest_circumference_show = false
 					this.cb = false
 					this.action.pop()
 				} else {
-					this.Bmi_show = true
-					this.action.push("1")
+					this.chest_circumference_show = true
+					this.action.push("chest_circumference")
 				}
 			},
-			Body_circumference_data() {
-				if (this.Body_circumference_data_show == true) {
-					this.Body_circumference_data_show = false
+			waistline() {
+				if (this.waistline_show == true) {
+					this.waistline_show = false
 					this.cb = false
 					this.action.pop()
 				} else {
-					this.Body_circumference_data_show = true
-					this.action.push("1")
+					this.waistline_show = true
+					this.action.push("waistline")
 				}
 			},
+			hipline() {
+				if (this.hipline_show == true) {
+					this.hipline_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.hipline_show = true
+					this.action.push("hipline")
+				}
+			},
+			biceps_circumference() {
+				if (this.biceps_circumference_show == true) {
+					this.biceps_circumference_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.biceps_circumference_show = true
+					this.action.push("biceps_circumference")
+				}
+			},
+			thigh_circumference() {
+				if (this.thigh_circumference_show == true) {
+					this.thigh_circumference_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.thigh_circumference_show = true
+					this.action.push("thigh_circumference")
+				}
+			},
+			calf_circumference() {
+				if (this.calf_circumference_show == true) {
+					this.calf_circumference_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.calf_circumference_show = true
+					this.action.push("calf_circumference")
+				}
+			},
+			BMI() {
+				if (this.BMI_show == true) {
+					this.BMI_show = false
+					this.cb = false
+					this.action.pop()
+				} else {
+					this.BMI_show = true
+					this.action.push("bmi")
+				}
+			},
+
 			checked() {
-				if (this.cb == true) {
-					this.Step_number_show = false
-					this.Sleep_show = false
-					this.Blood_pressure_show = false
-					this.Heart_rate_show = false
-					this.Blood_oxygen_show = false
-					this.Width_show = false
-					this.Height_show = false
-					this.Bmi_show = false
-					this.Body_circumference_data_show = false
-					this.cb = false
-					this.action = ['0']
+				let that = this
+				if (that.cb == true) {
+					that.cb = false
+					that.lowPressure_show = false
+					that.highPressure_show = false
+					that.heartrate_show = false
+
+					that.xueyang_show = false
+					that.yali_show = false
+					that.tiwen_show = false
+
+					that.start_weight_show = false
+					that.Width_show = false
+					that.goal_weight_show = false
+					that.Height_show = false
+					that.chest_circumference_show = false
+					that.waistline_show = false
+					that.hipline_show = false
+					that.biceps_circumference_show = false
+					that.thigh_circumference_show = false
+					that.calf_circumference_show = false
+					that.BMI_show = false
+					that.action = ['0']
 				} else {
-					this.Step_number_show = true
-					this.Sleep_show = true
-					this.Blood_pressure_show = true
-					this.Heart_rate_show = true
-					this.Blood_oxygen_show = true
-					this.Width_show = true
-					this.Height_show = true
-					this.Bmi_show = true
-					this.Body_circumference_data_show = true
-					this.cb = true
-					// this.action = ['0', '1', '1', '1', '1', '1', '1', '1', '1', '1']
-					this.action = ['0', '1', '1', '1']
+					that.cb = true
+					that.lowPressure_show = true
+					that.highPressure_show = true
+					that.heartrate_show = true
+					that.xueyang_show = true
+					that.yali_show = true
+					that.tiwen_show = true
+					that.start_weight_show = true
+					that.goal_weight_show = true
+					that.Width_show = true
+					that.Height_show = true
+					that.chest_circumference_show = true
+					that.waistline_show = true
+					that.hipline_show = true
+					that.biceps_circumference_show = true
+					that.thigh_circumference_show = true
+					that.calf_circumference_show = true
+					that.BMI_show = true
+					that.action = ['0', 'lowPressure', 'highPressure', 'heartrate', 'start_weight', 'goal_weight',
+						'weight ', 'height ', 'chest_circumference', 'waistline_show', 'hipline',
+						'biceps_circumference', 'thigh_circumference', 'calf_circumference', 'bmi', 'oxygen',
+						'pressure', 'temperature'
+					]
 
 				}
 			},
 
 
 			getbk(id) {
-				console.log("xuanze", id.join())
 				return {
 					background: id.join() === '' || id.join() === '0' ? '#DBDBDB' : '#3298F7'
 				}
 			},
 
 			getbk1(id) {
-				if (id.join() === '0,1,1,1') {
+				if (id.length === 15) {
 					this.cb = true
-				} else {
-					this.cb = false
 				}
 			},
 
 			next() {
 				if (this.action.join() === '' || this.action.join() == '0') {
 					uni.showToast({
-						title: this.$t('gongxiangitem.title_20'),
+						title: this.$t('请选择要共享的数据'),
 						icon: 'none'
 					})
 					return
 				}
-				uni.navigateTo({
-					url: "../share/Shared_success?NAME=" + this.name
-					// url: "../share/Share_with_1?NAME=" + this.name + "&PHONE=" + this.phone +
-					// 	"&Step_number_show=" + this.Step_number_show + "&Sleep_show=" + this.Sleep_show +
-					// 	"&Blood_pressure_show=" + this.Blood_pressure_show + "&Heart_rate_show=" + this
-					// 	.Heart_rate_show + "&Blood_oxygen_show=" + this.Blood_oxygen_show + "&Width_show=" + this
-					// 	.Width_show + "&Height_show=" + this.Height_show + "&Bmi_show=" + this.Bmi_show +
-					// 	"&Body_circumference_data_show=" + this.Body_circumference_data_show
-				})
+				this.req(this.action.join().replace('0,', ''))
 			},
-
+			//发起数据分享请求
+			req(dataPointIds) {
+				let that = this
+				uni.request({
+					url: "https://jakoblife.jakob-techs.com/prod-api/share/data/req",
+					method: "POST",
+					data: {
+						sharerId: that.info.userId,
+						receiverId: that.receiverId,
+						dataPointIds: [dataPointIds]
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
+					},
+					success(req) {
+						uni.navigateTo({
+							url: "../share/Shared_success?NAME=" + that.name
+						})
+					}
+				})
+			}
 		}
 	}
 </script>
 
 <style>
 	.btn_backgroud {
+		width: auto;
 		background: #3298F7;
-		color: white;
+		color: white !important;
 		border-radius: 40px;
+		height: 48px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		font-size: 16px;
+		font-weight: 600;
+		border: none !important;
 		margin: 60px 20px 20px 20px
 	}
 
@@ -287,5 +522,14 @@
 		justify-content: center;
 		margin-top: 20px;
 		margin-bottom: 20px;
+	}
+
+	.gongxiangstyle {
+		background: white;
+		width: auto;
+		margin-left: 20px;
+		margin-right: 20px;
+		border-radius: 20px;
+		padding: 40px 20px 20px 20px;
 	}
 </style>

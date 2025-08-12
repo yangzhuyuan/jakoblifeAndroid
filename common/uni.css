@@ -845,11 +845,11 @@ radio-group label, checkbox-group label{
 
 /* tab bar */
 .uni-tab-bar {
-	display: flex;
+	/* display: flex;
 	flex: 1;
 	flex-direction: column;
 	overflow: hidden;
-	height: 100%;
+	height: 100%; */
 }
 
 .uni-tab-bar .list {
