@@ -1889,6 +1889,11 @@
 							this.xeuyejisn !== "0" &&
 							this.xeuyejimac !== "0") {
 							let parsedData = this.parseQueryString(asciiString);
+							this.$nextTick(() => {
+								this.lowPressure = parsedData.dia.trim();
+								this.highPressure = parsedData.sys.trim();
+								this.pulse = parsedData.pul.trim();
+							})
 							this.jakoblife_fat_scale(deviceId, parsedData, deviceSn)
 							this.resetDataState();
 							return
@@ -2024,6 +2029,11 @@
 						let hexString = that.ab2hex(res.value)
 						let asciiString = that.hexToAscii(hexString)
 						let parsedData = that.parseQueryString(asciiString);
+						that.$nextTick(() => {
+							that.lowPressure = parsedData.dia.trim();
+							that.highPressure = parsedData.sys.trim();
+							that.pulse = parsedData.pul.trim();
+						})
 						that.jakoblife_fat_scale(that.xeuyejimac, parsedData, that.xeuyejisn)
 						that.resetDataState()
 					} else {
