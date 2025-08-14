@@ -1074,7 +1074,8 @@
 				timsdpad: null,
 				notifyTriggered: false, // 初始化通知标志
 				devicdsdmac: [],
-				devicdsdmac1: []
+				devicdsdmac1: [],
+
 			}
 		},
 		mounted() {
@@ -1109,7 +1110,6 @@
 			isInChinaByIP().then(isInChina => {
 				that.loact = isInChina ? "境内" : "境外";
 				const token = uni.getStorageSync("token");
-				console.log(token)
 				if (!token) {
 					uni.redirectTo({
 						url: "/pages/login/login_land"
@@ -1136,7 +1136,7 @@
 				});
 			},
 			onBluetoothAdapterSuccess() {
-				this.manageHeartbeatInterval(() => this.onBluetoothDeviceFound(), 1000);
+				this.manageHeartbeatInterval(() => this.onBluetoothDeviceFound(), 2000);
 			},
 			onBluetoothAdapterFail(err) {
 				if (err.errCode === 10001) {
@@ -1177,9 +1177,6 @@
 				let uniqueArr = this.deviceList.filter((item, index) => this.deviceList.indexOf(item) === index);
 				let uniqueArr1 = this.devicdsdmac.filter((item, index) => this.devicdsdmac.indexOf(item) === index);
 				let uniqueArr2 = this.devicdsdmac1.filter((item, index) => this.devicdsdmac1.indexOf(item) === index);
-				// this.connectMultipleDevices(uniqueArr)
-				// console.log("uniqueArr1", uniqueArr1)
-				// console.log("uniqueArr2", uniqueArr2)
 				if (uniqueArr1) {
 					this.connectMultipleDevices(uniqueArr1)
 				}
@@ -1187,7 +1184,7 @@
 					if (uniqueArr2) {
 						this.connectMultipleDevices(uniqueArr2)
 					}
-				}, 3000)
+				}, 2000)
 			},
 			async connectMultipleDevices(uniqueArr) {
 				const deviceIds = uniqueArr;
@@ -1356,7 +1353,7 @@
 					deviceId: deviceId,
 					serviceId: serviceId,
 					success: (res) => {
-						console.log("getBLEDeviceCharacteristics1", res)
+						// console.log("getBLEDeviceCharacteristics1", res)
 						for (let i = 0; res.characteristics.length > i; i++) {
 							let item = res.characteristics[i]
 							//蓝牙消息通知
@@ -1889,14 +1886,12 @@
 							this.xeuyejisn !== "0" &&
 							this.xeuyejimac !== "0") {
 							let parsedData = this.parseQueryString(asciiString);
-							this.$nextTick(() => {
-								this.lowPressure = parsedData.dia.trim();
-								this.highPressure = parsedData.sys.trim();
-								this.pulse = parsedData.pul.trim();
-							})
+							this.lowPressure = parsedData.dia.trim();
+							this.highPressure = parsedData.sys.trim();
+							this.pulse = parsedData.pul.trim();
+							this.updateBloodPressureStatus(this.lowPressure, this.highPressure);
 							this.jakoblife_fat_scale(deviceId, parsedData, deviceSn)
 							this.resetDataState();
-							return
 						}
 					} catch (error) {
 						this.resetDataState();
@@ -2016,24 +2011,20 @@
 							success() {},
 							fail() {}
 						})
-						this.disconnectAll(deviceId)
-						this.deviceList = []
-						this.getUserInfo()
+						that.disconnectAll(deviceId)
+						that.deviceList = []
+						that.getUserInfo()
 					} else if (hexData.length === 388 &&
 						!hexData.startsWith("0e") &&
 						!hexData.startsWith("e0") &&
 						that.xueyehuilian &&
 						that.xeuyejisn !== "0" &&
 						that.xeuyejimac !== "0") {
-						let aaa = that.ab2str(res.value)
-						let hexString = that.ab2hex(res.value)
-						let asciiString = that.hexToAscii(hexString)
 						let parsedData = that.parseQueryString(asciiString);
-						that.$nextTick(() => {
-							that.lowPressure = parsedData.dia.trim();
-							that.highPressure = parsedData.sys.trim();
-							that.pulse = parsedData.pul.trim();
-						})
+						that.lowPressure = parsedData.dia.trim();
+						that.highPressure = parsedData.sys.trim();
+						that.pulse = parsedData.pul.trim();
+						that.updateBloodPressureStatus(that.lowPressure, that.highPressure);
 						that.jakoblife_fat_scale(that.xeuyejimac, parsedData, that.xeuyejisn)
 						that.resetDataState()
 					} else {
@@ -2137,6 +2128,10 @@
 							const {
 								diastolic: heartRate
 							} = that.parseHeartRateData(hexData1);
+							that.lowPressure = systolic;
+							that.highPressure = diastolic;
+							that.pulse = heartRate;
+							that.updateBloodPressureStatus(systolic, diastolic);
 							that.jakoblife_fat_scale22(that.shoubiaomac, systolic, diastolic,
 								heartRate, that.shoubiaosn);
 							that.dataBuffer = [];
@@ -2191,7 +2186,6 @@
 					}
 				})
 			},
-
 
 			hexToAscii(hexString) {
 				let str = '';
@@ -2263,20 +2257,21 @@
 			},
 			//上报血压计血压数据
 			jakoblife_fat_scale(deviceId, parsedData, deviceSn) {
-				console.log(deviceId)
-				console.log(deviceSn)
+				let timess = this.datatime(this.dundatetime())
 				let aaa = {
 					lowPressure: parsedData.dia.trim(),
 					highPressure: parsedData.sys.trim(),
 					heartrate: parsedData.pul.trim(),
 				}
-				console.log(aaa)
-				let timess = this.datatime(this.dundatetime())
-				const data = {
+				let data = {
 					deviceSn: deviceSn,
 					deviceTypeId: "1",
 					mac: deviceId,
-					slaveData: aaa,
+					slaveData: {
+						lowPressure: parsedData.dia.trim(),
+						highPressure: parsedData.sys.trim(),
+						heartrate: parsedData.pul.trim()
+					},
 					time: timess
 				}
 				this.$post(this.$url_jakoblife_fat_scale, data, {
@@ -2286,20 +2281,12 @@
 					if (resaa.code === 200) {
 						this.setbanhua(1)
 						this.get_device_info(deviceSn)
-						this.queryDevices()
-						this.list_recipe()
-						this.lowPressure = aaa.lowPressure;
-						this.highPressure = aaa.highPressure;
-						this.pulse = aaa.heartrate;
-						this.bgaaa(aaa.lowPressure, aaa.highPressure)
+						this.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
 						setTimeout(() => {
+							this.queryDevices()
+							this.list_recipe()
 							this.StorageInfo(aaa)
 						}, 1000)
-						this.$nextTick(() => {
-							this.lowPressure = aaa.lowPressure;
-							this.highPressure = aaa.highPressure;
-							this.pulse = aaa.heartrate;
-						})
 					}
 				})
 			},
@@ -2397,18 +2384,13 @@
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
 					console.log("上报数据手表", res)
-					if (res.code === 500) {
-						uni.showToast({
-							title: this.$t("失败"),
-							icon: 'none'
-						})
-						return
-					} else {
+					if (res.code === 200) {
 						this.setbanhua(1)
 						this.bgaaa(aaa.lowPressure, aaa.highPressure)
 						this.get_device_info(deviceSn)
 						setTimeout(() => {
 							this.StorageInfo(aaa)
+							this.list_recipe()
 						}, 1000)
 					}
 				}).catch(errro => {
@@ -2441,6 +2423,7 @@
 					this.get_device_info(deviceSn)
 					setTimeout(() => {
 						this.getStorageInfooy(aaa)
+						this.list_recipe()
 					}, 1000)
 				})
 			},
@@ -2677,7 +2660,6 @@
 				this.timsdpad = setInterval(res => {
 					this.pending(userData.userId);
 				}, 8000)
-
 			},
 
 			//最新体重点击事件
@@ -2857,9 +2839,7 @@
 			aaaa(rows) {
 				rows.forEach((row) => {
 					if (row.deviceTypeId === "10") {
-						if (this.xueyjitypesd === true) {
-							this.handleDeviceType10And13(row);
-						}
+						this.handleDeviceType10And13(row);
 						this.devicdsdmac.push(row.mac)
 					} else if (row.deviceTypeId === "13") {
 						this.handleDeviceType10And13(row);
@@ -3257,46 +3237,84 @@
 				}).then(res => {
 					if (res.code == 200) {
 						if (this.currentIndex === 0) {
+							// 使用对象存储最新数据，便于响应式更新
+							const newVitals = {
+								bloodPressure: {
+									high: null,
+									low: null,
+									pulse: null,
+									updated: false
+								},
+								otherData: {}
+							}
 							const slaveSn2Data = res.data.filter(item => item.slaveSn === "2");
 							const slaveSn3Data = res.data.filter(item => item.slaveSn === "3");
-							let lowPressuretime1 = this.findValue(slaveSn2Data, "register", "lowPressure")
-								.updateTime
-							let highPressureyime1 = this.findValue(slaveSn2Data, "register",
-									"highPressure")
-								.updateTime;
-							let heartratetime1 = this.findValue(slaveSn2Data, "register", "heartrate")
-								.updateTime;
-							let lowPressure1 = this.getRegisterVal(slaveSn2Data, 'register', 'lowPressure')
-							let highPressure1 = this.getRegisterVal(slaveSn2Data, 'register',
-								'highPressure')
-							let pulse1 = this.getRegisterVal(slaveSn2Data, 'register', 'heartrate');
-							let lowPressuretime2 = this.findValue(slaveSn3Data, "register", "lowPressure")
-								.updateTime
-							let highPressureyime2 = this.findValue(slaveSn3Data, "register",
-									"highPressure")
-								.updateTime;
-							let heartratetime2 = this.findValue(slaveSn3Data, "register", "heartrate")
-								.updateTime;
-							let lowPressure2 = this.getRegisterVal(slaveSn3Data, 'register', 'lowPressure')
-							let highPressure2 = this.getRegisterVal(slaveSn3Data, 'register',
-								'highPressure')
-							let pulse2 = this.getRegisterVal(slaveSn3Data, 'register', 'heartrate');
-							this.$nextTick(() => {
-								if (lowPressuretime1 < lowPressuretime2) {
-									this.lowPressure = lowPressure2;
-									this.highPressure = highPressure2;
-								} else if (lowPressuretime1 > lowPressuretime2) {
-									this.lowPressure = lowPressure1;
-									this.highPressure = highPressure1;
-								}
-								if (heartratetime1 < heartratetime2) {
-									this.pulse = pulse2;
-								} else if (heartratetime1 > heartratetime2) {
-									this.pulse = pulse1;
-								}
-								// 判断血压等级, 在需要更新血压状态的地方调用此函数
-								this.updateBloodPressureStatus(this.lowPressure, this.highPressure);
-							})
+							// 获取各项数据
+							const getLatestData = (data1, data2, type) => {
+								const time1 = this.findValue(data1, "register", type)?.updateTime || 0;
+								const time2 = this.findValue(data2, "register", type)?.updateTime || 0;
+								const val1 = this.getRegisterVal(data1, 'register', type);
+								const val2 = this.getRegisterVal(data2, 'register', type);
+								return time1 > time2 ? {
+									value: val1,
+									time: time1
+								} : {
+									value: val2,
+									time: time2
+								};
+							}
+							// 血压数据
+							const lowPressureData = getLatestData(slaveSn2Data, slaveSn3Data, "lowPressure");
+							const highPressureData = getLatestData(slaveSn2Data, slaveSn3Data, "highPressure");
+							const pulseData = getLatestData(slaveSn2Data, slaveSn3Data, "heartrate");
+							// 响应式更新血压数据
+							this.$set(this, 'lowPressure', this.Blood === "mmHg" ?
+								lowPressureData.value :
+								(Number(lowPressureData.value) * 0.133).toFixed(1));
+							this.$set(this, 'highPressure', this.Blood === "mmHg" ?
+								highPressureData.value :
+								(Number(highPressureData.value) * 0.133).toFixed(1));
+							this.$set(this, 'pulse', pulseData.value);
+							// 更新血压状态
+							this.updateBloodPressureStatus(lowPressureData.value, highPressureData.value);
+							// const slaveSn2Data = res.data.filter(item => item.slaveSn === "2");
+							// const slaveSn3Data = res.data.filter(item => item.slaveSn === "3");
+							// let lowPressuretime1 = this.findValue(slaveSn2Data, "register", "lowPressure")
+							// 	.updateTime
+							// let highPressureyime1 = this.findValue(slaveSn2Data, "register",
+							// 		"highPressure")
+							// 	.updateTime;
+							// let heartratetime1 = this.findValue(slaveSn2Data, "register", "heartrate")
+							// 	.updateTime;
+							// let lowPressure1 = this.getRegisterVal(slaveSn2Data, 'register', 'lowPressure')
+							// let highPressure1 = this.getRegisterVal(slaveSn2Data, 'register',
+							// 	'highPressure')
+							// let pulse1 = this.getRegisterVal(slaveSn2Data, 'register', 'heartrate');
+							// let lowPressuretime2 = this.findValue(slaveSn3Data, "register", "lowPressure")
+							// 	.updateTime
+							// let highPressureyime2 = this.findValue(slaveSn3Data, "register",
+							// 		"highPressure")
+							// 	.updateTime;
+							// let heartratetime2 = this.findValue(slaveSn3Data, "register", "heartrate")
+							// 	.updateTime;
+							// let lowPressure2 = this.getRegisterVal(slaveSn3Data, 'register', 'lowPressure')
+							// let highPressure2 = this.getRegisterVal(slaveSn3Data, 'register',
+							// 	'highPressure')
+							// let pulse2 = this.getRegisterVal(slaveSn3Data, 'register', 'heartrate');
+							// if (lowPressuretime1 < lowPressuretime2) {
+							// 	this.lowPressure = lowPressure2;
+							// 	this.highPressure = highPressure2;
+							// } else if (lowPressuretime1 > lowPressuretime2) {
+							// 	this.lowPressure = lowPressure1;
+							// 	this.highPressure = highPressure1;
+							// }
+							// if (heartratetime1 < heartratetime2) {
+							// 	this.pulse = pulse2;
+							// } else if (heartratetime1 > heartratetime2) {
+							// 	this.pulse = pulse1;
+							// }
+							// // 判断血压等级, 在需要更新血压状态的地方调用此函数
+							// this.updateBloodPressureStatus(this.lowPressure, this.highPressure);
 							const kapianlist = uni.getStorageSync("kapianlist") || [];
 							let itelistasd = []
 							for (let i = 0; i < kapianlist.length; i++) {

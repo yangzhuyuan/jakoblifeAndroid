@@ -79,7 +79,6 @@ const store = new Vuex.Store({
 			state.TenddeviceSn = TenddeviceSn
 		},
 		sethuilian(state, huilian) {
-			console.log("huilian", huilian)
 			state.xueyehuilian = huilian
 		},
 	}

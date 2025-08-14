@@ -1665,8 +1665,12 @@
 				}
 				this.$post(this.$url_query_month_avg, data, getheader).then(res => {
 					if (res.code == 200) {
-						this.Systolic_blood_pressure = res.data.high.min + "-" + res.data.high.max
-						this.Diastolic_blood_pressure = res.data.low.min + "-" + res.data.low.max
+						this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.high.min + "-" + res.data
+							.high.max : (Number(res.data.high.min) * 0.133).toFixed(1) + "-" + (Number(res.data
+								.high.max) * 0.133).toFixed(1)
+						this.Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.low.min + "-" + res.data
+							.low.max : (Number(res.data.low.min) * 0.133).toFixed(1) + "-" + (Number(res.data.low
+								.max) * 0.133).toFixed(1)
 					} else if (res.code == 500) {
 						this.Systolic_blood_pressure = "--"
 						this.Diastolic_blood_pressure = "--"
@@ -1696,30 +1700,40 @@
 						//最近
 						this.lately_Blood_pressure = this.bgaaa(res.data.last.lowPressure, res.data.last
 							.highPressure)
-						this.lately_Systolic_blood_pressure = res.data.last.highPressure === null ? "-" : res.data
-							.last.highPressure
-						this.lately_Diastolic_blood_pressure = res.data.last.lowPressure === null ? "-" : res.data
-							.last.lowPressure
+						this.lately_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.last
+							.highPressure === null ? "-" : res.data.last.highPressure : (Number(res.data.last
+								.highPressure) * 0.133).toFixed(1)
+						this.lately_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.last
+							.lowPressure === null ? "-" : res.data
+							.last.lowPressure : (Number(res.data.last.lowPressure) * 0.133).toFixed(1)
 						this.lately_pulse = res.data.last.heartrate === null ? "-" : res.data.last.heartrate
 						//平均
 						this.average_Blood_pressure = this.bgaaa(res.data.avg.lowPressure, res.data.avg
 							.highPressure)
-						this.average_Systolic_blood_pressure = res.data.avg.highPressure
-						this.average_Diastolic_blood_pressure = res.data.avg.lowPressure
+						this.average_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.highPressure :
+							(Number(res.data.avg.highPressure) * 0.133).toFixed(1)
+						this.average_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.lowPressure :
+							(Number(res.data.avg.lowPressure) * 0.133).toFixed(1)
 						this.average_pulse = res.data.avg.heartrate
 						//最高
 						this.Maximum_Blood_pressure = this.bgaaa(res.data.max.lowPressure, res.data.max
 							.highPressure)
-						this.Maximum_Systolic_blood_pressure = res.data.max.highPressure
-						this.Maximum_Diastolic_blood_pressure = res.data.max.lowPressure
-						this.Maximum_pulse = res.data.max.heartrate
+						this.Maximum_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.max.highPressure :
+							(Number(res.data.max.highPressure) * 0.133).toFixed(1)
+						this.Maximum_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.max.lowPressure :
+							(Number(res.data.max.lowPressure) * 0.133).toFixed(1)
+						this.Maximum_pulse = res.data.max.heartrate === null ? '-' : res.data.max.heartrate
 						//最低
 						this.Minimum_Blood_pressure = this.bgaaa(res.data.min.lowPressure, res.data.min
 							.highPressure)
-						this.Minimum_Systolic_blood_pressure = res.data.min.highPressure == null ? "-" : res.data
-							.min.highPressure
-						this.Minimum_Diastolic_blood_pressure = res.data.min.lowPressure == null ? "-" : res.data
-							.min.lowPressure
+						this.Minimum_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.min.highPressure ==
+							null ? "-" : res.data
+							.min.highPressure :
+							(Number(res.data.min.highPressure) * 0.133).toFixed(1)
+						this.Minimum_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.min.lowPressure ==
+							null ? "-" : res.data
+							.min.lowPressure :
+							(Number(res.data.min.lowPressure) * 0.133).toFixed(1)
 						this.Minimum_pulse = res.data.min.heartrate == null ? "-" : res.data.min.heartrate
 					} else if (res.code == 500) {
 						//最近
