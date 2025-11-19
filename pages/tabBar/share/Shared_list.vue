@@ -21,7 +21,7 @@
 					</image>
 					<view style="width: 65vw; text-align: left;margin-left: 20px;">
 						<view style="font-weight: bold;">{{item.receiverName}}</view>
-						<view style="color: gray;font-size: 14px;">{{item.receiverPhone}}</view>
+						<!-- <view style="color: gray;font-size: 14px;">{{item.receiverPhone}}</view> -->
 					</view>
 					<uni-icons type="right" size="16"></uni-icons>
 				</view>
@@ -32,14 +32,14 @@
 		<view style="margin-top: 10px;" v-else>
 			<view v-for="(item,index) in filterList" :key="index">
 				<view style="display: flex;align-items: center; padding: 10px;margin: 0 15px 0 15px;">
-					<image :src="item.shareAvatar"
+					<image :src="item.shareAvatar=== ''?'../../../static/icons/60x60.png':item.shareAvatar"
 						style="border-radius: 20px; width: 40px; height: 40px; border: 1px solid gainsboro;">
 					</image>
 					<view style="width: 65vw; text-align: left;margin-left: 20px;">
 						<view style="font-weight: bold;">{{item.shareName}}</view>
-						<view style="color: gray;font-size: 14px;">{{item.sharePhone}}</view>
+						<!-- <view style="color: gray;font-size: 14px;">{{item.sharePhone}}</view> -->
 					</view>
-					<uni-icons type="right" size="16"></uni-icons>
+					<!-- <uni-icons type="right" size="16"></uni-icons> -->
 				</view>
 				<view style="margin-left: 20px; background: gainsboro; width: 88vw; height: 1px;">
 				</view>

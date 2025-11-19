@@ -2,11 +2,11 @@
 	<view class="all">
 		<swiper class="scroll-view-height" :style="{height: screenHeight + 'px'}" @change="swipeIndex"
 			:current="currentIndex" acceleration="true" skip-hidden-item-layout="true"
-			disable-programmatic-animation="true">
+			disable-programmatic-animation="true" :disable-touch="disabletouch">
 			<swiper-item>
 				<scroll-view scroll-y="true" :style="{height: screenHeight + 'px'}" class="scroll-view">
 					<view style="background: #3298F7;">
-						<view class="title_zs">{{$t("本页面显示均为最近测量数据")}}</view>
+						<view class="title_zs_1">{{$t("本页面显示均为最近测量数据")}}</view>
 						<view class="data_bg">
 							<view class="icon_bg" @click="xueyaclick()">
 								<image lazy-load src="../../../static/icons/3.png" class="img_style" mode="aspectFit" />
@@ -70,7 +70,7 @@
 							<view v-show="binaji" class="tzkpsx" @click="tiaozhen()">{{$t("编辑数据卡片")}}</view>
 							<view class="drag-containersss">
 								<basic-drag v-model="list" :disabled="disabledsaaa" itemKey="title" :column="2"
-									itemHeight="130px">
+									itemHeight="130px" @update:disabled="handleUpdateDisabled1">
 									<template #item="{element}">
 										<view class="data_item_bgsss" :class="'animation-' + animation">
 											<view class="icon_bgsss">
@@ -115,16 +115,18 @@
 												<text class="teststuld_1">{{element.type_LX}}</text>
 												<text class="teststuld_2">{{element.Step_count}}</text>
 											</view>
-											<view v-show="delate_icon" class="ponsdtdss">
-												<uni-icons type="minus-filled" size="25px" color="red"
-													@click="delate_icon_cl(element.title,element)" />
+											<view v-show="delate_icon" class="delete-button"
+												@touchstart.stop.prevent="delate_icon_cl(element.title, element)"
+												hover-class="del-hover">
+												<image src="/static/icons/minus_filled.png" class="delete-icon"
+													mode="aspectFit" />
 											</view>
 										</view>
 									</template>
 								</basic-drag>
 							</view>
 							<view v-show="button_show" class="btnshow">
-								<view class="tuodongsd">{{$t('拖动可调整数据卡片位置')}}</view>
+								<view class="tuodongsd">{{$t('长按拖动可调整数据卡片位置')}}</view>
 								<view class="quernsda">
 									<view @click="ture_bt()" class="cardstyle_1">{{$t('确认')}}</view>
 									<view @click="add_bt_xy()" class="cardstyle_2">{{$t('添加数据卡片')}}</view>
@@ -138,10 +140,65 @@
 					</view>
 				</scroll-view>
 			</swiper-item>
+			<!-- ECG start-->
+			<!-- 	<swiper-item>
+				<scroll-view scroll-y="true" :style="{height: screenHeight + 'px'}" class="scroll-view"
+					:scroll-anchoring="true" enhanced bounces>
+					<view style="background: white;">
+						<view class="title_zs_ECG">{{$t("本页面显示均为最近测量数据")}}</view>
+						<view class="page">
+							<view class="ecg-container"><ecg-wave ref="wave" /></view>
+
+							<view class="control-panel">
+								<view class="status-row">
+									<view class="status-indicator" :class="{ connected: connected }" />
+									<text class="status-text">{{ connected ? '血压计已连接' : '血压计未连接' }}</text>
+									<text class="data-source">{{ dataSource }}</text>
+								</view>
+
+								<view class="button-row">
+									<button class="btn primary" @tap="toggleConnect" :loading="connecting"
+										:disabled="connecting">
+										{{ connected ? '断开' : '连接血压计测量' }}
+									</button>
+									<button class="btn secondary" @tap="showFullWaveform"
+										:disabled="!hasMeasurementData">完整波形</button>
+									<button class="btn secondary" @tap="clearWave">清空波形</button>
+									<button class="btn secondary"
+										@tap="toggleStats">{{ statsVisible ? '隐藏' : '显示' }}信息</button>
+									<button class="btn secondary" @tap="startbtn">发送命令测量</button>
+								</view>
+
+								<text class="tip">{{ tip }}</text>
+							</view>
+
+							<view class="stats-panel" v-if="statsVisible">
+								<view class="stats-row">
+									<text class="stats-label">实时数据点数:</text>
+									<text class="stats-value">{{ dataCount.toLocaleString() }}</text>
+								</view>
+								<view class="stats-row">
+									<text class="stats-label">完整数据点数:</text>
+									<text class="stats-value">{{ fullDataCount.toLocaleString() }}</text>
+								</view>
+								<view class="stats-row">
+									<text class="stats-label">队列长度:</text>
+									<text class="stats-value">{{ queueLength }}</text>
+								</view>
+								<view class="stats-row" v-if="measurementStatus">
+									<text class="stats-label">测量状态:</text>
+									<text class="stats-value">{{ measurementStatus }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+				</scroll-view>
+			</swiper-item> -->
+			<!-- ECG end-->
 			<swiper-item>
 				<scroll-view scroll-y="true" :style="{height: screenHeight + 'px'}" class="scroll-view">
 					<view style="background: #3298F7;">
-						<view class="title_zs">{{$t('本页面显示均为最近测量数据')}}</view>
+						<view class=" title_zs_1">{{$t('本页面显示均为最近测量数据')}}</view>
 						<view class="yemiance">
 							<view @click="new_latest()" class="tzsdjk">
 								<view class="displayst">
@@ -186,7 +243,7 @@
 							<view class="tzkpsx" v-show="binaji2" @click="tiaozhen2()">{{$t("编辑数据卡片")}}</view>
 							<view class="drag-containersss">
 								<basic-drag v-model="list2" :disabled="disabledsaaa2" itemKey="title" :column="2"
-									itemHeight="130px">
+									itemHeight="130px" @update:disabled="handleUpdateDisabled">
 									<template #item="{element}">
 										<view class="data_item_bgsss" :class="'animation2-' + animation2">
 											<view class="icon_bgsss">
@@ -231,16 +288,19 @@
 												<text class="teststuld_1">{{element.type_LX}}</text>
 												<text class="teststuld_2">{{element.Step_count}}</text>
 											</view>
-											<view v-show="delate_icon2" class="ponsdtdss">
-												<uni-icons type="minus-filled" size="25px" color="red"
-													@click="delate_icon_cl_2(element.title,element)" />
+											<view v-show="delate_icon2" class="delete-button"
+												@touchstart.stop.prevent="delate_icon_cl_2(element.title, element)"
+												hover-class="del-hover">
+												<image src="/static/icons/minus_filled.png" class="delete-icon"
+													mode="aspectFit" />
 											</view>
 										</view>
 									</template>
 								</basic-drag>
 							</view>
+
 							<view v-show="button_show2" class="btnshow">
-								<view class="tuodongsd">{{$t('拖动可调整数据卡片位置')}}</view>
+								<view class="tuodongsd">{{$t('长按拖动可调整数据卡片位置')}}</view>
 								<view class="quernsda">
 									<view @click="ture_bt2()" class="cardstyle_1">{{$t('确认')}}</view>
 									<view @click="add_bt2()" class="cardstyle_2">{{$t('添加数据卡片')}}</view>
@@ -286,21 +346,68 @@
 				</scroll-view>
 			</swiper-item>
 			<swiper-item>
-				<view style="background: #3298F7;">
-					<view class="title_zs" style="margin-top: 20px;">{{$t("本页面显示均为最近测量数据")}}</view>
-					<view class="data_bg">
-						<view class="icon_bg" @click="xueyaclick()">
+				<scroll-view scroll-y="true" :style="{height: screenHeight + 'px'}" class="scroll-view"
+					:scroll-anchoring="true" enhanced bounces>
+					<view style="background: #3298F7">
+						<view class=" title_zs_1" style="padding-top: 80px;">{{$t("本页面显示均为最近测量数据")}}</view>
+						<!-- <view class="data_bg">
+						<view class="icon_bg">
 							<image lazy-load src="../../../static/icons/3.png" class="img_style" mode="aspectFit" />
 							<text class="icon_text_bg">{{$t('压力')}}</text>
 						</view>
 						<view class="yalistyd">
 							<view class="yalistyd_1">{{yali}}</view>
-							<view class="yalistyd_2">--</view>
+							<view class="yalistyd_2">kPa</view>
 							<view class="yalistyd_3">{{yali_time}}</view>
 						</view>
-					</view>
-					<view class="data_bg_A_1">
-						<view class="yali1">
+					</view> -->
+						<view class="data_bg">
+							<view class="icon_bg">
+								<image lazy-load src="../../../static/icons/3.png" class="img_style" mode="aspectFit" />
+								<text class="icon_text_bg">{{$t('睡眠')}}</text>
+							</view>
+							<view class="yalistyds">
+								<view class="yalistyd_1">{{sleep}}</view>
+								<view class="yalistyd_2">Time</view>
+								<view class="yalistyd_3">{{sleep_time}}</view>
+							</view>
+							<view class="yalistyds">
+								<view class="yalistyd_2">Light:{{totalLight}}</view>
+								<view class="yalistyd_2">Deep:{{totalDeep}}</view>
+								<view class="yalistyd_2">REM:{{totalRem}}</view>
+							</view>
+						</view>
+						<view class="data_bg_A_1">
+							<view
+								style="display: flex;flex-direction: row;justify-content: space-between;align-items: center;">
+								<view
+									style="margin-right: 5px; flex: 1; display: flex;justify-content: center; align-items: center; background: white;color: white;padding: 15px;font-weight: bold;font-size: 14px;border-radius: 10px;box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.4); color: #222328;">
+									{{$t("评分")}}：<text v-if="sleep_point>=80 "
+										style="font-size: 22px;color: #58BF78;">{{sleep_point}}</text>
+									<text v-else-if="sleep_point<80&&sleep_point>=60 "
+										style="font-size: 22px;color: #FFEC01;">{{sleep_point}}</text>
+									<text v-else-if="sleep_point<60 "
+										style="font-size: 22px;color:  #F55A5A;">{{sleep_point}}</text>
+								</view>
+								<view class="context_btn2" style="box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.4);">
+									<view class="context_title1">
+										{{$t('是否服用药物')}}
+									</view>
+									<switch @change="switch1Change" style="transform:scale(0.8);" :checked="medication"
+										color="#3298F7" />
+								</view>
+							</view>
+							<view
+								style="margin-bottom: 80px; padding: 15px; background: white;margin-top: 20px;border-radius: 20px;box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.4);">
+								<view v-if="sleepTip && sleep_point<85" class="sleep-card">
+									<view class="sleep-title">{{ $t('睡眠血压交叉分析') }}:</view>
+									<view v-for="(line, idx) in sleepTip" :key="idx" class="sleep-line">
+										<text>{{ $t(line) }}</text>
+									</view>
+								</view>
+								<view v-else class="icon_item_bg_toast">{{$t("睡眠良好")}}</view>
+							</view>
+							<!-- <view class="yali1">
 							<view>0～25:</view>
 							<view>{{$t("容易")}}</view>
 						</view>
@@ -318,31 +425,69 @@
 						<view class="yali1">
 							<view>76～100:</view>
 							<view>{{$t("高度的压力")}}</view>
+						</view> -->
 						</view>
 					</view>
-				</view>
+				</scroll-view>
 			</swiper-item>
 			<swiper-item>
-				<view style="background: #3298F7;">
-					<view class="title_zs" style="margin-top: 20px;">{{$t("本页面显示均为最近测量数据")}}</view>
-					<view class="data_bg">
-						<view class="icon_bg" @click="xueyaclick()">
-							<image lazy-load src="../../../static/icons/1.png" class="img_style" mode="aspectFit" />
-							<text class="icon_text_bg">{{$t('步数')}}</text>
+				<scroll-view scroll-y="true" :style="{height: screenHeight + 'px'}" class="scroll-view"
+					:scroll-anchoring="true" enhanced bounces>
+					<view style="background: #3298F7;">
+						<view class="title_zs_1" style="padding-top: 80px;">{{$t("本页面显示均为最近测量数据")}}</view>
+						<view class="data_bg">
+							<view class="icon_bg">
+								<image lazy-load src="../../../static/icons/1.png" class="img_style" mode="aspectFit" />
+								<text class="icon_text_bg">{{$t('步数')}}</text>
+							</view>
+							<view class="yalistyd">
+								<view class="yalistyd_1">{{bushu}}</view>
+								<view class="yalistyd_2">{{$t('计步')}}</view>
+								<view class="yalistyd_3">{{bushu_time}}</view>
+							</view>
+							<view class="yalistyd">
+								<view style="font-weight: bold;font-size: 20px;color: green;">{{today_Daily_Goal}}
+								</view>
+								<view class="yalistyd_2">{{$t('每天目标')}}</view>
+							</view>
 						</view>
-						<view class="yalistyd">
-							<view class="yalistyd_1">{{bushu}}</view>
-							<view class="yalistyd_2">{{$t('计步')}}</view>
-							<view class="yalistyd_3">{{bushu_time}}</view>
+						<view class="data_bg_A_set">
+							<view class="charts-box">
+								<qiun-data-charts type="line" :opts="opts" :chartData="chartData" />
+							</view>
+							<view style="margin-bottom: 160px;">
+								<view
+									style="margin: 20px;display: flex;flex-direction: row;justify-content: space-between;align-items: center;">
+									<input type="number" v-model="Daily_Goal" :placeholder="$t('每天目标')"
+										style="flex: 2; text-align: center;background: white;padding: 15px;border-radius: 10px;margin-right: 5px;" />
+									<button @click="Daily_Goal_set()"
+										style="flex: 1;margin-left: 5px;background: #3298F7; color: white;font-weight: bold;">设置</button>
+								</view>
+								<!-- <view style="margin: 20px;font-size: 16px;display: flex;align-items: center;">
+									{{$t('已设置的目标')}}:<text
+										style="font-size: 28px;font-weight: bold;color: green;margin-left: 10px;">{{today_Daily_Goal}}</text>
+								</view> -->
+								<view v-if="parseInt(bushu)  >= parseInt(today_Daily_Goal)" class="icon_item_bg_toast">
+									{{$t("今天达标了明天在加油")}}
+									<uni-icons type="hand-up-filled" size="28" color="#3298F7"></uni-icons>
+								</view>
+								<view v-else-if="parseInt(bushu) < 5000 && xueya !== 0" class="icon_item_bg_toast">
+									{{$t("你的血压有点高")}}<uni-icons type="fire-filled" size="28" color="red"></uni-icons>
+								</view>
+								<view v-else-if="parseInt(bushu) < parseInt(today_Daily_Goal)"
+									class="icon_item_bg_toast">
+									{{$t("今天没达标明天要多运动")}}
+
+								</view>
+								<view v-else class="icon_item_bg_toast">
+									<!-- 其他情况 -->
+								</view>
+							</view>
 						</view>
 					</view>
-					<view class="data_bg_A">
-						<view class="charts-box">
-							<qiun-data-charts type="line" :opts="opts" :chartData="chartData" />
-						</view>
-					</view>
-				</view>
+				</scroll-view>
 			</swiper-item>
+
 		</swiper>
 		<view class="title_all">
 			<view class="title_all_1">
@@ -364,15 +509,23 @@
 				</view>
 			</scroll-view>
 		</view>
+		<!-- 悬浮按钮 -->
+		<float-button ref="floatButton" :visible="buttonVisible" :pattern="buttonPattern"
+			@subButtonClick="onSubButtonClick" @menuOpen="onMenuOpen" />
+
 		<view class="showTotal" v-show="fillOut">
 			<view class="over">
 				<view class="show">
-					<view style="margin-top: 220px;">
+					<view style="display: flex;justify-content: right;margin-top: 60px;margin-right: 40px;"
+						@click="closess()">
+						<uni-icons size="30" type="closeempty"></uni-icons>
+					</view>
+					<view style="margin-top: 220px;margin-left: 20px;">
 						<view style="color: black;font-size: 38px; font-weight: bold;">{{showTotal_date}}</view>
 						<view style="background: black; width: 50%; height: 1px;margin-top: 20px;"></view>
 						<view style="color: #2595D3;margin-top: 5px;">{{$t('确保每天摄入足够的水')}}</view>
 					</view>
-					<view style="display: flex; flex-direction: row;  margin-top: 180px;margin-left: 10px;">
+					<view style="display: flex; flex-direction: row;  margin-top: 40px;margin-left: 10px;">
 						<view style="display: flex;flex-direction: column; align-items: center;" @click="Keep()">
 							<image lazy-load src="../../../static/icons/6.png" mode="aspectFit"
 								style="width: 50px; height: 50px;border-radius: 40px;object-fit: contain;">
@@ -388,9 +541,6 @@
 							<text
 								style="margin-top: 5px;font-weight: bold;text-align:center;width: 80px;">{{$t('记体围')}}</text>
 						</view>
-					</view>
-					<view style="display: flex;justify-content: center;margin-top: 60px;" @click="closess()">
-						<uni-icons size="30" type="closeempty"></uni-icons>
 					</view>
 				</view>
 			</view>
@@ -807,88 +957,172 @@
 	import BluetoothManager from '../../api/BluetoothManager.js'; //低功耗蓝牙连接
 	import ytDateTimePicker from '@/uni_modules/yt-dateTimePicker/components/yt-dateTimePicker/yt-dateTimePicker.vue';
 	import {
+		clearDailyGoalData
+	} from '../../api/unitls/dailyClear.js';
+	import {
 		isInChinaByIP
 	} from '../../api/isInChinaByIP.js'; //获取定位
 	import permision from "@/js_sdk/wa-permission/permission.js"
+	import {
+		hexStringToBytes
+	} from '../../api/unitls/bleUtils.js';
+	import {
+		receive5610SleepData
+	} from '../../api/unitls/sleepParser.js';
+	import WeightConverter from '../../api/unitls/weightConverter.js';
+	import {
+		checkNotificationPermissions
+	} from "../../api/unitls/permission.js";
+	import FloatButton from '../../components/float-button.vue'
 	const systemInfo = uni.getSystemInfoSync(); //获取手机信息
 	const windowHeight = systemInfo.windowHeight;
+
+	// ECG start
+	// import ecgWave from "../../components/ecg-wave/ecg-wave.vue";
+	// const SERVICE_ID = '0000FF00-0000-1000-8000-00805F9B34FB'
+	// const NOTIFY_UUID = '0000FF02-0000-1000-8000-00805F9B34FB'
+	// const CMD_ECG_START = [0xA5, 0x12, 0x01, 0x13, 0x0A]
+	// const CMD_ECG_STOP = [0xA6, 0x15, 0x01, 0x17, 0x0A]
+	// ECG end
+
+
 	export default {
 		components: {
 			BasicDrag,
-			ytDateTimePicker
+			ytDateTimePicker,
+			FloatButton,
+			// ecgWave, // ECG
 		},
 		computed: {
 			...mapState(['info', 'getpendinglenth', 'acktypes', 'xueyehuilian']),
+			sleepTip() {
+				// 1. 先拼出 key 后缀
+				const idx = this.xueya; // 0-3
+				const med = this.medication === true ? 1 : 2; // 1=用药 2=未用药
+				const idsd = [1, 2, 3, 4, 5, 6, 7, 8][idx * 2 + (med - 1)]; // 0-7 → 1-8
+				// 2. 返回固定顺序的 key 数组
+				return [
+					'睡眠质量',
+					`用药情况${med}`,
+					`健康建议${idsd}`, // 0-3 → 1-8
+					`原因${idsd}`,
+					`药物与睡眠解释${idsd}`,
+					`生活方式建议${idsd}`
+				];
+			},
+			// // 计算是否有测量数据ECG
+			// hasMeasurementData() {
+			// 	return this.fullDataCount > 0;
+			// }
 		},
 		data() {
 			return {
+				//ECG start
+				// connected: false,
+				// connecting: false,
+				// tip: '点击"连接血压计"开始',
+				// dataCount: 0,
+				// fullDataCount: 0,
+				// statsVisible: true,
+				// dataSource: '未连接',
+				// queueLength: 0,
+				// deviceId: '',
+				// notifyCharacteristicId: '',
+				// writeCharacteristicId: '',
+				// buffer: '',
+				// sendCnt: 0,
+				// measurementStatus: '', // 测量状态
+				// deviceIdECG: '',
+				// serviceIdECG: '',
+				// uuidECG: '',
+				//ECG end
+				hasSynced: false,
+				Daily_Goal: '',
+				today_Daily_Goal: uni.getStorageSync("today_Daily_Goal") || "--/--",
+				medication: uni.getStorageSync("medication") || false,
+				buttonVisible: true,
+				buttonPattern: {
+					theme: 'primary',
+					icon: '/static/page_icon/aipbg.jpg',
+					menuItems: [{
+							icon: '/static/page_icon/aipbg.jpg',
+							text: this.$t("报告"),
+							handler: () => {
+								console.log('AI按钮被点击')
+								uni.navigateTo({
+									url: "/pages/tabBar/tendency/supplement"
+								})
+							}
+						},
+						{
+							icon: '/static/page_icon/jinggaotishijingbaoyujing.png',
+							text: this.$t("警报"),
+							handler: () => {
+								console.log('警报按钮被点击')
+								uni.navigateTo({
+									url: "/pages/tabBar/my/Alarms"
+								})
+							}
+						}
+					],
+				},
 				stepsData: {}, // 用于存储每天步数的对象
 				timer: null, // 定时器变量
 				timertwslist: null,
 				screenHeight: windowHeight,
 				tabs: [this.$t("心血管"), this.$t("体重"), this.$t("情绪"), this.$t("运动")],
 				currentIndex: 0, // swiper索引
+				disabletouch: false,
 				msg: true,
 				connectedDevices: {}, // 存储已连接设备的信息
 				deviceList: [], // 存储搜索到的设备列表
 				bluetoothManager: new BluetoothManager(),
 				endtimesss: new Date().toISOString().slice(0, 10),
 				list: [{
-					bmi_show: false,
-					image: "../../../static/icons/1.png",
-					Step_number: "-",
-					title: this.$t('步数'),
-					type_LX: this.$t('计步'),
-					Step_count: "-"
-				}, {
-					bmi_show: false,
-					image: "../../../static/icons/2.png",
-					Step_number: "-",
-					title: this.$t('身高'),
-					type_LX: "cm",
-					Step_count: "-"
-				}, {
-					BMI_TF: 0,
-					BMI_ys: "-",
-					bmi_show: true,
-					image: "../../../static/page_icon/10.png",
-					Step_number: "-",
-					title: this.$t('血氧'),
-					type_LX: "%",
-					Step_count: "-",
-					checkbox: false,
-				}, {
-					bmi_show: false,
-					image: "../../../static/page_icon/9.png",
-					Step_number: "-",
-					title: this.$t("压力"),
-					type_LX: "--",
-					Step_count: "-/-",
-					checkbox: false,
-				}, {
-					bmi_show: false,
-					image: "../../../static/page_icon/9.png",
-					Step_number: "-",
-					title: this.$t("体温"),
-					type_LX: "℃",
-					Step_count: "-",
-					checkbox: false,
-				}],
+						bmi_show: false,
+						image: "../../../static/icons/2.png",
+						Step_number: "-",
+						title: this.$t('身高'),
+						type_LX: "cm",
+						Step_count: "-"
+					}, {
+						BMI_TF: 0,
+						BMI_ys: "-",
+						bmi_show: true,
+						image: "../../../static/page_icon/10.png",
+						Step_number: "-",
+						title: this.$t('血氧'),
+						type_LX: "%",
+						Step_count: "-",
+						checkbox: false,
+					}, {
+						bmi_show: false,
+						image: "../../../static/icons/5.png",
+						Step_number: "-",
+						title: this.$t('心率'),
+						type_LX: "BMP",
+						Step_count: "-"
+					},
+					// {
+					// 	bmi_show: false,
+					// 	image: "../../../static/page_icon/9.png",
+					// 	Step_number: "-",
+					// 	title: this.$t("压力"),
+					// 	type_LX: "--",
+					// 	Step_count: "-/-",
+					// 	checkbox: false,
+					// },
+					// {
+					// 	bmi_show: false,
+					// 	image: "../../../static/page_icon/9.png",
+					// 	Step_number: "-",
+					// 	title: this.$t("体温"),
+					// 	type_LX: "℃",
+					// 	Step_count: "-",
+					// 	checkbox: false,
+					// }
+				],
 				list2: [{
-					image: "../../../static/icons/1.png",
-					Step_number: "-",
-					title: this.$t('步数'),
-					type_LX: this.$t('计步'),
-					Step_count: "-"
-				}, {
-					bmi_show: false,
-					image: "../../../static/icons/2.png",
-					Step_number: "-",
-					title: this.$t('身高'),
-					type_LX: "cm",
-					Step_count: "-",
-					checkbox: false,
-				}, {
 					BMI_TF: 0,
 					BMI_ys: "-",
 					bmi_show: true,
@@ -990,6 +1224,7 @@
 				highPressure: "-",
 				Blood: uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" : "kPa",
 				pulse: "-",
+				pulsetime: '-/-',
 				showTotal_date: new Date().toISOString().slice(5, 7) + "/" + new Date().toISOString().slice(8, 10),
 				birthday: this.$t('今天'),
 				birthday1: this.$t('今天'),
@@ -1027,14 +1262,20 @@
 				arrrylist: [],
 				yali: '--/--',
 				yali_time: '--/--',
+				sleep: '--/--',
+				sleep_time: '--/--',
+				sleep_point: '--/--',
+				totalLight: 'NA',
+				totalDeep: 'NA',
+				totalRem: 'NA',
 				bushu: '--/--',
 				bushu_time: '--/--',
 				chartData: {
-					categories: ["0"],
+					categories: [0, 0],
 					series: [{
 						legendShape: "circle",
 						name: this.$t("步数"),
-						data: ["0"]
+						data: [0, 0]
 					}, ]
 				},
 				opts: {
@@ -1063,6 +1304,7 @@
 				tempBuffer: 0,
 				quotient: 0,
 				quotient1: 0,
+				quotient2: 0,
 				dataBuffer: [],
 				Protocolsubcommand: '',
 				writeuuid: '',
@@ -1075,7 +1317,9 @@
 				notifyTriggered: false, // 初始化通知标志
 				devicdsdmac: [],
 				devicdsdmac1: [],
-
+				queryDevicesDone: false, // 标志位：是否已执行过
+				lastWeightbishi: "",
+				xueyabiaoshi: '',
 			}
 		},
 		mounted() {
@@ -1094,8 +1338,18 @@
 			}
 		},
 
+		onUnload() {
+			this.disConnect()
+		},
 		onShow() {
 			let that = this
+			if (uni.getStorageSync("dingwei") === 1) {
+				checkNotificationPermissions();
+			}
+			that.chuhsikg = uni.getStorageSync("danwei2") === 1 ?
+				"lb" : "kg";
+			that.newweightKG = uni.getStorageSync("danwei2") === 1 ?
+				"lb" : "KG";
 			that.sethuilian(true)
 			that.Blood = uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" : "kPa"
 			if (!uni.getStorageSync("appQX")) {
@@ -1116,8 +1370,112 @@
 					});
 					return;
 				}
+				that.lastWeightbishi = ""
+				that.xueyabiaoshi = ""
 				that.deviceList = []
-				that.getUserInfo();
+				that.queryDevicesDone = false // 立刻上锁
+				that.getUserInfo()
+			});
+			// 在数据操作前检查清除
+			clearDailyGoalData();
+			that.today_Daily_Goal = uni.getStorageSync("today_Daily_Goal") || "0"
+			setTimeout(() => {
+				const now = new Date();
+				const today7AM = new Date();
+				today7AM.setHours(7, 0, 0, 0); // 设置今天早上7点
+				if (that.sleep_time === `${now.getMonth() + 1}/${now.getDate()}` || now < today7AM) {
+					that.hasSynced = true;
+					// console.log("睡眠时间到")
+				} else {
+					that.hasSynced = false;
+				}
+			}, 3000)
+			uni.getNetworkType({
+				success: function(res) {
+					if (res.networkType === 'none') {
+						// console.log('无网络连接');
+						that.Latest_weight = that.newweightKG === "KG" ? uni.getStorageSync("weightkg") : uni
+							.getStorageSync("weightlb")
+						that.lowPressure = that.Blood === "mmHg" ? uni.getStorageSync("lowPressure") : (Number(
+							uni.getStorageSync("lowPressure")) * 0.133).toFixed(1);
+						that.highPressure = that.Blood === "mmHg" ? uni.getStorageSync("highPressure") : (
+							Number(uni.getStorageSync("lowPressure")) * 0.133).toFixed(1);
+						that.pulse = uni.getStorageSync("pulse")
+						that.updateBloodPressureStatus(uni.getStorageSync("lowPressure"), uni.getStorageSync(
+							"highPressure"));
+						that.sethuilian(true)
+						that.aaaa(uni.getStorageSync("lixianlist"))
+					} else {
+						if (uni.getStorageSync("xueyadatatype") && uni.getStorageSync("xueyadata")) {
+							if (uni.getStorageSync("xueyadatatype") === "1") {
+								that.$post(that.$url_jakoblife_fat_scale, uni.getStorageSync("xueyadata"), {
+									'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+								}).then(res => {
+									// console.log("上报数据手表", res)
+									if (res.code === 200) {
+										that.setbanhua(1)
+										let deviceSnlixin = uni.getStorageSync("xueyadata")
+											.deviceSn
+										let slaveDatalixian = uni.getStorageSync("xueyadata")
+											.slaveData
+										uni.removeStorageSync("xueyadatatype")
+										uni.removeStorageSync("xueyadata")
+										setTimeout(() => {
+											that.get_device_info(deviceSnlixin)
+											that.StorageInfo(slaveDatalixian)
+										}, 1000)
+									}
+								}).catch(errro => {
+									console.log("errro", errro)
+								})
+							} else if (uni.getStorageSync("xueyadatatype") === "0") {
+								that.$post(that.$url_jakoblife_fat_scale, uni.getStorageSync("xueyadata"), {
+									'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+								}).then(resaa => {
+									console.log("血压计", resaa)
+									if (resaa.code === 200) {
+										that.setbanhua(1)
+										let deviceSnlixin = uni.getStorageSync("xueyadata")
+											.deviceSn
+										let slaveDatalixian = uni.getStorageSync("xueyadata")
+											.slaveData
+										uni.removeStorageSync("xueyadatatype")
+										uni.removeStorageSync("xueyadata")
+										setTimeout(() => {
+											that.get_device_info(deviceSnlixin)
+											that.StorageInfo(slaveDatalixian)
+										}, 1000)
+									}
+								})
+							}
+						}
+						if (uni.getStorageSync("tizhidata")) {
+							that.$post(that.$url_jakoblife_fat_scale, uni.getStorageSync("tizhidata"), {
+								'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+							}).then(res => {
+								if (res.code === 500) {
+									uni.showToast({
+										title: that.$t("失败"),
+										icon: 'none'
+									})
+									return
+								} else if (res.code === 200) {
+									that.setbanhua(1)
+									let deviceSntzlx = uni.getStorageSync("tizhidata").deviceSn
+									uni.removeStorageSync("tizhidata")
+									setTimeout(() => {
+										that.get_device_info(deviceSntzlx)
+										that.get_device_data(deviceSntzlx)
+									}, 1000)
+								}
+
+							})
+						}
+					}
+				},
+				fail: function(err) {
+					console.error('获取网络类型失败：', err);
+				}
 			});
 		},
 		methods: {
@@ -1137,6 +1495,16 @@
 			},
 			onBluetoothAdapterSuccess() {
 				this.manageHeartbeatInterval(() => this.onBluetoothDeviceFound(), 2000);
+			},
+			handleUpdateDisabled(val) {
+				if (this.delate_icon2 === true) {
+					this.disabledsaaa2 = val;
+				}
+			},
+			handleUpdateDisabled1(val) {
+				if (this.delate_icon === true) {
+					this.disabledsaaa = val;
+				}
 			},
 			onBluetoothAdapterFail(err) {
 				if (err.errCode === 10001) {
@@ -1172,19 +1540,84 @@
 					}
 				});
 			},
-			//搜索已绑定的蓝牙设备mac
+
 			async onBluetoothDeviceFound() {
-				let uniqueArr = this.deviceList.filter((item, index) => this.deviceList.indexOf(item) === index);
-				let uniqueArr1 = this.devicdsdmac.filter((item, index) => this.devicdsdmac.indexOf(item) === index);
-				let uniqueArr2 = this.devicdsdmac1.filter((item, index) => this.devicdsdmac1.indexOf(item) === index);
-				if (uniqueArr1) {
-					this.connectMultipleDevices(uniqueArr1)
-				}
-				setTimeout(() => {
-					if (uniqueArr2) {
-						this.connectMultipleDevices(uniqueArr2)
+				let that = this
+				uni.getNetworkType({
+					success: function(res) {
+						// networkType 可能的值：wifi、2g、3g、4g、5g、ethernet、unknown、none:cite[3]
+						if (res.networkType === 'none') {
+							console.log('无网络连接');
+							let uniqueArr = uni.getStorageSync("deviceList").filter((item, index) => uni
+								.getStorageSync("deviceList").indexOf(item) ===
+								index);
+							let uniqueArr1 = uni.getStorageSync("devicdsdmac").filter((item, index) => uni
+								.getStorageSync("devicdsdmac")
+								.indexOf(item) ===
+								index);
+							let uniqueArr2 = uni.getStorageSync("devicdsdmac1").filter((item, index) => uni
+								.getStorageSync("devicdsdmac1")
+								.indexOf(item) ===
+								index);
+							if (uniqueArr1) {
+								that.connectMultipleDevices(uniqueArr1)
+							}
+							setTimeout(() => {
+								if (uniqueArr2) {
+									that.connectMultipleDevices(uniqueArr2)
+								}
+							}, 2000)
+						} else {
+							let uniqueArr
+							let uniqueArr1
+							let uniqueArr2
+							if (that.deviceList === undefined) {
+								uniqueArr = uni.getStorageSync("deviceList").filter((item, index) =>
+									uni
+									.getStorageSync("deviceList").indexOf(item) ===
+									index);
+							} else {
+								uniqueArr = that.deviceList.filter((item, index) => that.deviceList
+									.indexOf(item) ===
+									index);
+							}
+							if (that.devicdsdmac === undefined) {
+								uniqueArr1 = uni.getStorageSync("devicdsdmac").filter((item, index) =>
+									uni
+									.getStorageSync("devicdsdmac").indexOf(item) ===
+									index);
+							} else {
+								uniqueArr1 = that.devicdsdmac.filter((item, index) => that.devicdsdmac
+									.indexOf(item) ===
+									index);
+							}
+							if (that.devicdsdmac1 === undefined) {
+								uniqueArr2 = uni.getStorageSync("devicdsdmac1").filter((item, index) =>
+									uni
+									.getStorageSync("devicdsdmac1").indexOf(item) ===
+									index);
+							} else {
+								uniqueArr2 = that.devicdsdmac1.filter((item, index) => that
+									.devicdsdmac1
+									.indexOf(item) ===
+									index);
+							}
+
+							if (uniqueArr1) {
+								that.connectMultipleDevices(uniqueArr1)
+							}
+							setTimeout(() => {
+								if (uniqueArr2) {
+									that.connectMultipleDevices(uniqueArr2)
+								}
+							}, 2000)
+						}
+					},
+					fail: function(err) {
+						console.error('获取网络类型失败：', err);
 					}
-				}, 2000)
+				});
+
 			},
 			async connectMultipleDevices(uniqueArr) {
 				const deviceIds = uniqueArr;
@@ -1212,35 +1645,175 @@
 				} catch (e) {}
 			},
 			saveDailySteps(bushu, bushu_time) {
-				const currentDate = bushu_time;
-				const steps = bushu;
-				this.stepsData[currentDate] = steps;
-				const dates = Object.keys(this.stepsData);
-				if (dates.length > 7) {
-					const earliestDate = dates.sort()[0];
-					delete this.stepsData[earliestDate];
-				}
+				const currentDate = bushu_time; // "10/15"
+				const steps = Number(bushu) || 0;
+
+				/* 1. 先把缓存里的 7 天读出来（如果有） */
+				let weekly = {};
 				try {
-					uni.setStorageSync("weeklySteps", JSON.stringify(this.stepsData));
-					const sortedDates = Object.keys(this.stepsData).sort();
-					const categories = sortedDates;
-					const seriesData = sortedDates.map(date => this.stepsData[date]);
+					const old = uni.getStorageSync("weeklySteps");
+					if (old) weekly = JSON.parse(old);
+				} catch (e) {}
+
+				/* 2. 合并今天的数据 */
+				weekly[currentDate] = steps;
+
+				/* 3. 只保留最近 7 天（按自然日期排序） */
+				const dates = Object.keys(weekly).sort((a, b) => new Date(a) - new Date(b));
+				if (dates.length > 7) {
+					delete weekly[dates[0]]; // 删掉最早的一天
+				}
+
+				/* 4. 写回缓存 & 刷新图表 */
+				try {
+					uni.setStorageSync("weeklySteps", JSON.stringify(weekly));
+					this.stepsData = weekly; // 关键：让组件里的数据也同步
+					const sortedDates = Object.keys(weekly).sort((a, b) => new Date(a) - new Date(b));
 					this.chartData = {
-						categories: categories,
+						categories: sortedDates,
 						series: [{
 							name: this.$t("步数"),
-							data: seriesData
+							data: sortedDates.map(d => weekly[d])
 						}]
 					};
-				} catch (e) {}
+				} catch (e) {
+					console.error("保存步数失败", e);
+				}
 			},
+
+			Daily_Goal_set() {
+				if (!this.Daily_Goal) {
+					uni.showToast({
+						title: this.$t("设置的目标值不能为空"),
+						icon: 'none',
+						duration: 1500
+					})
+					return
+				} else {
+					uni.showToast({
+						title: this.$t("设定成功"),
+						icon: 'none',
+						duration: 1500
+					})
+					this.today_Daily_Goal = this.Daily_Goal
+					uni.setStorageSync("today_Daily_Goal", this.today_Daily_Goal)
+					setTimeout(() => {
+						this.Daily_Goal = ""
+					}, 500)
+				}
+			},
+
+			//用药开关
+			switch1Change(e) {
+				let that = this
+				that.medication = e.detail.value
+				that.$forceUpdate()
+				if (e.detail.value === false) {
+					that.medication = false
+					uni.setStorageSync("medication", false)
+					// 关键点：添加下一行确保视图更新
+					that.$nextTick(() => that.$forceUpdate())
+				} else if (e.detail.value === true) {
+					that.medication = true
+					uni.setStorageSync("medication", true)
+				}
+			},
+
 			swtichSwiper(index) {
 				this.currentIndex = index
+				this.queryDevicesDone = false; // 立刻上锁
+				// 在数据操作前检查清除
+				clearDailyGoalData();
 			},
 			swipeIndex(index) {
-				this.currentIndex = index.detail.current;
-				this.resetStates();
-				this.getUserInfo();
+				let that = this
+				that.currentIndex = index.detail.current;
+				that.queryDevicesDone = false; // 立刻上锁
+				that.resetStates();
+				that.getUserInfo();
+				// 在数据操作前检查清除
+				clearDailyGoalData();
+				uni.getNetworkType({
+					success: function(res) {
+						if (res.networkType === 'none') {
+							console.log('无网络连接');
+						} else {
+							// console.log(uni.getStorageSync("xueyadatatype"))
+							// console.log(uni.getStorageSync("xueyadata"))
+							// console.log(uni.getStorageSync("tizhidata"))
+							if (uni.getStorageSync("xueyadatatype") && uni.getStorageSync("xueyadata")) {
+								if (uni.getStorageSync("xueyadatatype") === "1") {
+									that.$post(that.$url_jakoblife_fat_scale, uni.getStorageSync(
+										"xueyadata"), {
+										'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+									}).then(res => {
+										console.log("上报数据手表", res)
+										if (res.code === 200) {
+											that.setbanhua(1)
+											let deviceSnlixin = uni.getStorageSync("xueyadata")
+												.deviceSn
+											let slaveDatalixian = uni.getStorageSync("xueyadata")
+												.slaveData
+											uni.removeStorageSync("xueyadatatype")
+											uni.removeStorageSync("xueyadata")
+											setTimeout(() => {
+												that.get_device_info(deviceSnlixin)
+												that.StorageInfo(slaveDatalixian)
+											}, 1000)
+										}
+									}).catch(errro => {
+										console.log("errro", errro)
+									})
+								} else if (uni.getStorageSync("xueyadatatype") === "0") {
+									that.$post(that.$url_jakoblife_fat_scale, uni.getStorageSync(
+										"xueyadata"), {
+										'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+									}).then(resaa => {
+										console.log("血压计", resaa)
+										if (resaa.code === 200) {
+											that.setbanhua(1)
+											let deviceSnlixin = uni.getStorageSync("xueyadata")
+												.deviceSn
+											let slaveDatalixian = uni.getStorageSync("xueyadata")
+												.slaveData
+											uni.removeStorageSync("xueyadatatype")
+											uni.removeStorageSync("xueyadata")
+											setTimeout(() => {
+												that.get_device_info(deviceSnlixin)
+												that.StorageInfo(slaveDatalixian)
+											}, 1000)
+										}
+									})
+								}
+							}
+							if (uni.getStorageSync("tizhidata")) {
+								that.$post(that.$url_jakoblife_fat_scale, uni.getStorageSync("tizhidata"), {
+									'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+								}).then(res => {
+									if (res.code === 500) {
+										uni.showToast({
+											title: that.$t("失败"),
+											icon: 'none'
+										})
+										return
+									} else if (res.code === 200) {
+										that.setbanhua(1)
+										let deviceSntzlx = uni.getStorageSync("tizhidata").deviceSn
+										uni.removeStorageSync("tizhidata")
+										setTimeout(() => {
+											that.get_device_info(deviceSntzlx)
+											that.get_device_data(deviceSntzlx)
+										}, 1000)
+									}
+
+								})
+							}
+						}
+					},
+					fail: function(err) {
+						console.error('获取网络类型失败：', err);
+					}
+				});
 			},
 
 			resetStates() {
@@ -1344,6 +1917,108 @@
 							}
 						}
 					}
+				}).catch(err => {
+					const res = uni.getStorageSync("lixianlist");
+					for (let rowIndex = 0; rowIndex < res.length; rowIndex++) {
+						const row = res[rowIndex];
+						for (let deviceIndex = 0; deviceIndex < devicesArray.length; deviceIndex++) {
+							const device = devicesArray[deviceIndex];
+							if (device.deviceId !== row.mac) continue;
+							if (device.services.length === 1) {
+								uni.setBLEMTU({
+									deviceId: device.deviceId,
+									mtu: 512,
+								});
+							}
+							if (row.deviceModelId === "10005") {
+								this.xeuyejisn = row.deviceSn
+								this.xeuyejimac = device.deviceId
+							}
+							if (row.deviceModelId === "30000") {
+								this.shoubiaosn = row.deviceSn
+								this.shoubiaomac = device.deviceId
+							}
+							switch (device.services.length) {
+								case 2:
+									this.getBLEDeviceCharacteristics2(device.deviceId, device.services[1].uuid,
+										row.deviceSn);
+									break;
+								case 3:
+									if (row.deviceModelId === "30000") {
+										this.getBLEDeviceCharacteristics3(device.deviceId, device.services[1]
+											.uuid, row.deviceSn
+										);
+										this.shoubiaosn = row.deviceSn
+										this.shoubiaomac = device.deviceId
+									}
+									if (row.deviceModelId === "10005") {
+										uni.setBLEMTU({
+											deviceId: device.deviceId,
+											mtu: 512,
+										});
+										this.getBLEDeviceCharacteristics1(device.deviceId, device
+											.services[2].uuid, row.deviceSn);
+										this.xeuyejisn = row.deviceSn
+										this.xeuyejimac = device.deviceId
+									}
+									break;
+								case 4:
+									this.getBLEDeviceCharacteristics2(device.deviceId, device.services[3].uuid,
+										row.deviceSn);
+									break;
+								default:
+									// 可以添加默认处理或日志
+									break;
+							}
+							// 找到匹配的设备后可以跳出内层循环
+							break;
+						}
+					}
+					let that = this
+					uni.getNetworkType({
+						success: function(res) {
+
+							if (res.networkType === 'none') {
+								that.sethuilian(true)
+							} else {
+								if (uni.getStorageSync("dingwei") === 1) {
+									checkNotificationPermissions();
+								}
+								that.sethuilian(true)
+								that.Blood = uni.getStorageSync("Blood") === 0 || uni.getStorageSync(
+									"Blood") === "" ? "mmHg" : "kPa"
+								if (!uni.getStorageSync("appQX")) {
+									that.$nextTick(() => {
+										if (that.$refs.lnaypopup) {
+											that.$refs.lnaypopup.open('top');
+										} else {
+											console.error("lnaypopup 引用未找到");
+										}
+									});
+								}
+								isInChinaByIP().then(isInChina => {
+									that.loact = isInChina ? "境内" : "境外";
+									const token = uni.getStorageSync("token");
+									if (!token) {
+										uni.redirectTo({
+											url: "/pages/login/login_land"
+										});
+										return;
+									}
+									that.xueyabiaoshi = ""
+									that.deviceList = []
+									that.queryDevicesDone = false // 立刻上锁
+									that.getUserInfo()
+								});
+								// 在数据操作前检查清除
+								clearDailyGoalData();
+								that.today_Daily_Goal = uni.getStorageSync("today_Daily_Goal") || "0"
+							}
+						},
+						fail: function(err) {
+							console.error('获取网络类型失败：', err);
+						}
+					});
 				})
 			},
 			//获取蓝牙外围设备的特征值
@@ -1382,6 +2057,17 @@
 						that.disconnectAll(deviceId)
 						that.deviceList = []
 						that.getUserInfo()
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									console.log('无网络连接');
+									that.aaaa(uni.getStorageSync("lixianlist"))
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
 					}
 				})
 			},
@@ -1459,6 +2145,28 @@
 									// 在这里处理设备断开后的逻辑，例如尝试重新连接等
 								}
 							});
+							if (!that.hasSynced) { // 确保只执行一次
+								const now = new Date();
+								const today7AM = new Date();
+								today7AM.setHours(7, 0, 0, 0); // 设置今天早上7点
+								if (that.sleep_time === `${now.getMonth() + 1}/${now.getDate()}` || now <
+									today7AM) {
+									console.log("睡眠时间到！", that.sleep_time);
+									that.hasSynced = true
+								} else {
+									that.hasSynced = true; // 标记已同步
+									uni.writeBLECharacteristicValue({
+										deviceId: deviceId,
+										serviceId: serviceId,
+										characteristicId: that.writeuuid,
+										writeType: 'writeNoResponse',
+										value: that.toArrayBuffer('e00006ea010100000101'),
+										complete(complete) {
+											console.log("发送同步所有数据命令：e00006ea010100000101")
+										}
+									})
+								}
+							}
 						},
 						fail: (err) => {
 							console.error('蓝牙适配器初始化失败', err);
@@ -1477,7 +2185,7 @@
 					deviceId: deviceId,
 					serviceId: serviceId,
 					success: (res) => {
-						console.log("getBLEDeviceCharacteristics3", res)
+						// console.log("getBLEDeviceCharacteristics3", res)
 						that.characteristicsCache.add(deviceId); // 缓存设备ID，
 						for (let i = 0; res.characteristics.length > i; i++) {
 							let item = res.characteristics[i]
@@ -1541,6 +2249,17 @@
 						that.setacktypes(0)
 						that.deviceList = [];
 						that.getUserInfo()
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									console.log('无网络连接');
+									that.aaaa(uni.getStorageSync("lixianlist"))
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
 					}
 				})
 			},
@@ -1556,6 +2275,8 @@
 			},
 			// 定义一个函数来计算校验和
 			calculateChecksumsss2(deviceId, serviceId, writeuuid, deviceSn) {
+				// 转换为 ArrayBuffer获取设备信息
+				let that = this
 				const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 				console.log(plugin)
 				// 1. 配对
@@ -1566,9 +2287,8 @@
 				});
 				// 2. 启用通话音频
 				plugin.enableBluetoothAudio({}, res => {
-					console.log('1配对结果:', res);
+					// console.log('1配对结果:', res);
 				});
-				let that = this
 				const ACK_HEADER = 0xe0 // 常量-头部
 				const BleDeviceConfig = {
 					PROTOCOL_VERSION: 0x00 // 协议版本号
@@ -1642,6 +2362,7 @@
 				that.dataBuffer = [];
 				that.quotient = 0;
 				that.quotient1 = 0;
+				that.quotient2 = 0;
 				const hexString = dataList
 				// 将十六进制字符串转换为字节数组
 				const bytes = [];
@@ -1849,7 +2570,22 @@
 							this.dataBuffer = []
 						},
 					})
-				}, 1000)
+				}, 6000)
+
+				setTimeout(() => {
+					uni.writeBLECharacteristicValue({
+						deviceId: deviceId,
+						serviceId: serviceId,
+						characteristicId: writeuuid,
+						writeType: 'writeNoResponse',
+						value: this.toArrayBuffer('e00006ea010100000101'),
+						complete(complete) {
+							console.log("发送同步所有数据命令：e00006ea010100000101")
+							// this.dataBuffer = []
+						}
+					})
+				}, 8000)
+
 			},
 			// ArrayBuffer转16进度字符串示例
 			ab2hex(buffer) {
@@ -1865,36 +2601,77 @@
 				return String.fromCharCode.apply(null, new Uint8Array(buf));
 			},
 			onBLECharacteristicValueChange1(deviceId, serviceId, deviceSn) {
-				uni.onBLECharacteristicValueChange(async (res) => {
-					try {
-						let hexData = this.ab2hex(res.value)
-						let asciiString = this.hexToAscii(hexData)
-						if (asciiString === "error") {
-							uni.closeBLEConnection({
-								deviceId: deviceId,
-								success() {},
-								fail() {}
-							})
-							this.disconnectAll(deviceId)
-							this.deviceList = []
-							this.getUserInfo()
-							return
-						} else if (hexData.length === 388 &&
-							!hexData.startsWith("0e") &&
-							!hexData.startsWith("e0") &&
-							this.xueyehuilian &&
-							this.xeuyejisn !== "0" &&
-							this.xeuyejimac !== "0") {
-							let parsedData = this.parseQueryString(asciiString);
-							this.lowPressure = parsedData.dia.trim();
-							this.highPressure = parsedData.sys.trim();
-							this.pulse = parsedData.pul.trim();
-							this.updateBloodPressureStatus(this.lowPressure, this.highPressure);
-							this.jakoblife_fat_scale(deviceId, parsedData, deviceSn)
-							this.resetDataState();
-						}
-					} catch (error) {
-						this.resetDataState();
+				let that = this
+				uni.onBLECharacteristicValueChange((res) => {
+					// try {
+					let hexData = that.ab2hex(res.value)
+					let asciiString = that.hexToAscii(hexData)
+					if (asciiString === "error") {
+						uni.closeBLEConnection({
+							deviceId: deviceId,
+							success() {},
+							fail() {}
+						})
+						that.disconnectAll(deviceId)
+						that.deviceList = []
+						that.getUserInfo()
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									console.log('无网络连接');
+									that.aaaa(uni.getStorageSync("lixianlist"))
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
+						return
+					} else if (hexData.length === 388 &&
+						!hexData.startsWith("0e") &&
+						!hexData.startsWith("e0") &&
+						that.xueyehuilian &&
+						that.xeuyejisn !== "0" &&
+						that.xeuyejimac !== "0") {
+						let parsedData = that.parseQueryString(asciiString);
+						that.lowPressure = that.Blood === "mmHg" ? parsedData.dia.trim() : (Number(parsedData.dia
+							.trim()) * 0.133).toFixed(1);
+						that.highPressure = that.Blood === "mmHg" ? parsedData.sys.trim() : (Number(parsedData.sys
+							.trim()) * 0.133).toFixed(1);
+						that.pulse = parsedData.pul.trim();
+						uni.setStorageSync("lowPressure", parsedData.dia.trim())
+						uni.setStorageSync("highPressure", parsedData.sys.trim())
+						uni.setStorageSync("pulse", parsedData.pul.trim())
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									that.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
+									that.updateBloodPressureStatus(parsedData.dia.trim(), parsedData
+										.sys.trim());
+								} else {
+									that.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
+									that.updateBloodPressureStatus(parsedData.dia.trim(), parsedData
+										.sys.trim());
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
+						that.xueyabiaoshi = "1"
+						that.jakoblife_fat_scale(deviceId, parsedData, deviceSn)
+						that.resetDataState();
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									console.log('无网络连接');
+									that.aaaa(uni.getStorageSync("lixianlist"))
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
 					}
 				})
 			},
@@ -1902,6 +2679,7 @@
 				this.dataBuffer = [];
 				this.quotient = 0;
 				this.quotient1 = 0;
+				this.quotient2 = 0;
 			},
 			onBLECharacteristicValueChange2(deviceId, serviceId, deviceSn) {
 				let that = this
@@ -2005,6 +2783,7 @@
 					let asciiString = that.hexToAscii(hexData)
 					const dataList = that.ab2hex(res.value)
 					that.dataBuffer.push(dataList)
+					console.log("获取蓝牙的包数据", dataList)
 					if (asciiString === "error") {
 						uni.closeBLEConnection({
 							deviceId: deviceId,
@@ -2014,6 +2793,17 @@
 						that.disconnectAll(deviceId)
 						that.deviceList = []
 						that.getUserInfo()
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									console.log('无网络连接');
+									that.aaaa(uni.getStorageSync("lixianlist"))
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
 					} else if (hexData.length === 388 &&
 						!hexData.startsWith("0e") &&
 						!hexData.startsWith("e0") &&
@@ -2021,12 +2811,45 @@
 						that.xeuyejisn !== "0" &&
 						that.xeuyejimac !== "0") {
 						let parsedData = that.parseQueryString(asciiString);
-						that.lowPressure = parsedData.dia.trim();
-						that.highPressure = parsedData.sys.trim();
+						that.lowPressure = that.Blood === "mmHg" ? parsedData.dia.trim() : (Number(parsedData.dia
+							.trim()) * 0.133).toFixed(1);
+						that.highPressure = that.Blood === "mmHg" ? parsedData.sys.trim() : (Number(parsedData.sys
+							.trim()) * 0.133).toFixed(1);
 						that.pulse = parsedData.pul.trim();
-						that.updateBloodPressureStatus(that.lowPressure, that.highPressure);
+						uni.setStorageSync("lowPressure", parsedData.dia.trim())
+						uni.setStorageSync("highPressure", parsedData.sys.trim())
+						uni.setStorageSync("pulse", parsedData.pul.trim())
+						that.updateBloodPressureStatus(parsedData.dia.trim(), parsedData.sys.trim());
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									that.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
+									that.updateBloodPressureStatus(parsedData.dia.trim(), parsedData
+										.sys.trim());
+								} else {
+									that.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
+									that.updateBloodPressureStatus(parsedData.dia.trim(), parsedData
+										.sys.trim());
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
+						that.xueyabiaoshi = "1"
 						that.jakoblife_fat_scale(that.xeuyejimac, parsedData, that.xeuyejisn)
 						that.resetDataState()
+						uni.getNetworkType({
+							success: function(res) {
+								if (res.networkType === 'none') {
+									console.log('无网络连接');
+									that.aaaa(uni.getStorageSync("lixianlist"))
+								}
+							},
+							fail: function(err) {
+								console.error('获取网络类型失败：', err);
+							}
+						});
 					} else {
 						const ProtocolIdentifier = dataList.slice(0, 2); // 协议标识位 1个字节
 						const CMD = dataList.slice(8, 10); // 协议标识位 1个字节
@@ -2034,19 +2857,88 @@
 							that.sendack(dataList, deviceId, serviceId, that.writeuuid)
 							that.resetDataState()
 						} else if (ProtocolIdentifier === "e0" && CMD === "04") {
-							that.sendack(dataList, deviceId, serviceId, that.writeuuid)
-							const stepheart = dataList.slice(0, 18);
-							const stepbody = dataList.slice(18, dataList.length);
-							const step = stepbody.slice(0, 8)
-							const juli = stepbody.slice(8, 16)
-							const kaluli = stepbody.slice(16, stepbody.length)
-							const settept1 = parseInt(step, 16);
-							uni.setStorageSync("settept1", settept1)
-							that.jakoblife_fat_scale3(that.shoubiaomac, settept1, that.shoubiaosn, "步数");
+							switch (dataList.slice(12, 14)) {
+								case "01":
+									that.sendack(dataList, deviceId, serviceId, that.writeuuid)
+									that.resetDataState()
+									break
+								case "00":
+									that.sendack(dataList, deviceId, serviceId, that.writeuuid)
+									const stepheart = dataList.slice(0, 18);
+									const stepbody = dataList.slice(18, dataList.length);
+									const step = stepbody.slice(0, 8)
+									const juli = stepbody.slice(8, 16)
+									const kaluli = stepbody.slice(16, stepbody.length)
+									const settept1 = parseInt(step, 16);
+									that.jakoblife_fat_scale3(that.shoubiaomac, settept1, that.shoubiaosn, "步数");
+									break
+								case "10":
+									if (dataList.length < 160 && dataList.length > 40) {
+										const bytes = hexStringToBytes(dataList.slice(18, dataList.length));
+										const sleepObj = receive5610SleepData(bytes);
+										// console.log('5610SleepData 解析结果：', JSON.stringify(sleepObj, null, 2));
+										const stats = that.calcSleepMinutes(sleepObj);
+										console.log('正式睡眠：', stats.formalReadable); // 5h 1min
+										console.log('totalLight：', stats.totalLight); // 6h 18min
+										console.log('totalDeep：', stats.totalDeep); // 5h 1min
+										console.log('totalRem：', stats.totalRem); // 6h 18min
+										uni.setStorageSync("sleep", stats.totalReadable)
+										uni.setStorageSync("totalLight", stats.totalLight)
+										uni.setStorageSync("totalDeep", stats.totalDeep)
+										uni.setStorageSync("totalRem", stats.totalRem)
+										uni.setStorageSync("sleep_time", sleepObj.date.slice(6, sleepObj.date
+											.length).replace("-", "/"))
+
+										that.sleep = stats.totalReadable
+										that.totalLight = stats.totalLight
+										that.totalDeep = stats.totalDeep
+										that.totalRem = stats.totalRem
+										// 1. 总睡眠小时数（ 保留 1 位小数）
+										const totalAll = that.timeStrToMinutes(that.sleep); // 436
+										const totalH = (totalAll / 60).toFixed(1)
+										const deepMin = (that.timeStrToMinutes(that.totalDeep) / 60).toFixed(1);
+										const remMin = (that.timeStrToMinutes(that.totalRem) / 60).toFixed(1);
+										const lightMin = (that.timeStrToMinutes(that.totalLight) / 60).toFixed(1)
+										that.sleep_point = that.overallSleepScore(totalAll, totalH, deepMin,
+											remMin, lightMin)
+
+
+										that.jakoblife_fat_scale3(that.shoubiaomac, stats.totalReadable, that
+											.shoubiaosn,
+											"睡眠");
+										that.resetDataState()
+									} else {
+										that.ProtocolSubcommand = dataList.slice(12, 14); // 协议子命令 1个字节
+										const ProtocolLength = dataList.slice(2, 6); // 协议长度 2个字节
+										const ProtocolLength2 = ProtocolLength.slice(2, 4);
+										that.tempBuffer = parseInt(ProtocolLength2, 16) + 4;
+										if (dataList.length <= 40) {
+											that.quotient2 = that.calculateQuotient(that
+												.tempBuffer, 20);
+										} else {
+											that.quotient2 = that.calculateQuotient(that
+												.tempBuffer, 80);
+										}
+									}
+									break
+								default:
+									console.log("default睡眠数据", dataList)
+									that.resetDataState()
+									break
+							}
 						} else if (ProtocolIdentifier === "0e") {
 							that.resetDataState()
 						} else if (ProtocolIdentifier === "e0" && CMD === "11") {
 							that.resetDataState()
+						} else if (ProtocolIdentifier === "e0" && CMD === "01") {
+							switch (hexData.slice(12, 14)) {
+								case "00":
+								case "02":
+								case "03":
+									that.sendack(hexData, deviceId, serviceId, that.writeuuid);
+									that.resetDataState();
+									break
+							}
 						} else if (ProtocolIdentifier === "e0" && CMD === "02") {
 							that.resetDataState()
 						} else if (ProtocolIdentifier === "e0" && CMD === "03") {
@@ -2079,6 +2971,57 @@
 									console.warn("未知的协议子命令:", that.ProtocolSubcommand);
 							}
 						}
+
+						if (that.formatData(that.dataBuffer).slice(12, 14) === "01" && that.formatData(that
+								.dataBuffer).slice(8, 10) === "04") {
+							that.resetDataState()
+						}
+						// if (that.formatData(that.dataBuffer).slice(12, 14) === "" && that.formatData(that
+						// 		.dataBuffer).slice(8, 10) === "") {
+						// 	that.resetDataState()
+						// }
+						if (that.formatData(that.dataBuffer).startsWith("0000") || that.formatData(that
+								.dataBuffer).endsWith("0000")) {
+							that.resetDataState()
+						}
+						if (that.formatData(that.dataBuffer).startsWith("4e")) {
+							that.resetDataState()
+						}
+
+						if (that.quotient2 !== 0 && that.quotient2 === that.dataBuffer.length) {
+							const bytes = hexStringToBytes(that.formatData(that.dataBuffer).slice(18, that
+								.formatData(that.dataBuffer).length));
+							const sleepObj = receive5610SleepData(bytes);
+							// console.log('5610SleepData 解析结果：', JSON.stringify(sleepObj, null, 2));
+							const stats = that.calcSleepMinutes(sleepObj);
+							console.log('正式睡眠：', stats.formalReadable); // 5h 1min
+							console.log('totalLight：', stats.totalLight); // 6h 18min
+							console.log('totalDeep：', stats.totalDeep); // 5h 1min
+							console.log('totalRem：', stats.totalRem); // 6h 18min
+							uni.setStorageSync("sleep", stats.totalReadable)
+							uni.setStorageSync("totalLight", stats.totalLight)
+							uni.setStorageSync("totalDeep", stats.totalDeep)
+							uni.setStorageSync("totalRem", stats.totalRem)
+							that.sleep = stats.totalReadable
+							that.totalLight = stats.totalLight
+							that.totalDeep = stats.totalDeep
+							that.totalRem = stats.totalRem
+							// 1. 总睡眠小时数（ 保留 1 位小数）
+							const totalAll = that.timeStrToMinutes(that.sleep); // 436
+							const totalH = (totalAll / 60).toFixed(1)
+							const deepMin = (that.timeStrToMinutes(that.totalDeep) / 60).toFixed(1);
+							const remMin = (that.timeStrToMinutes(that.totalRem) / 60).toFixed(1);
+							const lightMin = (that.timeStrToMinutes(that.totalLight) / 60).toFixed(1)
+							that.sleep_point = that.overallSleepScore(totalAll, totalH, deepMin,
+								remMin, lightMin)
+							uni.setStorageSync("sleep_time", sleepObj.date.slice(6, sleepObj.date
+								.length).replace("-", "/"))
+							that.jakoblife_fat_scale3(that.shoubiaomac, stats.totalReadable, that
+								.shoubiaosn,
+								"睡眠");
+							that.resetDataState()
+						}
+
 						if (that.quotient !== 0 && that.quotient1 !== 0 && (that.quotient +
 								that.quotient1) === that.dataBuffer.length) {
 							let firstArray = [];
@@ -2123,15 +3066,33 @@
 								month: month1,
 								day: day1
 							} = that.parseBinaryTime(heartTime1, that);
+							const sec = parseInt('0000d670', 16); // 54896
+							const t = new Date(sec * 1000).toISOString().substr(11, 8); // "15:14:56"
 							const hexData1 = Covmamlueand1.slice(Covmamlueand1.length - 16,
 								Covmamlueand1.length);
 							const {
 								diastolic: heartRate
 							} = that.parseHeartRateData(hexData1);
-							that.lowPressure = systolic;
-							that.highPressure = diastolic;
+							that.lowPressure = that.Blood === "mmHg" ? diastolic : (Number(diastolic) * 0.133)
+								.toFixed(1);
+							that.highPressure = that.Blood === "mmHg" ? systolic : (Number(systolic) * 0.133)
+								.toFixed(1);
 							that.pulse = heartRate;
-							that.updateBloodPressureStatus(systolic, diastolic);
+							uni.setStorageSync("lowPressure", diastolic)
+							uni.setStorageSync("highPressure", systolic)
+							uni.setStorageSync("pulse", heartRate)
+							that.updateBloodPressureStatus(diastolic, systolic);
+							uni.getNetworkType({
+								success: function(res) {
+									if (res.networkType === 'none') {
+										that.bgaaa(diastolic, systolic)
+									}
+								},
+								fail: function(err) {
+									console.error('获取网络类型失败：', err);
+								}
+							});
+							that.xueyabiaoshi = "1"
 							that.jakoblife_fat_scale22(that.shoubiaomac, systolic, diastolic,
 								heartRate, that.shoubiaosn);
 							that.dataBuffer = [];
@@ -2162,8 +3123,12 @@
 							// 根据协议子命令处理数据
 							switch (protocolData.Protocolsubcommand) {
 								case "00":
+									that.pulse = heartRateData.diastolic
+									that.xueyabiaoshi = "1"
+
 									that.jakoblife_fat_scale22(that.shoubiaomac, "", "",
 										heartRateData.diastolic, that.shoubiaosn);
+
 									// 清空数据缓冲区
 									that.resetDataState()
 									break;
@@ -2185,6 +3150,92 @@
 						}
 					}
 				})
+			},
+
+			timeStrToMinutes(str = '') {
+				const upper = str.toUpperCase();
+				let h = 0,
+					m = 0;
+				// 匹配 7H 或 7 H
+				const hMatch = upper.match(/(\d+)\s*H/);
+				if (hMatch) h = Number(hMatch[1]);
+				// 匹配 16M 或 16 M
+				const mMatch = upper.match(/(\d+)\s*M/);
+				if (mMatch) m = Number(mMatch[1]);
+				return h * 60 + m;
+			},
+			/**
+			 * 综合睡眠评分
+			 * @param {number} totalH   总睡眠时长（小时，已保留 1 位小数）
+			 * @param {number} deepMin  深睡分钟
+			 * @param {number} remMin   REM 分钟
+			 * @param {number} lightMin 浅睡分钟
+			 * @returns {number} 0~100 分
+			 */
+			overallSleepScore(totalAll, totalH, deepMin, remMin, lightMin) {
+				/* 1. 睡眠时长得分 0~100（权重 30%） */
+				let durationScore;
+				if (totalH >= 7) durationScore = 100;
+				else if (totalH >= 6) durationScore = 80;
+				else if (totalH >= 5) durationScore = 60;
+				else durationScore = 30;
+				/* 2. 睡眠结构得分 0~100（权重 35%） */
+				const pct = (min) => (min / totalAll) * 100;
+				const d = pct(deepMin);
+				const r = pct(remMin);
+				const l = pct(lightMin);
+				let structScore = 100;
+				// 深睡 20-25%
+				if (d < 20) structScore -= Math.ceil((20 - d) / 5) * 10;
+				else if (d > 25) structScore -= Math.ceil((d - 25) / 5) * 10;
+				// REM 20-25%
+				if (r < 20) structScore -= Math.ceil((20 - r) / 5) * 10;
+				else if (r > 25) structScore -= Math.ceil((r - 25) / 5) * 10;
+				// 浅睡 <55%
+				if (l > 55) structScore -= Math.ceil((l - 55) / 5) * 5;
+				structScore = Math.max(0, structScore);
+
+				const efficiencyScore = 80; // TODO：睡眠连续性
+				const latencyScore = 80; // TODO：睡眠效率
+				/* 3. 加权求和（其余 35% 可先留空或继续扩展） */
+				const finalScore =
+					durationScore * 0.30 +
+					structScore * 0.35 +
+					efficiencyScore * 0.20 +
+					latencyScore * 0.15;
+				return Math.round(finalScore);
+			},
+
+
+			calcSleepMinutes(sleepObj) {
+				// 正式睡眠：浅睡 + 深睡 + 眼动
+				const formalMinutes = sleepObj.totalLight + sleepObj.totalDeep + sleepObj.totalRem;
+				console.log("Light", sleepObj.totalLight)
+				console.log("totalDeep", sleepObj.totalDeep)
+				console.log("totalRem", sleepObj.totalRem)
+				const Light = sleepObj.totalLight
+				const Deep = sleepObj.totalDeep
+				const Rem = sleepObj.totalRem
+				// 小睡总时长（把 type=10000 的段累加即可）
+				const napMinutes = sleepObj.partList
+					.filter(p => p.type === 10000)
+					.reduce((sum, p) => sum + p.time, 0);
+				// 含小睡
+				const totalWithNap = formalMinutes + napMinutes;
+				return {
+					formalMinutes, // 301
+					formalReadable: `${Math.floor(formalMinutes / 60)}${"H"}${formalMinutes % 60}${"M"}`,
+					napMinutes, // 77
+					napReadable: `${Math.floor(napMinutes / 60)}${"H"}${napMinutes % 60}${"M"}`,
+					totalWithNap, // 378
+					totalReadable: `${Math.floor(totalWithNap / 60)}${"H"}${totalWithNap % 60}${"M"}`,
+					Light,
+					totalLight: `${Math.floor(Light / 60)}${"H"}${Light % 60}${"M"}`,
+					Deep,
+					totalDeep: `${Math.floor(Deep / 60)}${"H"}${Deep % 60}${"M"}`,
+					Rem,
+					totalRem: `${Math.floor(Rem / 60)}${"H"}${Rem % 60}${"M"}`,
+				};
 			},
 
 			hexToAscii(hexString) {
@@ -2235,7 +3286,8 @@
 							if (res.confirm) {}
 						}
 					});
-				} else if ((lowPressure >= 91 && lowPressure <= 100) || (highPressure >= 141 && highPressure <= 160)) {
+				} else if ((lowPressure >= 91 && lowPressure <= 100) || (highPressure >= 141 && highPressure <=
+						160)) {
 					uni.showModal({
 						title: this.$t("提示"),
 						content: this.$t("显示结果弹窗"),
@@ -2244,7 +3296,8 @@
 							if (res.confirm) {}
 						}
 					});
-				} else if ((lowPressure >= 101 && lowPressure <= 110) || (highPressure >= 161 && highPressure <= 180)) {
+				} else if ((lowPressure >= 101 && lowPressure <= 110) || (highPressure >= 161 && highPressure <=
+						180)) {
 					uni.showModal({
 						title: this.$t("提示"),
 						content: this.$t("显示结果弹窗"),
@@ -2274,34 +3327,42 @@
 					},
 					time: timess
 				}
+				uni.setStorageSync("xueyadatatype", "0")
+				uni.setStorageSync("xueyadata", data)
+				console.log("哈哈哈哈哈哈", uni.getStorageSync("xueyadata"))
 				this.$post(this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(resaa => {
 					console.log("血压计", resaa)
 					if (resaa.code === 200) {
+						uni.removeStorageSync("xueyadatatype")
+						uni.removeStorageSync("xueyadata")
 						this.setbanhua(1)
-						this.get_device_info(deviceSn)
-						this.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
+						// this.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
 						setTimeout(() => {
-							this.queryDevices()
-							this.list_recipe()
+							this.get_device_info(deviceSn)
 							this.StorageInfo(aaa)
 						}, 1000)
 					}
 				})
 			},
 			// 上报体脂秤数据
-			jakoblife_fat_scale1(deviceSn, deviceId, parsedData, listleng) {
+			jakoblife_fat_scale1(deviceSn, deviceId, parsedData) {
+
 				const data = {
 					deviceSn: deviceSn,
 					mac: deviceId,
 					deviceTypeId: "0",
 					slaveData: {
-						weight: parsedData.weight,
+						weight: parsedData.weightUnit === 2 ? WeightConverter.parseStoneString(parsedData.weight)
+							.toFixed(2) : (parsedData.weightUnit === 6 || parsedData.weightUnit === 4 ? WeightConverter
+								.lbToKg(parsedData.weight) : parsedData.weight),
 						adc: parsedData.adc
 					},
 					time: parsedData.createTime
 				}
+				console.log("tizhong", data)
+				uni.setStorageSync("tizhidata", data)
 				this.$post(this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
@@ -2311,15 +3372,15 @@
 							icon: 'none'
 						})
 						return
+					} else if (res.code === 200) {
+						uni.removeStorageSync("tizhidata")
+						this.setbanhua(1)
+						setTimeout(() => {
+							this.get_device_info(deviceSn)
+							this.get_device_data(deviceSn)
+						}, 1000)
 					}
-					if (parsedData.weightUnit === 0) {
-						uni.setStorageSync("newweight", "KG")
-					} else {
-						uni.setStorageSync("newweight", "lb")
-					}
-					this.setbanhua(1)
-					this.get_device_info(deviceSn)
-					this.get_device_data(deviceSn)
+
 				})
 			},
 			//上报mC手表血压计数据
@@ -2351,8 +3412,8 @@
 					} else {
 						this.setbanhua(1)
 						this.bgaaa(aaa.lowPressure, aaa.highPressure)
-						this.get_device_info(deviceSn)
 						setTimeout(() => {
+							this.get_device_info(deviceSn)
 							this.StorageInfo(aaa)
 						}, 1000)
 					}
@@ -2380,17 +3441,22 @@
 					slaveData: aaa,
 					time: timess
 				}
+
+				uni.setStorageSync("xueyadatatype", "1")
+				uni.setStorageSync("xueyadata", data)
+
 				this.$post(this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
 					console.log("上报数据手表", res)
 					if (res.code === 200) {
+						uni.removeStorageSync("xueyadatatype")
+						uni.removeStorageSync("xueyadata")
 						this.setbanhua(1)
 						this.bgaaa(aaa.lowPressure, aaa.highPressure)
-						this.get_device_info(deviceSn)
 						setTimeout(() => {
+							this.get_device_info(deviceSn)
 							this.StorageInfo(aaa)
-							this.list_recipe()
 						}, 1000)
 					}
 				}).catch(errro => {
@@ -2420,10 +3486,9 @@
 					}
 					this.setbanhua(1)
 					this.bgaaa(aaa.lowPressure, aaa.highPressure)
-					this.get_device_info(deviceSn)
 					setTimeout(() => {
 						this.getStorageInfooy(aaa)
-						this.list_recipe()
+						this.get_device_info(deviceSn)
 					}, 1000)
 				})
 			},
@@ -2451,11 +3516,13 @@
 								triggered: false
 							};
 							if (res.keys.includes("shuzhangyaId1") || res.keys.includes("shuzhangyaId2")) {
-								that.checkAndNotify("shuzhangyaId1", "shuzhangyaId2", aaa.lowPressure, "舒张压",
+								that.checkAndNotify("shuzhangyaId1", "shuzhangyaId2", aaa.lowPressure,
+									"舒张压",
 									notify);
 							}
 							if (res.keys.includes("shousuoyaId1") || res.keys.includes("shousuoyaId2")) {
-								that.checkAndNotify("shousuoyaId1", "shousuoyaId2", aaa.highPressure, "收缩压",
+								that.checkAndNotify("shousuoyaId1", "shousuoyaId2", aaa.highPressure,
+									"收缩压",
 									notify);
 							}
 							if (res.keys.includes("maiboId1") || res.keys.includes("maiboId2")) {
@@ -2496,6 +3563,9 @@
 						break;
 					case "体温":
 						reportData.temperature = data;
+						break;
+					case "睡眠":
+						reportData.sleep = data;
 						break;
 					default:
 						console.warn("未知类型:", type);
@@ -2605,12 +3675,15 @@
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(UserInfo => {
 					if (UserInfo.code == 200) {
+						uni.setStorageSync("userid", UserInfo.data.userId);
+						// 没有ECG的时候currentIndex要改成1
 						if (this.currentIndex === 1) {
 							this.chuhsikg = uni.getStorageSync("danwei2") === 1 ?
 								"lb" : "kg";
-							this.newweightKG = uni.getStorageSync("newweight") !==
-								"" ? uni.getStorageSync("newweight") : 'KG';
-							this.Initial_weight = UserInfo.data.weight;
+							this.newweightKG = uni.getStorageSync("danwei2") === 1 ?
+								"lb" : "KG";
+							this.Initial_weight = this.chuhsikg === "kg" ? UserInfo.data.weight : WeightConverter
+								.kgToLb(UserInfo.data.weight);
 						}
 						this.handleUserInformation(UserInfo.data);
 					} else if (UserInfo.code == 401) {
@@ -2652,6 +3725,13 @@
 					this.processUserInfo(userData);
 				}
 			},
+			// 子按钮点击事件处理
+			onSubButtonClick(item) {
+				console.log('📱 页面接收到子按钮点击:', item.text)
+			},
+
+			// 菜单打开事件
+			onMenuOpen() {},
 			processUserInfo(userData) {
 				this.getInfo(userData);
 				uni.setStorageSync("userid", userData.userId);
@@ -2724,53 +3804,45 @@
 
 			//用户在app手动上报血压数据
 			pressure_data() {
-				let that = this
 				// 获取当前时间字符串
-				let currentTime = new Date().toISOString().slice(0, 19); // 获取当前日期和时间到秒
-				// 检查that.birthday1111是否等于"今天"
-				let dateTime = that.birthday1111 === that.$t('今天') ? currentTime : that
-					.birthday1111 + " " + currentTime
-					.split('T')[1];
-				// 计算时间戳
-				let timestamp = Math.floor(new Date(dateTime).getTime() / 1000);
-				uni.request({
-					url: that.$url_pressure_data,
-					method: 'POST',
-					data: {
-						deviceSn: uni.getStorageSync('deviceSn'),
-						slaveSn: "0",
-						slaveData: {
-							lowPressure: that.shuzhangya,
-							highPressure: that.shousuoya,
-							heartrate: that.maibo
-						},
-						time: timestamp
+				let now = new Date(); // 获取当前时间
+				let formattedTime = this.birthday1111 === this.$t('今天') ?
+					now.toISOString().slice(0, 10) + " " + now.getHours() + ":" + now.getMinutes().toString().padStart(2,
+						'0') : this.birthday1111 + " " + now.getHours() + ":" + now.getMinutes().toString().padStart(2,
+						'0');
+				let timestamp = Math.floor(new Date(formattedTime).getTime() / 1000); // 转换成时间戳（秒）
+				let data = {
+					deviceSn: uni.getStorageSync('deviceSn'),
+					slaveSn: "0",
+					slaveData: {
+						lowPressure: this.shuzhangya,
+						highPressure: this.shousuoya,
+						heartrate: this.maibo
 					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json' //自定义请求头信息
-					},
-
-					success(res) {
-						if (res.data.code == 200) {
-							that.$refs.qs_popup.close()
-							that.birthday = that.$t('今天')
-							that.shousuoya = ''
-							that.shuzhangya = ''
-							that.maibo = ''
-							uni.showToast({
-								title: that.$t("成功"),
-								icon: 'none'
-							})
-							that.list_recipe()
-						} else if (res.data.code == 500) {
-							return
-						} else {
-							uni.showToast({
-								title: that.$t("失败"),
-								icon: 'none'
-							})
-						}
+					time: timestamp
+				}
+				console.log("pressure_data——data", data)
+				this.$post(this.$url_pressure_data, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then((res) => {
+					console.log("pressure_data", res)
+					if (res.code === 200) {
+						this.$refs.qs_popup.close()
+						this.birthday1111 = this.$t('今天')
+						this.shousuoya = ''
+						this.shuzhangya = ''
+						this.maibo = ''
+						uni.showToast({
+							title: this.$t("成功"),
+							icon: 'none'
+						})
+						this.list_recipe()
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: 'none'
+						})
 					}
 				})
 			},
@@ -2816,21 +3888,31 @@
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code == 200) {
-						switch (this.currentIndex) {
-							case 0:
-								this.handleStorage(this, 'kapianlist', 'list');
-								break;
-							case 1:
-								this.handleStorage(this, 'kapianlist2', 'list2');
-								break;
+						if (!this.queryDevicesDone) {
+							switch (this.currentIndex) {
+								case 0:
+									this.handleStorage(this, 'kapianlist', 'list');
+									break;
+								case 1: // 没有ECG的时候currentIndex要改成1
+									this.handleStorage(this, 'kapianlist2', 'list2');
+									break;
+							}
+							this.queryDevicesDone = true; // 立刻上锁
+							this.list_recipe();
 						}
-						this.list_recipe();
 						if (res.rows !== "") {
-							let deviceslist1 = res.rows.filter(item => item.mac !== null && item.deviceTypeId !==
+							let deviceslist1 = res.rows.filter(item => item.mac !== null && item
+								.deviceTypeId !==
 								"11").map(item => item.mac);
 							this.deviceList = deviceslist1;
+							uni.setStorageSync("deviceList", deviceslist1)
+
 						}
-						this.aaaa(res.rows);
+						if (uni.getStorageSync("appQX") === "1") {
+							// console.log("获取到权限")
+							this.aaaa(res.rows);
+							uni.setStorageSync("lixianlist", res.rows)
+						}
 					} else {
 						return
 					}
@@ -2841,20 +3923,22 @@
 					if (row.deviceTypeId === "10") {
 						this.handleDeviceType10And13(row);
 						this.devicdsdmac.push(row.mac)
+						uni.setStorageSync("devicdsdmac", this.devicdsdmac)
 					} else if (row.deviceTypeId === "13") {
 						this.handleDeviceType10And13(row);
 						this.devicdsdmac1.push(row.mac)
+						uni.setStorageSync("devicdsdmac1", this.devicdsdmac1)
 					} else if (row.deviceTypeId === "11") {
 						this.handleDeviceType11(row);
 					}
 				});
-				if (this.currentIndex === 3) {
+				if (this.currentIndex === 3) { // 没有ECG的时候currentIndex要改成3
 					this.list_recipe();
 				}
 			},
 			// 定义一个通用函数
 			handleDeviceType10And13(row) {
-				if (this.deviceList.length !== 0) {
+				if (this.deviceList.length !== 0 || uni.getStorageSync("deviceList").length !== 0) {
 					this.initBluetooth();
 				}
 				uni.setStorageSync("deviceSn", row.deviceSn);
@@ -2869,22 +3953,59 @@
 					const data = systemInfo.platform === "android" ? callback.data : JSON
 						.parse(callback.data);
 					if (row.mac === data.mac) {
+						console.log("data", data)
 						if (systemInfo.platform === "android" && data.weightStatus === 1 &&
-							data.weight !==
-							"0.00") {
-							that.jakoblife_fat_scale1(row.deviceSn, row.mac, data, "");
+							data.weight !== "0.00" && data.testStatus === 255) {
+							if ((data.weightUnit === 6 || data.weightUnit === 4) && that.newweightKG === "lb") {
+								that.Latest_weight = data.weight
+								that.lastWeightbishi = "0"
+								uni.setStorageSync("weightlb", data.weight)
+								uni.setStorageSync("weightkg", WeightConverter.lbToKg(data.weight))
+							} else if (data.weightUnit === 0 && that.newweightKG === "KG") {
+								that.Latest_weight = data.weight
+								that.lastWeightbishi = ""
+								uni.setStorageSync("weightlb", WeightConverter.kgToLb(data.weight))
+								uni.setStorageSync("weightkg", data.weight)
+							} else {
+								if (that.newweightKG === "KG") {
+									if (data.weightUnit === 0) {
+										that.Latest_weight = data.weight
+										that.lastWeightbishi = ""
+										uni.setStorageSync("weightlb", WeightConverter.kgToLb(data.weight))
+										uni.setStorageSync("weightkg", data.weight)
+									} else {
+										that.Latest_weight = WeightConverter.lbToKg(data.weight)
+										that.lastWeightbishi = ""
+										uni.setStorageSync("weightlb", data.weight)
+										uni.setStorageSync("weightkg", WeightConverter.lbToKg(data.weight))
+									}
+								} else {
+									if (data.weightUnit === 0) {
+										that.Latest_weight = WeightConverter.kgToLb(data.weight)
+										that.lastWeightbishi = ""
+										uni.setStorageSync("weightlb", WeightConverter.kgToLb(data.weight))
+										uni.setStorageSync("weightkg", data.weight)
+									} else {
+										that.Latest_weight = data.weight
+										that.lastWeightbishi = "0"
+										uni.setStorageSync("weightlb", data.weight)
+										uni.setStorageSync("weightkg", WeightConverter.lbToKg(data.weight))
+									}
+								}
+
+							}
+							that.jakoblife_fat_scale1(row.deviceSn, row.mac, data);
 						} else if (systemInfo.platform === "ios" && data.testStatus ===
 							255) {
 							that.arrrylist.push(data);
 							if (data.weight !== "0.00") {
-								that.jakoblife_fat_scale1(row.deviceSn, row.mac, data, that
-									.arrrylist.length);
+								that.jakoblife_fat_scale1(row.deviceSn, row.mac, data);
 							}
 						}
 						return
 					}
 				});
-				if (that.currentIndex === 1) {
+				if (that.currentIndex === 1) { // 没有ECG的时候currentIndex要改成1
 					uni.setStorageSync("deviceSn", row.deviceSn);
 					that.get_device_data(row.deviceSn);
 					return
@@ -2909,7 +4030,7 @@
 								}
 								this.handleStorage(this, 'kapianlist', 'list');
 								break;
-							case 1:
+							case 1: // 没有ECG的时候currentIndex要改成1
 								if (res.data.deviceTypeId === "11") {
 									uni.setStorageSync("deviceSn", deviceSn)
 								}
@@ -2922,7 +4043,7 @@
 							case 0:
 								this.handleStorage(this, 'kapianlist', 'list');
 								break;
-							case 1:
+							case 1: // 没有ECG的时候currentIndex要改成1
 								this.handleStorage(this, 'kapianlist2', 'list2');
 								break;
 						}
@@ -2986,56 +4107,28 @@
 			// 处理步数卡片
 			processSteps(item, name) {
 				let that = this
-				const stepKey = 'settept';
-				const stepCacheKey = 'settept1';
 				const now = new Date().getTime();
-				that.getStorageInfo([stepKey, stepCacheKey], (hasAllKeys, res) => {
-					const currentStep = uni.getStorageSync(stepKey);
-					const cachedStep = uni.getStorageSync(stepCacheKey);
-					const stepItem = that.findValue(that.list, 'title', name);
-					if (hasAllKeys) {
-						const stepDiff = currentStep - cachedStep;
-						if (stepDiff > 0) {
-							uni.setStorageSync(stepCacheKey, cachedStep + stepDiff);
-						}
-					} else {
-						uni.setStorageSync(stepCacheKey, currentStep);
-					}
-					stepItem.Step_number = uni.getStorageSync(stepCacheKey);
-					stepItem.Step_count = that.formatDate(now);
-					stepItem.title = that.$t("步数");
-					stepItem.type_LX = that.$t("计步");
-					that.bushu = stepItem.Step_number;
-					that.bushu_time = stepItem.Step_count;
-					that.saveDailySteps(that.bushu, that.bushu_time);
-				});
+				const stepItem = that.findValue(that.list, 'title', name);
+				stepItem.Step_number = that.getRegisterVal(item, 'register', "steps")
+				stepItem.Step_count = that.formatDate(now);
+				stepItem.title = that.$t("步数");
+				stepItem.type_LX = that.$t("计步");
+				that.bushu = stepItem.Step_number
+				that.bushu_time = stepItem.Step_count;
+				that.saveDailySteps(that.bushu, that.bushu_time);
 			},
 			// 封装处理步数的逻辑
 			processSteps2(item, name) {
 				let that = this
-				const stepKey = 'settept';
-				const stepCacheKey = 'settept1';
 				const now = new Date().getTime();
-				this.getStorageInfo([stepKey, stepCacheKey], (hasAllKeys, res) => {
-					const currentStep = uni.getStorageSync(stepKey);
-					const cachedStep = uni.getStorageSync(stepCacheKey);
-					const stepItem = that.findValue(that.list2, 'title', name);
-					if (hasAllKeys) {
-						const stepDiff = currentStep - cachedStep;
-						if (stepDiff > 0) {
-							uni.setStorageSync(stepCacheKey, cachedStep + stepDiff);
-						}
-					} else {
-						uni.setStorageSync(stepCacheKey, currentStep);
-					}
-					stepItem.Step_number = uni.getStorageSync(stepCacheKey);
-					stepItem.Step_count = that.formatDate(now);
-					stepItem.title = that.$t("步数");
-					stepItem.type_LX = that.$t("计步");
-					that.bushu = stepItem.Step_number;
-					that.bushu_time = stepItem.Step_count;
-					that.saveDailySteps(that.bushu, that.bushu_time);
-				});
+				const stepItem = that.findValue(that.list2, 'title', name);
+				stepItem.Step_number = that.getRegisterVal(item, 'register', "steps")
+				stepItem.Step_count = that.formatDate(now);
+				stepItem.title = that.$t("步数");
+				stepItem.type_LX = that.$t("计步");
+				that.bushu = stepItem.Step_number
+				that.bushu_time = stepItem.Step_count;
+				// that.saveDailySteps(that.bushu, that.bushu_time);
 			},
 
 			// 封装处理身高、体重等通用逻辑
@@ -3089,9 +4182,10 @@
 			// 封装处理BMI和其他通用逻辑
 			processGenericData(itemdata, titleKey, dataKey) {
 				let that = this
-				const item = that.findValue(that.list2, 'title', that.$t(titleKey));
+				const item = that.findValue(that.list2, 'title', titleKey);
 				const data = that.findValue(itemdata, 'register', dataKey);
 				item.Step_count = that.formatDate(data?.updateTime);
+				item.title = that.$t(titleKey)
 			},
 
 			// 处理身高卡片
@@ -3102,7 +4196,8 @@
 				const unit = uni.getStorageSync("danwei1") === 0 ? "inch" : "cm";
 				heightItem.type_LX = unit;
 				heightItem.title = that.$t("身高")
-				heightItem.Step_number = height !== null ? height : '-/-';
+				heightItem.Step_number = height !== null ? (unit === "inch" ? WeightConverter.cmToInch(height) :
+					height) : '-/-';
 				heightItem.Step_count = that.formatDate(that.findValue(item, 'register',
 					'height')?.updateTime);
 			},
@@ -3174,6 +4269,14 @@
 				temperatureItem.Step_number = uni.getStorageSync("yali") || "0";
 				temperatureItem.Step_count = uni.getStorageSync("yalitimes") || "--/--";
 			},
+			// 处理心率卡片
+			processxiblv(item, name) {
+				let that = this
+				const temperatureItem = that.findValue(that.list, 'title', name);
+				temperatureItem.title = that.$t("心率");
+				temperatureItem.Step_number = that.pulse;
+				temperatureItem.Step_count = that.pulsetime
+			},
 			// 定义一个函数来封装血压等级判断逻辑
 			updateBloodPressureStatus(lowPressure, highPressure) {
 				this.xueya = -1; // 初始化为未知状态
@@ -3236,17 +4339,8 @@
 					'content-type': 'application/x-www-form-urlencoded;'
 				}).then(res => {
 					if (res.code == 200) {
+						this.sleep_time = this.getUpdateTime(res.data, 'register', 'sleep')
 						if (this.currentIndex === 0) {
-							// 使用对象存储最新数据，便于响应式更新
-							const newVitals = {
-								bloodPressure: {
-									high: null,
-									low: null,
-									pulse: null,
-									updated: false
-								},
-								otherData: {}
-							}
 							const slaveSn2Data = res.data.filter(item => item.slaveSn === "2");
 							const slaveSn3Data = res.data.filter(item => item.slaveSn === "3");
 							// 获取各项数据
@@ -3263,64 +4357,34 @@
 									time: time2
 								};
 							}
-							// 血压数据
-							const lowPressureData = getLatestData(slaveSn2Data, slaveSn3Data, "lowPressure");
-							const highPressureData = getLatestData(slaveSn2Data, slaveSn3Data, "highPressure");
+							if (this.xueyabiaoshi === "" && !uni.getStorageSync('xueyadata')) {
+								// 血压数据
+								const highPressureData = getLatestData(slaveSn2Data, slaveSn3Data,
+									"highPressure");
+								const lowPressureData = getLatestData(slaveSn2Data, slaveSn3Data,
+									"lowPressure");
+								const pulseData = getLatestData(slaveSn2Data, slaveSn3Data, "heartrate");
+								// 响应式更新血压数据
+								this.$set(this, 'lowPressure', this.Blood === "mmHg" ?
+									lowPressureData.value :
+									(Number(lowPressureData.value) * 0.133).toFixed(1));
+								this.$set(this, 'highPressure', this.Blood === "mmHg" ?
+									highPressureData.value :
+									(Number(highPressureData.value) * 0.133).toFixed(1));
+								this.$set(this, 'pulse', pulseData.value);
+								this.$set(this, 'pulsetime', this.formatDate(pulseData.time));
+								// 更新血压状态
+								this.updateBloodPressureStatus(lowPressureData.value, highPressureData
+									.value);
+							}
 							const pulseData = getLatestData(slaveSn2Data, slaveSn3Data, "heartrate");
-							// 响应式更新血压数据
-							this.$set(this, 'lowPressure', this.Blood === "mmHg" ?
-								lowPressureData.value :
-								(Number(lowPressureData.value) * 0.133).toFixed(1));
-							this.$set(this, 'highPressure', this.Blood === "mmHg" ?
-								highPressureData.value :
-								(Number(highPressureData.value) * 0.133).toFixed(1));
-							this.$set(this, 'pulse', pulseData.value);
-							// 更新血压状态
-							this.updateBloodPressureStatus(lowPressureData.value, highPressureData.value);
-							// const slaveSn2Data = res.data.filter(item => item.slaveSn === "2");
-							// const slaveSn3Data = res.data.filter(item => item.slaveSn === "3");
-							// let lowPressuretime1 = this.findValue(slaveSn2Data, "register", "lowPressure")
-							// 	.updateTime
-							// let highPressureyime1 = this.findValue(slaveSn2Data, "register",
-							// 		"highPressure")
-							// 	.updateTime;
-							// let heartratetime1 = this.findValue(slaveSn2Data, "register", "heartrate")
-							// 	.updateTime;
-							// let lowPressure1 = this.getRegisterVal(slaveSn2Data, 'register', 'lowPressure')
-							// let highPressure1 = this.getRegisterVal(slaveSn2Data, 'register',
-							// 	'highPressure')
-							// let pulse1 = this.getRegisterVal(slaveSn2Data, 'register', 'heartrate');
-							// let lowPressuretime2 = this.findValue(slaveSn3Data, "register", "lowPressure")
-							// 	.updateTime
-							// let highPressureyime2 = this.findValue(slaveSn3Data, "register",
-							// 		"highPressure")
-							// 	.updateTime;
-							// let heartratetime2 = this.findValue(slaveSn3Data, "register", "heartrate")
-							// 	.updateTime;
-							// let lowPressure2 = this.getRegisterVal(slaveSn3Data, 'register', 'lowPressure')
-							// let highPressure2 = this.getRegisterVal(slaveSn3Data, 'register',
-							// 	'highPressure')
-							// let pulse2 = this.getRegisterVal(slaveSn3Data, 'register', 'heartrate');
-							// if (lowPressuretime1 < lowPressuretime2) {
-							// 	this.lowPressure = lowPressure2;
-							// 	this.highPressure = highPressure2;
-							// } else if (lowPressuretime1 > lowPressuretime2) {
-							// 	this.lowPressure = lowPressure1;
-							// 	this.highPressure = highPressure1;
-							// }
-							// if (heartratetime1 < heartratetime2) {
-							// 	this.pulse = pulse2;
-							// } else if (heartratetime1 > heartratetime2) {
-							// 	this.pulse = pulse1;
-							// }
-							// // 判断血压等级, 在需要更新血压状态的地方调用此函数
-							// this.updateBloodPressureStatus(this.lowPressure, this.highPressure);
+							this.$set(this, 'pulsetime', this.formatDate(pulseData.time));
 							const kapianlist = uni.getStorageSync("kapianlist") || [];
 							let itelistasd = []
 							for (let i = 0; i < kapianlist.length; i++) {
 								const item = kapianlist[i];
 								if (item.title === "步数" || item.title === "Steps") {
-									this.processSteps(res.data, item.title);
+									// this.processSteps(res.data, item.title);
 								} else if (item.title === "身高" || item.title === "Height") {
 									this.processHeight(res.data, item.title);
 								} else if (item.title === "体温" || item.title === "Body Temperature") {
@@ -3329,14 +4393,28 @@
 									this.processBloodOxygen(res.data, item.title);
 								} else if (item.title === "压力" || item.title === "Stress") {
 									this.processyali(res.data, item.title);
+								} else if (item.title === "心率" || item.title === "Heart") {
+									this.processxiblv(res.data, item.title);
 								}
 								itelistasd.push(item)
 							}
 							uni.setStorageSync("kapianlist", itelistasd)
-						} else if (this.currentIndex === 1) {
-							this.Latest_weight = this.getRegisterVal(res.data, 'register', 'weight');
+							this.$nextTick(() => {
+								this.$forceUpdate();
+							});
+						} else if (this.currentIndex === 1) { // 没有ECG的时候currentIndex要改成1
+							if (this.lastWeightbishi === "" && !uni.getStorageSync("tizhidata")) {
+								this.Latest_weight = this.newweightKG === "KG" ? this.getRegisterVal(res
+									.data,
+									'register', 'weight') : WeightConverter.kgToLb(this.getRegisterVal(
+									res
+									.data, 'register', 'weight'));
+							}
 							this.Latest_date = this.getUpdateTime(res.data, 'register', 'weight')
-							this.Target_weight = this.getRegisterVal(res.data, 'register', 'goal_weight');
+							this.Target_weight = this.chuhsikg === "kg" ? this.getRegisterVal(res.data,
+								'register',
+								'goal_weight') : WeightConverter.kgToLb(this.getRegisterVal(res.data,
+								'register', 'goal_weight'));
 							this.Chest_circumference = this.getRegisterVal(res.data, 'register',
 								'chest_circumference');
 							this.waistline = this.getRegisterVal(res.data, 'register', 'waistline');
@@ -3351,47 +4429,78 @@
 							for (let i = 0; i < kapianlist2.length; i++) {
 								const item = kapianlist2[i];
 								if (item.title === "步数" || item.title === "Steps") {
-									this.processSteps2(res.data, item.title);
+									// this.processSteps2(res.data, item.title);
 								} else if (item.title === "身高" || item.title === "Height") {
-									this.processCommonData(res.data, item.title, 'height', 'danwei1',
-										"cm");
+									// this.processCommonData(res.data, item.title, 'height', 'danwei1',
+									// 	"cm");
 								} else if (item.title === "BMI") {
 									this.processGenericData(res.data, "BMI", "weight");
-								} else if (item.title === this.$t("骨含量")) {
-									this.processGenericData(res.data, "骨含量", "weight");
-								} else if (item.title === this.$t("肌肉量")) {
-									this.processGenericData(res.data, "肌肉量", "weight");
-								} else if (item.title === this.$t("蛋白率")) {
-									this.processGenericData(res.data, "蛋白率", "weight");
-								} else if (item.title === this.$t("水分")) {
-									this.processGenericData(res.data, "水分", "weight");
-								} else if (item.title === this.$t("内脏脂肪指数")) {
-									this.processGenericData(res.data, "内脏脂肪指数", "weight");
-								} else if (item.title === this.$t("脂肪率")) {
-									this.processGenericData(res.data, "脂肪率", "weight");
-								} else if (item.title === this.$t("基础代谢率")) {
-									this.processGenericData(res.data, "基础代谢率", "weight");
-								} else if (item.title === this.$t("皮下脂肪率")) {
-									this.processGenericData(res.data, "皮下脂肪率", "weight");
-								} else if (item.title === this.$t("身体年龄")) {
-									this.processGenericData(res.data, "身体年龄", "weight");
+								} else if (item.title === "骨含量" || item.title === "Bone Mass") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "肌肉量" || item.title === "Muscle Mass") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "蛋白率" || item.title === "Protein%") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "水分" || item.title === "Water%") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "内脏脂肪指数" || item.title === "VFI") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "脂肪率" || item.title === "Fat%") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "基础代谢率" || item.title === "BMR") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "皮下脂肪率" || item.title === "SubQ Fat%") {
+									this.processGenericData(res.data, item.title, "weight");
+								} else if (item.title === "身体年龄" || item.title === "Body Age") {
+									this.processGenericData(res.data, item.title, "weight");
 								}
 							}
-						} else if (this.currentIndex === 3) {
+						} else if (this.currentIndex === 2) { // 没有ECG的时候currentIndex要改成2
 							uni.getStorageInfo({
 								success: (ress) => {
-									const currentStep = uni.getStorageSync("settept");
-									const cachedStep = ress.keys.includes('settept1') ? uni
-										.getStorageSync("settept1") : 0;
-									if (cachedStep < currentStep) {
-										const stepDiff = currentStep - cachedStep;
-										uni.setStorageSync("settept1", cachedStep + stepDiff);
-									}
-									this.bushu = uni.getStorageSync("settept1");
-									this.bushu_time = this.formatDate(new Date().getTime());
-									this.saveDailySteps(this.bushu, this.bushu_time);
+									this.yali = uni.getStorageSync("yali") || "0";
+									this.yali_time = uni.getStorageSync("yalitimes") ||
+										"--/--";
 								},
 							});
+
+							this.sleep = this.getRegisterVal(res.data, 'register', 'sleep');
+							this.sleep_time = this.getUpdateTime(res.data, 'register', 'sleep')
+							if (this.getRegisterVal(res.data, 'register', 'sleep') === null || this
+								.getRegisterVal(
+									res.data, 'register', 'sleep') === "-/-") {
+								this.totalLight = "--/--"
+								this.totalDeep = "--/--"
+								this.totalRem = "--/--"
+								this.sleep_point = "--/--"
+								this.sleep = "--/--"
+								this.sleep_time = "--/--"
+							} else if (this.getRegisterVal(res.data, 'register', 'sleep') === '0H0M') {
+								this.totalLight = "0H0M"
+								this.totalDeep = "0H0M"
+								this.totalRem = "0H0M"
+								this.sleep_point = "--/--"
+								this.sleep = "0H0M"
+								this.sleep_time = this.getUpdateTime(res.data, 'register', 'sleep')
+							} else {
+								this.totalLight = uni.getStorageSync("totalLight")
+								this.totalDeep = uni.getStorageSync("totalDeep")
+								this.totalRem = uni.getStorageSync("totalRem")
+								// 1. 总睡眠小时数（ 保留 1 位小数）
+								const totalAll = this.timeStrToMinutes(this.sleep); // 436
+								const totalH = (totalAll / 60).toFixed(1)
+								const deepMin = (this.timeStrToMinutes(this.totalDeep) / 60).toFixed(1);
+								const remMin = (this.timeStrToMinutes(this.totalRem) / 60).toFixed(1);
+								const lightMin = (this.timeStrToMinutes(this.totalLight) / 60).toFixed(1)
+								this.sleep_point = this.overallSleepScore(totalAll, totalH, deepMin,
+									remMin,
+									lightMin)
+								uni.setStorageSync("sleep_point", this.sleep_point)
+							}
+						} else if (this.currentIndex === 3) { // 没有ECG的时候currentIndex要改成3
+							this.bushu = this.getRegisterVal(res.data, 'register', 'steps');
+							this.bushu_time = this.getUpdateTime(res.data, 'register', 'steps')
+							this.saveDailySteps(this.bushu, this.bushu_time);
 						}
 					}
 				})
@@ -3456,24 +4565,32 @@
 				this.animation = 'shake';
 				this.button_show = true
 				this.delate_icon = true
-				this.disabledsaaa = false
+				this.disabledsaaa = true
+				this.disabletouch = true
 			},
 			tiaozhen2() {
 				this.binaji2 = false
 				this.animation2 = 'shake';
 				this.button_show2 = true
 				this.delate_icon2 = true
-				this.disabledsaaa2 = false
+				this.disabledsaaa2 = true
+				this.disabletouch = true
 			},
 			add_bt_xy() {
 				uni.navigateTo({
 					url: "../main/card1"
 				})
+				setTimeout(() => {
+					this.queryDevicesDone = false
+				}, 1000)
 			},
 			add_bt2() {
 				uni.navigateTo({
 					url: '../main/card'
 				})
+				setTimeout(() => {
+					this.queryDevicesDone = false
+				}, 1000)
 			},
 			ture_bt() {
 				this.binaji = true
@@ -3481,6 +4598,8 @@
 				this.button_show = false
 				this.delate_icon = false
 				this.disabledsaaa = true
+				this.queryDevicesDone = false; // 立刻上锁
+				this.disabletouch = false
 				uni.setStorageSync("kapianlist", this.list)
 			},
 			ture_bt2() {
@@ -3489,6 +4608,8 @@
 				this.button_show2 = false
 				this.delate_icon2 = false
 				this.disabledsaaa2 = true
+				this.queryDevicesDone = false; // 立刻上锁
+				this.disabletouch = false
 				uni.setStorageSync("kapianlist2", this.list2)
 			},
 			xw_handleChange(e) {
@@ -3646,8 +4767,7 @@
 			//用户在app手动上报重量数据
 			fat_scale_tz() {
 				const timestamp = Math.floor(new Date(this.birthday2 == this.$t('今天') ? this.endtimesss + " " +
-						new Date()
-						.getHours() + ":" + new Date().getMinutes() : this.birthday2).getTime() /
+						new Date().getHours() + ":" + new Date().getMinutes() : this.birthday2).getTime() /
 					1000); // 将时间转换成时间戳（以秒为单位）
 				const data = {
 					deviceSn: uni.getStorageSync("deviceSn"),
@@ -3765,6 +4885,352 @@
 					}
 				})
 			},
+
+			/* ==================== 新增ECG方法 start ==================== */
+			// 显示完整波形
+			showFullWaveform() {
+				if (this.hasMeasurementData) {
+					this.$refs.wave.showFullWave();
+					this.tip = '显示完整测量波形，可使用放大缩小功能查看细节';
+				} else {
+					uni.showToast({
+						title: '暂无测量数据',
+						icon: 'none'
+					});
+				}
+			},
+
+			// 清空波形数据
+			clearWave() {
+				this.$refs.wave.clear();
+				this.dataCount = 0;
+				this.fullDataCount = 0;
+				this.queueLength = 0;
+				this.measurementStatus = '';
+				this.tip = '数据已清空';
+			},
+			/* ==================== 主流程 ==================== */
+			async toggleConnect() {
+				if (this.connected) {
+					await this.disConnect();
+					return
+				}
+				this.connecting = true;
+				this.tip = '初始化适配器...'
+				try {
+					await this.openAdapter()
+					await this.startDiscovery()
+					const dev = await this.findDevice()
+					await this.connectDevice(dev.deviceId)
+					await this.openNotifyAndWrite() // 一次性搞定 notify + write
+					// await this.sendEcgStart() // 发 3 帧
+					this.tip = '等待血压计开始...';
+					this.dataSource = '血压计'
+				} catch (e) {
+					this.tip = '失败：' + (e.errMsg || e.message);
+					this.connected = false
+				} finally {
+					this.connecting = false
+				}
+			},
+
+			/* -------------------- 蓝牙底层 -------------------- */
+			openAdapter() {
+				return new Promise((resolve, reject) =>
+					uni.openBluetoothAdapter({
+						success: resolve,
+						fail: reject
+					}))
+			},
+			startDiscovery() {
+				return new Promise((resolve, reject) =>
+					uni.startBluetoothDevicesDiscovery({
+						services: [SERVICE_ID],
+						success: () => setTimeout(resolve, 800),
+						fail: reject
+					}))
+			},
+			findDevice() {
+				return new Promise((resolve, reject) =>
+					uni.getBluetoothDevices({
+						success: res => {
+							const dev = res.devices.find(d => d.name === 'BP68W' || d.localName ===
+								'BP68W')
+							dev ? resolve(dev) : reject(new Error('未发现 BP68W'))
+						},
+						fail: reject
+					}))
+			},
+			connectDevice(deviceId) {
+				return new Promise((resolve, reject) =>
+					uni.createBLEConnection({
+						deviceId,
+						success: () => {
+							this.deviceId = deviceId;
+							this.connected = true;
+							resolve()
+						},
+						fail: reject
+					}))
+			},
+			openNotifyAndWrite() {
+				setTimeout(() => {
+					this.getBLEDeviceServices(this.deviceId);
+				}, 1000);
+			},
+
+			getBLEDeviceServices(deviceId) {
+				let that = this
+				uni.getBLEDeviceServices({
+					deviceId: deviceId,
+					success: (res) => {
+						console.log("res.services", res.services)
+						switch (res.services.length) {
+							case 3:
+								that.getBLEDeviceCharacteristicsECG(deviceId, res.services[2].uuid)
+								break
+						}
+
+					},
+					fail(res) {}
+				})
+			},
+			getBLEDeviceCharacteristicsECG(deviceId, serviceId) {
+				let that = this
+				uni.getBLEDeviceCharacteristics({
+					deviceId: deviceId,
+					serviceId: serviceId,
+					success: (res) => {
+						console.log(res)
+						for (let i = 0; res.characteristics.length > i; i++) {
+							let item = res.characteristics[i]
+							//蓝牙消息通知
+							if (item.properties.write) {
+								console.log("deviceId", deviceId)
+								console.log("serviceId", serviceId)
+								console.log("characteristicId", item.uuid)
+								that.deviceIdECG = deviceId
+								that.serviceIdECG = serviceId
+								that.uuidECG = item.uuid
+								// setTimeout(() => {
+								// 	that.sendCnt = 0
+								// 	that.send(deviceId, serviceId, item.uuid)
+								// }, 2000)
+
+							}
+							if (item.properties.notify) {
+								uni.notifyBLECharacteristicValueChange({
+									state: true, // 启用 notify 功能
+									deviceId: deviceId,
+									serviceId: serviceId,
+									characteristicId: item.uuid,
+									success: (notifyres) => {
+										let rxBuf = ''; // 剩余未处理十六进制字符串
+										uni.onBLECharacteristicValueChange((res) => {
+											const dataList = that.ab2hex(res
+												.value)
+											console.log("蓝牙返回的的数据：", dataList)
+											this.buffer += this.ab2hex(res
+												.value)
+											this.tryParse()
+										})
+									},
+									fail: (notifyerr) => {}
+								})
+							}
+						}
+					},
+					fail(res) {
+						console.error('getBLEDeviceCharacteristics', res)
+					}
+				})
+			},
+
+			startbtn() {
+				this.sendCnt = 0
+				this.send(this.deviceIdECG, this.serviceIdECG, this.uuidECG)
+				setTimeout(() => {
+					uni.showToast({
+						title: '请在30S内将双手手指放在ECG设备上，点击设备上开始按钮进行测量',
+						icon: 'none',
+						duration: 3000
+					})
+				}, 2000)
+			},
+
+			send(deviceId, serviceId, writeCharId) {
+				const hex = 'A51201130A';
+				if (this.sendCnt >= 3) {
+					this.sendCnt = 0; // 重置，方便下次再发
+					return;
+				}
+				this.sendCnt++;
+
+				uni.writeBLECharacteristicValue({
+					deviceId,
+					serviceId,
+					characteristicId: writeCharId,
+					writeType: 'writeNoResponse',
+					value: this.toArrayBuffer(hex),
+					success: () => {
+						console.log(`第${this.sendCnt}次写入成功`);
+						setTimeout(() => this.send(deviceId, serviceId, writeCharId), 50);
+					},
+					fail: e => {
+						console.error(`第${this.sendCnt}次写入失败`, e)
+						uni.showToast({
+							title: `第${this.sendCnt}次写入失败`,
+							icon: 'none',
+							duration: 1500
+						})
+					}
+				});
+			},
+			getServices(deviceId) {
+				return new Promise((resolve, reject) =>
+					uni.getBLEDeviceServices({
+						deviceId,
+						success: res => {
+							console.log("res.services", res.services)
+							resolve(res.services)
+						},
+						fail: reject
+					}))
+			},
+			getCharacteristics(deviceId, serviceId) {
+				return new Promise((resolve, reject) =>
+					uni.getBLEDeviceCharacteristics({
+						deviceId,
+						serviceId,
+						success: res => {
+							console.log("res.characteristics", res.characteristics)
+							resolve(res.characteristics)
+						},
+						fail: reject
+					}))
+			},
+			enableNotify(deviceId, serviceId, characteristicId) {
+				return new Promise((resolve, reject) =>
+					uni.notifyBLECharacteristicValueChange({
+						deviceId,
+						serviceId,
+						characteristicId,
+						state: true,
+						success: resolve,
+						fail: reject
+					}))
+			},
+
+			/* ==================== 协议层 ==================== */
+			async sendEcgStart() {
+				for (let i = 0; i < 3; i++) {
+					if (i) await new Promise(r => setTimeout(r, 50))
+					await this.writeCmd(CMD_ECG_START)
+				}
+			},
+			sendStop() {
+				this.writeCmd(CMD_ECG_STOP).then(() => this.tip = '已发送停止命令')
+			},
+			writeCmd(cmd) {
+				return new Promise((resolve, reject) =>
+					uni.writeBLECharacteristicValue({
+						deviceId: this.deviceIdECG,
+						serviceId: this.serviceIdECG,
+						characteristicId: this.uuidECG, // 动态拿到的
+						value: this.toArrayBuffer("A61500150A"),
+						writeType: 'writeNoResponse',
+						success: (e) => {
+							console.error('write fail', e)
+							resolve
+						},
+						fail: (e) => {
+							console.error('write fail', e)
+							reject(e)
+						}
+					}))
+			},
+
+			/* 分包拼接解析 */
+			tryParse() {
+				while (true) {
+					const idx = this.buffer.indexOf('0a')
+					if (idx === -1) break
+					const frameHex = this.buffer.slice(0, idx + 2)
+					this.buffer = this.buffer.slice(idx + 2)
+					const frame = new Uint8Array(frameHex.match(/.{2}/g).map(b => parseInt(b, 16)))
+					if (frame.length < 5) continue
+					const head = frame[0]
+					if (head === 0x23) this.parseWave(frame)
+					else if (head === 0xA6) this.parseCmd(frame)
+				}
+			},
+			parseWave(buf) {
+				if (buf[buf.length - 1] !== 0x0A) return;
+				const sumRx = buf[buf.length - 2];
+				const sumCalc = buf.slice(1, -2).reduce((s, b) => s + b, 0) & 0xFF;
+				if (sumRx !== sumCalc) return;
+				const str = String.fromCharCode(...buf.slice(1, -2));
+				const val = parseFloat(str);
+				if (Number.isNaN(val)) return;
+
+				this.$refs.wave.pushData([val]);
+				this.dataCount++;
+				this.fullDataCount = this.$refs.wave.getFullDataCount();
+				this.queueLength = this.$refs.wave.getQueueLength();
+
+			},
+			parseCmd(buf) {
+				if (buf[1] !== 0x15) return;
+				const map = {
+					0x00: '采集结束',
+					0x01: '采集开始',
+					0x02: '采集错误（未按键/提前结束）'
+				};
+				this.measurementStatus = map[buf[2]] || '未知状态';
+				this.tip = this.measurementStatus;
+
+				if (buf[2] === 0x00) {
+					// 测量结束，提示用户可以查看完整波形
+					setTimeout(() => {
+						uni.showModal({
+							title: '测量完成',
+							content: `本次测量共采集 ${this.fullDataCount} 个数据点，是否查看完整波形？`,
+							confirmText: '查看完整波形',
+							cancelText: '暂不查看',
+							success: (res) => {
+								if (res.confirm) {
+									this.showFullWaveform();
+								}
+							}
+						});
+					}, 500);
+				} else if (buf[2] === 0x02) {
+					uni.showToast({
+						title: '用户未按开始键或已暂停',
+						icon: 'none'
+					});
+				}
+			},
+
+			/* ==================== UI ==================== */
+
+			toggleStats() {
+				this.statsVisible = !this.statsVisible
+			},
+			disConnect() {
+				if (!this.deviceId) return
+				uni.closeBLEConnection({
+					deviceId: this.deviceId
+				})
+				uni.closeBluetoothAdapter()
+				this.connected = false
+				this.deviceId = ''
+				this.notifyCharacteristicId = ''
+				this.writeCharacteristicId = ''
+				this.dataSource = '未连接'
+				this.tip = '已断开'
+			},
+			/* ==================== 新增ECG方法 end ==================== */
 		},
 	}
 </script>
@@ -3779,6 +5245,34 @@
 		color: white;
 		padding-top: 70px;
 		padding-bottom: 5px;
+		font-weight: 400;
+		font-size: 12px;
+	}
+
+
+	.title_zs_1 {
+		display: flex;
+		justify-content: flex-end;
+		margin-right: 20px;
+		margin-left: 20px;
+		text-align: right;
+		padding-top: 60px;
+		color: white;
+		padding-bottom: 5px;
+		font-weight: 400;
+		font-size: 12px;
+	}
+
+	.title_zs_ECG {
+		display: flex;
+		justify-content: flex-end;
+		margin-right: 20px;
+		margin-left: 20px;
+		text-align: right;
+		padding-top: 60px;
+		color: red;
+		padding-bottom: 5px;
+		margin-top: 5px;
 		font-weight: 400;
 		font-size: 12px;
 	}
@@ -4037,6 +5531,14 @@
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
+	.data_bg_A_set {
+		border-top-left-radius: 20px;
+		border-top-right-radius: 20px;
+		background: #EFEFF4;
+		margin-top: 20px;
+		padding: 20px 0 80px 0;
+	}
+
 	.data_bg_A {
 		border-top-left-radius: 20px;
 		border-top-right-radius: 20px;
@@ -4050,10 +5552,9 @@
 		border-top-right-radius: 20px;
 		background: #EFEFF4;
 		margin-top: 20px;
-		padding: 40px;
+		padding: 20px 20px 80px 20px;
 		font-size: 16px;
 		font-weight: 400;
-		color: black;
 	}
 
 	.yali1 {
@@ -4107,6 +5608,14 @@
 
 	.yalistyd {
 		flex: 2;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.yalistyds {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -4622,5 +6131,204 @@
 		margin: 20px;
 		margin-top: 80px;
 		background-color: #fff;
+	}
+
+	.delete-button {
+		position: absolute;
+		top: 0;
+		left: 0;
+		/* 关键：扩大点击区域 */
+		background: rgba(0, 0, 0, 0.01);
+		/* iOS 必须有点东西才能响应 */
+		z-index: 10;
+	}
+
+	.delete-icon {
+		width: 25px;
+		height: 25px;
+		pointer-events: none;
+	}
+
+	.del-hover {
+		opacity: 0.7;
+		transform: scale(0.95);
+		transition: all 0.1s;
+	}
+
+	.context_btn2 {
+		display: flex;
+		margin-left: 5px;
+		flex-direction: row;
+		background: white;
+		align-items: center;
+		border-radius: 100px;
+		padding: 15px;
+	}
+
+	.context_title1 {
+		width: 90%;
+		font-size: 14px;
+		color: black;
+	}
+
+	.sleep-card {
+		font-size: 14px;
+		font-weight: 600;
+		color: #3298f7;
+	}
+
+	.sleep-title {
+		margin-bottom: 6px;
+		font-size: 16px;
+	}
+
+	.sleep-line {
+		color: #040000;
+		font-weight: 600;
+		font-size: 14px;
+		margin-top: 4px;
+	}
+
+	.icon_item_bg_toast {
+		background: white;
+		text-align: center;
+		color: #3298F7;
+		display: flex;
+		padding: 15px;
+		justify-content: center;
+		align-items: center;
+	}
+
+
+	//ECG
+	/* 样式保持不变，只添加了完整波形按钮的禁用状态 */
+	.btn:disabled {
+		opacity: 0.5;
+	}
+
+	/* 核心样式，其余沿用你之前的即可 */
+	.page {
+		display: flex;
+		flex-direction: column;
+		/* height: 100vh; */
+		padding-bottom: 100px;
+		background: white;
+	}
+
+	.ecg-container {
+		padding: 10px;
+		overflow: visible;
+		/* 减去左右 margin */
+		box-sizing: border-box;
+	}
+
+
+	.control-panel {
+		background: #fff;
+		border-radius: 16rpx;
+		padding: 24px;
+		margin-top: 240px;
+		margin-bottom: 10px;
+		margin-left: 10px;
+		margin-right: 10px;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, .1);
+	}
+
+	.status-row {
+		display: flex;
+		align-items: center;
+		margin-bottom: 20rpx;
+		gap: 16rpx;
+	}
+
+	.status-indicator {
+		width: 24rpx;
+		height: 24rpx;
+		border-radius: 50%;
+		background: #e0e0e0;
+	}
+
+	.status-indicator.connected {
+		background: #07c160;
+		animation: pulse 2s infinite;
+	}
+
+	@keyframes pulse {
+		0% {
+			opacity: 1
+		}
+
+		50% {
+			opacity: .6
+		}
+
+		100% {
+			opacity: 1
+		}
+	}
+
+	.button-row {
+		display: flex;
+		gap: 12rpx;
+		flex-wrap: wrap;
+		margin-bottom: 20rpx;
+	}
+
+	.btn {
+		flex: 1;
+		min-width: 160rpx;
+		height: 64rpx;
+		line-height: 64rpx;
+		border-radius: 12rpx;
+		font-size: 26rpx;
+		border: none;
+	}
+
+	.btn.primary {
+		background: #007aff;
+		color: #fff;
+	}
+
+	.btn.warn {
+		background: #ff3b30;
+		color: #fff;
+	}
+
+	.btn.secondary {
+		background: #f0f0f0;
+		color: #333;
+	}
+
+	.tip {
+		font-size: 24rpx;
+		color: #666;
+		text-align: center;
+	}
+
+	.stats-panel {
+		background: #fff;
+		border-radius: 16rpx;
+		padding: 24px;
+		margin-bottom: 100px;
+		margin-left: 10px;
+		margin-right: 10px;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, .1);
+	}
+
+	.stats-row {
+		display: flex;
+		justify-content: space-between;
+		padding: 8rpx 0;
+	}
+
+	.stats-label {
+		font-size: 26rpx;
+		color: #666;
+	}
+
+	.stats-value {
+		font-size: 26rpx;
+		color: #333;
+		font-family: monospace;
 	}
 </style>

@@ -10,11 +10,38 @@
 			<view class="Model_number">{{ xinghao }}</view>
 			<view v-if="img_scan===false" class="Message1">{{ context_msg }}</view>
 		</view>
-		<view v-if="img_scan" class="Message">{{ context_msg }}</view>
+		<view v-if="img_scan" class="Message">{{modelname ==="BPW1"?$t("扫描手表里边的二维码"):$t("扫描设备背面的二维码")}}</view>
+		<button class="button_style1" @click="ButtonTap()">{{$t("输入设备码")}}</button>
+		<view v-if="modelname==='BPW1'"
+			style="display: flex; flex-direction: row; justify-content: center; align-items: center;">
+			<image class="imgss_sc" mode="aspectFit" src="/static/image/sc_shoubiao2.jpg" />
+			<image class="imgss_sc" mode="aspectFit" src="/static/image/sc_shoubiao1.jpg" />
+		</view>
+		<view v-else-if="modelname==='JL-S260'||modelname==='JL-S100'"
+			style="display: flex; flex-direction: row; justify-content: center; align-items: center;">
+			<image class="imgss_sc" mode="aspectFit" src="/static/image/sc_tz.jpg" />
+		</view>
+		<view v-else style="display: flex; flex-direction: row; justify-content: center; align-items: center;">
+			<image class="imgss_sc" mode="aspectFit" src="/static/image/sc_xy.jpg" />
+		</view>
 		<view class="Messageback">
 			<button class="button_style" @click="True_Bind()">{{$t("确认绑定")}}</button>
 			<button class="button_style1" @click="unbind()">{{$t("暂不绑定")}}</button>
 		</view>
+		<!-- 手动输入弹窗 -->
+		<uni-popup ref="qiehuanpopup" type="center" :mask-click="true">
+			<view class="popup-content">
+				<view style="font-size:16px;color:black;text-align: center;font-weight: 600;">
+					{{ $t('手动输入') }}
+				</view>
+				<input v-model="inputcontext" :placeholder="$t('输入设备码')"
+					style="border:1px solid gray;margin:10px;height:48px;text-align:center;">
+				<button style="background: #3298F7;margin:20px;color: white;"
+					@click="shoudongbtn()">{{$t("确定")}}</button>
+				<button style="background: red;margin:20px;color: white;"
+					@click="shoudongbtncancle()">{{$t("取消")}}</button>
+			</view>
+		</uni-popup>
 		<view>
 			<!-- 普通弹窗 -->
 			<uni-popup ref="popup" :mask-click="true">
@@ -42,6 +69,9 @@
 		10005: "/static/image/xueya1.png", // 血压计
 		10006: "/static/image/xueya1.png", // 血压计
 	};
+	import {
+		checkNotificationPermissions
+	} from "../../api/unitls/permission.js";
 	export default {
 		components: {
 			appScan
@@ -57,11 +87,12 @@
 				modelname: '',
 				context_msg1: "",
 				modelId: '',
-
+				inputcontext: '',
+				locationChecked: false, // 标记位
 			};
 		},
+
 		onLoad(res) {
-			console.log(res)
 			this.SELECT_TYPE = res.SELECT_TYPE
 			this.modelConnectType = res.modelConnectType
 			this.modelname = res.name
@@ -72,15 +103,139 @@
 
 		onShow() {
 			this.resetState();
-			// 检查存储权限
-			plus.android.checkPermission("android.permission.CAMERA", (granted) => {
-				if (granted.checkResult !== 0) {
-					this.$refs.popup.open('top')
+			if (this.locationChecked) return; // 已经跑过就不再跑
+			this.locationChecked = true;
+			this.openLocationServiceAndroid();
+			this.$nextTick(() => {
+				plus.android.checkPermission("android.permission.CAMERA", (granted) => {
+					if (granted.checkResult !== 0) {
+						this.$refs.popup.open('top');
+					} else {
+						setTimeout(() => {
+							this.locationChecked = false;
+							this.$refs.popup?.close(); // 可选链，防止再次报错
+						}, 3000);
+					}
+				});
+			});
+		},
+
+		mounted() {
+			// 手动监听弹窗关闭
+			this.$refs.qiehuanpopup.$on('change', (e) => {
+				if (e.show === false) {
+					this.onClosePopup();
 				}
 			});
 		},
 
 		methods: {
+
+			// #ifdef APP-PLUS
+			openLocationServiceAndroid() {
+				let system = uni.getSystemInfoSync();
+				if (system.platform === 'android') {
+					// 导入Android原生类
+					var Context = plus.android.importClass("android.content.Context");
+					var LocationManager = plus.android.importClass("android.location.LocationManager");
+					var Intent = plus.android.importClass("android.content.Intent");
+					var Settings = plus.android.importClass("android.provider.Settings");
+					// 获取主Activity和定位服务
+					var mainActivity = plus.android.runtimeMainActivity();
+					var locationService = mainActivity.getSystemService(Context.LOCATION_SERVICE);
+					// 检查GPS是否开启
+					if (!locationService.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+						uni.showModal({
+							title: this.$t("提示"),
+							content: this.$t("您的手机定位服务未开启"),
+							confirmText: this.$t("去开启"),
+							cancelText: this.$t("暂不开启"),
+							success: (res) => {
+								if (res.confirm) {
+									// 跳转到系统定位服务设置页面
+									var intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+									mainActivity.startActivity(intent);
+									uni.setStorageSync("dingwei", 1)
+								} else {
+									uni.navigateBack()
+									uni.setStorageSync("dingwei", 0)
+								}
+							}
+						});
+					} else {
+						uni.setStorageSync("dingwei", 1)
+						checkNotificationPermissions();
+						if (uni.getStorageSync("appQX") !== "1") {
+							uni.showModal({
+								title: this.$t("提示"),
+								content: this.$t("需要获取您手机定位权限和附近设备权限"),
+								confirmText: this.$t("去开启"),
+								cancelText: this.$t("暂不开启"),
+								success: (res) => {
+									if (res.confirm) {
+										// 跳转到系统定位服务设置页面
+										// #ifdef APP-PLUS
+										const main = plus.android.runtimeMainActivity()
+										const Intent = plus.android.importClass('android.content.Intent')
+										const Uri = plus.android.importClass('android.net.Uri')
+										const uri = Uri.fromParts('package', main.getPackageName(), null)
+										const intent = new Intent(
+											'android.settings.APPLICATION_DETAILS_SETTINGS', uri)
+										intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+										main.startActivity(intent)
+										// #endif
+									} else {
+										uni.navigateBack()
+									}
+								}
+							});
+						}
+					}
+				}
+			},
+			// #endif
+
+			ButtonTap() {
+				this.img_scan = false
+				this.$refs.qiehuanpopup.open("center")
+			},
+
+			onClosePopup() {
+				this.resetState()
+			},
+			shoudongbtn() {
+				if (!this.inputcontext) {
+					uni.showToast({
+						title: this.$t("输入设备码"),
+						icon: "none"
+					})
+					return
+				} else {
+					if (this.modelname === "BPW1") {
+						// const resultStr = this.inputcontext.replace(/:/g, '');
+						const resultStr1 = this.inputcontext.slice(0, 4)
+						if (resultStr1 === "4142") {
+							this.context_msg = "300000" + this.inputcontext
+							this.get_device_info()
+							this.$refs.qiehuanpopup?.close()
+						} else {
+							uni.showToast({
+								title: this.$t("选中的设备与扫码设备不匹配"),
+								icon: "none"
+							})
+						}
+					} else {
+						this.context_msg = this.inputcontext
+						this.get_device_info()
+						this.$refs.qiehuanpopup?.close()
+					}
+				}
+			},
+
+			shoudongbtncancle() {
+				this.$refs.qiehuanpopup?.close()
+				this.resetState()
+			},
 
 			resetState() {
 				this.img_scan = true;
@@ -89,12 +244,14 @@
 				this.context_msg = this.$t('请将条码放入扫码框内即可自动扫描');
 				this.context_msg1 = "";
 				this.modelId = '';
+				this.inputcontext = ''
 			},
 
 			getCode(barNumber) {
 				if (this.modelname === "BPW1") {
 					const regex = /para=([^&]+)/;
 					const match = barNumber.match(regex);
+					console.log(match)
 					if (match && match[1]) {
 						const resultStr = match[1].replace(/:/g, '');
 						const resultStr1 = resultStr.slice(0, 4)
@@ -166,6 +323,7 @@
 					return
 				}
 				this.queryDevices()
+
 			},
 			unbind() {
 				uni.switchTab({
@@ -181,17 +339,16 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
-					console.log(res)
-					if (res.code == 200) {
+					if (res.code === 200) {
 						if (res.data.model === this.modelname) {
 							if (res.data.model === "BPW1" && res.data.mac) {
-								const resultmac = this.context_msg.slice(6, this.context_msg.length);
+								const resultmac = data.deviceSn.slice(6, data.deviceSn.length);
+								console.log(data.deviceSn)
+								console.log(resultmac)
 								if (resultmac === res.data.deviceSn.slice(6, res.data.deviceSn.length)) {
 									this.img_scan = false;
 									this.xinghao = this.$t("型号") + res.data.model;
-									this.context_msg = this.modelConnectType === "0" ? "IMEI:" + res.data
-										.deviceSn :
-										"SN:" + res.data.deviceSn;
+									this.context_msg = "SN:" + res.data.deviceSn;
 									this.context_msg1 = res.data.deviceSn;
 									this.modelId = res.data.modelId;
 									this.updateScanImagePath(res.data.picturePath);
@@ -206,8 +363,7 @@
 							} else {
 								this.img_scan = false;
 								this.xinghao = this.$t("型号") + res.data.model;
-								this.context_msg = this.modelConnectType === "0" ? "IMEI:" + res.data.deviceSn :
-									"SN:" + res.data.deviceSn;
+								this.context_msg = "SN:" + res.data.deviceSn;
 								this.context_msg1 = res.data.deviceSn;
 								this.modelId = res.data.modelId;
 								this.updateScanImagePath(res.data.picturePath);
@@ -223,7 +379,7 @@
 					} else {
 						this.img_scan = true;
 						uni.showToast({
-							title: res.msg,
+							title: this.$t("选中的设备与扫码设备不匹配"),
 							icon: 'none'
 						});
 						this.context_msg = this.$t('请将条码放入扫码框内即可自动扫描');
@@ -233,7 +389,7 @@
 			},
 			updateScanImagePath(picturePath) {
 				if (picturePath) {
-					if (lan === 'zh-Hans') {
+					if (lan === 'zh-Hans' || lan === 'zh-Hant') {
 						this.scan_img = this.$url_APP_IP + picturePath;
 					} else {
 						this.scan_img = modelIdToImagePath[this.modelId];
@@ -329,7 +485,7 @@
 		justify-content: center;
 		align-items: center;
 		height: 300px;
-		z-index: 500;
+		z-index: 100;
 		/* 确保低于弹窗的 z-index */
 	}
 
@@ -371,7 +527,7 @@
 		text-align: center;
 		font-size: 16px;
 		font-weight: 400;
-		color: black;
+		color: red;
 	}
 
 	.Message1 {
@@ -407,7 +563,7 @@
 	.button_style1 {
 		width: auto;
 		height: 48px;
-		margin: 20px 20px 46px 20px;
+		margin: 20px 20px 0 20px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
@@ -419,15 +575,22 @@
 		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 	}
 
-	.popup-content {
+	.imgss_sc {
+		padding-top: 20px;
+		width: 120px;
+		height: 120px;
 		display: flex;
-		text-align: center;
-		align-items: center;
 		justify-content: center;
+		align-items: center;
+		object-fit: contain;
+	}
+
+	/* 弹窗内容样式 */
+	.popup-content {
+		background: #fff;
 		border-radius: 20px;
-		padding: 15px;
-		height: 50px;
+		padding: 20px;
 		margin: 20px;
-		background-color: #fff;
+		box-sizing: border-box;
 	}
 </style>

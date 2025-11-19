@@ -2,8 +2,7 @@
 	<view style="padding-top: 10px; background: #F7F7F7; color: black;height: 100vh;">
 		<view class="linear">
 			<image class="img_bg" src="/static/emails.png" />
-			<input type="text" :placeholder="$t('请输入邮箱')" maxlength="32" style="width: 70vw;margin-left: 15px; "
-				v-model="email" />
+			<input type="text" :placeholder="$t('请输入邮箱')" style="width: 70vw;margin-left: 15px; " v-model="email" />
 		</view>
 		<view style="display: flex; flex-direction: row;">
 			<view class="linear_1">
@@ -208,7 +207,7 @@
 			send_register_code() {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/app/send_register_code",
+					url: that.$url_APP_IP + "/prod-api/app/send_register_code",
 					method: 'POST',
 					data: {
 						email: that.email
@@ -257,7 +256,7 @@
 			bind_email() {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/app/user/profile/bind_email",
+					url: that.$url_APP_IP + "/prod-api/app/user/profile/bind_email",
 					method: 'PUT',
 					data: {
 						code: that.yanzhengma,

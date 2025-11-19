@@ -15,6 +15,14 @@
 		<view class="btnstylsd">
 			<button class="btn_bg" @click="skip()">{{$t('暂不选择')}}</button>
 		</view>
+		<view>
+			<!-- 普通弹窗 -->
+			<uni-popup ref="lnaypopup" :mask-click="true">
+				<view class="popup-content">
+					<text>{{$t("权限说明")}}</text>
+				</view>
+			</uni-popup>
+		</view>
 	</view>
 </template>
 
@@ -31,6 +39,19 @@
 			})
 			this.SHEBEI = RES.SHEBEI
 		},
+
+		onShow() {
+			if (!uni.getStorageSync("appQX")) {
+				this.$nextTick(() => {
+					if (this.$refs.lnaypopup) {
+						this.$refs.lnaypopup.open('top');
+					} else {
+						console.error("lnaypopup 引用未找到");
+					}
+				});
+			}
+		},
+
 		methods: {
 			navigateTo(title, type) {
 				uni.navigateTo({
@@ -118,5 +139,14 @@
 		font-size: 16px;
 		font-weight: 600;
 		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	}
+
+	/* 弹窗内容样式 */
+	.popup-content {
+		background: #fff;
+		border-radius: 20px;
+		padding: 20px;
+		margin: 20px;
+		box-sizing: border-box;
 	}
 </style>

@@ -89,7 +89,7 @@
 			},
 			//批量删除待处理请求
 			batch_del() {
-				this.$post("https://jakoblife.jakob-techs.com/prod-api/share/data/batch_del", {
+				this.$post(this.$url_APP_IP + "/prod-api/share/data/batch_del", {
 					receiverId: uni.getStorageSync("userid")
 				}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),

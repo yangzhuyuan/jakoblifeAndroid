@@ -221,25 +221,26 @@
 							'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 						},
 						success(res) {
-							if (res.statusCode == 200) {
-								if (res.data.code == 200) {
-									console.log("校验验证码", res.data)
-									that.tanchuang = false
-									if (that.loact === "境内") {
-										that.send_phone_unbind_code()
-									} else if (that.loact === "境外") {
-										that.send_email_unbind_code()
-									}
-
-								} else {
-									uni.showToast({
-										title: res.data.msg,
-										icon: 'none'
-									})
-									that.captchaImage();
+							if (res.data.code == 200) {
+								console.log("校验验证码", res.data)
+								that.tanchuang = false
+								if (that.loact === "境内") {
+									that.send_phone_unbind_code()
+								} else if (that.loact === "境外") {
+									that.send_email_unbind_code()
 								}
+							} else if (res.data.code == 401) {
+								uni.showToast({
+									title: this.$t('登录账号已过期'),
+									icon: 'none'
+								})
+							} else {
+								uni.showToast({
+									title: res.data.msg,
+									icon: 'none'
+								})
+								that.captchaImage();
 							}
-							console.log("校验验证码", res)
 						}
 					})
 				}
@@ -280,34 +281,38 @@
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					},
 					success(res) {
-						if (res.statusCode == 200) {
-							console.log("发送换绑手机号原手机验证码:", res)
-							if (res.data.code == 200) {
-								that.yanzheng = 0
-								if (that.codetime > 0) {
-									uni.showToast({
-										title: that.$t('不能重复获取'),
-										icon: "none"
-									})
-									return
-								} else {
-									that.codetime = 60
-									that.msg = that.$t('s后可重发')
-									let timer = setInterval(() => {
-										that.codetime-- + that.msg;
-										if (that.codetime < 1) {
-											clearInterval(timer);
-											that.msg = ''
-											that.codetime = that.$t('重新获取')
-										}
-									}, 1000)
-								}
-							} else {
+
+						console.log("发送换绑手机号原手机验证码:", res)
+						if (res.data.code == 200) {
+							that.yanzheng = 0
+							if (that.codetime > 0) {
 								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
+									title: that.$t('不能重复获取'),
+									icon: "none"
 								})
+								return
+							} else {
+								that.codetime = 60
+								that.msg = that.$t('s后可重发')
+								let timer = setInterval(() => {
+									that.codetime-- + that.msg;
+									if (that.codetime < 1) {
+										clearInterval(timer);
+										that.msg = ''
+										that.codetime = that.$t('重新获取')
+									}
+								}, 1000)
 							}
+						} else if (res.data.code == 401) {
+							uni.showToast({
+								title: this.$t('登录账号已过期'),
+								icon: 'none'
+							})
+						} else {
+							uni.showToast({
+								title: that.$t('失败'),
+								icon: 'none'
+							})
 						}
 					},
 					fail(res) {
@@ -318,7 +323,7 @@
 			send_email_unbind_code() {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/app/user/profile/send_email_unbind_code",
+					url: that.$url_APP_IP + "/prod-api/app/user/profile/send_email_unbind_code",
 					method: 'POST',
 					data: {
 						email: that.unername_phone
@@ -352,7 +357,7 @@
 								}
 							} else {
 								uni.showToast({
-									title: res.data.msg,
+									title: that.$t('失败'),
 									icon: 'none'
 								})
 							}
@@ -366,84 +371,68 @@
 
 			//校验换绑手机号原手机验证码
 			check_phone_unbind_code() {
-				console.log(uni.getStorageSync("token"))
-				let that = this
-				uni.request({
-					url: that.$url_check_phone_unbind_code,
-					method: 'POST',
-					data: {
-						code: that.yanzhengma,
-						phone: that.unername_phone
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(res) {
-						console.log("校验换绑手机号原手机验证码:", res)
-						if (res.data.code == 200) {
-							uni.showToast({
-								title: that.$t("成功"),
-								icon: 'none'
+				let data = {
+					code: this.yanzhengma,
+					phone: this.unername_phone
+				}
+				this.$post(this.$url_check_phone_unbind_code, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((res) => {
+					console.log("校验换绑手机号原手机验证码:", res)
+					if (res.code == 200) {
+						uni.showToast({
+							title: this.$t("成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.navigateTo({
+								url: '../../login/Bind_phone_1?loact=' + this.loact
 							})
-							setTimeout(function() {
-								uni.navigateTo({
-									url: '../../login/Bind_phone_1?loact=' + that.loact
-								})
-							}, 300)
-						} else {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
-						}
-					},
-					fail(res) {
-						console.log("失败", res)
+						}, 300)
+					} else if (res.code == 401) {
+						uni.showToast({
+							title: this.$t('登录账号已过期'),
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: res.msg,
+							icon: 'none'
+						})
 					}
 				})
-
 			},
 			check_phone_unbind_code1() {
-				console.log(uni.getStorageSync("token"))
-				let that = this
-				uni.request({
-					url: that.$url_check_phone_unbind_code,
-					method: 'POST',
-					data: {
-						code: that.yanzhengma,
-						email: that.unername_phone
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(res) {
-						console.log("校验换绑手原来邮箱验证码:", res)
-						if (res.data.code == 200) {
-							uni.showToast({
-								title: that.$t("成功"),
-								icon: 'none'
+				let data = {
+					code: this.yanzhengma,
+					email: this.unername_phone
+				}
+				this.$post(this.$url_check_phone_unbind_code, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((res) => {
+					console.log("校验换绑手原来邮箱验证码:", res)
+					if (res.code == 200) {
+						uni.showToast({
+							title: this.$t("成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.navigateTo({
+								url: '../../login/Bind_phone_1?loact=' + this.loact
 							})
-							setTimeout(function() {
-								uni.navigateTo({
-									url: '../../login/Bind_phone_1?loact=' + that.loact
-								})
-							}, 300)
-						} else if (res.data.code === 500) {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
-						} else {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
-						}
-					},
-					fail(res) {
-						console.log("失败", res)
+						}, 300)
+					} else if (res.code == 401) {
+						uni.showToast({
+							title: this.$t('登录账号已过期'),
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: res.msg,
+							icon: 'none'
+						})
 					}
 				})
 			},

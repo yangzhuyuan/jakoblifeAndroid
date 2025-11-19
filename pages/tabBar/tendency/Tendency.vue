@@ -609,16 +609,8 @@
 	import {
 		isInChinaByIP
 	} from '../../api/isInChinaByIP.js';
-	const getheader = {
-		'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-		'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-	}
-	const postheader = {
-		'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-		'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-	}
+	import WeightConverter from '../../api/unitls/weightConverter.js';
 	const platformres = uni.getSystemInfoSync();
-
 	export default {
 		computed: {
 			...mapState(['info', 'bianhuadata', 'TenddeviceSn']),
@@ -845,9 +837,8 @@
 			}
 			isInChinaByIP().then(isInChina => {
 				const location = isInChina ? "境内" : "境外";
-				const newweightKG = uni.getStorageSync("newweight") || 'KG';
+				this.newweightKG = uni.getStorageSync("danwei2") === 1 ? "lb" : "KG";
 				this.loact = location;
-				this.newweightKG = newweightKG;
 				this.messs()
 				this.tendtimer = setInterval(res => {
 					if (this.bianhuadata !== 0) {
@@ -874,23 +865,26 @@
 					});
 					return;
 				}
-				this.$get(this.$url_getInfo, {}, getheader).then(res => {
+				this.$get(this.$url_getInfo, {}, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code !== 200) return;
-					if (this.loact === "境内") {
-						if (!res.data.phonenumber && !res.data.email) {
-							uni.navigateTo({
-								url: '../../login/Force_binding_phone'
-							});
-							return;
-						}
-					} else if (this.loact === "境外") {
-						if (!res.data.email && !res.data.phonenumber) {
-							uni.reLaunch({
-								url: "/pages/login/true_register_email"
-							});
-							return;
-						}
+					// if (this.loact === "境内") {
+					// 	if (!res.data.phonenumber && !res.data.email) {
+					// 		uni.navigateTo({
+					// 			url: '../../login/Force_binding_phone'
+					// 		});
+					// 		return;
+					// 	}
+					// } else if (this.loact === "境外") {
+					if (!res.data.email && !res.data.phonenumber) {
+						uni.reLaunch({
+							url: "/pages/login/true_register_email"
+						});
+						return;
 					}
+					// }
 					this.getInfo(res.data);
 					this.queryDevices();
 				});
@@ -1217,7 +1211,10 @@
 			},
 			//获取已绑定的设备
 			queryDevices() {
-				this.$post(this.$url_queryDevices, {}, getheader).then(res => {
+				this.$post(this.$url_queryDevices, {}, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code === 200) {
 						uni.stopPullDownRefresh(); // 停止下拉刷新动画
 						if (!res.rows || res.rows.length === 0) {
@@ -1323,16 +1320,10 @@
 									clearInterval(this.heartbeatInterval1)
 									this.heartbeatInterval1 = null
 									if (rows[i].mac === callback.data.mac) {
-										if (callback.data.weightStatus === 1) {
-											if (callback.data.weightUnit === 0) {
-												uni.setStorageSync("newweight", "KG")
-											} else {
-												uni.setStorageSync("newweight", "lb")
-											}
-											if (callback.data.weight !== "0.00") {
-												this.jakoblife_fat_scale1(rows[i].deviceSn, rows[i].mac, callback
-													.data, "")
-											}
+										if (callback.data.weightStatus === 1 && callback.data.weight !== "0.00" &&
+											callback.data.testStatus === 255) {
+											this.jakoblife_fat_scale1(rows[i].deviceSn, rows[i].mac, callback
+												.data, "")
 										}
 									}
 								});
@@ -1347,7 +1338,9 @@
 					mac: deviceId,
 					deviceTypeId: "0",
 					slaveData: {
-						weight: parsedData.weight,
+						weight: parsedData.weightUnit === 2 ? WeightConverter.parseStoneString(parsedData.weight)
+							.toFixed(2) : (parsedData.weightUnit === 6 || parsedData.weightUnit === 4 ? WeightConverter
+								.lbToKg(parsedData.weight) : parsedData.weight),
 						adc: parsedData.adc
 					},
 					time: parsedData.createTime
@@ -1442,7 +1435,10 @@
 				const data = {
 					deviceSn: deviceSn
 				}
-				this.$post(this.$url_get_device_info, data, postheader).then(res => {
+				this.$post(this.$url_get_device_info, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then(res => {
 					if (res.code == 200) {
 						switch (this.types_index) {
 							case 0:
@@ -1600,7 +1596,10 @@
 					endTime: endTime,
 					aggregateType: this.aggregateType
 				}
-				this.$post(this.$url_get_trend_data, data, getheader).then(res => {
+				this.$post(this.$url_get_trend_data, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code == 200) {
 						this.chartData.categories = []
 						this.chartData.series[0].data = []
@@ -1663,7 +1662,10 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_month_avg, data, getheader).then(res => {
+				this.$post(this.$url_query_month_avg, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code == 200) {
 						this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.high.min + "-" + res.data
 							.high.max : (Number(res.data.high.min) * 0.133).toFixed(1) + "-" + (Number(res.data
@@ -1695,7 +1697,10 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_minmax, data, getheader).then(res => {
+				this.$post(this.$url_query_minmax, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code == 200) {
 						//最近
 						this.lately_Blood_pressure = this.bgaaa(res.data.last.lowPressure, res.data.last
@@ -1771,7 +1776,10 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_weight_avg, data, getheader).then(res => {
+				this.$post(this.$url_query_weight_avg, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code == 200) {
 						this.Mean_value = res.data.avgWeight
 						this.bmi = res.data.bmi
@@ -1795,12 +1803,18 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_weight_day, data, getheader).then(res => {
+				this.$post(this.$url_query_weight_day, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code == 200) {
 						this.level_weight = res.data.level
-						this.max_weight = res.data.max
-						this.min_weight = res.data.min
-						this.avg_weight = res.data.avg
+						this.max_weight = this.newweightKG === "KG" ? res.data.max : WeightConverter.kgToLb(res
+							.data.max)
+						this.min_weight = this.newweightKG === "KG" ? res.data.min : WeightConverter.kgToLb(res
+							.data.min)
+						this.avg_weight = this.newweightKG === "KG" ? res.data.avg : WeightConverter.kgToLb(res
+							.data.avg)
 					} else if (res.code == 500) {
 						this.level_weight = "--"
 						this.max_weight = "--"
@@ -1871,7 +1885,10 @@
 					},
 					time: timestamp
 				}
-				this.$post(this.$url_pressure_data, data, getheader).then(res => {
+				this.$post(this.$url_pressure_data, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
 					if (res.code == 200) {
 						this.$refs.qs_popup.close()
 						this.birthday = this.$t('今天')

@@ -1,6 +1,6 @@
 <template>
 	<view style="padding: 20px;background: #F7F7F7; color: black;height: 100vh;">
-		<view class="uni-textarea">
+		<view class="uni-textarea" style="border: 1px solid gray;padding: 10px;">
 			<textarea placeholder="请输入反馈和建议" v-model="jianyicongtext" />
 		</view>
 		<button class="bt_Accept" @click="Accept()">{{$t('提交')}}</button>

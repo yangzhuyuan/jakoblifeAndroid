@@ -134,7 +134,7 @@
 			check_new_version(pkgName, type) {
 				let that = this;
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/system/version/check_new_version",
+					url: that.$url_APP_IP + "/prod-api/system/version/check_new_version",
 					method: 'POST',
 					data: {
 						pkgName: pkgName,

@@ -1,29 +1,21 @@
 {
-    "id": "piaoyi-loader_animate",
-    "name": "动画特效-加载中动画",
-    "displayName": "动画特效-加载中动画",
-    "version": "1.0.2",
-    "description": "纯css3 animation制作圆点，线条，方块，圆圈样式loader图标加载动画特效。都是单个html元素css动画，可直接使用",
+    "id": "International-sortPickerList",
+    "name": "国际区号和国旗索引列表",
+    "version": "1.2.0",
+    "description": "一个可以在国际手机号注册时选择国际区号和国旗的一个索引列表，支持h5和APP",
     "keywords": [
-        "css3",
-        "animation",
-        "loader",
-        "兼容性强",
-        "开箱即用"
+        "国际区号，国旗选择，索引列表，区号，国旗"
     ],
     "dcloudext": {
-        "category": [
-            "前端组件",
-            "通用组件"
-        ]
+        "type": "component-vue",
+        "sale": {
+            "regular": {
+                "price": "0.00"
+            },
+            "sourcecode": {
+                "price": "0.00"
+            }
+        }
     },
-    "dependencies": {
-        "html2canvas": "^1.4.1",
-        "jspdf": "^3.0.1",
-        "lodash": "^4.17.21",
-        "pdf-lib": "^1.17.1",
-        "text-decoding": "^1.0.0",
-        "vue": "^3.5.17",
-        "vue-template-compiler": "^0.1.0"
-    }
+    "displayName": "国际区号和国旗索引列表"
 }

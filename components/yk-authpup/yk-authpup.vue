@@ -17,7 +17,11 @@
 	// | Author: 月上柳梢 
 	// +----------------------------------------------------------------------
 	// #ifdef VUE3
-	import {ref,onMounted,nextTick} from 'vue';
+	import {
+		ref,
+		onMounted,
+		nextTick
+	} from 'vue';
 	// #endif
 	export default {
 		name: 'YkAuthpup',
@@ -46,7 +50,9 @@
 			}
 		},
 		// #ifdef VUE3
-		setup(props, {emit}) {
+		setup(props, {
+			emit
+		}) {
 			const ani = ref('');
 			const showPopup = ref(false);
 			const StatusBar = ref('');
@@ -304,10 +310,10 @@
 						title: "XXX对存储空间/照片权限申请说明",
 						content: "便于您使用该功能上传您的照片/图片/视频及用于更换头像、意见反馈、保存相册、发布商品/分享、下载与客服沟通等场景中读取和写入相册和文件内容。"
 					},
-					'READ_MEDIA_IMAGES': {
-						title: "XXX对存储空间/照片权限申请说明",
-						content: "便于您使用该功能上传您的照片/图片/视频及用于更换头像、意见反馈、保存相册、发布商品/分享、下载与客服沟通等场景中读取和写入相册和文件内容。"
-					},
+					// 'READ_MEDIA_IMAGES': {
+					// 	title: "XXX对存储空间/照片权限申请说明",
+					// 	content: "便于您使用该功能上传您的照片/图片/视频及用于更换头像、意见反馈、保存相册、发布商品/分享、下载与客服沟通等场景中读取和写入相册和文件内容。"
+					// },
 					'WRITE_EXTERNAL_STORAGE': {
 						title: "XXX对存储空间/照片权限申请说明",
 						content: "便于您使用该功能上传您的照片/图片/视频及用于更换头像、意见反馈、保存相册、发布商品/分享、下载与客服沟通等场景中读取和写入相册和文件内容。"

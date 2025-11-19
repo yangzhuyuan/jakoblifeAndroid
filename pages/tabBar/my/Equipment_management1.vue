@@ -11,7 +11,7 @@
 				<view class="item-content">
 					<image lazy-load class="imagesd" mode="aspectFit" :src="getDeviceImage(item.deviceModelId)"></image>
 					<view class="xinghao">{{$t('型号') + item.name}}</view>
-					<view style="font-size: 10px; padding-bottom: 5px; text-align: center;">sn:{{item.deviceSn}}</view>
+					<view style="font-size: 10px; padding-bottom: 5px; text-align: center;">SN:{{item.deviceSn}}</view>
 				</view>
 			</view>
 		</view>

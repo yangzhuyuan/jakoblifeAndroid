@@ -47,7 +47,7 @@
 			accepted(isAccepted) {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/share/data/accepted",
+					url: that.$url_APP_IP + "/prod-api/share/data/accepted",
 					method: 'POST',
 					data: {
 						id: that.id,
@@ -58,7 +58,7 @@
 						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
 					},
 					success(pending) {
-						console.log("获取待处理分享请求列表", pending)
+						// console.log("获取待处理分享请求列表", pending)
 						if (pending.data.code == 200) {
 							if (isAccepted === true) {
 								uni.navigateTo({

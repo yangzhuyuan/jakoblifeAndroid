@@ -66,6 +66,7 @@
 </template>
 
 <script>
+	import WeightConverter from '../../pages/api/unitls/weightConverter.js';
 	import {
 		mapState,
 		mapMutations
@@ -160,8 +161,8 @@
 						nickName: that.unername,
 						sex: that.sex_index,
 						birthTime: that.date,
-						height: that.height,
-						weight: that.width
+						height: that.Height_index === 0 ? WeightConverter.inchToCm(that.height) : that.height,
+						weight: that.Width_index === 0 ? that.width : WeightConverter.lbToKg(that.width)
 					},
 					header: {
 						'Authorization': 'Bearer ' + (that.tokens === "0" ? uni.getStorageSync("token") : that

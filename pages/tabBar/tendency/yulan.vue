@@ -1,6 +1,7 @@
 <template>
 	<view style="height: 100vh; color: black;">
-		<view v-if="chooseItem_name == '血压'" style="text-align: center; padding: 10px 10px 80px 10px;">
+		<view v-if="chooseItem_name == '血压'||chooseItem_name == 'blood_pressure'"
+			style="text-align: center; padding: 10px 10px 80px 10px;">
 			<view id="content">
 				<view
 					style="display: flex;justify-content: center;font-size: 18px; font-weight: bold;margin-top: 20px;">
@@ -47,7 +48,8 @@
 				</view>
 			</view>
 		</view>
-		<view v-else-if="chooseItem_name == '体脂'" style="text-align: center; padding: 10px 10px 80px 10px;">
+		<view v-else-if="chooseItem_name == '体脂'||chooseItem_name == 'body_fat'"
+			style="text-align: center; padding: 10px 10px 80px 10px;">
 			<view id="content">
 				<view
 					style="display: flex;justify-content: center;font-size: 18px; font-weight: bold;margin-top: 20px;">
@@ -58,7 +60,7 @@
 						<view style="display: flex;flex-direction: row;width: 98%;">
 							<view style="width: 15%;">时间</view>
 							<view style="width: 20%">设备</view>
-							<view style="width: 20%">体重</view>
+							<view style="width: 20%">体重/kg</view>
 							<view style="width: 20%;">BMI</view>
 							<view style="width: 13%;padding: 2px;">平均</view>
 						</view>
@@ -111,12 +113,7 @@
 			this.chooseItem_name = res.chooseItem_name
 			this.starttime = res.starttime
 			this.endtime = res.endtime
-			let obj = res.deviceSn.replace("\"([^\"]*)\"", "$1");
-			this.deviceSn = JSON.parse(obj)
-
-
-
-
+			this.deviceSn = this.snToArray(res.deviceSn)
 		},
 
 		data() {
@@ -131,16 +128,20 @@
 		},
 
 		onShow() {
-			if (this.chooseItem_name == "血压") {
+			if (this.chooseItem_name === "血压" || this.chooseItem_name === "blood_pressure") {
 				this.query_log_v2ss(this.deviceSn, this.starttime, this.endtime)
-			} else if (this.chooseItem_name == "体脂") {
+			} else if (this.chooseItem_name == "体脂" || this.chooseItem_name == "body_fat") {
 				this.query_log_v22ss(this.deviceSn, this.starttime, this.endtime)
 			}
 
 		},
 
 		methods: {
-
+			snToArray(sn) {
+				if (Array.isArray(sn)) return sn; // 已经是数组就直接返回
+				if (typeof sn === 'string' && sn) return sn.split(',');
+				return [];
+			},
 
 			receiveRenderData(url) {
 				this.loadBase64Url(url)

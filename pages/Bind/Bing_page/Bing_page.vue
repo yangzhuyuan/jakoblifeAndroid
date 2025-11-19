@@ -166,11 +166,16 @@
 						this.list.push(...res.rows);
 						const filteredNames = lan === 'zh-Hans' ? ["BPW6"] : ["BPW6"];
 						this.list = this.list.filter(item => !filteredNames.includes(item.name));
+					} else if (res.code == 401) {
+						uni.showToast({
+							title: this.$t('登录账号已过期'),
+							icon: 'none'
+						})
 					} else {
 						uni.showToast({
 							title: res.msg,
 							icon: 'none'
-						});
+						})
 					}
 				})
 			},
@@ -195,7 +200,7 @@
 	.list-container {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
-		padding: 0 10px 160px 10px;
+		padding: 0 10px 200px 10px;
 		justify-content: space-between;
 	}
 

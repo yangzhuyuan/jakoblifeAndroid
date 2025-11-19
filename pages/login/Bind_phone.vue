@@ -16,6 +16,9 @@
 				@tap="huoqu">{{yanzheng ? $t('获取验证码'): codetime+msg}}</button>
 		</view>
 		<button class="button_back" @tap="btn_next">{{$t('完成')}}</button>
+		<!-- 	<view @click="qiehuanbt()"
+			style="text-align: center;margin: 20px;color: #3298F7;font-size: 14px;font-weight: 600;">{{$t("切换到邮箱")}}
+		</view> -->
 		<view class="container_bg" v-show="tanchuang">
 			<view class="modalss">
 				<view style="background: white;  margin-left: 20px;margin-right: 20px;border-radius: 20px;">
@@ -199,6 +202,11 @@
 					this.bind_phone()
 				}
 			},
+			// qiehuanbt() {
+			// 	uni.navigateTo({
+			// 		url: "/pages/login/true_register_email"
+			// 	})
+			// },
 			//发送手机绑定验证码
 			send_phone_register_code() {
 				let that = this

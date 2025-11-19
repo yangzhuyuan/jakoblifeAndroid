@@ -1,90 +1,55 @@
 <template>
-	<view style="padding: 20px;color: black; height: 100vh;">
+	<view style="padding:20px;color:#000;height:100vh">
 		<view class="view_bg">
-			<view
-				style="display: flex; flex-direction: row; align-items: center;padding:10px;justify-content: space-between;">
-				<text style="width: 40vw;font-weight: bold;font-size: 16px;">{{$t('血压')}}</text>
-				<view style="display: flex; flex-direction: row;align-items: center;">
-					<picker @change="bindPickerChange_Blood_pressure" :value="Blood_pressure_index"
-						:range="Blood_pressure_array">
-						<view class="uni-input" style="text-align: right;">
-							{{Blood_pressure_array[Blood_pressure_index]}}
-						</view>
-					</picker>
-					<uni-icons style="margin-left: 10px;" type="bottom" size="16"></uni-icons>
-				</view>
-			</view>
-			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-			<view
-				style="display: flex; flex-direction: row; align-items: center;padding:10px;justify-content: space-between;">
-				<text style="width: 40vw;font-weight: bold;font-size: 16px;">{{$t('身高')}}</text>
-				<view style="display: flex; flex-direction: row;align-items: center;">
-					<picker @change="bindPickerChange_Height" :value="Height_index" :range="Height_array">
-						<view class="uni-input" style="text-align: right;">{{Height_array[Height_index]}}</view>
-					</picker>
-					<uni-icons style="margin-left: 10px;" type="bottom" size="16"></uni-icons>
-				</view>
-			</view>
-			<view style="background: gainsboro; width: 100%; height: 1px;"></view>
-			<view
-				style="display: flex; flex-direction: row; align-items: center;padding:10px;justify-content: space-between;">
-				<text style="width: 40vw;font-weight: bold;font-size: 16px;">{{$t('体重')}}</text>
-				<view style="display: flex; flex-direction: row;align-items: center;">
-					<picker @change="bindPickerChange_Width" :value="Width_index" :range="Width_array">
-						<view class="uni-input" style="text-align: right;">{{Width_array[Width_index]}}</view>
-					</picker>
-					<uni-icons style="margin-left: 10px;" type="bottom" size="16"></uni-icons>
-				</view>
-			</view>
+			<!-- 一条配置 = 一行组件 -->
+			<unit-row v-for="(item,index) in rows" :key="index" :title="$t(item.title)" :array="item.array"
+				:storage-key="item.key" />
 		</view>
 	</view>
 </template>
 
 <script>
+	import unitRow from '@/components/unit-row.vue'
 	export default {
+		components: {
+			unitRow
+		},
 		data() {
 			return {
-
-				Blood_pressure_array: ['mmHg', 'kPa'],
-				Blood_pressure_index: uni.getStorageSync("Blood") !== "" ? uni.getStorageSync("Blood") : 0,
-				Height_array: ["inch", 'cm'],
-				Height_index: uni.getStorageSync("danwei1") !== "" ? uni.getStorageSync("danwei1") : 1,
-				Width_array: ["kg", "lb"],
-				Width_index: uni.getStorageSync("danwei2") !== "" ? uni.getStorageSync("danwei2") : 0,
-
+				rows: [{
+						title: '血压',
+						key: 'Blood',
+						array: ['mmHg', 'kPa']
+					},
+					{
+						title: '身高',
+						key: 'danwei1',
+						array: ['inch', 'cm']
+					},
+					{
+						title: '体重',
+						key: 'danwei2',
+						array: ['kg', 'lb']
+					},
+					// ↓后续新增配置直接加
+					// { title:'血糖', key:'BloodSugar', array:['mmol/L','mg/dL'] },
+				]
 			}
 		},
-
 		onShow() {
 			uni.setNavigationBarTitle({
 				title: this.$t('单位设置')
 			})
-		},
-
-		methods: {
-			bindPickerChange_Blood_pressure: function(e) {
-				this.Blood_pressure_index = e.detail.value
-				uni.setStorageSync("Blood", this.Blood_pressure_index)
-
-			},
-			bindPickerChange_Height: function(e) {
-				this.Height_index = e.detail.value
-				uni.setStorageSync("danwei1", this.Height_index)
-
-			},
-			bindPickerChange_Width: function(e) {
-				this.Width_index = e.detail.value
-				uni.setStorageSync("danwei2", this.Width_index)
-			},
 		}
 	}
 </script>
 
 <style>
 	.view_bg {
-		padding: 0 10px 0 10px;
-		background: white;
-		border-radius: 20px;
+		padding: 0 20px;
+		background: #fff;
+		line-height: 48px;
+		border-radius: 10px;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 </style>

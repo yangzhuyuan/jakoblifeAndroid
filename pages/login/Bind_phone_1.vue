@@ -280,7 +280,7 @@
 			send_email_bind_code() {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/app/user/profile/send_email_bind_code",
+					url: that.$url_APP_IP + "/prod-api/app/user/profile/send_email_bind_code",
 					method: 'POST',
 					data: {
 						email: that.unername_phone

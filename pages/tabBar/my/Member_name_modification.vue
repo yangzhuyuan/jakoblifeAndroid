@@ -294,7 +294,7 @@
 			send_change_name_code_email() {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/app/user/profile/send_change_name_code_email",
+					url: that.$url_APP_IP + "/prod-api/app/user/profile/send_change_name_code_email",
 					method: 'POST',
 					data: {
 						email: that.phone

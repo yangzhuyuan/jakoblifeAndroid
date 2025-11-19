@@ -120,8 +120,29 @@
 						console.log("根据文章id获取内容详细信息", res)
 						that.title = res.data.data.title
 						that.content = res.data.data.content
+						// 在赋值前处理内容
+						that.content = that.formatContent(res.data.data.content)
 					}
 				})
+			},
+			// 完整的图片处理方法
+			formatContent(html) {
+				if (!html) return '';
+				// 第一步：清理掉 <url id="...">...</url> 包裹层，提取真实地址
+				html = html.replace(/<url[^>]*>(https?:\/\/[^<]+)<\/url>/gi, '$1');
+				// 第二步：修复 img 标签的 src
+				html = html.replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
+					let newSrc = src.trim();
+					if (newSrc.startsWith('//')) {
+						newSrc = 'https:' + newSrc;
+					} else if (newSrc.startsWith('/')) {
+						newSrc = this.$url_APP_IP + newSrc;
+					} else if (!newSrc.startsWith('http')) {
+						newSrc = `${this.$url_APP_IP}/${newSrc}`
+					}
+					return `<img src="${newSrc}" style="max-width: 100%; height: auto; display: block;" />`;
+				});
+				return html;
 			},
 		}
 	}

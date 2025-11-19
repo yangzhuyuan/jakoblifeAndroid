@@ -9,7 +9,7 @@
 				<view class="linear">
 					<image class="img_style" src="../../static/icons/15.png" />
 					<input type="text" :placeholder="loact === '境内' ? $t('请输入会员名或绑定的手机号') : $t('请输入会员名或邮箱')"
-						style="width: 60vw;margin-left: 10px;" v-model="unername" />
+						style="width: 60vw; margin-left: 10px;" v-model="unername" />
 				</view>
 				<view class="linear">
 					<image class="img_style" src="../../static/icons/16.png" />
@@ -25,7 +25,10 @@
 			<view v-else>
 				<view class="linear">
 					<image class="img_style" src="../../static/icons/15.png" />
-					<input type="text" :placeholder="$t('请输入绑定的手机号或绑定的邮箱')" style="width: 60vw;margin-left: 10px;"
+					<!-- 	<aure-country-picker :modelValue="dialCode" @update:modelValue="val => dialCode = val"
+						v-model="dialCode" :defaultCountryCode="defaultCode" :title="$t('选择国家地区')"
+						:cancelText="$t('取消')" height="70%" :searchPlaceholder="$t('搜索国家或地区')" /> -->
+					<input type="text" :placeholder="$t('请输入绑定的手机号或绑定的邮箱')" style="width: 50vw;margin-left: 10px;"
 						v-model="unername" />
 				</view>
 				<view style="display: flex; flex-direction: row;align-items: center;">
@@ -68,10 +71,10 @@
 					<view class="otherstyle_3"></view>
 				</view>
 				<view style="display:flex;justify-content: center;margin-top: 40px;">
-					<image @click="other_sbuitm('weixin')" class="img_dsf1" src="../../static/weixin.png" />
-					<image @click="other_sbuitm('qq')" class="img_dsf" src="../../static/qq.png" />
 					<!-- <image v-show="xinghao == false" @click="other_sbuitm('apple')" class="img_dsf"
 						src="../../static/pingguodenglu.png" /> -->
+					<image @click="other_sbuitm('weixin')" class="img_dsf1" src="../../static/weixin.png" />
+					<image @click="other_sbuitm('qq')" class="img_dsf" src="../../static/qq.png" />
 				</view>
 			</view>
 		</view>
@@ -109,12 +112,17 @@
 	import {
 		isInChinaByIP
 	} from '../api/isInChinaByIP.js';
+	import {
+		isInChinaByIP1
+	} from '../api/isInChinaByIP1.js';
 	export default {
 		computed: {
 			...mapState(['uuid'])
 		},
 		data() {
 			return {
+				dialCode: '', // 自动回显
+				defaultCode: '',
 				loact: "",
 				yangzhengma_img: '',
 				unername: uni.getStorageSync("unername") != "" ? uni.getStorageSync("unername") : '', //会员名或手机号
@@ -146,6 +154,24 @@
 			let that = this;
 			isInChinaByIP().then(isInChina => {
 				if (isInChina) {
+					const lan = uni.getLocale();
+					switch (lan) {
+						case 'en':
+						case 'en-US':
+							that.dialCode = "1"
+							that.defaultCode = 'US'
+							break;
+						case 'zh-Hant':
+						case 'zh-Hans':
+							that.dialCode = "86"
+							that.defaultCode = 'CN'
+							break;
+						default:
+							that.dialCode = "1"
+							that.defaultCode = 'US'
+							break;
+					}
+
 					that.loact = "境内"
 					that.otherloginssd = true
 					//使用协议返回过来的数据
@@ -159,6 +185,23 @@
 						that.xinghao = false
 					}
 				} else {
+					const lan = uni.getLocale();
+					switch (lan) {
+						case 'en':
+						case 'en-US':
+							that.dialCode = "1"
+							that.defaultCode = 'US'
+							break;
+						case 'zh-Hant':
+						case 'zh-Hans':
+							that.dialCode = "86"
+							that.defaultCode = 'CN'
+							break;
+						default:
+							that.dialCode = "1"
+							that.defaultCode = 'US'
+							break;
+					}
 					that.loact = "境外"
 					that.otherloginssd = false
 					//使用协议返回过来的数据
@@ -372,6 +415,7 @@
 			},
 			//登录
 			login_submit1() {
+				// console.log(this.dialCode)
 				let that = this;
 				if (!that.unername) {
 					uni.showToast({
@@ -423,26 +467,49 @@
 				this.$post(this.$url_user_login, data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					if (res.code === 200) {
+					console.log(res)
+					switch (res.code) {
+						case 200:
+							uni.showToast({
+								title: this.$t("成功"),
+								icon: 'none'
+							})
+							uni.setStorageSync("token", res.token)
+							uni.setStorageSync("unername", this.unername)
+							setTimeout(function() {
+								uni.switchTab({
+									url: "../tabBar/main/Main"
+								})
+							}, 500)
+							break
+						case 500:
+							uni.showToast({
+								title: this.$t("密码错误"),
+								icon: 'none'
+							})
+							break
+						case 501:
+							uni.showToast({
+								title: this.$t("账户不存在"),
+								icon: 'none'
+							})
+							break
+					}
+				}).catch(erro => {
+					if (erro.errMsg.includes("fail abort statusCode:-1")) {
 						uni.showToast({
-							title: this.$t("成功"),
+							title: this.$t("网络连接异常"),
 							icon: 'none'
 						})
-						uni.setStorageSync("token", res.token)
-						uni.setStorageSync("unername", this.unername)
-						setTimeout(function() {
-							uni.switchTab({
-								url: "../tabBar/main/Main"
-							})
-						}, 500)
 					} else {
 						uni.showToast({
-							title: this.$t("账户不存在或密码错误"),
+							title: this.$t("网络超时请检查是手机否连接到网络然后重试"),
 							icon: 'none'
 						})
 					}
 				})
 			},
+
 			//手机验证码登录
 			app_login() {
 				const data = {
@@ -470,6 +537,18 @@
 							icon: 'none'
 						})
 					}
+				}).catch(erro => {
+					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						uni.showToast({
+							title: this.$t("网络连接异常"),
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: this.$t("网络超时请检查是手机否连接到网络然后重试"),
+							icon: 'none'
+						})
+					}
 				})
 			},
 
@@ -479,7 +558,7 @@
 					smsCode: this.yanzhengma,
 					email: this.unername
 				}
-				this.$post("https://jakoblife.jakob-techs.com/prod-api/app/app_email_login", data, {
+				this.$post(this.$url_APP_IP + "/prod-api/app/app_email_login", data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code == 200) {
@@ -497,6 +576,18 @@
 					} else {
 						uni.showToast({
 							title: this.$t("失败"),
+							icon: 'none'
+						})
+					}
+				}).catch(erro => {
+					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						uni.showToast({
+							title: this.$t("网络连接异常"),
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: this.$t("网络超时请检查是手机否连接到网络然后重试"),
 							icon: 'none'
 						})
 					}
@@ -585,7 +676,7 @@
 							"suffix": "并使用本机号码登录", // 条款后的文案 默认值：“并使用本机号码登录”
 							"privacyItems": [ // 自定义协议条款，最大支持2个，需要同时设置url和title. 否则不生效
 								{
-									"url": "https://jakoblife.jakob-techs.com/privacy.html", // 点击跳转的协议详情页面
+									"url": this_.$url_APP_IP + "/privacy.html", // 点击跳转的协议详情页面
 									"title": "用户服务协议" // 协议名称
 								}
 							]
@@ -647,6 +738,7 @@
 										"weixin")
 								},
 								fail: function(err) {
+									console.log("weixin", err)
 									uni.showToast({
 										title: err,
 										icon: 'none'
@@ -658,7 +750,6 @@
 							uni.login({
 								provider: 'qq',
 								success: function(loginRes) {
-									console.log(loginRes);
 									that.check_auth(loginRes.authResult.access_token, loginRes.authResult
 										.openid,
 										"qq")
@@ -702,15 +793,124 @@
 				}).then(res => {
 					if (res.code === 200) {
 						uni.setStorageSync("token", res.data)
+						// uni.setStorageSync("othersss_types", othersss_types)
 						uni.switchTab({
 							url: '/pages/tabBar/main/Main'
 						})
 					} else if (res.code === 500) {
+						// uni.setStorageSync("othersss_types", othersss_types)
 						this.other_sign_access_token(access_token)
 						this.other_sign_openid(openid)
 						this.other_sign_other_types(othersss_types)
+						// switch (othersss_types) {
+						// 	case "weixin":
+						// 		this.getweixincode(access_token, openid);
+						// 		break
+						// 	case "qq":
+						// 		this.getqqcode(access_token, openid)
+						// 		break
+						// 	case "apple":
+						// 		break
+						// }
 						uni.reLaunch({
 							url: "/pages/login/Force_binding_phone_frist"
+						})
+					}
+				}).catch(erro => {
+					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						uni.showToast({
+							title: this.$t("网络连接异常"),
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: this.$t("网络超时请检查是手机否连接到网络然后重试"),
+							icon: 'none'
+						})
+					}
+				})
+			},
+			//微信使用accessToken和openId登录
+			getweixincode(access_token, openid) {
+				const data = {
+					accessToken: access_token,
+					openId: openid,
+					// code: this.yanzhengma,
+					// phoneNum: this.unername_phone
+				}
+				this.$post(this.$url_wechat_login, data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then(res => {
+					console.log(res)
+					if (res.code == 200) {
+						uni.setStorageSync("token", res.data)
+						uni.showToast({
+							title: this.$t("成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.navigateTo({
+								url: '../../pages/login/Register_success'
+							})
+						}, 300)
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: "none"
+						})
+					}
+				}).catch(erro => {
+					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						uni.showToast({
+							title: this.$t("网络连接异常"),
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: this.$t("网络超时请检查是手机否连接到网络然后重试"),
+							icon: 'none'
+						})
+					}
+				})
+			},
+			//qq使用accessToken和openId登录
+			getqqcode(access_token, openid) {
+				const data = {
+					accessToken: access_token,
+					openId: openid,
+					// code: this.yanzhengma,
+					// phoneNum: this.unername_phone
+				}
+				this.$post(this.$url_qq_login, data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then(res => {
+					if (res.code == 200) {
+						uni.setStorageSync("token", res.data)
+						uni.showToast({
+							title: this.$t("成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.navigateTo({
+								url: '../../pages/login/Register_success'
+							})
+						}, 300)
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: 'none'
+						})
+					}
+				}).catch(erro => {
+					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						uni.showToast({
+							title: this.$t("网络连接异常"),
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: this.$t("网络超时请检查是手机否连接到网络然后重试"),
+							icon: 'none'
 						})
 					}
 				})

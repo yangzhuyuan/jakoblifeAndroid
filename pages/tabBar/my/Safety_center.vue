@@ -114,7 +114,7 @@
 				qq_bind: false,
 				qq_ID: this.$t('未绑定'),
 				apple_ID: this.$t('未绑定'),
-				otherloginssd: false,
+				otherloginssd: true,
 				loact: "",
 				nameoremail: '',
 

@@ -1,11 +1,9 @@
 <template>
 	<view>
 		<view class="controller">
-
 			<view class="today-btn_1">
 				<view style="font-weight: bold;font-size: 14px;">{{$t("帮助")}}</view>
 			</view>
-
 			<view class="action">
 				<!-- 月份切换 -->
 				<view class="arrow left" :class="{disabled: prevDisabled}" @click="handleChange('prev')">
@@ -16,20 +14,16 @@
 					<text class="icon"></text>
 				</view>
 			</view>
-
 			<view class="today-btn">
 				<view style="font-weight: bold;font-size: 14px;" @click="backToday">{{$t("回到今天")}}</view>
 			</view>
-
 		</view>
-
 		<view class="calender" :class="[viewType]">
 			<view class="week-box">
 				<view :key="index" v-for="(item,index) in week" class="week">
 					{{ item }}
 				</view>
 			</view>
-
 			<view class="day-box">
 				<view class="placeholder" :class="[changeType]">
 					<view :key="index" v-for="(item,index) in virtually_data" class="item" :class="{
@@ -47,7 +41,6 @@
 						<view class="dots" v-show="item[keyName]"></view>
 					</view>
 				</view>
-
 				<view class="days" :class="[changeType]" @touchend="touchend" @touchmove="touchmove"
 					@touchstart="touchstart">
 					<view :key="index" v-for="(item,index) in days" class="item" :class="{

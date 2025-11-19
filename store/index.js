@@ -24,6 +24,7 @@ const store = new Vuex.Store({
 		bianhuadata: 0,
 		TenddeviceSn: '',
 		xueyehuilian: true,
+		BloodPressureLevel: 0
 
 	},
 	mutations: {
@@ -81,6 +82,10 @@ const store = new Vuex.Store({
 		sethuilian(state, huilian) {
 			state.xueyehuilian = huilian
 		},
+		setBloodPressureLevel(state, BloodPressureLevel) {
+			state.BloodPressureLevel = BloodPressureLevel
+		}
+
 	}
 })
 

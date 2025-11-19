@@ -294,25 +294,64 @@
 			},
 			//已经连接过的蓝牙点击蓝牙
 			selectBluetooth(item) {
+				// if(item.name==="EL2"||item.name==="BPW1"||item.name==="jakoblife10"||item.name==="bp68"){
 				if (this.SELECT_TYPE === "0") {
 					this.handleAndroidBluetoothConnection(item, true);
 				} else if (this.SELECT_TYPE === "1") {
 					this.handleBLEConnection(item.deviceId, item);
 				}
+				// }else{
+				// this.$refs.popup.open("bottom");
+				// let codetime = 5;
+				// let timer = null;
+				// // 倒计时
+				// timer = setInterval(() => {
+				// 	codetime--;
+				// 	if (codetime < 1) {
+				// 		uni.showToast({
+				// 			title: this.$t("连接超时"),
+				// 			icon: "none"
+				// 		});
+				// 		this.$refs.popup.close();
+				// 		clearInterval(timer);
+				// 	}
+				// }, 1000);
+				// }	
 			},
 			/*选中蓝牙*/
 			selectBluetooth1(item) {
+				// if(item.name==="EL2"||item.name==="BPW1"||item.name==="jakoblife10"||item.name==="bp68"){
 				if (this.SELECT_TYPE === "0") {
 					this.handleAndroidBluetoothConnection(item, false);
 				} else if (this.SELECT_TYPE === "1") {
 					this.handleBLEConnection(item.deviceId, item);
 				}
+				// }else{
+				// this.$refs.popup.open("bottom");
+				// let codetime = 5;
+				// let timer = null;
+				// // 倒计时
+				// timer = setInterval(() => {
+				// 	codetime--;
+				// 	if (codetime < 1) {
+				// 		uni.showToast({
+				// 			title: this.$t("连接超时"),
+				// 			icon: "none"
+				// 		});
+				// 		this.$refs.popup.close();
+				// 		clearInterval(timer);
+				// 	}
+				// }, 1000);
+				// }
 			},
 			handleAndroidBluetoothConnection(item, isConnected) {
 				this.$refs.popup.open("bottom");
 				const TestUniPlugin = uni.requireNativePlugin("DCTestUniPlugin-TestModule");
 				let codetime = 10;
-				let timer = setInterval(() => {
+				let timer = null;
+				let done = false; // ① 只执行一次的锁
+				// 倒计时
+				timer = setInterval(() => {
 					codetime--;
 					if (codetime < 1) {
 						uni.showToast({
@@ -321,29 +360,37 @@
 						});
 						this.$refs.popup.close();
 						clearInterval(timer);
-					} else {
-						TestUniPlugin.startScan("", (callback) => {
-							if (isConnected ? item.deviceId === callback.data.mac : item.name === "EL2") {
-								this.MACdeviceID = callback.data.mac;
-								clearInterval(timer);
-								this.$refs.popup.close();
-								this.$refs.popup1.open("bottom");
-								this.updateBluetoothList(item);
-
-								if (callback.data.weightStatus === 1) {
-									this.handleWeightData(callback.data);
-								}
-							}
-						});
-						this.bind_devicetz(this.sn, this.MACdeviceID)
 					}
 				}, 1000);
+				// 单次扫描
+				TestUniPlugin.startScan("", (callback) => {
+					if (done) return; // ② 已处理过就直接返回
+					const hit = isConnected ?
+						item.deviceId === callback.data.mac :
+						item.name === "EL2";
+					if (hit) {
+						done = true; // ③ 置位，确保后续回调不再进入
+						this.MACdeviceID = callback.data.mac;
+						clearInterval(timer);
+						this.$refs.popup.close();
+						this.$refs.popup1.open("bottom");
+						this.updateBluetoothList(item);
+						if (callback.data.weightStatus === 1) {
+							this.handleWeightData(callback.data);
+						}
+						// 只调用一次绑定
+						this.bind_devicetz(this.sn, this.MACdeviceID);
+					}
+				});
 			},
 			handleIOSBluetoothConnection(item, isConnected) {
 				this.$refs.popup.open("bottom");
 				const TestUniPlugin = uni.requireNativePlugin("DCTestUniPlugin-TestModule");
 				let codetime = 10;
-				let timer = setInterval(() => {
+				let timer = null;
+				let done = false; // 只执行一次的锁
+				/* ---------- 倒计时 ---------- */
+				timer = setInterval(() => {
 					codetime--;
 					if (codetime < 1) {
 						uni.showToast({
@@ -352,23 +399,32 @@
 						});
 						this.$refs.popup.close();
 						clearInterval(timer);
-					} else {
-						TestUniPlugin.startScan("options", (callback) => {
-							if (isConnected ? item.deviceId === callback.data.mac : item.name === "EL2") {
-								this.$refs.popup.close();
-								const parsedData = JSON.parse(callback.data);
-								this.MACdeviceID = parsedData.mac;
-								clearInterval(timer);
-								this.$refs.popup1.open("bottom");
-								this.updateBluetoothList(item);
-								if (parsedData.testStatus === 255) {
-									this.handleIOSWeightData(parsedData);
-								}
-							}
-						});
-						this.bind_devicetz(this.sn, this.MACdeviceID)
 					}
 				}, 1000);
+				/* ---------- 单次扫描 ---------- */
+				TestUniPlugin.startScan("options", (callback) => {
+					if (done) return; // 已处理过直接忽略
+					const hit = isConnected ?
+						item.deviceId === callback.data.mac :
+						item.name === "EL2";
+					if (hit) {
+						done = true; // 上锁
+						clearInterval(timer);
+
+						this.$nextTick(() => {
+							this.$refs.popup?.close?.();
+							this.$refs.popup1?.open?.("bottom");
+						});
+						const parsedData = JSON.parse(callback.data);
+						this.MACdeviceID = parsedData.mac;
+						this.updateBluetoothList(item);
+						if (parsedData.testStatus === 255) {
+							this.handleIOSWeightData(parsedData);
+						}
+						// 设备绑定只调一次
+						this.bind_devicetz(this.sn, this.MACdeviceID);
+					}
+				});
 			},
 			bind_devicetz(sn, MACdeviceID) {
 				const url = this.$url_bind_device;
@@ -843,7 +899,7 @@
 										that.writeuuid = item.uuid
 									}
 								});
-								that.setacktypes(1)
+								that.setacktypes(0)
 							}
 						}
 					},
@@ -871,22 +927,6 @@
 				plugin.enableBluetoothAudio({}, res => {
 					console.log('1配对结果:', res);
 				});
-				// setTimeout(() => {
-				// 	const peiduibuffer = this.toArrayBuffer("e00006e8000000000101");
-				// 	uni.writeBLECharacteristicValue({
-				// 		deviceId: deviceId,
-				// 		serviceId: serviceId,
-				// 		characteristicId: writeuuid,
-				// 		writeType: "writeNoResponse",
-				// 		value: peiduibuffer,
-				// 		success: (writeres) => {
-				// 			console.log("配对弹窗命令成功")
-				// 		},
-				// 		fail: (writeerr) => {
-				// 			console.log("配对弹窗命令失败")
-				// 		}
-				// 	});
-				// }, 1000)
 				const bindcommandId = 0x08; // CMD-协议命令
 				const bindcommandKey = 0x00; // key-协议子命令
 				const bindbtys = new Uint8Array([
@@ -1252,22 +1292,6 @@
 </script>
 
 <style>
-	/* .new-badge {
-		position: absolute;
-		right: 10px;
-		top: 10px;
-		background-color: #ff4757;
-		color: white;
-		padding: 2px 6px;
-		border-radius: 10px;
-		font-size: 12px;
-	} */
-
-	/* .tableitem {
-		position: relative;
-	} */
-
-
 	.tablebody {
 		height: 100vh;
 		color: black;

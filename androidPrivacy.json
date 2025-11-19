@@ -27,6 +27,10 @@
         "loadNativePlugins" : false,
         "showAlways" : false
     },
+    "obfuscation" : {
+        "enable" : true,
+        "mappingUpload" : true
+    },
     "styles" : {
         "backgroundColor" : "#FFF",
         "borderRadius" : "5px",

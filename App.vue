@@ -3,6 +3,11 @@
 		mapState,
 		mapMutations
 	} from 'vuex'
+	import {
+		checkNotificationPermissions,
+		checkNotificationAgain
+	} from "pages/api/unitls/permission.js";
+	const systemInfo = uni.getSystemInfoSync()
 	export default {
 		data() {
 			return {
@@ -14,6 +19,8 @@
 				stepCount: 0,
 				notifyTriggered: false, // 初始化通知标志
 				intervalId: null, // 用于存储定时器的 ID
+				locationChecked: false, // 标记位
+				isMandatory: false, // 是否为强制更新
 			}
 		},
 
@@ -29,8 +36,12 @@
 					locale = "en-US";
 					break;
 				case 'zh-Hans':
+				case 'zh-Hant':
 					locale = "zh-CN";
 					break;
+				default:
+					locale = "en-US";
+					break
 			}
 			that._i18n.locale = locale;
 			//关闭启动图
@@ -42,6 +53,7 @@
 		onHide() {
 			this.stopInterval();
 			this.startInterval();
+			uni.removeStorageSync("dingwei")
 		},
 
 		mounted() {
@@ -50,22 +62,28 @@
 
 		onShow: function() {
 			let that = this
-			const permissions = ['android.permission.ACCESS_FINE_LOCATION',
-				'android.permission.ACCESS_COARSE_LOCATION', 'android.permission.BLUETOOTH_ADVERTISE',
-				'android.permission.BLUETOOTH', 'android.permission.BLUETOOTH_ADMIN',
-				'android.permission.BLUETOOTH_ADVERTISE', 'android.permission.BLUETOOTH_CONNECT',
-			]
-			let timesder = setInterval(res => {
-				if (uni.getStorageSync("token")) {
-					clearInterval(timesder)
-					that.checkNotificationPermissions(permissions);
-				}
-			}, 2000)
+			// #ifdef APP-PLUS
+			that.openLocationServiceAndroid();
+			// #endif
+			if (uni.getStorageSync("dingwei") === 1) {
+				let timesder = setInterval(res => {
+					if (uni.getStorageSync("token")) {
+						clearInterval(timesder)
+						checkNotificationPermissions();
+					}
+				}, 2000)
+			}
 			plus.runtime.setBadgeNumber(0);
 			that.stopInterval();
 			that.startInterval();
 			that.setTabBarItems();
-			that.accelerometerStart();
+			// that.Text_content9()//强制更新
+			// that.accelerometerStart();//手机传感步数
+			// uni.getPushClientId({
+			// 	success(res) {
+			// 		that.sendPushMessage(res.cid);
+			// 	},
+			// });
 
 		},
 
@@ -75,43 +93,41 @@
 
 		methods: {
 			...mapMutations(['setUniverifyErrorMsg', 'setUniverifyLogin', 'setlanyaId']),
-			//获取手机权限
-			checkNotificationPermissions(permissions) {
-				// 申请通知权限
-				plus.android.requestPermissions(permissions, function(e) {
-					if (e.deniedAlways.length > 0) { //权限被永久拒绝
-						uni.setStorageSync("appQX", "0")
-						// 弹出提示框解释为何需要定位权限，引导用户打开设置页面开启
-						const Intent = plus.android.importClass('android.content.Intent');
-						const Build = plus.android.importClass('android.os.Build');
-						let intent;
-						if (Build.VERSION.SDK_INT >= 33) { // Android 13 及以上
-							intent = new Intent('android.settings.ACTION_APP_NOTIFICATION_SETTINGS');
-							intent.putExtra('android.provider.extra.APP_PACKAGE', main.getPackageName());
-						} else if (Build.VERSION.SDK_INT >= 26) { // Android 8.0 及以上
-							intent = new Intent('android.settings.APP_NOTIFICATION_SETTINGS');
-							intent.putExtra('android.provider.extra.APP_PACKAGE', main.getPackageName());
-						} else if (Build.VERSION.SDK_INT >= 21) { // Android 5.0 - 7.0
-							intent = new Intent('android.settings.APP_NOTIFICATION_SETTINGS');
-							intent.putExtra('app_package', main.getPackageName());
-							intent.putExtra('app_uid', main.getApplicationInfo().uid);
-						} else {
-							intent = new Intent('android.settings.APPLICATION_DETAILS_SETTINGS');
-							intent.setData(plus.android.net.Uri.fromParts('package', main.getPackageName(),
-								null));
-						}
-						main.startActivity(intent);
-						return
-					}
-					if (e.deniedPresent.length > 0) { //权限被临时拒绝
-						// 弹出提示框解释为何需要定位权限，可再次调用plus.android.requestPermissions申请权限
-					}
-					if (e.granted.length > 0) { //权限被允许
-						uni.setStorageSync("appQX", "1")
-					}
-				}, function(e) {});
-			},
 
+			// #ifdef APP-PLUS
+			openLocationServiceAndroid() {
+				let system = uni.getSystemInfoSync();
+				// 导入Android原生类
+				var Context = plus.android.importClass("android.content.Context");
+				var LocationManager = plus.android.importClass("android.location.LocationManager");
+				var Intent = plus.android.importClass("android.content.Intent");
+				var Settings = plus.android.importClass("android.provider.Settings");
+				// 获取主Activity和定位服务
+				var mainActivity = plus.android.runtimeMainActivity();
+				var locationService = mainActivity.getSystemService(Context.LOCATION_SERVICE);
+				// 检查GPS是否开启
+				if (!locationService.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+					console.log("哈哈哈哈哈哈哈哈哈")
+					this.locationChecked = false;
+					uni.showModal({
+						title: this.$t("提示"),
+						content: this.$t("您的手机定位服务未开启"),
+						confirmText: this.$t("去开启"),
+						showCancel: false,
+						success: (res) => {
+							if (res.confirm) {
+								// 跳转到系统定位服务设置页面
+								var intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+								mainActivity.startActivity(intent);
+								uni.setStorageSync("dingwei", 1)
+							}
+						}
+					});
+				} else {
+					uni.setStorageSync("dingwei", 1)
+				}
+			},
+			// #endif
 			// 发送推送消息
 			sendPushMessage(pushClientId) {
 				const now = new Date(); // 获取当前时间
@@ -119,6 +135,7 @@
 				const Minutes = now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes()
 				const Seconds = now.getSeconds() < 10 ? "0" + now.getSeconds() : now.getSeconds()
 				const timestamp = now.toLocaleDateString() + " " + houres + ":" + Minutes + ":" + Seconds;
+				console.log("pushClientId", pushClientId)
 				uniCloud.callFunction({
 						name: "testUniPush", // 云函数名称
 						data: {
@@ -140,6 +157,158 @@
 						})
 					})
 			},
+
+			Text_content9() { //软件更新
+				if (uni.getSystemInfoSync().platform === 'android') {
+					this.check_new_version("com.work.jakob", "0")
+				} else {
+					this.check_new_version("io.dcloud.jakob", "1")
+				}
+			},
+			// 检查新版本
+			/* 检查新版本 —— 仅改动了弹窗触发方式 */
+			check_new_version(pkgName, type) {
+				const that = this;
+				uni.request({
+					url: `${that.$url_APP_IP}/prod-api/system/version/check_new_version`,
+					method: 'POST',
+					data: {
+						pkgName,
+						type,
+						versionName: systemInfo.appVersion
+					},
+					header: {
+						'content-type': 'application/x-www-form-urlencoded'
+					},
+					success(res) {
+						if (res.data.code === 4003) {
+							//已经是最新版本
+							return;
+						}
+						that.isMandatory = res.data.data.isMandatory || false;
+						const title = that.isMandatory ? that.$t('强制更新提示') : that.$t('发现新版本');
+						const content = that.$t('版本更新1') + res.data.data.versionName + that.$t('版本更新2');
+						uni.showModal({
+							title,
+							content,
+							confirmText: that.$t('立即更新'),
+							showCancel: false,
+							success(modal) {
+								if (!modal.confirm) { // 用户取消
+									if (that.isMandatory) { // 强制更新不允许取消
+										that.check_new_version(pkgName, type);
+									}
+									return;
+								}
+								/* ① 打开 GlobalPopup 下载弹窗 */
+								uni.$emit('APP_WANT_POPUP', {
+									mode: 'download',
+									title: that.$t('正在下载更新'),
+									progress: 0
+								});
+
+								/* ② 开始下载 */
+								that.checkUpdate(res.data.data.path);
+							}
+						});
+					},
+					fail() {
+						uni.showToast({
+							title: that.$t('检查更新失败'),
+							icon: 'none'
+						});
+					}
+				});
+			},
+
+			/* 执行更新 —— 只改“进度通知”和“关闭弹窗”方式 */
+			checkUpdate(path) {
+				// 重置
+				this.downloadTask = null;
+				this.isDownloading = true;
+
+				this.downloadTask = uni.downloadFile({
+					url: path,
+					success: res => {
+						if (res.statusCode !== 200) {
+							uni.$emit('CLOSE_GLOBAL_POPUP'); // 关闭弹窗
+							uni.showModal({
+								title: this.$t('下载失败'),
+								content: this.$t('服务器返回状态码') + res.statusCode,
+								showCancel: false
+							});
+							return;
+						}
+
+						/* 安装 APK */
+						plus.runtime.install(
+							res.tempFilePath, {
+								force: false
+							},
+							() => {
+								uni.$emit('CLOSE_GLOBAL_POPUP'); // 关闭弹窗
+								if (this.isMandatory) {
+									plus.runtime.restart();
+								} else {
+									uni.showModal({
+										title: this.$t('安装成功'),
+										content: this.$t('需要重启应用生效'),
+										success: r => r.confirm && plus.runtime.restart()
+									});
+								}
+							},
+							err => {
+								uni.$emit('CLOSE_GLOBAL_POPUP');
+								uni.showModal({
+									title: this.$t('安装失败'),
+									content: err.message || this.$t('未知错误'),
+									showCancel: false
+								});
+							}
+						);
+					},
+					fail: err => {
+						uni.$emit('CLOSE_GLOBAL_POPUP');
+						uni.showModal({
+							title: this.$t('下载失败'),
+							content: err.errMsg || this.$t('网络连接失败'),
+							showCancel: false
+						});
+					}
+				});
+
+				/* 实时进度 → GlobalPopup */
+				this.downloadTask.onProgressUpdate(res => {
+					// 把进度推给当前页面的 GlobalPopup
+					this.$popupProgress({
+						progress: res.progress,
+						totalBytesWritten: res.totalBytesWritten,
+						totalBytesExpectedToWrite: res.totalBytesExpectedToWrite
+					});
+
+					/* 下载完成提示 */
+					if (res.progress >= 100) {
+						uni.showToast({
+							title: this.$t('下载完成'),
+							icon: 'none',
+							duration: 2000
+						});
+					}
+				});
+			},
+
+			/* 取消下载（按钮在 GlobalPopup 里） */
+			cancelDownload() {
+				if (this.downloadTask) {
+					this.downloadTask.abort();
+					uni.$emit('CLOSE_GLOBAL_POPUP');
+					uni.showToast({
+						title: this.$t('下载已取消'),
+						icon: 'none'
+					});
+				}
+			},
+
 			//闹钟
 			naozhog() {
 				let that = this
@@ -751,6 +920,7 @@
 		border-color: #e54d42 !important;
 		color: #ffffff !important;
 	}
+
 
 	page {
 		background-color: #efeff4;

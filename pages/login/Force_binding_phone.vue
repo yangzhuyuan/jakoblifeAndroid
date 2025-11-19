@@ -232,6 +232,7 @@
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					},
 					success(res) {
+						console.log(res)
 						if (res.statusCode == 200) {
 							console.log("发送手机绑定验证码:", res)
 							if (res.data.code == 200) {

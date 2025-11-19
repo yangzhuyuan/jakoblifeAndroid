@@ -6,7 +6,7 @@
 					<image :src="avatar"
 						style="width: 85px; height: 85px;border-radius: 100px;border: 1px solid gainsboro;"></image>
 					<view style="margin-top: 10px;font-weight: 600; font-size: 16px;">{{name}}</view>
-					<view style="font-weight: 400; font-size: 16px;color: #999999;margin-top: 10px;">{{phone}}</view>
+					<!-- <view style="font-weight: 400; font-size: 16px;color: #999999;margin-top: 10px;">{{phone}}</view> -->
 				</view>
 				<view
 					style="display: flex; align-items: left; flex-direction: column; padding-left: 15px;margin-top: 20px;">
@@ -478,10 +478,10 @@
 			req(dataPointIds) {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/share/data/req",
+					url: that.$url_APP_IP + "/prod-api/share/data/req",
 					method: "POST",
 					data: {
-						sharerId: that.info.userId,
+						sharerId: uni.getStorageSync("userid"),
 						receiverId: that.receiverId,
 						dataPointIds: [dataPointIds]
 					},
@@ -490,9 +490,25 @@
 						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
 					},
 					success(req) {
-						uni.navigateTo({
-							url: "../share/Shared_success?NAME=" + that.name
-						})
+						console.log("sharerId", uni.getStorageSync("userid"))
+						console.log("receiverId", that.receiverId)
+						console.log("dataPointIds", [dataPointIds])
+						console.log(req)
+						switch (req.data.code) {
+							case 200:
+								uni.navigateTo({
+									url: "../share/Shared_success?NAME=" + that.name
+								})
+								break
+							default:
+								uni.showToast({
+									title: that.$t("被共享的账户有误"),
+									icon: 'none',
+									duration: 1500
+								})
+								break
+						}
+
 					}
 				})
 			}

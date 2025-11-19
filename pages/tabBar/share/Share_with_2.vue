@@ -5,7 +5,7 @@
 				<image class="avatar" :src="avatar || '../../../static/icons/60x60.png'"></image>
 				<view class="user-details">
 					<view class="name">{{ name }}</view>
-					<view class="phone">{{ phone }}</view>
+					<!-- <view class="phone">{{ phone }}</view> -->
 				</view>
 			</view>
 			<view class="sharing-title">
@@ -148,7 +148,7 @@
 			cancelSharing() {
 				console.log("cancelSharing", this.id)
 				uni.request({
-					url: `https://jakoblife.jakob-techs.com/prod-api/share/data/${this.id}`,
+					url: `${this.$url_APP_IP}/prod-api/share/data/${this.id}`,
 					method: 'DELETE',
 					header: {
 						'Authorization': `Bearer ${uni.getStorageSync("token")}`,
@@ -172,7 +172,7 @@
 					return;
 				}
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/share/data/change",
+					url: this.$url_APP_IP + "/prod-api/share/data/change",
 					method: "POST",
 					data: {
 						id: this.id,

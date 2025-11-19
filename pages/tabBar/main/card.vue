@@ -139,24 +139,26 @@
 	export default {
 		data() {
 			return {
-				list: [{
-						bmi_show: false,
-						image: "../../../static/icons/1.png",
-						Step_number: "-",
-						title: this.$t('步数'),
-						type_LX: this.$t('计步'),
-						Step_count: "-",
-						checkbox: false,
+				list: [
+					// {
+					// 	bmi_show: false,
+					// 	image: "../../../static/icons/1.png",
+					// 	Step_number: "-",
+					// 	title: this.$t('步数'),
+					// 	type_LX: this.$t('计步'),
+					// 	Step_count: "-",
+					// 	checkbox: false,
 
-					}, {
-						bmi_show: false,
-						image: "../../../static/icons/2.png",
-						Step_number: "-",
-						title: this.$t('身高'),
-						type_LX: "cm",
-						Step_count: "-",
-						checkbox: false,
-					},
+					// }, 
+					// {
+					// 	bmi_show: false,
+					// 	image: "../../../static/icons/2.png",
+					// 	Step_number: "-",
+					// 	title: this.$t('身高'),
+					// 	type_LX: "cm",
+					// 	Step_count: "-",
+					// 	checkbox: false,
+					// },
 					{
 						BMI_TF: 0,
 						BMI_ys: "-",

@@ -434,4 +434,24 @@
 		border-radius: 100px;
 		background: #3298F7;
 	}
+
+	/* 统一抽出来的样式 */
+	.sleep-card {
+		padding: 10px;
+		margin-bottom: 20px;
+		font-size: 14px;
+		font-weight: 600;
+		color: #3298f7;
+	}
+
+	.sleep-title {
+		margin-bottom: 6px;
+	}
+
+	.sleep-line {
+		color: #040000;
+		font-weight: 600;
+		font-size: 10px;
+		margin-top: 4px;
+	}
 </style>

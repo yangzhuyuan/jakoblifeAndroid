@@ -3,15 +3,15 @@
 		<view style="width: 90vw; margin-top: 20px;">
 			<view style="display: flex;flex-direction: row;justify-content: center;align-items: center;">
 				<uni-search-bar style="width: 70vw;" v-model="searchValue" bgColor="#FBFBFB" radius="5"
-					:placeholder="$t('请搜索会员名或手机号')" clearButton="always" cancelButton="none">
+					:placeholder="$t('请搜索会员名或手机号')" clearButton="always" cancelButton="none" @clear="clesdjk">
 				</uni-search-bar>
 				<view @click="search()">{{$t("搜索")}}</view>
 			</view>
 			<view class="listback">
 				<view v-for="(item,index) in filterList" :key="index"
-					@click="Share_with(item.userName,item.phonenumber,item.avatar,item.userId,item.nickName)">
+					@click="Share_with(item.userName,item.phonenumber,item.avatar,item.userId,item.nickName,item.email)">
 					<view style="display: flex;align-items: center; padding: 10px;margin: 0 15px 0 15px;">
-						<image :src="item.avatar"
+						<image :src="item.avatar===''?'../../../static/icons/60x60.png':item.avatar"
 							style="border-radius: 20px; width: 40px; height: 40px; border: 1px solid gainsboro;">
 						</image>
 						<view style="width: 70%; text-align: left;margin-left: 20px;">
@@ -19,9 +19,9 @@
 								style="font-weight: 400;font-size: 16px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">
 								{{item.userName.length>20||!item.userName?item.nickName:item.userName}}
 							</view>
-							<view style="color: #1A1A1A;font-size: 14px; font-weight: 400; margin-top: 10px;">
-								{{item.phonenumber}}
-							</view>
+							<!-- <view style="color: #1A1A1A;font-size: 14px; font-weight: 400; margin-top: 10px;">
+								{{item.phonenumber!==null?item.phonenumber:item.email}}
+							</view> -->
 						</view>
 						<uni-icons type="right" size="16"></uni-icons>
 					</view>
@@ -53,20 +53,23 @@
 		},
 
 		methods: {
+			clesdjk(e) {
+				this.filterList = []
+			},
 			//根据手机号查询用户
 			listsss() {
 				const data = {
 					userType: "01",
 					searchValue: this.searchValue
 				}
-				this.$get("https://jakoblife.jakob-techs.com/prod-api/system/user/list", data, {
+				this.$get(this.$url_APP_IP + "/prod-api/system/user/list", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;'
 				}).then(res => {
-					console.log("res", res)
-					if (res.code === 200) {
+					if (res.code === 200 && res.total > 0) {
 						this.filterList = res.rows;
 					} else {
+						this.filterList = []
 						uni.showToast({
 							title: this.$t("此用户不存在"),
 							icon: 'none'
@@ -80,10 +83,10 @@
 				that.listsss()
 			},
 
-			Share_with(name, phone, avatar, receiverId, nickename) {
+			Share_with(name, phone, avatar, receiverId, nickename, email) {
 				uni.navigateTo({
 					url: "../share/Share_with?NAME=" + (name.length > 20 || !name ? nickename : name) + "&PHONE=" +
-						phone + "&AVATAR=" + avatar + "&receiverId=" + receiverId
+						(phone !== null ? phone : email) + "&AVATAR=" + avatar + "&receiverId=" + receiverId
 				})
 			},
 

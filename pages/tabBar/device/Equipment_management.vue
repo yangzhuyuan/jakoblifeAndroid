@@ -11,7 +11,7 @@
 				<view class="item-content">
 					<image lazy-load class="imagesd" mode="aspectFit" :src="getDeviceImage(item.deviceModelId)"></image>
 					<view class="xinghao">{{$t('型号') + item.name}}</view>
-					<view style="font-size: 10px; padding-bottom: 5px; text-align: center;">sn:{{item.deviceSn}}</view>
+					<view style="font-size: 10px; padding-bottom: 5px; text-align: center;">SN:{{item.deviceSn}}</view>
 				</view>
 			</view>
 		</view>
@@ -178,14 +178,22 @@
 				});
 			},
 			handleQueryDevicesSuccess(res) {
-				if (res.data.code === 200) {
-					this.list = this.formatDeviceList(res.data.rows);
-					this.removeDuplicateDeviceNames();
-				} else {
-					uni.showToast({
-						title: res.data.msg,
-						icon: 'none'
-					});
+				switch (res.data.code) {
+					case 200:
+						this.list = this.formatDeviceList(res.data.rows);
+						this.removeDuplicateDeviceNames();
+						break
+					case 401:
+						uni.redirectTo({
+							url: "/pages/login/login_land"
+						});
+						break
+					default:
+						uni.showToast({
+							title: res.data.msg,
+							icon: 'none'
+						});
+						break
 				}
 			},
 			handleQueryDevicesFail() {

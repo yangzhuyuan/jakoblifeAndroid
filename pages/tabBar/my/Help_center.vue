@@ -24,21 +24,27 @@
 						url: '../my/Text_content?id=1156'
 					},
 					{
-						title: this.$t('传统血压计使用指南'),
+						title: this.$t('臂式电子血压计使用指南'),
 						url: '/pages/tabBar/my/vidohelp/vidohelp2'
 					},
 					{
-						title: this.$t('传统血压计问题解答'),
+						title: this.$t('臂式电子血压计问题解答'),
 						url: '../my/Text_content?id=1158'
 					},
 					{
 						title: this.$t('体脂秤使用指南'),
-						url: '/pages/tabBar/my/Body_fat_scale_binding_problem'
+						url: '/pages/tabBar/my/vidohelp/vidohelp3'
 					},
-					{
-						title: this.$t('体脂秤问题解答'),
-						url: '../my/Text_content?id=1160'
-					}
+					// {
+					// 	title: this.$t('手表说明书'),
+					// 	url: "../../tabBar/my/vidohelp/Webview4?title=" + this.$t('手表说明书') +
+					// 		"&url=https://jakob-techs.com/wp-content/uploads/dlm_uploads/2025/09/watch_manual.pdf"
+					// },
+					// {
+					// 	title: this.$t('血压计说明书'),
+					// 	url: "../../tabBar/my/vidohelp/Webview4?title=" + this.$t('血压计说明书') +
+					// 		"&url=https://jakob-techs.com/wp-content/uploads/dlm_uploads/2025/09/B872_manual.pdf"
+					// }
 				]
 			};
 		},

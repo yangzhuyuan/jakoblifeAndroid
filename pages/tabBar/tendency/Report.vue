@@ -7,21 +7,41 @@
 				<view style="font-size: 14px;font-weight: 600;color: #3298F7;">{{$t("血压分析和建议")}}</view>
 			</view>
 			<view style="border: 1px solid black;margin-top: 20px; padding: 10px;"
-				v-if="gaoya!==0&&fenxi===''&&fenxi1===''&&fenxi2===''&&fenxi3===''&&fenxi4===''&&fenxi5===''&&fenxi6===''&&fenxi7===''&&fenxi8===''&&fenxi9===''&&fenxi10===''&&fenxi11===''&&fenxi12===''&&fenxi13===''&&fenxi14===''&&fenxi15===''">
+				v-if="gaoya!==0&&fenxi===''&&fenxi1===''&&fenxi2===''&&fenxi3===''&&fenxi4===''&&fenxi5===''&&fenxi6===''&&fenxi7===''&&fenxi8===''&&fenxi9===''&&fenxi10===''&&fenxi11===''&&fenxi12===''&&fenxi13===''&&fenxi14===''&&fenxi15===''&&shebei===null&&tizhongBMI===''">
 				{{$t("您的身体健康暂无分析数据")}}
 			</view>
 			<view v-else style="border: 1px solid black;margin-top: 20px;">
 				<view style="padding:10px;font-size: 14px;font-weight: 600;color: #3298F7;">{{$t("分析")}}</view>
 				<view style="padding-left: 10px;padding-right: 10px; font-size: 10px; color: #040000;">
 					<view class="analysis-container">
-						<text>{{fenxi}}</text>
-						<text>{{fenxi1}}</text>
+						<view v-show="fenxi!==''"
+							style="color: #040000;display: flex;flex-direction: row;align-items: center;">
+							{{fenxi}}
+							<view class="toggle-button1" @click="toggleExpand2()">
+								{{isExpanded2 ? $t("收起") : $t("展开更多")}}
+							</view>
+						</view>
+						<text class="text-content" :class="{'expanded': isExpanded2}" space="pre-wrap"
+							selectable="true">
+							{{isExpanded2 ?  $t("用药建议2"): ""}}
+						</text>
+						<view v-show="fenxi1!==''"
+							style="color: #040000;display: flex;flex-direction: row;align-items: center;">
+							{{fenxi1}}
+							<view class="toggle-button1" @click="toggleExpand3()">
+								{{isExpanded3 ? $t("收起") : $t("展开更多")}}
+							</view>
+						</view>
+						<text class="text-content" :class="{'expanded': isExpanded3}" space="pre-wrap"
+							selectable="true">
+							{{isExpanded3 ?  $t("用药建议2"): ""}}
+						</text>
 						<text>{{fenxi2}}</text>
 						<text>{{fenxi3}}</text>
 						<view v-show="fenxi4!==''"
 							style="color: #040000;display: flex;flex-direction: row;align-items: center;">
 							{{fenxi4}}
-							<view class="toggle-button" @click="toggleExpand">
+							<view class="toggle-button" @click="toggleExpand()">
 								{{isExpanded ? $t("收起") : $t("展开更多")}}
 							</view>
 						</view>
@@ -99,20 +119,49 @@
 				</view>
 				<view v-if="idsss !== '1'&&idsss !== '2'&& shebei===0&&gaoya===0"
 					style="padding:0 10px;font-size: 14px;font-weight: 600;color: #3298F7;">
-					{{$t("提示")}}
+					{{$t("用药提示")}}：
 				</view>
 				<view v-else-if="idsss !== '1'&&idsss !== '2'&& shebei===1&&gaoya===0"
 					style="padding:0 10px;font-size: 14px;font-weight: 600;color: #3298F7;">
-					{{$t("提示")}}
+					{{$t("用药提示")}}：
 				</view>
-				<view style="padding: 10px;color: #040000;font-weight: 600;font-size: 10px;"
+				<view style="padding: 10px;color: #040000;font-weight: 600;font-size: 10px;margin-bottom: 20px;"
 					v-if="idsss !== '1'&&idsss !== '2'&& shebei===0&&gaoya===0">
 					{{$t("提示检测到血压偏高")}}
 				</view>
-				<view style="padding: 10px;color: #040000;font-weight: 600;font-size: 10px;"
+				<view style="padding: 0 10px;color: #040000;font-weight: 600;font-size: 10px;margin-bottom: 20px;"
 					v-else-if="idsss !== '1'&&idsss !== '2'&&shebei===1&&gaoya===0">
 					{{$t("提示检测到血压偏高1")}}
 				</view>
+				<view v-show="fenxi4!==''" style="padding:10px;font-size: 14px;font-weight: 600;color: #3298F7;">
+					{{$t("用药建议")}}:
+					<view style="color: #040000;font-weight: 600;font-size: 10px;margin-bottom: 20px;">
+						<view style="display: flex; flex-direction: row;align-items: center;">
+							<view>{{$t("降压药用药指南")}}:</view>
+							<view class="toggle-button1" @click="toggleExpand1()">
+								{{isExpanded1 ? $t("收起") : $t("展开更多")}}
+							</view>
+						</view>
+						<text class="text-content" :class="{'expanded': isExpanded1}" space="pre-wrap"
+							selectable="true">
+							{{isExpanded1 ?  $t("用药建议1"): ""}}
+						</text>
+					</view>
+				</view>
+				<view v-show="tizhongBMI!==''"
+					style="padding:10px;font-size: 14px;font-weight: 600;color: #3298F7;margin-bottom: 20px;">
+					{{$t("体脂血压交叉分析")}}:
+					<view style="color: #3298F7;font-weight: 600;font-size: 10px;">
+						<text>{{tizhongBMIa}}</text>
+					</view>
+					<view style="color: #040000;font-weight: 600;font-size: 10px;">
+						<text>{{tizhongBMI}}</text>
+					</view>
+					<view style="color: #040000;font-weight: 600;font-size: 10px;">
+						<text>{{tizhongBMIjianyi}}</text>
+					</view>
+				</view>
+				<view style="padding:0 10px;color: #040000;font-weight: 600;font-size: 10px;"></view>
 			</view>
 			<view style="background: black; height: 2px; width: auto;margin-top: 10px;"></view>
 			<view class="txtetitlestyle">
@@ -125,7 +174,7 @@
 					<view class="text2style">{{sex}}</view>
 				</view>
 				<view class="texttitle">
-					<view class="text1style">{{$t('年龄')}}:</view>
+					<view class="text1style">{{$t('出生日期')}}:</view>
 					<view class="text2style">{{age}}</view>
 				</view>
 			</view>
@@ -685,11 +734,21 @@
 	import {
 		base64ToPath
 	} from '../../../common/imageTool.js';
-
+	import {
+		mapState,
+		mapMutations
+	} from 'vuex'; //全局挂载
 	export default {
+		computed: {
+			...mapState(['BloodPressureLevel']),
+			/* 核心：一句话拿到当前场景要展示的 key 列表 */
+		},
 		data() {
 			return {
 				isExpanded: false, // 控制是否展开
+				isExpanded1: false, // 控制是否展开
+				isExpanded2: false, // 控制是否展开
+				isExpanded3: false, // 控制是否展开
 				pacitime: "2025-03-17",
 				name: "yang",
 				sex: '男',
@@ -918,15 +977,18 @@
 				period: '',
 				idsss: '',
 				finlretVarList1: "",
-				shebei: 0,
+				shebei: null,
 				gaoya: 1,
-
-
-
+				tizhicheng: 0,
+				tizhongBMI: '',
+				tizhongBMIa: '',
+				tizhongBMIjianyi: '',
+				lingfesds: 1,
 			}
 		},
 
 		onLoad(res) {
+			console.log(res)
 			// // 创建一个 Date 对象，表示 2025-06-01
 			// let date = new Date(new Date().toISOString().slice(0, 10));
 			// // 减去一天
@@ -1037,9 +1099,18 @@
 			this.queryDevices()
 		},
 		methods: {
-
+			...mapMutations(['setBloodPressureLevel']),
 			toggleExpand() {
 				this.isExpanded = !this.isExpanded;
+			},
+			toggleExpand1() {
+				this.isExpanded1 = !this.isExpanded1;
+			},
+			toggleExpand2() {
+				this.isExpanded2 = !this.isExpanded2;
+			},
+			toggleExpand3() {
+				this.isExpanded3 = !this.isExpanded3;
 			},
 
 			back() {
@@ -1075,7 +1146,9 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
+					console.log("jjjjj", res)
 					if (res.code == 200) {
+						this.age = res.data.birthTime === null ? res.data.birthTime : res.data.birthTime
 						this.name = res.data.nickName === null ? res.data.userName : res.data.nickName
 						if (res.data.sex === "0") {
 							this.sex = this.$t("男")
@@ -1108,7 +1181,7 @@
 								const allElementsNot3000 = res.data.rows.every((item) => item.deviceModelId !==
 									"30000");
 								if (allElementsNot3000) {
-									// console.log("数组中没有任何元素等于 3000");
+									console.log("数组中没有任何元素等于 3000");
 									for (let i = 0; res.data.rows.length > i; i++) {
 										if (res.data.rows[i].deviceModelId === "10005") {
 											let deviceSnlist = []
@@ -1117,10 +1190,21 @@
 											that.get_retVarList(res.data.rows[i].deviceSn)
 											that.get_finalRetVarList(res.data.rows[i].deviceSn)
 											that.query_log_v2(deviceSnlist)
+											that.tizhicheng = 1
 										}
+										setTimeout(() => {
+											if (res.data.rows[i].deviceModelId === "20000" || res.data
+												.rows[i]
+												.deviceModelId === "20001") {
+												let deviceSnlist1 = []
+												deviceSnlist1.push(res.data.rows[i].deviceSn)
+												that.query_log_v22(deviceSnlist1)
+											}
+										}, 1000)
 									}
 									that.shebei = 0
 								} else {
+									console.log("数组中有元素等于 3000", allElementsNot3000);
 									for (let i = 0; res.data.rows.length > i; i++) {
 										if (res.data.rows[i].deviceModelId === "30000") {
 											let deviceSnlist = []
@@ -1129,11 +1213,26 @@
 											that.get_retVarList(res.data.rows[i].deviceSn)
 											that.get_finalRetVarList(res.data.rows[i].deviceSn)
 											that.query_log_v2(deviceSnlist)
+											that.tizhicheng = 1
 										}
+										setTimeout(() => {
+											if (res.data.rows[i].deviceModelId === "20000" || res.data
+												.rows[i]
+												.deviceModelId === "20001") {
+												let deviceSnlist1 = []
+												deviceSnlist1.push(res.data.rows[i].deviceSn)
+												that.query_log_v22(deviceSnlist1)
+											}
+										}, 1000)
 									}
 									that.shebei = 1
 								}
 							}
+						} else if (res.data.code === 401) {
+							uni.showToast({
+								title: that.$t("登录账号已过期"),
+								icon: 'none'
+							})
 						} else {
 							uni.showToast({
 								title: res.data.msg,
@@ -1148,7 +1247,7 @@
 				let that = this
 				console.log("get_retVarList", that.pacitime)
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/device_app/get_retVarList",
+					url: that.$url_APP_IP + "/prod-api/device_app/get_retVarList",
 					method: 'POST',
 					data: {
 						deviceSn: deviceSn,
@@ -1161,6 +1260,7 @@
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					},
 					success(get_retVarList) {
+						console.log(get_retVarList)
 						if (get_retVarList.data.code === 200) {
 							let resultArray = get_retVarList.data.data.retVarList.split(";");
 							that.chartData.categories = []
@@ -1192,7 +1292,7 @@
 				let that = this
 				console.log("get_finalRetVarList", that.pacitime)
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/device_app/get_finalRetVarList",
+					url: that.$url_APP_IP + "/prod-api/device_app/get_finalRetVarList",
 					method: 'POST',
 					data: {
 						deviceSn: deviceSn,
@@ -1205,6 +1305,7 @@
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					},
 					success(get_finalRetVarList) {
+						console.log("血压指标最终表查询", get_finalRetVarList)
 						if (get_finalRetVarList.data.code === 200) {
 							if (get_finalRetVarList.data.data.retVarList !== "") {
 								let resultArray = get_finalRetVarList.data.data.retVarList.split(";");
@@ -1497,43 +1598,43 @@
 				if (that.period === "1D") {
 					// 减去一天
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 1); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate()); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "2D") {
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 2); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate() - 1); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "3D") {
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 3); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate() - 2); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "4D") {
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 4); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate() - 3); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "5D") {
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 5); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate() - 4); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "6D") {
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 6); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate() - 5); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "1W") {
 					// 减去一周（7天）
 					const minusOneWeek = new Date(initialDate);
-					minusOneWeek.setDate(minusOneWeek.getDate() - 7); // 减去一周
+					minusOneWeek.setDate(minusOneWeek.getDate() - 6); // 减去一周
 					startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "2W") {
 					// 减去一周（7天）
 					const minusOneWeek = new Date(initialDate);
-					minusOneWeek.setDate(minusOneWeek.getDate() - 14); // 减去一周
+					minusOneWeek.setDate(minusOneWeek.getDate() - 13); // 减去一周
 					startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "3W") {
 					// 减去一周（7天）
 					const minusOneWeek = new Date(initialDate);
-					minusOneWeek.setDate(minusOneWeek.getDate() - 21); // 减去一周
-					endTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+					minusOneWeek.setDate(minusOneWeek.getDate() - 20); // 减去一周
+					startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "1M") {
 					// 减去一个月
 					const minusOneMonth = new Date(initialDate);
@@ -1550,6 +1651,7 @@
 				}
 				console.log("startTime", startTime)
 				console.log("endTime", endTime)
+				console.log("deviceSn", deviceSn)
 				uni.request({
 					url: that.$url_query_log_v2,
 					method: 'POST',
@@ -1577,10 +1679,26 @@
 						'content-type': 'application/json' //自定义请求头信息
 					},
 					success(res) {
+						console.log('血压', res)
 						if (res.data.code == 200) {
 							if (res.data.data !== "") {
 								that.listall = []
 								for (let i = 0; res.data.data.length > i; i++) {
+									let lowPressureAvg = res.data.data[i].object.summary.lowPressureAvg
+									let highPressureAvg = res.data.data[i].object.summary.highPressureAvg
+									if ((lowPressureAvg >= 61 && lowPressureAvg <= 80) && (highPressureAvg >= 91 &&
+											highPressureAvg <= 120)) {
+										that.setBloodPressureLevel(1)
+									} else if ((lowPressureAvg >= 81 && lowPressureAvg <= 90) || (
+											highPressureAvg >= 121 && highPressureAvg <= 140)) {
+										that.setBloodPressureLevel(2)
+									} else if ((lowPressureAvg >= 91 && lowPressureAvg <= 100) || (
+											highPressureAvg >= 141 && highPressureAvg <= 160)) {
+										that.setBloodPressureLevel(3)
+									} else if ((lowPressureAvg >= 101 && lowPressureAvg <= 110) || (
+											highPressureAvg >= 161 && highPressureAvg <= 180)) {
+										that.setBloodPressureLevel(4)
+									}
 									res.data.data[i].object.details.forEach((item1, index1) => {
 										item1.date = res.data.data[i].dateTime
 										item1.modelName = res.data.data[i].modelName
@@ -1598,8 +1716,271 @@
 										that.listall.push(item1)
 									});
 								}
+								that.checkDateRange()
 							}
 						}
+					}
+				})
+			},
+			// 等待所有数据处理完毕后，检查日期是否超过两天
+			checkDateRange() {
+				// 提取所有日期并转换为日期对象
+				const uniqueDates = Array.from(new Set(this.listall.map(item => item.date)));
+				const dates = uniqueDates.map(dateStr => new Date(dateStr));
+				if (dates.length > 2) {
+					this.lingfesds = 2
+				} else {
+					console.log('日期范围不超过两天');
+					this.lingfesds = 1
+				}
+			},
+			query_log_v22(deviceSn) {
+				let endTime = this.pacitime.slice(0, 10) + " 23:59:59"
+				const initialDate = new Date(endTime);
+				let startTime = ""
+				if (this.period === "1D") {
+					// 减去一天
+					const minusOneDay = new Date(initialDate);
+					minusOneDay.setDate(minusOneDay.getDate()); // setDate 方法会自动处理日期的增减
+					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "2D") {
+					const minusOneDay = new Date(initialDate);
+					minusOneDay.setDate(minusOneDay.getDate() - 1); // setDate 方法会自动处理日期的增减
+					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "3D") {
+					const minusOneDay = new Date(initialDate);
+					minusOneDay.setDate(minusOneDay.getDate() - 2); // setDate 方法会自动处理日期的增减
+					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "4D") {
+					const minusOneDay = new Date(initialDate);
+					minusOneDay.setDate(minusOneDay.getDate() - 3); // setDate 方法会自动处理日期的增减
+					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "5D") {
+					const minusOneDay = new Date(initialDate);
+					minusOneDay.setDate(minusOneDay.getDate() - 4); // setDate 方法会自动处理日期的增减
+					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "6D") {
+					const minusOneDay = new Date(initialDate);
+					minusOneDay.setDate(minusOneDay.getDate() - 5); // setDate 方法会自动处理日期的增减
+					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "1W") {
+					// 减去一周（7天）
+					const minusOneWeek = new Date(initialDate);
+					minusOneWeek.setDate(minusOneWeek.getDate() - 6); // 减去一周
+					startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "2W") {
+					// 减去一周（7天）
+					const minusOneWeek = new Date(initialDate);
+					minusOneWeek.setDate(minusOneWeek.getDate() - 13); // 减去一周
+					startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "3W") {
+					// 减去一周（7天）
+					const minusOneWeek = new Date(initialDate);
+					minusOneWeek.setDate(minusOneWeek.getDate() - 20); // 减去一周
+					startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "1M") {
+					// 减去一个月
+					const minusOneMonth = new Date(initialDate);
+					minusOneMonth.setMonth(minusOneMonth.getMonth() - 1); // 减去一个月
+					startTime = minusOneMonth.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "2M") {
+					const minusOneMonth = new Date(initialDate);
+					minusOneMonth.setMonth(minusOneMonth.getMonth() - 2); // 减去一个月
+					startTime = minusOneMonth.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				} else if (this.period === "3M") {
+					const minusOneMonth = new Date(initialDate);
+					minusOneMonth.setMonth(minusOneMonth.getMonth() - 3); // 减去一个月
+					startTime = minusOneMonth.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				}
+				let data = {
+					deviceSn: deviceSn,
+					dataType: "weight",
+					slaveList: [{
+						slaveSn: "0",
+						register: "weight"
+					}],
+					startTime: startTime,
+					endTime: endTime,
+				}
+				this.$post(this.$url_query_log_v2, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then(res => {
+					if (res.code === 200) {
+						const last = res.data[res.data.length - 1]
+						console.log(this.BloodPressureLevel)
+						if (last.object.summary.bmiAvg <= 24.00 && this.BloodPressureLevel === 0) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + "<=24.00"
+							this.tizhongBMI = this.$t("正常体重") + ":" + this.$t("高血压风险增幅1")
+							this.tizhongBMIjianyi = this.$t("核心健康建议1")
+						} else if (last.object.summary.bmiAvg >= 24.00 && last.object.summary.bmiAvg < 25.69 &&
+							this.BloodPressureLevel === 0) {
+							this.tizhongBMIa = "BMI:24.00<=" + last.object.summary.bmiAvg + "<25.69"
+							this.tizhongBMI = this.$t("超重") + ":" + this.$t("高血压风险增幅2")
+							this.tizhongBMIjianyi = this.$t("核心健康建议2")
+						} else if (last.object.summary.bmiAvg >= 25.69 && last.object.summary.bmiAvg < 26.48 &&
+							this.BloodPressureLevel === 0) {
+							this.tizhongBMIa = "BMI:25.69<=" + last.object.summary.bmiAvg + "<26.48"
+							this.tizhongBMI = this.$t("超重") + ":" + this.$t("高血压风险增幅3")
+							this.tizhongBMIjianyi = this.$t("核心健康建议3")
+						} else if (last.object.summary.bmiAvg >= 26.48 && last.object.summary.bmiAvg < 27.49 &&
+							this.BloodPressureLevel === 0) {
+							this.tizhongBMIa = "BMI:26.48<=" + last.object.summary.bmiAvg + "<27.49"
+							this.tizhongBMI = this.$t("超重") + ":" + this.$t("高血压风险增幅4")
+							this.tizhongBMIjianyi = this.$t("核心健康建议4")
+						} else if (last.object.summary.bmiAvg >= 27.49 && last.object.summary.bmiAvg < 29.15 &&
+							this.BloodPressureLevel === 0) {
+							this.tizhongBMIa = "BMI:27.49<=" + last.object.summary.bmiAvg + "<29.15"
+							this.tizhongBMI = this.$t("肥胖") + ":" + this.$t("高血压风险增幅5")
+							this.tizhongBMIjianyi = this.$t("核心健康建议5")
+						} else if (last.object.summary.bmiAvg >= 29.15 && this.BloodPressureLevel === 0) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + ">=29.15"
+							this.tizhongBMI = this.$t("严重肥胖") + ":" + this.$t("高血压风险增幅6")
+							this.tizhongBMIjianyi = this.$t("核心健康建议6")
+						} else if (last.object.summary.bmiAvg < 18.5 && this.BloodPressureLevel === 1 && this
+							.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + "<18.5------" + this.$t(
+								"血压水平") + ":" + this.$t("正常血压") + "(<120/80)"
+							this.tizhongBMI = this.$t('核心目标与风险特征1')
+							this.tizhongBMIjianyi = this.$t('行动核心目标1')
+						} else if (last.object.summary.bmiAvg < 18.5 && this.BloodPressureLevel === 2 && this
+							.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + "<18.5------" + this.$t(
+								"血压水平") + ":" + this.$t("正常高血压值") + " (120–139 / 80–89)"
+							this.tizhongBMI = this.$t('核心目标与风险特征2')
+							this.tizhongBMIjianyi = this.$t("行动核心目标2")
+						} else if (last.object.summary.bmiAvg < 18.5 && this.BloodPressureLevel === 3 && this
+							.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + "<18.5------" + this.$t(
+								"血压水平") + ":" + this.$t("一级高血压") + " (140–159 / 90–99)"
+							this.tizhongBMI = this.$t('核心目标与风险特征3')
+							this.tizhongBMIjianyi = this.$t("行动核心目标3")
+						} else if (last.object.summary.bmiAvg < 18.5 && this.BloodPressureLevel === 4 && this
+							.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + "<18.5------" + this.$t(
+								"血压水平") + ":" + this.$t("二级高血压") + " (≥160 / 100)"
+							this.tizhongBMI = this.$t('核心目标与风险特征4')
+							this.tizhongBMIjianyi = this.$t("行动核心目标4")
+						} else if (last.object.summary.bmiAvg >= 18.5 && last.object.summary.bmiAvg <= 23.9 && this
+							.BloodPressureLevel === 1 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:18.5<=" + last.object.summary.bmiAvg + "<=23.9------" + this
+								.$t("血压水平") + ":" + this.$t("正常血压") + "(<120/80)"
+							this.tizhongBMI = this.$t('核心目标与风险特征5')
+							this.tizhongBMIjianyi = this.$t('行动核心目标5')
+						} else if (last.object.summary.bmiAvg >= 18.5 && last.object.summary.bmiAvg <= 23.9 && this
+							.BloodPressureLevel === 2 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:18.5<=" + last.object.summary.bmiAvg + "<=23.9------" + this
+								.$t("血压水平") + ":" + this.$t("正常高血压值") + " (120–139 / 80–89)"
+							this.tizhongBMI = this.$t('核心目标与风险特征6')
+							this.tizhongBMIjianyi = this.$t("行动核心目标6")
+						} else if (last.object.summary.bmiAvg >= 18.5 && last.object.summary.bmiAvg <= 23.9 && this
+							.BloodPressureLevel === 3 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:18.5<=" + last.object.summary.bmiAvg + "<=23.9------" + this
+								.$t("血压水平") + ":" + this.$t("一级高血压") + " (140–159 / 90–99)"
+							this.tizhongBMI = this.$t('核心目标与风险特征7')
+							this.tizhongBMIjianyi = this.$t("行动核心目标7")
+						} else if (last.object.summary.bmiAvg >= 18.5 && last.object.summary.bmiAvg <= 23.9 && this
+							.BloodPressureLevel === 4 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:18.5<=" + last.object.summary.bmiAvg + "<=23.9------" + this
+								.$t("血压水平") + ":" + this.$t("二级高血压") + " (≥160 / 100)"
+							this.tizhongBMI = this.$t('核心目标与风险特征8')
+							this.tizhongBMIjianyi = this.$t("行动核心目标8")
+						} else if (last.object.summary.bmiAvg >= 24.0 && last.object.summary.bmiAvg <= 27.9 && this
+							.BloodPressureLevel === 1 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:24.0<=" + last.object.summary.bmiAvg + "<=27.9------" + this
+								.$t("血压水平") + ":" + this.$t("正常血压") + "(<120/80)"
+							this.tizhongBMI = this.$t('核心目标与风险特征9')
+							this.tizhongBMIjianyi = this.$t('行动核心目标9')
+						} else if (last.object.summary.bmiAvg >= 24.0 && last.object.summary.bmiAvg <= 27.9 && this
+							.BloodPressureLevel === 2 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:24.0<=" + last.object.summary.bmiAvg + "<=27.9------" + this
+								.$t("血压水平") + ":" + this.$t("正常高血压值") + " (120–139 / 80–89)"
+							this.tizhongBMI = this.$t('核心目标与风险特征10')
+							this.tizhongBMIjianyi = this.$t("行动核心目标10")
+						} else if (last.object.summary.bmiAvg >= 24.0 && last.object.summary.bmiAvg <= 27.9 && this
+							.BloodPressureLevel === 3 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:24.0<=" + last.object.summary.bmiAvg + "<=27.9------" + this
+								.$t("血压水平") + ":" + this.$t("一级高血压") + " (140–159 / 90–99)"
+							this.tizhongBMI = this.$t('核心目标与风险特征11')
+							this.tizhongBMIjianyi = this.$t("行动核心目标11")
+						} else if (last.object.summary.bmiAvg >= 24.0 && last.object.summary.bmiAvg <= 27.9 && this
+							.BloodPressureLevel === 4 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:24.0<=" + last.object.summary.bmiAvg + "<=27.9------" + this
+								.$t("血压水平") + ":" + this.$t("二级高血压") + " (≥160 / 100)"
+							this.tizhongBMI = this.$t('核心目标与风险特征12')
+							this.tizhongBMIjianyi = this.$t("行动核心目标12")
+						} else if (last.object.summary.bmiAvg >= 28.0 && this
+							.BloodPressureLevel === 1 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + ">= 28.0------" + this
+								.$t("血压水平") + ":" + this.$t("正常血压") + "(<120/80)"
+							this.tizhongBMI = this.$t('核心目标与风险特征13')
+							this.tizhongBMIjianyi = this.$t('行动核心目标13')
+						} else if (last.object.summary.bmiAvg >= 28.0 && this
+							.BloodPressureLevel === 2 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + ">= 28.0------" + this
+								.$t("血压水平") + ":" + this.$t("正常高血压值") + " (120–139 / 80–89)"
+							this.tizhongBMI = this.$t('核心目标与风险特征14')
+							this.tizhongBMIjianyi = this.$t("行动核心目标14")
+						} else if (last.object.summary.bmiAvg >= 28.0 && this
+							.BloodPressureLevel === 3 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + ">= 28.0------" + this
+								.$t("血压水平") + ":" + this.$t("一级高血压") + " (140–159 / 90–99)"
+							this.tizhongBMI = this.$t('核心目标与风险特征15')
+							this.tizhongBMIjianyi = this.$t("行动核心目标15")
+						} else if (last.object.summary.bmiAvg >= 28.0 && this
+							.BloodPressureLevel === 4 && this.idsss !== '1' && this.idsss !== '2' && this
+							.gaoya === 0 && this.lingfesds === 2) {
+							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + ">= 28.0------" + this
+								.$t("血压水平") + ":" + this.$t("二级高血压") + " (≥160 / 100)"
+							this.tizhongBMI = this.$t('核心目标与风险特征16')
+							this.tizhongBMIjianyi = this.$t("行动核心目标16")
+						} else {
+							if (last.object.summary.bmiAvg <= 24.00) {
+								this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + "<=24.00"
+								this.tizhongBMI = this.$t("正常体重") + ":" + this.$t("高血压风险增幅1")
+								this.tizhongBMIjianyi = this.$t("核心健康建议1")
+							} else if (last.object.summary.bmiAvg >= 24.00 && last.object.summary.bmiAvg < 25.69) {
+								this.tizhongBMIa = "BMI:24.00<=" + last.object.summary.bmiAvg + "<25.69"
+								this.tizhongBMI = this.$t("超重") + ":" + this.$t("高血压风险增幅2")
+								this.tizhongBMIjianyi = this.$t("核心健康建议2")
+							} else if (last.object.summary.bmiAvg >= 25.69 && last.object.summary.bmiAvg < 26.48) {
+								this.tizhongBMIa = "BMI:25.69<=" + last.object.summary.bmiAvg + "<26.48"
+								this.tizhongBMI = this.$t("超重") + ":" + this.$t("高血压风险增幅3")
+								this.tizhongBMIjianyi = this.$t("核心健康建议3")
+							} else if (last.object.summary.bmiAvg >= 26.48 && last.object.summary.bmiAvg < 27.49) {
+								this.tizhongBMIa = "BMI:26.48<=" + last.object.summary.bmiAvg + "<27.49"
+								this.tizhongBMI = this.$t("超重") + ":" + this.$t("高血压风险增幅4")
+								this.tizhongBMIjianyi = this.$t("核心健康建议4")
+							} else if (last.object.summary.bmiAvg >= 27.49 && last.object.summary.bmiAvg < 29.15) {
+								this.tizhongBMIa = "BMI:27.49<=" + last.object.summary.bmiAvg + "<29.15"
+								this.tizhongBMI = this.$t("肥胖") + ":" + this.$t("高血压风险增幅5")
+								this.tizhongBMIjianyi = this.$t("核心健康建议5")
+							} else if (last.object.summary.bmiAvg >= 29.15) {
+								this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + ">=29.15"
+								this.tizhongBMI = this.$t("严重肥胖") + ":" + this.$t("高血压风险增幅6")
+								this.tizhongBMIjianyi = this.$t("核心健康建议6")
+							}
+						}
+					} else {
+						uni.showToast({
+							title: this.$t("选择的时间内没有体重数据"),
+							icon: 'none',
+						})
 					}
 				})
 			},
@@ -1870,5 +2251,31 @@
 		color: #007aff;
 		text-align: center;
 		padding: 10px;
+	}
+
+	.toggle-button1 {
+		font-size: 10px;
+		color: #007aff;
+		text-align: left;
+	}
+
+	/* 统一抽出来的样式 */
+	.sleep-card {
+		padding: 10px;
+		margin-bottom: 20px;
+		font-size: 14px;
+		font-weight: 600;
+		color: #3298f7;
+	}
+
+	.sleep-title {
+		margin-bottom: 6px;
+	}
+
+	.sleep-line {
+		color: #040000;
+		font-weight: 600;
+		font-size: 10px;
+		margin-top: 4px;
 	}
 </style>

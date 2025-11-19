@@ -239,7 +239,7 @@
 			send_email_reset_code() {
 				let that = this
 				uni.request({
-					url: "https://jakoblife.jakob-techs.com/prod-api/app/send_email_reset_code",
+					url: that.$url_APP_IP + "/prod-api/app/send_email_reset_code",
 					method: 'POST',
 					data: {
 						email: that.unername_phone

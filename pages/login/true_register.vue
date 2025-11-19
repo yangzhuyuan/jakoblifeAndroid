@@ -73,14 +73,12 @@
 			let that = this;
 			isInChinaByIP().then(isInChina => {
 				if (isInChina) {
-					console.log('用户在中国境内');
 					that.loact = "境内"
 					//使用协议返回过来的数据
 					uni.$once('checked', function(data) {
 						that.cb = data
 					})
 				} else {
-					console.log('用户在境外');
 					that.loact = "境外"
 					//使用协议返回过来的数据
 					uni.$once('checked', function(data) {
@@ -206,7 +204,6 @@
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 					},
 					success: (res) => {
-						console.log("App用户名密码注册：", res)
 						if (res.statusCode == 200) {
 							if (res.data.code == 200) {
 								that.register_token(res.data.token)

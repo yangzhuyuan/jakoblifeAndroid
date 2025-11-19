@@ -36,9 +36,11 @@
 			<view style="display: flex; justify-content: flex-end;flex-direction: row; align-items: center;">
 				<input type="number" :placeholder="$t('请输入')" v-model="height"
 					style="color: black; text-align: right; font-size: 16px;" maxlength="5" />
-				<view type="bottom" size="20" style="width: 60px; margin-right: 5px;font-size: 17px;">
+				<view type="bottom" size="20" style="width: 60px; margin-right: 20px;font-size: 17px;">
 					<picker @change="bindPickerChange_Height" :value="Height_index" :range="Height_array">
-						<view class="uni-input" style="text-align: right;">{{Height_array[Height_index]}}</view>
+						<view class="uni-input" style="text-align: right;background: none;">
+							{{Height_array[Height_index]}}
+						</view>
 					</picker>
 				</view>
 			</view>
@@ -48,7 +50,7 @@
 			<view style=" display: flex; justify-content: flex-end; flex-direction: row; align-items: center;">
 				<input type="number" :placeholder="$t('请输入')" v-model="width"
 					style="color: black; text-align: right; font-size: 16px;" maxlength="5" />
-				<view type="bottom" size="20" style="width: 60px; margin-right: 5px; font-size: 17px;">
+				<view type="bottom" size="20" style="width: 60px; margin-right: 20px; font-size: 17px;">
 					<picker @change="bindPickerChange_Width" :value="Width_index" :range="Width_array">
 						<view class="uni-input" style="text-align: right;background: none;">{{Width_array[Width_index]}}
 						</view>
@@ -67,6 +69,7 @@
 		mapState,
 		mapMutations
 	} from 'vuex';
+	import WeightConverter from '../../pages/api/unitls/weightConverter.js';
 	export default {
 		computed: {
 			...mapState(['tokens', 'unername'])
@@ -144,8 +147,9 @@
 						nickName: that.unername,
 						sex: that.sex_index,
 						birthTime: that.date,
-						height: that.height,
-						weight: that.width
+						height: that.Height_index === 0 ? WeightConverter.inchToCm(that.height) : that.height,
+						weight: that.Width_index === 0 ? that.width : WeightConverter.lbToKg(that.width)
+
 					},
 					header: {
 						'Authorization': 'Bearer ' + uni.getStorageSync("token"),

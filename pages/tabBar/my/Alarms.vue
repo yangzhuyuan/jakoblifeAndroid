@@ -107,6 +107,14 @@
 				<view style="background: gainsboro;height: 1px;"></view>
 			</view>
 		</view>
+		<view>
+			<!-- 普通弹窗 -->
+			<uni-popup ref="popup" :mask-click="true">
+				<view class="popup-content">
+					{{$t("通知权限")}}
+				</view>
+			</uni-popup>
+		</view>
 	</view>
 </template>
 
@@ -147,26 +155,59 @@
 				swicth: false,
 				letnewtimers: null,
 				listletnewtimers: null,
-				qunxisnds: uni.getStorageSync("tongzhi"),
+				qunxisnds: uni.getStorageSync("pushAuth"),
 			}
 		},
+		onLoad() {
+			console.log(uni.getStorageSync("appQX"))
+			if (uni.getStorageSync("appQX") === "1") {
+				if (this.qunxisnds === "") {
+					this.checkNotificationPermissions1()
+					plus.android.checkPermission("android.permission.POST_NOTIFICATIONS", (granted) => {
+						if (granted.checkResult !== 0) {
+							this.$refs.popup.open('top');
+						} else {
+							setTimeout(() => {
+								this.$refs.popup?.close(); // 可选链，防止再次报错
+							}, 3000);
+						}
+					});
+				}
+				if (this.qunxisnds !== "") {
+					// #ifdef APP-PLUS
+					this.openNotificationSettingsAndroid();
+					// #endif
+				}
+			} else {
+				uni.showToast({
+					title: this.$t('附近设备权限'),
+					icon: 'none',
+					duration: 5000,
+				})
+				// #ifdef APP-PLUS
+				setTimeout(() => {
+					uni.navigateBack()
+					setTimeout(() => {
+						// #ifdef APP-PLUS
+						this.gotoAppPermissionSetting();
+						// #endif
+					}, 1000)
+				}, 1000)
+				// #endif
+			}
+		},
+
+
 
 		onShow() {
 			let that = this
 			uni.setNavigationBarTitle({
 				title: that.$t("警报")
 			})
-			that.checkNotificationPermissions1()
-			if (!that.qunxisnds) {
-				uni.showToast({
-					title: "通知权限，用于发送数据报警",
-					icon: 'none',
-					duration: 4000
-				})
-			}
 			// 设置用户头像和名称
 			that.avatar = that.info.avatar || '/static/icons/80x80.png';
 			that.name = that.info.nickName || that.info.userName;
+
 			// 定义存储键和对应的变量名
 			const storageKeys = [{
 					key: "shuzhangyaId1",
@@ -209,6 +250,7 @@
 					variable: "swicth"
 				}
 			];
+
 			// 获取存储信息
 			uni.getStorageInfo({
 				success(res) {
@@ -218,14 +260,17 @@
 							that[item.variable] = uni.getStorageSync(key);
 						}
 					});
-					if (that.swicth === true) {
-						that.startIntervalTimer();
+					if (that.qunxisnds === 1) {
+						if (that.swicth === true) {
+							that.startIntervalTimer();
+						}
+						that.listletnewtimers = setInterval(() => {
+							that.receiver_list();
+						}, 5000);
 					}
-					that.listletnewtimers = setInterval(() => {
-						that.receiver_list();
-					}, 1000);
 				}
 			});
+
 		},
 
 		onUnload() {
@@ -237,12 +282,77 @@
 		},
 
 		methods: {
+
+			gotoAppPermissionSetting() {
+				// #ifdef APP-PLUS
+				if (uni.getSystemInfoSync().platform === 'android') {
+					const main = plus.android.runtimeMainActivity();
+					const Intent = plus.android.importClass('android.content.Intent');
+					const Settings = plus.android.importClass('android.provider.Settings');
+					const Uri = plus.android.importClass('android.net.Uri');
+					const intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+					const uri = Uri.fromParts('package', main.getPackageName(), null);
+					intent.setData(uri);
+					main.startActivity(intent);
+				}
+				// #endif
+			},
+
+			// #ifdef APP-PLUS
+			/**
+			 * 检测并申请通知权限（仅 Android 端）
+			 * 若未开启则弹出 modal，点击“去开启”后跳转到系统通知设置页
+			 */
+			openNotificationSettingsAndroid() {
+				const system = uni.getSystemInfoSync();
+				if (system.platform !== 'android') return; // 非安卓直接退出
+				/* 1. 判断通知权限是否已开启 */
+				const main = plus.android.runtimeMainActivity();
+				const Context = plus.android.importClass('android.content.Context');
+				const NotificationManagerCompat = plus.android.importClass(
+					'androidx.core.app.NotificationManagerCompat'
+				) || plus.android.importClass(
+					'android.support.v4.app.NotificationManagerCompat'
+				);
+				const manager = NotificationManagerCompat.from(main);
+				const granted = plus.android.invoke(manager, 'areNotificationsEnabled');
+				if (granted) {
+					// 已经获取权限
+					uni.setStorageSync('pushAuth', 1);
+					return;
+				}
+				/* 2. 未获取，弹框引导用户跳转 */
+				uni.showModal({
+					title: this.$t('提示'),
+					content: this.$t('通知权限'),
+					confirmText: this.$t('去开启'),
+					cancelText: this.$t('暂不开启'),
+					success: (res) => {
+						if (res.confirm) {
+							/* 3. 跳到系统通知设置页 */
+							const Intent = plus.android.importClass('android.content.Intent');
+							const Settings = plus.android.importClass('android.provider.Settings');
+							const Uri = plus.android.importClass('android.net.Uri');
+							const intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+							const uri = Uri.fromParts('package', main.getPackageName(), null);
+							intent.setData(uri);
+							main.startActivity(intent);
+							uni.setStorageSync('pushAuth', 0);
+						} else {
+							uni.setStorageSync('pushAuth', 0);
+							// 这里可按需返回上一页或其他逻辑
+							uni.navigateBack();
+						}
+					}
+				});
+			},
+			// #endif
+
 			checkNotificationPermissions1() {
 				// 申请通知权限
 				plus.android.requestPermissions(['android.permission.POST_NOTIFICATIONS'], function(e) {
-					console.log("哈哈哈哈哈", e)
 					if (e.deniedAlways.length > 0) { //权限被永久拒绝
-						uni.setStorageSync("tongzhi", "tongzhi1")
+						uni.setStorageSync('pushAuth', 0);
 						// 弹出提示框解释为何需要定位权限，引导用户打开设置页面开启
 						const Intent = plus.android.importClass('android.content.Intent');
 						const Build = plus.android.importClass('android.os.Build');
@@ -263,12 +373,16 @@
 								null));
 						}
 						main.startActivity(intent);
+						return
 					}
 					if (e.deniedPresent.length > 0) { //权限被临时拒绝
+						uni.setStorageSync('pushAuth', 0);
+						return
 						// 弹出提示框解释为何需要定位权限，可再次调用plus.android.requestPermissions申请权限
 					}
 					if (e.granted.length > 0) { //权限被允许
-						uni.setStorageSync("tongzhi", "tongzhi")
+						uni.setStorageSync('pushAuth', 1);
+						return
 					}
 				}, function(e) {});
 			},
@@ -363,7 +477,7 @@
 			startIntervalTimer() {
 				this.letnewtimers = setInterval(() => {
 					this.list_recipe();
-				}, 1000);
+				}, 5000);
 			},
 			// 根据状态值返回不同的样式对象
 			getStatusColor1(status) {
@@ -375,23 +489,57 @@
 				this.index = e.detail.value
 			},
 			// 定义验证函数
-			validateInput(value1, value2, messageKey) {
-				if ((value1 !== "" && value2 === "") || (value1 === "" && value2 !== "")) {
+			// 重新定义：同时完成
+			// 1. 成对互斥
+			// 2. value1 ≥ key1
+			// 3. value2 ≤ key2
+			// 4. value1 ≤ value2
+			validateInput(value1, value2, messageKey, key1, key2, eroomsg) {
+				// 空值互斥
+				const empty1 = value1 === '' || value1 == null;
+				const empty2 = value2 === '' || value2 == null;
+				if ((empty1 && !empty2) || (!empty1 && empty2)) {
 					uni.showToast({
-						title: this.$t(messageKey),
+						title: this.$t(messageKey) + '/' + this.$t(eroomsg),
+						icon: 'none'
+					});
+					return false;
+				}
+				// 都空——认为这组跳过，返回 true（后面可改）
+				if (empty1 && empty2) return true;
+
+				// 数值校验
+				const v1 = Number(value1);
+				const v2 = Number(value2);
+				if (v1 < key1) {
+					uni.showToast({
+						title: this.$t(eroomsg) + "：" + this.$t("最小") + "：" + key1,
+						icon: 'none'
+					});
+					return false;
+				} else if (v2 > key2) {
+					uni.showToast({
+						title: this.$t(eroomsg) + "：" + this.$t("最大") + "：" + key2,
+						icon: 'none'
+					});
+					return false;
+				} else if (v1 > v2) {
+					uni.showToast({
+						title: this.$t(eroomsg) + "：" + this.$t("需要小于"),
 						icon: 'none'
 					});
 					return false;
 				}
 				return true;
 			},
+
 			//点击确认设置
 			clickset() {
 				let that = this;
 				// 验证输入
-				if (!that.validateInput(that.shuzhangya1, that.shuzhangya2, "舒张压有未录入")) return;
-				if (!that.validateInput(that.shousuoya1, that.shousuoya2, "收缩压有未录入")) return;
-				if (!that.validateInput(that.maibo1, that.maibo2, "脉搏有未录入")) return;
+				if (!that.validateInput(that.shuzhangya1, that.shuzhangya2, "舒张压有未录入", 30, 195, "舒张压输入值超出范围")) return;
+				if (!that.validateInput(that.shousuoya1, that.shousuoya2, "收缩压有未录入", 60, 255, "收缩压输入值超出范围")) return;
+				if (!that.validateInput(that.maibo1, that.maibo2, "脉搏有未录入", 30, 200, "脉搏输入值超出范围")) return;
 				if (!that.validateInput(that.xeuyang1, that.xeuyang2, "血氧有未录入")) return;
 				// 验证血氧值是否超过100
 				if (that.xeuyang1 > 100 || that.xeuyang2 > 100) {
@@ -860,5 +1008,15 @@
 		gap: 10px;
 		/* 子元素之间的间距 */
 		margin: 10px 20px 20px 20px;
+	}
+
+	/* 弹窗内容样式 */
+	.popup-content {
+		background: #fff;
+		border-radius: 20px;
+		padding: 20px;
+		margin: 20px;
+		text-align: center;
+		box-sizing: border-box;
 	}
 </style>

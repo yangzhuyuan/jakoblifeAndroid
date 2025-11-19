@@ -1,5 +1,11 @@
 <template>
 	<view class="page">
+		<view class="group-title">
+			<view>{{$t("说明书")}}</view>
+			<view style="margin-top: 20px;" @click="openUrl(shuomingurl)" hover-class="hover">
+				<text class="link-text-1">{{shuomingurl}}</text>
+			</view>
+		</view>
 		<view v-for="(group, idx) in videoGroups" :key="idx" class="group">
 			<view class="group-title">{{ group.title }}</view>
 			<view v-for="item in group.list" :key="item.url" class="link-row" hover-class="hover"
@@ -15,6 +21,7 @@
 	export default {
 		data() {
 			return {
+				shuomingurl: "https://jakob-techs.com/documentations/",
 				/* 维护这一份数组即可 */
 				videoGroups: [{
 						title: this.$t('臂式血压计的安装'),
@@ -94,14 +101,14 @@
 
 		onLoad(opte) {
 			uni.setNavigationBarTitle({
-				title: this.$t('传统血压计使用指南')
+				title: this.$t('臂式电子血压计使用指南')
 			})
 		},
 
 		methods: {
 			openUrl(url) {
 				uni.navigateTo({
-					url: "../../my/vidohelp/Webview2?id=" + url + "&name=" + this.$t('传统血压计使用指南')
+					url: "../../my/vidohelp/Webview2?id=" + url + "&name=" + this.$t('臂式电子血压计使用指南')
 				})
 			}
 		}
@@ -148,6 +155,21 @@
 		flex: 1;
 		font-size: 14px;
 		color: #3298F7;
+		word-break: break-all;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.link-text-1 {
+		display: flex;
+		align-items: center;
+		background: #fff;
+		border-radius: 12px;
+		padding: 12px;
+		color: #3298F7;
+		margin-bottom: 20rpx;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 		word-break: break-all;
 		overflow: hidden;
 		text-overflow: ellipsis;

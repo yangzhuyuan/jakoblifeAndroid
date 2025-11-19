@@ -241,15 +241,15 @@
 			"path": "pages/tabBar/tendency/Historical_record",
 			"style": {
 				// "enablePullDownRefresh": true,
-				"onReachBottomDistance": 120,
-				"navigationStyle": "custom",
-				"app-plus": {
-					"pullToRefresh": {
-						"support": true,
-						"color": "#000000", //小圈圈的颜色
-						"style": "circle" //小圈圈的样式
-					}
-				}
+				// "onReachBottomDistance": 120,
+				"navigationStyle": "custom"
+				// "app-plus": {
+				// 	"pullToRefresh": {
+				// 		"support": true,
+				// 		"color": "#000000", //小圈圈的颜色
+				// 		"style": "circle" //小圈圈的样式
+				// 	}
+				// }
 			}
 		},
 		{
@@ -298,54 +298,6 @@
 			"style": {
 				"navigationBarTitleText": "帮助中心",
 				"navigationBarBackgroundColor": "#F5F5F5",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/Sphygmomanometer_binding_problem",
-			"style": {
-				"navigationBarTitleText": "血压计绑定问题",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/Sphygmomanometer_binding_problem_1",
-			"style": {
-				"navigationBarTitleText": "血压计绑定问题",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/Data_synchronization",
-			"style": {
-				"navigationBarTitleText": "数据同步",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/Data_synchronization_1",
-			"style": {
-				"navigationBarTitleText": "数据同步失败",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/Body_fat_scale_binding_problem",
-			"style": {
-				"navigationBarTitleText": "体脂秤绑定问题",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/my/Body_fat_scale_binding_problem_1",
-			"style": {
-				"navigationBarTitleText": "体脂秤绑定问题",
-				"navigationBarBackgroundColor": "#F7F7F7",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -486,15 +438,6 @@
 			"style": {
 				"navigationBarTitleText": "共享给",
 				"navigationBarBackgroundColor": "#EFEFF4",
-				"navigationBarTextStyle": "black"
-			}
-		},
-		{
-			"path": "pages/tabBar/share/Share_with_1",
-			"style": {
-				"navigationBarTitleText": "共享",
-				"navigationStyle": "custom",
-				"navigationBarBackgroundColor": "#F5F5F5",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -735,6 +678,14 @@
 			}
 		},
 		{
+			"path": "pages/tabBar/my/vidohelp/Webview4",
+			"style": {
+				"navigationBarTitleText": "帮助",
+				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
 			"path": "pages/Bind/Bing_page/helpcenterss",
 			"style": {
 				"navigationBarTitleText": "帮助",
@@ -776,6 +727,22 @@
 			"path": "pages/tabBar/my/vidohelp/vidohelp2",
 			"style": {
 				"navigationBarTitleText": "帮助",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/my/vidohelp/vidohelp3",
+			"style": {
+				"navigationBarTitleText": "帮助",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/Reports_Alerts",
+			"style": {
+				"navigationBarTitleText": "ECG",
 				"navigationBarBackgroundColor": "#F5F5F5",
 				"navigationBarTextStyle": "black"
 			}
