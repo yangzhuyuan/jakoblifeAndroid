@@ -865,7 +865,7 @@
 					});
 					return;
 				}
-				this.$get(this.$url_getInfo, {}, {
+				this.$get(this.$url_APP_IP + this.$url_getInfo, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -1017,7 +1017,7 @@
 					new Date().toISOString().slice(0, 10) + " " + new Date().getHours() + ":" + new Date()
 					.getMinutes() : that.birthday2).getTime() / 1000); // 将时间转换成时间戳（以秒为单位）
 				uni.request({
-					url: that.$url_fat_scale,
+					url: that.$url_APP_IP + that.$url_fat_scale,
 					method: 'POST',
 					data: {
 						deviceSn: uni.getStorageSync("deviceSn"),
@@ -1059,7 +1059,7 @@
 					new Date()
 					.toISOString().slice(0, 10) : that.birthday111).getTime() / 1000); // 将时间转换成时间戳（以秒为单位）
 				uni.request({
-					url: that.$url_fat_scale,
+					url: that.$url_APP_IP + that.$url_fat_scale,
 					method: 'POST',
 					data: {
 						slaveSn: "1",
@@ -1123,7 +1123,7 @@
 					new Date()
 					.toISOString().slice(0, 10) : that.birthday1).getTime() / 1000); // 将时间转换成时间戳（以秒为单位）
 				uni.request({
-					url: that.$url_fat_scale,
+					url: that.$url_APP_IP + that.$url_fat_scale,
 					method: 'POST',
 					data: {
 						slaveSn: "1",
@@ -1211,7 +1211,7 @@
 			},
 			//获取已绑定的设备
 			queryDevices() {
-				this.$post(this.$url_queryDevices, {}, {
+				this.$post(this.$url_APP_IP + this.$url_queryDevices, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -1345,7 +1345,7 @@
 					},
 					time: parsedData.createTime
 				}
-				this.$post(this.$url_jakoblife_fat_scale, data, {
+				this.$post(this.$url_APP_IP + this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code === 500) {
@@ -1435,7 +1435,7 @@
 				const data = {
 					deviceSn: deviceSn
 				}
-				this.$post(this.$url_get_device_info, data, {
+				this.$post(this.$url_APP_IP + this.$url_get_device_info, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
@@ -1596,7 +1596,7 @@
 					endTime: endTime,
 					aggregateType: this.aggregateType
 				}
-				this.$post(this.$url_get_trend_data, data, {
+				this.$post(this.$url_APP_IP + this.$url_get_trend_data, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -1662,7 +1662,7 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_month_avg, data, {
+				this.$post(this.$url_APP_IP + this.$url_query_month_avg, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -1697,7 +1697,7 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_minmax, data, {
+				this.$post(this.$url_APP_IP + this.$url_query_minmax, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -1776,7 +1776,7 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_weight_avg, data, {
+				this.$post(this.$url_APP_IP + this.$url_query_weight_avg, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -1803,7 +1803,7 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				this.$post(this.$url_query_weight_day, data, {
+				this.$post(this.$url_APP_IP + this.$url_query_weight_day, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -1885,7 +1885,7 @@
 					},
 					time: timestamp
 				}
-				this.$post(this.$url_pressure_data, data, {
+				this.$post(this.$url_APP_IP + this.$url_pressure_data, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {

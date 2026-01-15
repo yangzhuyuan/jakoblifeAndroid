@@ -51,7 +51,7 @@
 			article(id) {
 				let that = this
 				uni.request({
-					url: that.$url_article,
+					url: that.$url_APP_IP + that.$url_article,
 					method: 'GET',
 					data: {
 						articleId: id

@@ -111,9 +111,10 @@
 					})
 					return
 				} else {
-					this.tanchuang = true
-					this.yzm = ''
-					this.captchaImage();
+					// this.tanchuang = true
+					// this.yzm = ''
+					// this.captchaImage();
+					this.send_phone_register_code()
 				}
 			},
 
@@ -121,7 +122,7 @@
 			captchaImage() {
 				let that = this
 				uni.request({
-					url: that.$url_captchaImage,
+					url: that.$url_APP_IP + that.$url_captchaImage,
 					method: 'GET',
 					header: {
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -168,7 +169,7 @@
 				} else {
 					let that = this
 					uni.request({
-						url: that.$url_check_code,
+						url: that.$url_APP_IP + that.$url_check_code,
 						method: 'POST',
 						data: {
 							code: that.yzm,
@@ -223,7 +224,7 @@
 			send_phone_register_code() {
 				let that = this
 				uni.request({
-					url: that.$url_send_phone_register_code,
+					url: that.$url_APP_IP + that.$url_send_phone_register_code,
 					method: 'POST',
 					data: {
 						phone: that.unername_phone
@@ -273,7 +274,7 @@
 			getweixincode() {
 				let that = this
 				uni.request({
-					url: that.$url_wechat_login,
+					url: that.$url_APP_IP + that.$url_wechat_login,
 					method: 'POST',
 					data: {
 						accessToken: that.access_token,
@@ -307,7 +308,7 @@
 			getqqcode() {
 				let that = this
 				uni.request({
-					url: that.$url_qq_login,
+					url: that.$url_APP_IP + that.$url_qq_login,
 					method: 'POST',
 					data: {
 						accessToken: that.access_token,
@@ -341,7 +342,7 @@
 				console.log("token", uni.getStorageSync("token"))
 				let that = this
 				uni.request({
-					url: that.$url_bind_phone,
+					url: that.$url_APP_IP + that.$url_bind_phone,
 					method: 'PUT',
 					data: {
 						code: that.yanzhengma,

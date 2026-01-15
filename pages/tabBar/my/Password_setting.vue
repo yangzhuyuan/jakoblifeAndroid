@@ -103,15 +103,20 @@
 					})
 					return
 				} else {
-					this.tanchuang = true
-					this.yzm = ''
-					this.captchaImage();
+					// this.tanchuang = true
+					// this.yzm = ''
+					// this.captchaImage();
+					if (this.loact === "境内") {
+						this.send_phone_reset_code()
+					} else if (this.loact === "境外") {
+						this.send_email_reset_code()
+					}
 				}
 			},
 
 			//获取验证码图片
 			captchaImage() {
-				this.$get(this.$url_captchaImage, {}, {
+				this.$get(this.$url_APP_IP + this.$url_captchaImage, {}, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
 					if (res.code == 200) {
@@ -146,7 +151,7 @@
 						code: this.yzm,
 						uuid: this.uuid
 					}
-					this.$post(this.$url_check_code, data, {
+					this.$post(this.$url_APP_IP + this.$url_check_code, data, {
 						'content-type': 'application/x-www-form-urlencoded'
 					}).then(res => {
 						if (res.code == 200) {
@@ -194,7 +199,7 @@
 			send_phone_reset_code() {
 				let that = this
 				uni.request({
-					url: that.$url_send_phone_reset_code,
+					url: that.$url_APP_IP + that.$url_send_phone_reset_code,
 					method: 'POST',
 					data: {
 						phone: that.unername_phone
@@ -285,7 +290,7 @@
 			check_reset_code() {
 				let that = this
 				uni.request({
-					url: that.$url_check_reset_code,
+					url: that.$url_APP_IP + that.$url_check_reset_code,
 					method: 'POST',
 					data: {
 						phone: that.unername_phone,
@@ -323,7 +328,7 @@
 			check_reset_code1() {
 				let that = this
 				uni.request({
-					url: that.$url_check_reset_code,
+					url: that.$url_APP_IP + that.$url_check_reset_code,
 					method: 'POST',
 					data: {
 						email: that.unername_phone,

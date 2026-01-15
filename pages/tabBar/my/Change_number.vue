@@ -153,9 +153,14 @@
 					})
 					return
 				} else {
-					this.tanchuang = true
-					this.yzm = ''
-					this.captchaImage();
+					// this.tanchuang = true
+					// this.yzm = ''
+					// this.captchaImage();
+					if (this.loact === "境内") {
+						this.send_phone_unbind_code()
+					} else if (this.loact === "境外") {
+						this.send_email_unbind_code()
+					}
 				}
 			},
 
@@ -163,7 +168,7 @@
 			captchaImage() {
 				let _that = this
 				uni.request({
-					url: _that.$url_captchaImage,
+					url: _that.$url_APP_IP + _that.$url_captchaImage,
 					method: 'GET',
 					header: {
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -211,7 +216,7 @@
 				} else {
 					let that = this
 					uni.request({
-						url: that.$url_check_code,
+						url: that.$url_APP_IP + that.$url_check_code,
 						method: 'POST',
 						data: {
 							code: that.yzm,
@@ -271,7 +276,7 @@
 			send_phone_unbind_code() {
 				let that = this
 				uni.request({
-					url: that.$url_send_phone_unbind_code,
+					url: that.$url_APP_IP + that.$url_send_phone_unbind_code,
 					method: 'POST',
 					data: {
 						phone: that.unername_phone
@@ -281,7 +286,6 @@
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					},
 					success(res) {
-
 						console.log("发送换绑手机号原手机验证码:", res)
 						if (res.data.code == 200) {
 							that.yanzheng = 0
@@ -375,7 +379,7 @@
 					code: this.yanzhengma,
 					phone: this.unername_phone
 				}
-				this.$post(this.$url_check_phone_unbind_code, data, {
+				this.$post(this.$url_APP_IP + this.$url_check_phone_unbind_code, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((res) => {
@@ -408,7 +412,7 @@
 					code: this.yanzhengma,
 					email: this.unername_phone
 				}
-				this.$post(this.$url_check_phone_unbind_code, data, {
+				this.$post(this.$url_APP_IP + this.$url_check_phone_unbind_code, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((res) => {

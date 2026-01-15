@@ -600,7 +600,7 @@
 				const data = {
 					userId: uni.getStorageSync("userid")
 				}
-				this.$post(this.$url_list_recipe, data, {
+				this.$post(this.$url_APP_IP + this.$url_list_recipe, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
@@ -660,7 +660,7 @@
 			receiver_list() {
 				let that = this
 				uni.request({
-					url: that.$url_receiver_list,
+					url: that.$url_APP_IP + that.$url_receiver_list,
 					method: 'POST',
 					data: {
 						receiverId: uni.getStorageSync("userid")

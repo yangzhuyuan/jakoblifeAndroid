@@ -98,14 +98,15 @@
 					});
 					return;
 				}
-				this.tanchuang = true;
-				this.yzm = '';
-				this.captchaImage();
+				// this.tanchuang = true;
+				// this.yzm = '';
+				// this.captchaImage();
+				this.send_phone_register_code()
 			},
 
 			//获取验证码图片
 			captchaImage() {
-				this.$get(this.$url_captchaImage, {}, {
+				this.$get(this.$url_APP_IP + this.$url_captchaImage, {}, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
 					if (res.code == 200) {
@@ -135,7 +136,7 @@
 						code: this.yzm,
 						uuid: this.uuid
 					}
-					this.$post(this.$url_check_code, data, {
+					this.$post(this.$url_APP_IP + this.$url_check_code, data, {
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					}).then(res => {
 						if (res.code == 200) {
@@ -179,19 +180,55 @@
 						this.getqqcode();
 						break;
 					case 'apple':
-						// 如果有苹果相关的逻辑，可以在这里实现
+						this.third_loginregister("apple")
+						break;
+					case 'google':
+						this.third_loginregister("google")
 						break;
 					default:
 						this.bind_phone();
 						break;
 				}
 			},
+			// apple和安卓的google注册登录
+			third_loginregister(type) {
+				let data = {
+					openId: this.openid,
+					userThirdPart: type,
+					code: this.yanzhengma,
+					phoneNum: this.unername_phone,
+				}
+				console.log("传参：", data)
+				this.$post(this.$url_APP_IP + "/prod-api/app/third_parts/oauth/third_login/register", data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((third_loginregisterres) => {
+					console.log("third_loginregisterres", third_loginregisterres)
+					if (third_loginregisterres.code == 200) {
+						uni.setStorageSync("token", third_loginregisterres.data.token)
+						uni.showToast({
+							title: this.$t("成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.navigateTo({
+								url: '../../pages/login/Register_success'
+							})
+						}, 300)
+					} else {
+						uni.showToast({
+							title: this.$t("失败"),
+							icon: "none"
+						})
+					}
+
+				})
+			},
 			//发送手机绑定验证码
 			send_phone_register_code() {
 				const data = {
 					phone: this.unername_phone
 				}
-				this.$post(this.$url_send_phone_register_code, data, {
+				this.$post(this.$url_APP_IP + this.$url_send_phone_register_code, data, {
 					'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 				}).then(res => {
 					if (res.code == 200) {
@@ -234,7 +271,7 @@
 					code: this.yanzhengma,
 					phoneNum: this.unername_phone
 				}
-				this.$post(this.$url_wechat_login, data, {
+				this.$post(this.$url_APP_IP + this.$url_wechat_login, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
 					if (res.code == 200) {
@@ -264,7 +301,7 @@
 					code: this.yanzhengma,
 					phoneNum: this.unername_phone
 				}
-				this.$post(this.$url_qq_login, data, {
+				this.$post(this.$url_APP_IP + this.$url_qq_login, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
 					if (res.code == 200) {
@@ -292,7 +329,7 @@
 					code: this.yanzhengma,
 					phoneNum: this.unername_phone
 				}
-				this.$put(this.$url_bind_phone, data, {
+				this.$put(this.$url_APP_IP + this.$url_bind_phone, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {

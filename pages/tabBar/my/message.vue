@@ -69,7 +69,7 @@
 			},
 			//获取待处理分享请求列表
 			pending() {
-				this.$post(this.$url_pending, {
+				this.$post(this.$url_APP_IP + this.$url_pending, {
 					receiverId: uni.getStorageSync("userid")
 				}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),

@@ -131,7 +131,7 @@
 				const data = {
 					shareId: uni.getStorageSync("userid")
 				}
-				this.$post(this.$url_share_list, data, postheader).then(pending => {
+				this.$post(this.$url_APP_IP + this.$url_share_list, data, postheader).then(pending => {
 					if (pending.code === 200) {
 						this.shareShow = !pending.data || pending.data.length === 0;
 						if (pending.data && pending.data.length > 0) {
@@ -144,7 +144,7 @@
 				const data = {
 					receiverId: uni.getStorageSync("userid")
 				}
-				this.$post(this.$url_receiver_list, data, postheader).then(pending => {
+				this.$post(this.$url_APP_IP + this.$url_receiver_list, data, postheader).then(pending => {
 					if (pending.code === 200) {
 						this.shareShow = !pending.data || pending.data.length === 0;
 						if (pending.data && pending.data.length > 0) {

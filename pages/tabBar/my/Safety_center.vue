@@ -147,7 +147,7 @@
 			getinfor() {
 				let that = this
 				uni.request({
-					url: that.$url_getInfo,
+					url: that.$url_APP_IP + that.$url_getInfo,
 					method: 'GET',
 					header: {
 						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
@@ -302,7 +302,7 @@
 			bind_third(accessToken, openId, source) {
 				let that = this
 				uni.request({
-					url: that.$url_bind_third,
+					url: that.$url_APP_IP + that.$url_bind_third,
 					method: 'POST',
 					data: {
 						accessToken: accessToken,

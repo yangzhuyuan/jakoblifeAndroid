@@ -34,17 +34,10 @@
 					{
 						title: this.$t('体脂秤使用指南'),
 						url: '/pages/tabBar/my/vidohelp/vidohelp3'
+					}, {
+						title: this.$t('体脂秤问题解答'),
+						url: '../my/Text_content?id=1160'
 					},
-					// {
-					// 	title: this.$t('手表说明书'),
-					// 	url: "../../tabBar/my/vidohelp/Webview4?title=" + this.$t('手表说明书') +
-					// 		"&url=https://jakob-techs.com/wp-content/uploads/dlm_uploads/2025/09/watch_manual.pdf"
-					// },
-					// {
-					// 	title: this.$t('血压计说明书'),
-					// 	url: "../../tabBar/my/vidohelp/Webview4?title=" + this.$t('血压计说明书') +
-					// 		"&url=https://jakob-techs.com/wp-content/uploads/dlm_uploads/2025/09/B872_manual.pdf"
-					// }
 				]
 			};
 		},

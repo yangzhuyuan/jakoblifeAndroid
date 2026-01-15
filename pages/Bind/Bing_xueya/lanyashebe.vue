@@ -427,7 +427,7 @@
 				});
 			},
 			bind_devicetz(sn, MACdeviceID) {
-				const url = this.$url_bind_device;
+				const url = this.$url_APP_IP + this.$url_bind_device;
 				const data = {
 					deviceSn: sn,
 					mac: MACdeviceID.trim()
@@ -628,7 +628,7 @@
 			},
 			// 设备绑定
 			bind_device(sn, MACdeviceID, modelId, item) {
-				const url = this.$url_bind_device;
+				const url = this.$url_APP_IP + this.$url_bind_device;
 				const data = {
 					deviceSn: sn,
 					mac: MACdeviceID.trim()
@@ -751,7 +751,7 @@
 
 			getunbind(deviceSn) {
 				uni.request({
-					url: this.$url_getunbind,
+					url: this.$url_APP_IP + this.$url_getunbind,
 					method: 'POST',
 					data: {
 						deviceSn
@@ -881,7 +881,7 @@
 						for (let i = 0; res.characteristics.length > i; i++) {
 							let item = res.characteristics[i]
 							if (item.properties.write) {
-								const buffer = that.toArrayBuffer("e00006e8000000000101");
+								const buffer = that.toArrayBuffer("e00006e7000000000100");
 								uni.writeBLECharacteristicValue({
 									deviceId: deviceId,
 									serviceId: serviceId,
@@ -891,6 +891,7 @@
 									success: (writeres) => {
 										that.writeuuid = item.uuid
 										if (platform === "android") {
+											console.log("蓝牙：e00006e7000000000100")
 											that.calculateChecksumsss2(deviceId, serviceId, that
 												.writeuuid)
 										}
@@ -914,19 +915,46 @@
 				const BleDeviceConfig = {
 					PROTOCOL_VERSION: 0x00 // 协议版本号
 				};
-				const plugin = uni.requireNativePlugin(
-					'ThirdSdkPlugin-ThirdSdkModule');
+				const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 				console.log(plugin)
-
+				// #ifdef APP-PLUS
+				// plugin.requestBtPermissions({}, e => {
+				// 	if (e.success) {
+				// console.log('1权限结果：', e.message)
+				console.log('3权限结果：', deviceId.slice(15, deviceId.length))
+				const result = `0x${deviceId.slice(15, deviceId.length)}` ^ 0x55;
+				// console.log('3权限结果：', result)
+				// console.log('4权限结果：', result.toString(16).toUpperCase())
+				console.log('5权限结果：', deviceId.slice(0, 15) + result.toString(16)
+					.toUpperCase())
+				// 真正开始配对
 				plugin.pairDevice({
-					mac: deviceId
-				}, (res) => {
-					console.log('配对结果:', res);
-				});
-				// 2. 启用通话音频
-				plugin.enableBluetoothAudio({}, res => {
-					console.log('1配对结果:', res);
-				});
+					mac: deviceId.slice(0, 15) + result.toString(16)
+						.toUpperCase() //非ios都要将mac最后两位最一位改成例如 0x9f ^ 0x55 = 0xca
+				}, pairDeviceres => {
+					console.log('pairDeviceres：', pairDeviceres)
+					plugin.enableBluetoothAudio({}, (connectAudioProfiles) => {
+						console.log('connectAudioProfiles:', connectAudioProfiles);
+						// plugin.diagnoseAudio({}, e => console.log('diagnoseAudio:', JSON
+						// 	.stringify(e)))
+					});
+				})
+				// 	}
+				// })
+				// #endif
+				// const plugin = uni.requireNativePlugin(
+				// 	'ThirdSdkPlugin-ThirdSdkModule');
+				// console.log(plugin)
+
+				// plugin.pairDevice({
+				// 	mac: deviceId
+				// }, (res) => {
+				// 	console.log('配对结果:', res);
+				// });
+				// // 2. 启用通话音频
+				// plugin.enableBluetoothAudio({}, res => {
+				// 	console.log('1配对结果:', res);
+				// });
 				const bindcommandId = 0x08; // CMD-协议命令
 				const bindcommandKey = 0x00; // key-协议子命令
 				const bindbtys = new Uint8Array([
@@ -1283,7 +1311,7 @@
 					},
 					time: parsedData.createTime
 				}
-				this.$post(this.$url_jakoblife_fat_scale, data, {
+				this.$post(this.$url_APP_IP + this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {})
 			},

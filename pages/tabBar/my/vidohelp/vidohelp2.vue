@@ -21,7 +21,8 @@
 	export default {
 		data() {
 			return {
-				shuomingurl: "https://jakob-techs.com/documentations/",
+				shuomingurl: "https://jakob-techs.com/download/1369/?tmstv=1763798608",
+				// shuomingurl: "https://jakob-techs.com/documentations/",
 				/* 维护这一份数组即可 */
 				videoGroups: [{
 						title: this.$t('臂式血压计的安装'),

@@ -64,17 +64,21 @@
 					{{$t('新用户去注册')}}
 				</view>
 			</view>
-			<view class="otherstyle" v-show="otherloginssd">
+			<view class="otherstyle">
 				<view class="otherstyle_1">
 					<view class="otherstyle_2"></view>
 					<view style="font-size: 12px; color: grey;">{{$t("其它登录方式")}}</view>
 					<view class="otherstyle_3"></view>
 				</view>
-				<view style="display:flex;justify-content: center;margin-top: 40px;">
-					<!-- <image v-show="xinghao == false" @click="other_sbuitm('apple')" class="img_dsf"
-						src="../../static/pingguodenglu.png" /> -->
-					<image @click="other_sbuitm('weixin')" class="img_dsf1" src="../../static/weixin.png" />
-					<image @click="other_sbuitm('qq')" class="img_dsf" src="../../static/qq.png" />
+				<view v-show="otherloginssd" style="display:flex;justify-content: center;margin-top: 40px;">
+					<image v-show="otherloginssd" @click="other_sbuitm('weixin')" class="img_dsf1"
+						src="../../static/weixin.png" />
+					<image v-show="otherloginssd" @click="other_sbuitm('qq')" class="img_dsf"
+						src="../../static/qq.png" />
+					<!-- <image v-show="!xinghao" @click="other_sbuitm('apple')" class="img_dsf"
+						src="../../static/pingguodenglu.png" />
+					<image v-show="!otherloginssd" @click="other_sbuitm('google')" class="img_dsf"
+						src="../../static/guge.png" /> -->
 				</view>
 			</view>
 		</view>
@@ -101,6 +105,7 @@
 				</view>
 			</view>
 		</view>
+		<GlobalPopup ref="globalPopup" />
 	</view>
 </template>
 
@@ -149,7 +154,21 @@
 			}
 			return false
 		},
-
+		onLoad() {
+			// 监听全局事件
+			uni.$on('SHOW_GLOBAL_POPUP', opts => {
+				this.$refs.noticePopup.show(opts)
+			})
+			/* 接收 App.vue 发来的指令 */
+			uni.$on('APP_WANT_POPUP', opts => {
+				this.$popup(opts)
+			})
+		},
+		onUnload() {
+			// 页面销毁时记得解绑
+			uni.$off('APP_WANT_POPUP')
+			uni.$off('SHOW_GLOBAL_POPUP')
+		},
 		onShow() {
 			let that = this;
 			isInChinaByIP().then(isInChina => {
@@ -216,6 +235,7 @@
 					}
 				}
 			});
+
 		},
 
 
@@ -273,7 +293,7 @@
 						code: this.yzm,
 						uuid: this.uuid
 					}
-					this.$post(this.$url_check_code, data, {
+					this.$post(this.$url_APP_IP + this.$url_check_code, data, {
 						'content-type': 'application/x-www-form-urlencoded'
 					}).then(res => {
 						console.log(res)
@@ -318,15 +338,20 @@
 					})
 					return
 				} else {
-					this.tanchuang = true
-					this.yzm = ''
-					this.captchaImage();
+					// this.tanchuang = true
+					// this.yzm = ''
+					// this.captchaImage();
+					if (!this.validateEmail(this.unername)) {
+						this.send_login_code()
+					} else {
+						this.send_login_code1()
+					}
 				}
 			},
 
 			//获取验证码图片
 			captchaImage() {
-				this.$get(this.$url_captchaImage, {}, {
+				this.$get(this.$url_APP_IP + this.$url_captchaImage, {}, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
 					if (res.code == 200) {
@@ -341,7 +366,7 @@
 				const data = {
 					phone: this.unername
 				}
-				this.$post(this.$url_send_login_code, data, {
+				this.$post(this.$url_APP_IP + this.$url_send_login_code, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
 					if (res.code === 200) {
@@ -377,7 +402,7 @@
 				const data = {
 					email: this.unername
 				}
-				this.$post(this.$url_send_login_code, data, {
+				this.$post(this.$url_APP_IP + this.$url_send_login_code, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
 					if (res.code === 200) {
@@ -464,7 +489,7 @@
 					username: this.unername,
 					password: this.passwrod,
 				}
-				this.$post(this.$url_user_login, data, {
+				this.$post(this.$url_APP_IP + "/prod-api/app/user_login", data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					console.log(res)
@@ -516,7 +541,7 @@
 					smsCode: this.yanzhengma,
 					phoneNum: this.unername
 				}
-				this.$post(this.$url_app_login, data, {
+				this.$post(this.$url_APP_IP + "/prod-api/app/app_login", data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code == 200) {
@@ -732,7 +757,6 @@
 						case "weixin":
 							uni.login({
 								provider: 'weixin',
-								// onlyAuthorize: true, // 微信登录仅请求授权认证
 								success: function(res) {
 									that.check_auth(res.authResult.access_token, res.authResult.openid,
 										"weixin")
@@ -770,6 +794,7 @@
 									that.check_auth(loginRes.authResult.access_token, loginRes.authResult
 										.openid,
 										"apple")
+
 								},
 								fail: function(err) {
 									uni.showToast({
@@ -779,14 +804,56 @@
 								}
 							});
 							break
+						case "google":
+							uni.login({
+								provider: 'google',
+								success: function(loginRes) {
+									console.log(loginRes)
+									// 登录成功
+									let access_token = loginRes.authResult.access_token
+									uni.getUserInfo({
+										provider: 'google',
+										success: function(info) {
+											console.log("google", info)
+											that.check_auth(access_token, info.userInfo.openid,
+												"google")
+											// 获取用户信息成功, info.authResult保存用户信息
+										}
+									})
+								},
+								fail: function(err) {
+									console.log("google", err)
+								}
+							});
+							break
 					}
-
 				}
 			},
-
+			// apple和安卓的google注册登录
+			third_loginregister(access_token, openid, type) {
+				let data = {
+					openId: openid,
+					userThirdPart: type
+				}
+				console.log("传参：", data)
+				this.$post(this.$url_APP_IP + "/prod-api/app/third_parts/oauth/third_login/register", data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((third_loginregisterres) => {
+					console.log("third_loginregisterres", third_loginregisterres)
+					// if (this.otherloginssd === true) {
+					// 	uni.reLaunch({
+					// 		url: "/pages/login/Force_binding_phone_frist"
+					// 	})
+					// } else {
+					// 	uni.reLaunch({
+					// 		url: "/pages/login/Force_binding_email_frist"
+					// 	})
+					// }
+				})
+			},
 			//校验第三方账号是否已注册
 			check_auth(access_token, openid, othersss_types) {
-				this.$post(this.$url_check_auth, {
+				this.$post(this.$url_APP_IP + this.$url_check_auth, {
 					openId: openid
 				}, {
 					'content-type': 'application/x-www-form-urlencoded'
@@ -812,9 +879,30 @@
 						// 	case "apple":
 						// 		break
 						// }
-						uni.reLaunch({
-							url: "/pages/login/Force_binding_phone_frist"
-						})
+						switch (othersss_types) {
+							case "qq":
+							case "weixin":
+								uni.reLaunch({
+									url: "/pages/login/Force_binding_phone_frist"
+								})
+								break
+							case "google":
+								uni.reLaunch({
+									url: "/pages/login/Force_binding_email_frist"
+								})
+								break
+							case "apple":
+								if (this.otherloginssd === true) {
+									uni.reLaunch({
+										url: "/pages/login/Force_binding_phone_frist"
+									})
+								} else {
+									uni.reLaunch({
+										url: "/pages/login/Force_binding_email_frist"
+									})
+								}
+								break
+						}
 					}
 				}).catch(erro => {
 					if (erro.errMsg.includes("fail abort statusCode:-1")) {
@@ -838,7 +926,7 @@
 					// code: this.yanzhengma,
 					// phoneNum: this.unername_phone
 				}
-				this.$post(this.$url_wechat_login, data, {
+				this.$post(this.$url_APP_IP + this.$url_wechat_login, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
 					console.log(res)
@@ -881,7 +969,7 @@
 					// code: this.yanzhengma,
 					// phoneNum: this.unername_phone
 				}
-				this.$post(this.$url_qq_login, data, {
+				this.$post(this.$url_APP_IP + this.$url_qq_login, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
 					if (res.code == 200) {

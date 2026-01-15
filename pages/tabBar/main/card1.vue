@@ -205,7 +205,6 @@
 					}
 				});
 			}
-			// 调用相关方法
 			this.list_recipe();
 		},
 
@@ -229,6 +228,8 @@
 				let newarr = list2.concat(list1);
 				// 更新本地存储
 				uni.setStorageSync("kapianlist", newarr);
+				// console.log(newarr)
+				this.cardeditData(newarr)
 				// 返回上一页
 				uni.navigateBack();
 			},
@@ -240,12 +241,30 @@
 			knowe2() {
 				this.$refs.popup2.close()
 			},
+
+			cardeditData(list) {
+				let editData = {
+					dataType: "bloodData",
+					data: this.formatData(list)
+				}
+				this.$post(this.$url_APP_IP + "/prod-api/device/data/editData", editData, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then((reseditData) => {
+					if (reseditData.code === 200) {}
+				})
+			},
+
+			formatData(dataArray) {
+				return dataArray.map(obj => JSON.stringify(obj).replace(/"/g, '')).join(','); // 多条之间用换行分隔（可改 | 或 ,）
+			},
+
 			//设备数据概览
 			list_recipe() {
 				const data = {
 					userId: uni.getStorageSync("userid")
 				}
-				this.$post(this.$url_list_recipe, data, {
+				this.$post(this.$url_APP_IP + this.$url_list_recipe, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 				}).then(res => {

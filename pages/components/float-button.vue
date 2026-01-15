@@ -113,7 +113,7 @@
 			},
 
 			handleMainClick() {
-				console.log('🔘 主按钮点击')
+				// console.log('🔘 主按钮点击')
 				if (this.pattern.menuItems?.length > 0) {
 					this.toggleMenu()
 				} else {
@@ -122,7 +122,6 @@
 			},
 
 			handleSubButtonClick(item) {
-				console.log('🎯 子按钮点击:', item.text)
 				this.closeMenu()
 				this.$emit('subButtonClick', item)
 				if (typeof item.handler === 'function') {

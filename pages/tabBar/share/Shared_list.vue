@@ -100,7 +100,7 @@
 			share_list() {
 				let that = this
 				uni.request({
-					url: that.$url_share_list,
+					url: that.$url_APP_IP + that.$url_share_list,
 					method: 'POST',
 					data: {
 						shareId: uni.getStorageSync("userid")
@@ -120,7 +120,7 @@
 			receiver_list() {
 				let that = this
 				uni.request({
-					url: that.$url_receiver_list,
+					url: that.$url_APP_IP + that.$url_receiver_list,
 					method: 'POST',
 					data: {
 						receiverId: uni.getStorageSync("userid")

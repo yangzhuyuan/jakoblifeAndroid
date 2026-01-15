@@ -1,18 +1,15 @@
 <template>
 	<view>
 		<view class="row">
-			<text class="title">{{title}}</text>
-			<!-- 右侧选择器 + 图标 -->
+			<text class="title">{{ title }}</text>
 			<view class="right">
-				<view class="text">{{array[index]}}</view>
-				<!-- 透明 picker 覆盖图标 -->
+				<view class="text">{{ array[index] }}</view>
 				<view class="icon-wrapper">
 					<uni-icons type="bottom" size="16" />
 					<picker :range="array" :value="index" @change="onChange" class="picker-mask" />
 				</view>
 			</view>
 		</view>
-		<!-- 分割线 -->
 		<view class="line" />
 	</view>
 </template>
@@ -23,17 +20,27 @@
 		props: {
 			title: String,
 			array: Array,
-			storageKey: String
+			storageKey: String,
+			currentIndex: Number
 		},
 		data() {
 			return {
-				index: uni.getStorageSync(this.storageKey) || 0
+				index: this.currentIndex || 0
+			}
+		},
+		watch: {
+			currentIndex(newVal) {
+				this.index = newVal
 			}
 		},
 		methods: {
 			onChange(e) {
 				this.index = e.detail.value
-				uni.setStorageSync(this.storageKey, this.index)
+				this.$emit('unit-change', {
+					key: this.storageKey,
+					value: this.array[this.index],
+					index: this.index
+				})
 			}
 		}
 	}

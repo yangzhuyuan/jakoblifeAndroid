@@ -114,7 +114,7 @@
 					deviceSn: sn,
 					mac: MACdeviceID.trim()
 				}
-				this.$post(this.$url_bind_device, data, {
+				this.$post(this.$url_APP_IP + this.$url_bind_device, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded;'
 				}).then(bind_device => {

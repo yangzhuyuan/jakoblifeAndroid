@@ -118,11 +118,11 @@
 			uni.$once('uploadFileRes', function(data) {
 				that.avatar = data
 			})
-			that.$get(that.$url_getInfo, {}, {
+			that.$get(that.$url_APP_IP + that.$url_getInfo, {}, {
 				'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 				'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 			}).then(getInfo => {
-				console.log("getInfo：", getInfo)
+				// console.log("getInfo：", getInfo)
 				if (getInfo.code === 200) {
 					if (getInfo.data.avatar === "" || getInfo.data.avatar === undefined) {
 						that.avatar = "../../../static/icons/40x40.png"
@@ -149,11 +149,10 @@
 		methods: {
 
 			bindPickerChange_Height: function(e) {
-				console.log('picker发送选择改变，携带值为', e.detail.value)
 				let that = this
 				that.Height_index = e.detail.value
 				uni.request({
-					url: that.$url_getInfo,
+					url: that.$url_APP_IP + that.$url_getInfo,
 					method: 'GET',
 					header: {
 						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
@@ -193,11 +192,10 @@
 				})
 			},
 			bindPickerChange_Width: function(e) {
-				console.log('picker发送选择改变，携带值为', e.detail.value)
 				let that = this
 				that.Width_index = e.detail.value
 				uni.request({
-					url: that.$url_getInfo,
+					url: that.$url_APP_IP + that.$url_getInfo,
 					method: 'GET',
 					header: {
 						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
@@ -242,7 +240,7 @@
 			update_info() {
 				let that = this
 				uni.request({
-					url: that.$url_update_info,
+					url: that.$url_APP_IP + that.$url_update_info,
 					method: 'POST',
 					data: {
 						nickName: that.username,
@@ -255,21 +253,15 @@
 						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 					},
-
 					success(res) {
-						console.log("更新个人信息", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.setStorageSync("danwei1", that.Height_index)
-								uni.setStorageSync("danwei2", that.Width_index)
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
+						if (res.data.code == 200) {
+							that.saveUnit(that.Height_index, that.Width_index)
+						} else {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
 						}
-
 					},
 					fail(err) {
 						console.log(err)
@@ -277,7 +269,32 @@
 				})
 			},
 
-
+			// 保存单位
+			saveUnit(Height_index, Width_index) {
+				const postData = {
+					bloodUnit: uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" :
+						"kPa",
+					heightUnit: Height_index === 0 || Height_index === "" ? "inch" : 'cm',
+					weightUnit: Width_index === 0 || Width_index === "" ? "kg" : "lb"
+				}
+				const editData = {
+					dataType: 'Unitdata',
+					data: this.formatDatacard([postData])
+				}
+				this.$post(this.$url_APP_IP + '/prod-api/device/data/editData', editData, {
+					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
+					'content-type': 'application/json'
+				}).then(res => {
+					if (res.code === 200) {
+						uni.setStorageSync("danwei1", Height_index)
+						uni.setStorageSync("danwei2", Width_index)
+					}
+				})
+			},
+			// 格式化数据为接口格式
+			formatDatacard(dataArray) {
+				return dataArray.map(obj => JSON.stringify(obj).replace(/"/g, '')).join(',')
+			},
 			select_click() {
 				this.$refs.popup.open("bottom")
 			},
@@ -286,7 +303,6 @@
 				this.$refs.popup.close()
 			},
 			sex_nv() {
-
 				this.select = this.$t('女')
 				this.$refs.popup.close()
 			},

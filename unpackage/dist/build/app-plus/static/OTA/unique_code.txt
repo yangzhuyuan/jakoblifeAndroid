@@ -1,0 +1,5 @@
+name:OTA…˝º∂≈‰÷√
+unique_code:693241F80656352E382E320741423536313043
+bluetooth:BPW1
+setting_ble_name:BPW1
+setting_bt_name:BPW1

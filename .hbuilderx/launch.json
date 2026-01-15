@@ -24,12 +24,13 @@
         },
         {
             "customPlaygroundType" : "local",
-            "localRepoPath" : "D:/workdemo/jianbo",
+            "localRepoPath" : "D:/workdemo/jianbo3/jakoblifeandroidn",
             "packageName" : "com.work.jakob",
             "playground" : "custom",
             "type" : "uni-app:app-android"
         },
         {
+            "customPlaygroundType" : "device",
             "playground" : "custom",
             "type" : "uni-app:app-ios"
         }

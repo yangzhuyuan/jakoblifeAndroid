@@ -126,9 +126,14 @@
 					})
 					return
 				} else {
-					this.tanchuang = true
-					this.yzm = ''
-					this.captchaImage();
+					// this.tanchuang = true
+					// this.yzm = ''
+					// this.captchaImage();
+					if (this.loact === "境内") {
+						this.send_phone_reset_code()
+					} else if (this.loact === "境外") {
+						this.send_change_name_code_email()
+					}
 				}
 			},
 
@@ -136,7 +141,7 @@
 			captchaImage() {
 				let _that = this
 				uni.request({
-					url: _that.$url_captchaImage,
+					url: _that.$url_APP_IP + _that.$url_captchaImage,
 					method: 'GET',
 					header: {
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -186,7 +191,7 @@
 				} else {
 					let that = this
 					uni.request({
-						url: that.$url_check_code,
+						url: that.$url_APP_IP + that.$url_check_code,
 						method: 'POST',
 						data: {
 							code: that.yzm,
@@ -248,7 +253,7 @@
 			send_phone_reset_code() {
 				let that = this
 				uni.request({
-					url: that.$url_send_change_name_code,
+					url: that.$url_APP_IP + that.$url_send_change_name_code,
 					method: 'POST',
 					data: {
 						phone: that.phone
@@ -338,7 +343,7 @@
 			check_change_name_code() {
 				let that = this
 				uni.request({
-					url: that.$url_check_change_name_code,
+					url: that.$url_APP_IP + that.$url_check_change_name_code,
 					method: 'POST',
 					data: {
 						name: that.unername,
@@ -378,7 +383,7 @@
 			check_change_name_code1() {
 				let that = this
 				uni.request({
-					url: that.$url_check_change_name_code,
+					url: that.$url_APP_IP + that.$url_check_change_name_code,
 					method: 'POST',
 					data: {
 						name: that.unername,

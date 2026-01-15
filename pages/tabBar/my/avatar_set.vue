@@ -128,7 +128,7 @@
 			get_url_avatar(IMG) {
 				let that = this
 				uni.uploadFile({
-					url: that.$url_avatar, // 你的接口地址
+					url: that.$url_APP_IP + that.$url_avatar,
 					filePath: IMG,
 					name: 'avatarfile',
 					header: {

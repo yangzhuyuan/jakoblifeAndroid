@@ -56,6 +56,19 @@
 <script>
 	import appScan from "../../../uni_modules/simbalkj-scan/components/simbalkj-scan/appScan.vue"
 	const lan = uni.getLocale();
+	const modelIdToImagePathzh = {
+		30000: "/static/image/BPW1.png", // 手表
+		30001: "/static/image/BPW1.png", // 手表
+		20000: "/static/image/tizhi1.jpg", // 体脂秤
+		20001: "/static/image/tizhi1.jpg", // 体脂秤
+		10000: "/static/image/xueya1.png", // 血压计
+		10001: "/static/image/xueya1.png", // 血压计
+		10002: "/static/image/xueya1.png", // 血压计
+		10003: "/static/image/xueya1.png", // 血压计
+		10004: "/static/image/xueya1.png", // 血压计
+		10005: "/static/image/xueya1.png", // 血压计
+		10006: "/static/image/xueya1.png", // 血压计
+	};
 	const modelIdToImagePath = {
 		30000: "/static/image/shoubiao1.png", // 手表
 		30001: "/static/image/shoubiao1.png", // 手表
@@ -284,8 +297,7 @@
 					slaveData: {},
 					time: this.datatime(this.dundatetime())
 				}
-				console.log(data)
-				this.$post(this.$url_jakoblife_fat_scale, data, {
+				this.$post(this.$url_APP_IP + this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
 					console.log("上报数据手表", res)
@@ -335,7 +347,7 @@
 				const data = {
 					deviceSn: this.context_msg
 				}
-				this.$post(this.$url_get_device_info, data, {
+				this.$post(this.$url_APP_IP + this.$url_get_device_info, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
@@ -390,7 +402,8 @@
 			updateScanImagePath(picturePath) {
 				if (picturePath) {
 					if (lan === 'zh-Hans' || lan === 'zh-Hant') {
-						this.scan_img = this.$url_APP_IP + picturePath;
+						// this.scan_img = this.$url_APP_IP + picturePath;
+						this.scan_img = modelIdToImagePathzh[this.modelId];
 					} else {
 						this.scan_img = modelIdToImagePath[this.modelId];
 					}
@@ -400,7 +413,7 @@
 			},
 
 			queryDevices() {
-				this.$post(this.$url_queryDevices, {}, {
+				this.$post(this.$url_APP_IP + this.$url_queryDevices, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -451,7 +464,7 @@
 					deviceSn: sn,
 					mac: MACdeviceID.trim()
 				}
-				this.$post(this.$url_bind_device, data, {
+				this.$post(this.$url_APP_IP + this.$url_bind_device, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(bind_device => {

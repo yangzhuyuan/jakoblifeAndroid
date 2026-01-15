@@ -84,7 +84,7 @@
 
 			getUserInfo() {
 				uni.request({
-					url: this.$url_getInfo,
+					url: this.$url_APP_IP + this.$url_getInfo,
 					method: 'GET',
 					header: {
 						'Authorization': 'Bearer ' + uni.getStorageSync("token"),

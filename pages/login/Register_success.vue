@@ -155,7 +155,7 @@
 			update_info() {
 				let that = this
 				uni.request({
-					url: that.$url_update_info,
+					url: that.$url_APP_IP + that.$url_update_info,
 					method: 'POST',
 					data: {
 						nickName: that.unername,
@@ -179,8 +179,7 @@
 							if (that.tokens !== "0") {
 								uni.setStorageSync("token", that.tokens)
 							}
-							uni.setStorageSync("danwei1", that.Height_index)
-							uni.setStorageSync("danwei2", that.Width_index)
+							that.saveUnit(that.Height_index, that.Width_index)
 							setTimeout(function() {
 								uni.reLaunch({
 									url: "../Bind/cs_manage?SHEBEI=0"
@@ -197,6 +196,35 @@
 						console.log(err)
 					}
 				})
+			},
+			// 保存单位
+			saveUnit(Height_index, Width_index) {
+				const postData = {
+					bloodUnit: uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" :
+						"kPa",
+					heightUnit: Height_index === 0 || Height_index === "" ? "inch" : 'cm',
+					weightUnit: Width_index === 0 || Width_index === "" ? "kg" : "lb"
+				}
+				const editData = {
+					dataType: 'Unitdata',
+					data: this.formatDatacard([postData])
+				}
+				console.log(editData)
+				this.$post(this.$url_APP_IP + '/prod-api/device/data/editData', editData, {
+					'Authorization': 'Bearer ' + (this.tokens === "0" ? uni.getStorageSync("token") : this
+						.tokens),
+					'content-type': 'application/json'
+				}).then(res => {
+					if (res.code === 200) {
+						console.log(res)
+						uni.setStorageSync("danwei1", Height_index)
+						uni.setStorageSync("danwei2", Width_index)
+					}
+				})
+			},
+			// 格式化数据为接口格式
+			formatDatacard(dataArray) {
+				return dataArray.map(obj => JSON.stringify(obj).replace(/"/g, '')).join(',')
 			},
 			getStatusColor(status) {
 				// 根据状态值返回不同的样式对象

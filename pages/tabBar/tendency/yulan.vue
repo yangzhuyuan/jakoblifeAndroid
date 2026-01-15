@@ -5,17 +5,17 @@
 			<view id="content">
 				<view
 					style="display: flex;justify-content: center;font-size: 18px; font-weight: bold;margin-top: 20px;">
-					{{starttime.slice(0,10)}}至{{endtime.slice(0,10)}}PDF数据预览
+					{{starttime.slice(0,10)}}/{{endtime.slice(0,10)}}{{$t("PDF数据预览")}}
 				</view>
 				<view style="border: 1px solid black; margin-top: 20px; ">
 					<view style="display: flex;flex-direction: row;width: 98%;padding: 10px;">
 						<view style="display: flex;flex-direction: row;width: 98%;">
-							<view style="width: 15%;">时间</view>
-							<view style="width: 20%">设备</view>
-							<view style="width: 20%">收缩压</view>
-							<view style="width: 20%;">舒张压</view>
-							<view style="width: 20%;padding: 2px;">脉搏</view>
-							<view style="width: 13%;padding: 2px;">平均</view>
+							<view style="width: 15%;">{{$t("时间")}}</view>
+							<view style="width: 20%">{{$t("设备")}}</view>
+							<view style="width: 20%">{{$t("收缩压")}}</view>
+							<view style="width: 20%;">{{$t("舒张压")}}</view>
+							<view style="width: 20%;padding: 2px;">{{$t("脉搏")}}</view>
+							<view style="width: 13%;padding: 2px;">{{$t("平均")}}</view>
 						</view>
 					</view>
 				</view>
@@ -28,7 +28,7 @@
 								<view style="width: 20%">{{item.object.summary.highPressureAvg}}</view>
 								<view style="width: 20%;">{{item.object.summary.lowPressureAvg}}</view>
 								<view style="width: 20%;padding: 2px;">{{item.object.summary.heartrateAvg}}</view>
-								<view style="width: 13%;padding: 2px;">是</view>
+								<view style="width: 13%;padding: 2px;">{{$t("是")}}</view>
 							</view>
 						</view>
 						<view v-for="(item1,index1) in item.object.details" :key="index1"
@@ -40,7 +40,7 @@
 									<view style="width: 20%">{{item1.highPressure}}</view>
 									<view style="width: 20%;">{{item1.lowPressure}}</view>
 									<view style="width: 20%;padding: 2px;">{{item1.heartrate}}</view>
-									<view style="width: 13%;padding: 2px;">否</view>
+									<view style="width: 13%;padding: 2px;">{{$t("否")}}</view>
 								</view>
 							</view>
 						</view>
@@ -53,16 +53,16 @@
 			<view id="content">
 				<view
 					style="display: flex;justify-content: center;font-size: 18px; font-weight: bold;margin-top: 20px;">
-					{{starttime.slice(0,10)}}至{{endtime.slice(0,10)}}PDF数据预览
+					{{starttime.slice(0,10)}}/{{endtime.slice(0,10)}}{{$t("PDF数据预览")}}
 				</view>
 				<view style="border: 1px solid black; margin-top: 20px; ">
 					<view style="display: flex;flex-direction: row;width: 98%;padding: 10px;">
 						<view style="display: flex;flex-direction: row;width: 98%;">
-							<view style="width: 15%;">时间</view>
-							<view style="width: 20%">设备</view>
-							<view style="width: 20%">体重/kg</view>
+							<view style="width: 15%;">{{$t("时间")}}</view>
+							<view style="width: 20%">{{$t("设备")}}</view>
+							<view style="width: 20%">{{$t("体重")}}/kg</view>
 							<view style="width: 20%;">BMI</view>
-							<view style="width: 13%;padding: 2px;">平均</view>
+							<view style="width: 13%;padding: 2px;">{{$t("平均")}}</view>
 						</view>
 					</view>
 				</view>
@@ -74,7 +74,7 @@
 								<view style="width: 20%">{{item.modelName}}</view>
 								<view style="width: 20%">{{item.object.summary.weightAvg}}</view>
 								<view style="width: 20%;">{{item.object.summary.bmiAvg}}</view>
-								<view style="width: 13%;padding: 2px;">是</view>
+								<view style="width: 13%;padding: 2px;">{{$t("是")}}</view>
 							</view>
 						</view>
 						<view v-for="(item1,index1) in item.object.details" :key="index1"
@@ -85,7 +85,7 @@
 									<view style="width: 20%">{{item.modelName}}</view>
 									<view style="width: 20%">{{item1.weight}}</view>
 									<view style="width: 20%;">{{item1.bmi}}</view>
-									<view style="width: 13%;padding: 2px;">否</view>
+									<view style="width: 13%;padding: 2px;">{{$t("是")}}</view>
 								</view>
 							</view>
 						</view>
@@ -107,9 +107,7 @@
 	} from '../../../common/imageTool.js';
 
 	export default {
-
 		onLoad(res) {
-			console.log("dsahdsada", res)
 			this.chooseItem_name = res.chooseItem_name
 			this.starttime = res.starttime
 			this.endtime = res.endtime
@@ -123,11 +121,17 @@
 				endtime: '',
 				deviceSn: [],
 				swipeList1111: [],
-				swipeList2222: []
+				swipeList2222: [],
+				pdfUrl: '',
 			}
 		},
 
 		onShow() {
+
+			uni.setNavigationBarTitle({
+				title: this.$t("预览")
+			})
+
 			if (this.chooseItem_name === "血压" || this.chooseItem_name === "blood_pressure") {
 				this.query_log_v2ss(this.deviceSn, this.starttime, this.endtime)
 			} else if (this.chooseItem_name == "体脂" || this.chooseItem_name == "body_fat") {
@@ -182,11 +186,8 @@
 			//历史记录V2 - 血压
 			query_log_v2ss(deviceSn, startTime, endTime) {
 				let that = this
-				console.log('deviceSndadadasdada', deviceSn)
-				console.log('startTimedadadadada', startTime)
-				console.log('endTimedadadadadada', endTime)
 				uni.request({
-					url: that.$url_query_log_v2,
+					url: that.$url_APP_IP + that.$url_query_log_v2,
 					method: 'POST',
 					data: {
 						deviceSn: deviceSn,
@@ -212,7 +213,6 @@
 						'content-type': 'application/json' //自定义请求头信息
 					},
 					success(res) {
-						console.log('历史记录V2 - 血压', res)
 						if (res.data.code == 200) {
 							that.swipeList2222 = []
 							that.swipeList2222 = res.data.data
@@ -228,11 +228,8 @@
 			//历史记录V2 - 体脂
 			query_log_v22ss(deviceSn, startTime, endTime) {
 				let that = this
-				console.log('deviceSndadadasdada', deviceSn)
-				console.log('startTimedadadadada', startTime)
-				console.log('endTimedadadadadada', endTime)
 				uni.request({
-					url: that.$url_query_log_v2,
+					url: that.$url_APP_IP + that.$url_query_log_v2,
 					method: 'POST',
 					data: {
 						deviceSn: deviceSn,
@@ -340,6 +337,8 @@
 		}
 	}
 </script>
+
+
 
 
 

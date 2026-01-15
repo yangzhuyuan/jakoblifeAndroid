@@ -145,7 +145,7 @@
 			//手机验证码后重置密码
 			Reset_password() {
 				uni.request({
-					url: this.$url_reset_password_by_phone,
+					url: this.$url_APP_IP + this.$url_reset_password_by_phone,
 					method: 'POST',
 					data: {
 						phone: this.phone,
@@ -175,7 +175,7 @@
 			},
 			Reset_password1() {
 				uni.request({
-					url: this.$url_reset_password_by_phone,
+					url: this.$url_APP_IP + this.$url_reset_password_by_phone,
 					method: 'POST',
 					data: {
 						email: this.phone,

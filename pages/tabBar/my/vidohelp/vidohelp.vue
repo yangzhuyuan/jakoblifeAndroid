@@ -21,7 +21,8 @@
 	export default {
 		data() {
 			return {
-				shuomingurl: "https://jakob-techs.com/documentations/",
+				shuomingurl: "https://jakob-techs.com/download/1279/?tmstv=1763798576",
+				// shuomingurl: "https://jakob-techs.com/documentations/",
 				/* 所有标题 & 链接集中维护，后续只改这里 */
 				videoGroups: [{
 						title: this.$t('血压计手表测量血压的方法'),

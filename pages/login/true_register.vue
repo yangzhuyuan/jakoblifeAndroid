@@ -186,7 +186,7 @@
 			register() {
 				let that = this
 				uni.request({
-					url: that.$url_register,
+					url: that.$url_APP_IP + "/prod-api/app/register",
 					method: 'POST',
 					data: {
 						username: that.vip_unername,

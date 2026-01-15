@@ -1,0 +1,13 @@
+name:OTA升级配置
+unique_code:693241F80656352E382E320741423536313043
+part_id:0x05
+part_addr:0x105000
+part_len:0x6000
+bin_file:0x05.bin
+
+#name：OTA名称
+#unique_code：OTA唯一码
+#part_id：分区映射 16进制格式  0x**
+#part_addr：首地址 16进制格式  0x**
+#part_len：总长度 16进制格式  0x**
+#bin_file：bin文件名称比如 0x04.bin

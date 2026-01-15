@@ -56,7 +56,7 @@
 		},
 		methods: {
 			queryDevices() {
-				this.$post(this.$url_queryDevices, {}, {
+				this.$post(this.$url_APP_IP + this.$url_queryDevices, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(queryDevices => {
@@ -134,7 +134,7 @@
 			//注销用户
 			delete_self() {
 				let that = this
-				that.$post(that.$url_delete_self, {}, {
+				that.$post(that.$url_APP_IP + that.$url_delete_self, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {

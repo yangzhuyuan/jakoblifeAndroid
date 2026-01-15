@@ -101,9 +101,10 @@
 					})
 					return
 				} else {
-					this.tanchuang = true
-					this.yzm = ''
-					this.captchaImage();
+					// this.tanchuang = true
+					// this.yzm = ''
+					// this.captchaImage();
+					this.send_phone_register_code()
 				}
 			},
 
@@ -111,7 +112,7 @@
 			captchaImage() {
 				let _that = this
 				uni.request({
-					url: this.$url_captchaImage,
+					url: _that.$url_APP_IP + _that.$url_captchaImage,
 					method: 'GET',
 					header: {
 						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -158,7 +159,7 @@
 				} else {
 					let that = this
 					uni.request({
-						url: that.$url_check_code,
+						url: that.$url_APP_IP + that.$url_check_code,
 						method: 'POST',
 						data: {
 							code: that.yzm,
@@ -211,7 +212,7 @@
 			send_phone_register_code() {
 				let that = this
 				uni.request({
-					url: that.$url_send_phone_register_code,
+					url: that.$url_APP_IP + that.$url_send_phone_register_code,
 					method: 'POST',
 					data: {
 						phone: that.unername_phone
@@ -257,7 +258,7 @@
 			bind_phone() {
 				let that = this
 				uni.request({
-					url: that.$url_bind_phone,
+					url: that.$url_APP_IP + that.$url_bind_phone,
 					method: 'PUT',
 					data: {
 						code: that.yanzhengma,

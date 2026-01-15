@@ -79,6 +79,10 @@
 						url: '/pages/tabBar/tendency/supplement'
 					},
 					// {
+					// 	title: '手表设置',
+					// 	url: "/pages/tabBar/main/WatctOTA/WatctOTA"
+					// },
+					// {
 					// 	title: '自动血压监测设置',
 					// 	url: '/pages/tabBar/my/Watch_measurement'
 					// },
@@ -125,7 +129,7 @@
 			...mapMutations(['getInfo']),
 			// 发起请求获取用户信息
 			getInfoUser() {
-				this.$get(this.$url_getInfo, {}, {
+				this.$get(this.$url_APP_IP + this.$url_getInfo, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -165,7 +169,7 @@
 				const data = {
 					receiverId: datainfo.userId
 				}
-				this.$post(this.$url_pending, data, {
+				this.$post(this.$url_APP_IP + this.$url_pending, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
 				}).then(pending => {

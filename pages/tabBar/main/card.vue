@@ -294,9 +294,30 @@
 				let newarr = list2.concat(list1);
 				// 更新本地存储
 				uni.setStorageSync("kapianlist2", newarr);
+				this.cardeditData(newarr)
 				// 返回上一页
 				uni.navigateBack();
 			},
+			cardeditData(list) {
+				let editData = {
+					dataType: "WeightData",
+					data: this.formatData(list)
+				}
+				console.log("editData", editData)
+				this.$post(this.$url_APP_IP + "/prod-api/device/data/editData", editData, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then((reseditData) => {
+					if (reseditData.code === 200) {
+						// console.log("reseditData", reseditData)
+					}
+				})
+			},
+
+			formatData(dataArray) {
+				return dataArray.map(obj => JSON.stringify(obj).replace(/"/g, '')).join(','); // 多条之间用换行分隔（可改 | 或 ,）
+			},
+
 			BMI_tap(title) {
 				this.$refs.popup1.open("center")
 			},
@@ -305,7 +326,7 @@
 			},
 			// 查询用户的绑定设备
 			queryDevices() {
-				this.$post(this.$url_queryDevices, {}, {
+				this.$post(this.$url_APP_IP + this.$url_queryDevices, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
 				}).then(res => {
@@ -325,7 +346,7 @@
 				const data = {
 					deviceSn: deviceSn
 				}
-				this.$post(this.$url_get_device_data, data, {
+				this.$post(this.$url_APP_IP + this.$url_get_device_data, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 				}).then(res => {
@@ -423,7 +444,7 @@
 				const data = {
 					userId: uni.getStorageSync("userid")
 				}
-				this.$post(this.$url_list_recipe, data, {
+				this.$post(this.$url_APP_IP + this.$url_list_recipe, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {

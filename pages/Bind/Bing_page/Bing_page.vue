@@ -150,7 +150,7 @@
 					reasonable: false,
 					modelType: this.SELECT_TYPE
 				}
-				this.$get(this.$url_list, data, {
+				this.$get(this.$url_APP_IP + this.$url_list, data, {
 					'Authorization': 'Bearer ' + (this.tokens === '0' ? uni.getStorageSync("token") : this
 						.tokens),
 					'content-type': 'application/json;charset=UTF-8'

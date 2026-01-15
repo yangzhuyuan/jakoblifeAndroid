@@ -14,13 +14,12 @@
 				</view>
 				<view style="margin-top: 5px;" @click="click_button(1130)">{{$t('JakobLife隐私政策')}}
 				</view>
-			<!-- 	<view style="margin-top: 5px;" @click="click_button(1135)">{{$t('敏感个人信息处理情况的说明')}}
+				<!-- 	<view style="margin-top: 5px;" @click="click_button(1135)">{{$t('敏感个人信息处理情况的说明')}}
 				</view>
 				<view style=" margin-top: 5px;" @click="click_button(1111)">{{$t('向第三方提供个人信息情况的说明')}}
 				</view> -->
 			</view>
-			<button class="button_back" plain="true" :style="getback(cb)"
-				@tap="btn_agree">{{$t('我已阅读并同意')}}</button>
+			<button class="button_back" plain="true" :style="getback(cb)" @tap="btn_agree">{{$t('我已阅读并同意')}}</button>
 		</view>
 
 	</view>
@@ -46,7 +45,7 @@
 			} else {
 				this.article(1)
 			}
-			
+
 		},
 
 		onLoad(res) {
@@ -63,7 +62,7 @@
 			article(id) {
 				let that = this
 				uni.request({
-					url: that.$url_article,
+					url: that.$url_APP_IP + that.$url_article,
 					method: 'GET',
 					data: {
 						articleId: id

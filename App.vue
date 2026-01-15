@@ -77,7 +77,7 @@
 			that.stopInterval();
 			that.startInterval();
 			that.setTabBarItems();
-			// that.Text_content9()//强制更新
+			that.check_new_version("com.work.jakob", "0") //强制更新
 			// that.accelerometerStart();//手机传感步数
 			// uni.getPushClientId({
 			// 	success(res) {
@@ -157,15 +157,6 @@
 						})
 					})
 			},
-
-			Text_content9() { //软件更新
-				if (uni.getSystemInfoSync().platform === 'android') {
-					this.check_new_version("com.work.jakob", "0")
-				} else {
-					this.check_new_version("io.dcloud.jakob", "1")
-				}
-			},
-			// 检查新版本
 			/* 检查新版本 —— 仅改动了弹窗触发方式 */
 			check_new_version(pkgName, type) {
 				const that = this;
@@ -175,6 +166,7 @@
 					data: {
 						pkgName,
 						type,
+						// versionName: "2.0.42"
 						versionName: systemInfo.appVersion
 					},
 					header: {
@@ -185,32 +177,66 @@
 							//已经是最新版本
 							return;
 						}
-						that.isMandatory = res.data.data.isMandatory || false;
-						const title = that.isMandatory ? that.$t('强制更新提示') : that.$t('发现新版本');
-						const content = that.$t('版本更新1') + res.data.data.versionName + that.$t('版本更新2');
-						uni.showModal({
-							title,
-							content,
-							confirmText: that.$t('立即更新'),
-							showCancel: false,
-							success(modal) {
-								if (!modal.confirm) { // 用户取消
-									if (that.isMandatory) { // 强制更新不允许取消
-										that.check_new_version(pkgName, type);
-									}
-									return;
-								}
-								/* ① 打开 GlobalPopup 下载弹窗 */
-								uni.$emit('APP_WANT_POPUP', {
-									mode: 'download',
-									title: that.$t('正在下载更新'),
-									progress: 0
-								});
-
-								/* ② 开始下载 */
-								that.checkUpdate(res.data.data.path);
+						let remarkParts = res.data.data.remark === null ? "" : res.data
+							.data.remark.split("&&&");
+						// 初始化中英文变量
+						let englishPart = '';
+						let chinesePart = '';
+						// 安全地获取分割后的部分
+						if (remarkParts.length > 0) {
+							englishPart = remarkParts[0];
+						}
+						if (remarkParts.length > 1) {
+							chinesePart = remarkParts[1];
+						}
+						let lan = uni.getLocale();
+						let today = version.data.data.versionName;
+						console.log("today", today)
+						if (res.data.data.updateForce === 0) {
+							console.log("不需要强制更新")
+							if (uni.getStorageSync("aboutupdate") === today) {
+								console.log("不需要强制更新，按钮取消")
+								return
 							}
-						});
+							uni.showModal({
+								content: `${that.$t('版本更新1')}${res.data.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
+								confirmText: that.$t('安装'),
+								cancelText: that.$t('稍后安装'),
+								success(modal) {
+									if (modal.confirm) {
+										/* ① 打开 GlobalPopup 下载弹窗 */
+										uni.$emit('APP_WANT_POPUP', {
+											mode: 'download',
+											title: that.$t('正在下载更新'),
+											progress: 0
+										});
+										/* ② 开始下载 */
+										that.checkUpdate(res.data.data.path);
+									} else {
+										uni.setStorageSync("aboutupdate", today)
+									}
+								}
+							});
+						} else {
+							console.log("需要强制更新")
+							uni.showModal({
+								content: `${that.$t('版本更新1')}${res.data.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
+								confirmText: that.$t('安装'),
+								showCancel: false,
+								success(modal) {
+									if (modal.confirm) {
+										/* ① 打开 GlobalPopup 下载弹窗 */
+										uni.$emit('APP_WANT_POPUP', {
+											mode: 'download',
+											title: that.$t('正在下载更新'),
+											progress: 0
+										});
+										/* ② 开始下载 */
+										that.checkUpdate(res.data.data.path);
+									}
+								}
+							});
+						}
 					},
 					fail() {
 						uni.showToast({
@@ -507,7 +533,7 @@
 			receiver_list() {
 				let that = this
 				uni.request({
-					url: that.$url_receiver_list,
+					url: that.$url_APP_IP + that.$url_receiver_list,
 					method: 'POST',
 					data: {
 						receiverId: uni.getStorageSync("userid")
