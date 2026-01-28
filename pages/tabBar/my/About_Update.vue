@@ -223,22 +223,20 @@
 			let that = this
 			console.log(that.otaState)
 			if (that.otaState === "GETTING_INFO" || that.otaState === "UPGRADING") {
-				console.log("哈哈哈哈哈111")
-				uni.showModal({
-					content: that.$t("当前OTA正在升级"),
-					confirmText: that.$t('确定'),
-					cancelText: that.$t('取消'),
-					success(modal) {
-						if (modal.confirm) {
-							that.endOta()
-						} else {
-							return true
-						}
-					}
-				});
+				// uni.showModal({
+				// 	content: that.$t("当前OTA正在升级"),
+				// 	confirmText: that.$t('确定'),
+				// 	cancelText: that.$t('取消'),
+				// 	success(modal) {
+				// 		if (modal.confirm) {
+				// 			that.endOta()
+				// 		} else {
+				// 			return true
+				// 		}
+				// 	}
+				// });
 				return true
 			} else {
-				console.log("哈哈哈哈哈222")
 				return false
 			}
 		},
@@ -383,7 +381,8 @@
 			watcahupdate() {
 				let that = this
 				uni.showLoading({
-					title: that.$t("正在请求升级")
+					title: that.$t("正在请求升级"),
+					mask: true
 				})
 				setTimeout(() => {
 					uni.getBLEDeviceCharacteristics({
@@ -506,7 +505,6 @@
 							}
 						},
 						fail(res) {
-							console.log("呵呵呵呵呵", res)
 							uni.hideLoading()
 							if (Vue.prototype.$globalTimers
 								.heartbeatInterval) {
@@ -757,9 +755,10 @@
 						uni.startBluetoothDevicesDiscovery({
 							allowDuplicatesKey: true,
 							success: () => {
-								// uni.showLoading({
-								// 	title: that.$t("搜索蓝牙设备中")
-								// })
+								uni.showLoading({
+									title: that.$t("搜索蓝牙设备中"),
+									mask: true
+								})
 								that.scanTimer = setTimeout(() => {
 									if (!that.foundDevice) {
 										uni.hideLoading();
@@ -774,25 +773,25 @@
 														deviceId: that
 															.deviceIdss,
 														complete(
-															complete) {
+														complete) {
 															console.log(
 																"complete",
 																complete
-															)
+																)
 															uni.closeBluetoothAdapter({
 																complete(
 																	closeBluetoothAdapter
-																) {
+																	) {
 																	console
 																		.log(
 																			"closeBluetoothAdapter",
 																			closeBluetoothAdapter
-																		)
-																	that.endOta()
+																			)
 																}
 															})
 														}
 													})
+													that.endOta()
 												}
 											}
 										});
@@ -817,7 +816,7 @@
 			onDeviceFound(res) {
 				let that = this
 				that.foundDevice = false;
-				that.targetDeviceId = ""
+				// that.targetDeviceId = ""
 				const deviceArray = res.devices;
 				for (const item of deviceArray) {
 					let idList = []
@@ -826,11 +825,11 @@
 						console.log("idList", idList)
 						console.log("idList", idList[0].name)
 						that.targetDeviceId = idList[0].deviceId
-						console.log("222that.targetDeviceId", that.targetDeviceId)
+						console.log("that.targetDeviceId", that.targetDeviceId)
 						uni.stopBluetoothDevicesDiscovery({
 							success: (res) => {
 								uni.hideLoading()
-								that.targetDeviceId = idList[0].deviceId
+								// that.targetDeviceId = idList[0].deviceId
 								// 1. 清除超时计时器
 								clearTimeout(that.scanTimer);
 								that.scanTimer = null;
@@ -851,31 +850,35 @@
 									});
 									return
 								}
-								uni.showModal({
-									content: that.$t("由于蓝牙速度限制"),
-									confirmText: that.$t('确定'),
-									cancelText: that.$t('取消'),
-									success(modal) {
-										if (modal.confirm) {
-											uni.showLoading({
-												title: that.$t(
-													"连接中")
-											})
-											that.connect(that.targetDeviceId, 0);
-											console.log("设置自动连接设备")
-										} else {
-											uni.showModal({
-												content: that.$t(
-													"手表将在秒后重置"),
-												confirmText: that.$t('确定'),
-												showCancel: false,
-												success(modal) {
-													if (modal.confirm) {}
-												}
-											});
+								setTimeout(() => {
+									uni.showModal({
+										content: that.$t("由于蓝牙速度限制"),
+										confirmText: that.$t('确定'),
+										cancelText: that.$t('取消'),
+										success(modal) {
+											if (modal.confirm) {
+												uni.showLoading({
+													title: that.$t("连接中"),
+													mask: true,
+												})
+												console.log("that.targetDeviceId", that
+													.targetDeviceId)
+												that.connect(that.targetDeviceId, 0);
+												console.log("设置自动连接设备")
+											} else {
+												uni.showModal({
+													content: that.$t(
+														"手表将在秒后重置"),
+													confirmText: that.$t('确定'),
+													showCancel: false,
+													success(modal) {
+														if (modal.confirm) {}
+													}
+												});
+											}
 										}
-									}
-								});
+									});
+								}, 1000)
 							}
 						})
 					}
@@ -897,26 +900,21 @@
 					timeout: 10000,
 					success: () => {
 						this.deviceId = deviceId;
+						this.foundDevice = true;
 						setTimeout(() => {
 							this.getBLEDeviceServices();
 						}, 2000);
 					},
 					fail: (e) => {
-
-						if (Vue.prototype.$globalTimers
-							.heartbeatInterval) {
-							clearInterval(Vue.prototype
-								.$globalTimers
-								.heartbeatInterval);
-							Vue.prototype.$globalTimers
-								.heartbeatInterval = null;
+						console.log(e)
+						if (Vue.prototype.$globalTimers.heartbeatInterval) {
+							clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
+							Vue.prototype.$globalTimers.heartbeatInterval = null;
 						}
-
 						// 如果重试次数未达到3次，则重试
 						if (retryCount < maxRetries - 1) {
 							retryCount++;
 							console.log(`连接失败，第${retryCount}次重试...`);
-
 							// 延迟一段时间后重试（可调整延迟时间）
 							setTimeout(() => {
 								this.connect(deviceId, retryCount);
@@ -925,7 +923,7 @@
 							// 达到最大重试次数，显示失败提示
 							uni.hideLoading();
 							uni.showToast({
-								title: this.$t("连接失败，请重试"),
+								title: this.$t("连接超时"),
 								icon: 'none'
 							});
 							console.log(`连接失败，已重试${maxRetries}次`);
@@ -933,26 +931,6 @@
 					},
 				});
 			},
-
-			// connect(deviceId) {
-			// 	uni.createBLEConnection({
-			// 		deviceId: deviceId,
-			// 		timeout: 10000,
-			// 		success: () => {
-			// 			this.deviceId = deviceId;
-			// 			setTimeout(() => {
-			// 				this.getBLEDeviceServices();
-			// 			}, 2000);
-			// 		},
-			// 		fail: (e) => {
-			// 			uni.hideLoading();
-			// 			uni.showToast({
-			// 				title: this.$t("失败"),
-			// 				icon: 'none'
-			// 			});
-			// 		},
-			// 	});
-			// },
 			disconnect() {
 				if (this.deviceId) {
 					uni.closeBLEConnection({
@@ -984,31 +962,6 @@
 								icon: 'none',
 								duration: 2000
 							})
-							// uni.showToast({
-							// 	title: that.$t("设备不支持OTA或服务未找到"),
-							// 	icon: 'none'
-							// });
-							// // 尝试使用第一个服务（兼容旧代码）
-							// if (res.services.length > 0) {
-							// 	that.serviceId = res.services[0].uuid;
-							// 	that.getCharacteristics();
-							// }
-							// if (that.deviceId === that.deviceIdss) {
-							// 	uni.showModal({
-							// 		content: that.$t("请检查设备连接" + that.deviceId),
-							// 		confirmText: that.$t('确定'),
-							// 		showCancel: false,
-							// 		success(modal) {
-							// 			if (modal.confirm) {
-							// 				that.endOta()
-							// 			}
-							// 		}
-							// 	});
-							// } else {
-							// 	setTimeout(() => {
-							// 		that.connect(that.deviceId, 0);
-							// 	}, 1000)
-							// }
 						}
 					},
 					fail: (e) => {
@@ -2738,7 +2691,6 @@
 					FUNC.REBOOT, 0x01, 0, 0
 				);
 				await this.write(frame);
-
 				uni.showToast({
 					title: this.$t("成功"),
 					icon: 'none',
@@ -2752,7 +2704,7 @@
 					uni.switchTab({
 						url: "/pages/tabBar/main/Main"
 					})
-				}, 3000)
+				}, 1000)
 				this.wactchtimerid = ""
 			},
 			handleAck(data) {

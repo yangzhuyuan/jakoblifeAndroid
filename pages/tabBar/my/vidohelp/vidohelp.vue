@@ -191,6 +191,30 @@
 								url: 'https://v.douyin.com/6NGprluBBDY/ 10/10 oQX:/ l@c.At'
 							}
 						]
+					},
+					{
+						title: this.$t('如何升级手表'),
+						list: [{
+								platform: 'youtube',
+								url: 'https://youtube.com/shorts/59CRcOji4SI?si=QwoqsRvyoZc-JKnO'
+							},
+							{
+								platform: 'douyin',
+								url: 'https://v.douyin.com/LaHL0H70jdw/ 07/07 j@c.nQ Wzg:/'
+							}
+						]
+					},
+					{
+						title: this.$t('怎么测试情绪'),
+						list: [{
+								platform: 'youtube',
+								url: 'https://youtube.com/shorts/2oYU3IhPRvE?si=gnTx3uJ9zdWpOZVy'
+							},
+							{
+								platform: 'douyin',
+								url: 'https://v.douyin.com/5K9JlbdgQsE/ x@f.bA 07/29 cnd:/'
+							}
+						]
 					}
 				].filter(g => g.list.length), // 过滤掉空分组
 			}

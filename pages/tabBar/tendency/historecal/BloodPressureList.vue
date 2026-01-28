@@ -354,9 +354,14 @@
 				const clampedX = Math.max(maxSwipeDistance, Math.min(minSwipeDistance, newX));
 
 				this.setCardPosition(type, index, clampedX);
-				if (this.swipeData[index].object.summary.expanded) {
+				// if (this.swipeData[index].object.summary.expanded) {
+				// 	this.toggleExpand(index);
+				// }
+				// 只在主卡片滑动时才可能收起主卡片
+				if (type === 'main' && this.swipeData[index].object.summary.expanded) {
 					this.toggleExpand(index);
 				}
+
 				if (e && e.stopPropagation) {
 					e.stopPropagation();
 				}

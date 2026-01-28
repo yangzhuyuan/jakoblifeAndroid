@@ -78,7 +78,8 @@
 			timestr(TIME_TYPE) {
 				let that = this
 				uni.showLoading({
-					title: that.$t("设置中")
+					title: that.$t("设置中"),
+					mask: true
 				})
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceId,
@@ -190,7 +191,8 @@
 			Raise_your_hand(typesd) {
 				let that = this
 				uni.showLoading({
-					title: that.$t("设置中")
+					title: that.$t("设置中"),
+					mask: true
 				})
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceId,
@@ -297,7 +299,8 @@
 			Languagesetting(Languagtype, Languagesindex) {
 				let that = this
 				uni.showLoading({
-					title: that.$t("设置中")
+					title: that.$t("设置中"),
+					mask: true
 				})
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceId,

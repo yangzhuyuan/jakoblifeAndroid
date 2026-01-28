@@ -106,6 +106,7 @@
 		},
 
 		onLoad(res) {
+			console.log(JSON.stringify(res))
 			this.SELECT_TYPE = res.SELECT_TYPE
 			this.modelConnectType = res.modelConnectType
 			this.modelname = res.name
@@ -497,7 +498,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 300px;
+		height: 220px;
 		z-index: 100;
 		/* 确保低于弹窗的 z-index */
 	}
@@ -510,7 +511,7 @@
 		padding-top: 10px;
 		padding-bottom: 30px;
 		width: 90vw;
-		height: 260px;
+		height: 180px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
@@ -529,16 +530,16 @@
 
 	.Model_number {
 		text-align: center;
-		margin: 20px 0;
-		font-size: 16px;
+		margin: 20px 0 0;
+		font-size: 12px;
 		font-weight: bold;
 	}
 
 	.Message {
 		height: 22px;
-		margin-top: 60px;
+		margin-top: 50px;
 		text-align: center;
-		font-size: 16px;
+		font-size: 12px;
 		font-weight: 400;
 		color: red;
 	}
@@ -546,14 +547,14 @@
 	.Message1 {
 		height: 22px;
 		text-align: center;
-		font-size: 16px;
+		font-size: 12px;
 		font-weight: 400;
 		color: black;
 	}
 
 	.Messageback {
 		position: fixed;
-		bottom: 0;
+		bottom: 20px;
 		width: 100vw;
 		background: #F7F7F7;
 	}

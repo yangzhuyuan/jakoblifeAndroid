@@ -190,10 +190,10 @@
 							chinesePart = remarkParts[1];
 						}
 						let lan = uni.getLocale();
-						let today = version.data.data.versionName;
-						console.log("today", today)
+						let today = res.data.data.versionName;
+						// console.log("today", today)
 						if (res.data.data.updateForce === 0) {
-							console.log("不需要强制更新")
+							// console.log("不需要强制更新")
 							if (uni.getStorageSync("aboutupdate") === today) {
 								console.log("不需要强制更新，按钮取消")
 								return

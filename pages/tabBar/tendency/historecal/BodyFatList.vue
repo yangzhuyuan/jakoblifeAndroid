@@ -378,7 +378,10 @@
 				}
 
 				this.isSwiping = false;
-				if (this.swipeData[index].object.summary.expanded) {
+				// if (this.swipeData[index].object.summary.expanded) {
+				// 	this.toggleExpand(index);
+				// }
+				if (type === 'main' && this.swipeData[index].object.summary.expanded) {
 					this.toggleExpand(index);
 				}
 				if (e && e.stopPropagation) {

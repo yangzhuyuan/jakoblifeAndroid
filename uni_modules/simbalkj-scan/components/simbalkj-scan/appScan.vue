@@ -13,7 +13,7 @@
 			},
 			height: {
 				type: String,
-				default: '300px'
+				default: '230px'
 			}
 		},
 		data() {
@@ -94,7 +94,7 @@
 				const openImg = this.crtFlashImg();
 				const closeImg = this.crtFlashImg2();
 				this.scanBarVew = new plus.nativeObj.View("scanBarVew", {
-					top: "28%",
+					top: "17%",
 					left: "40%",
 					height: "16%",
 					width: "20%"

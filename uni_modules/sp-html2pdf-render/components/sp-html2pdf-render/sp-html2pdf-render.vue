@@ -97,7 +97,8 @@
 			// 渲染事件
 			async h2pRenderDom() {
 				uni.showLoading({
-					title: '加载中'
+					title: '加载中',
+					mask: true
 				})
 
 				// #ifdef H5

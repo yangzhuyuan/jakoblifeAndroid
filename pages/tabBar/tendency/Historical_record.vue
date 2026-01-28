@@ -208,7 +208,6 @@
 			// 项目选择
 			async chooseItem(e) {
 				console.log("chooseItem", e.name);
-
 				// 根据显示名称找到对应的类型
 				const item = this.goodsList.find(goods => goods.name === e.name);
 				if (item) {
@@ -948,7 +947,7 @@
 			},
 
 			handleToggleExpand(index) {
-				console.log("切换展开状态:", index);
+				// console.log("切换展开状态:", index);
 				// 实现展开逻辑
 			},
 

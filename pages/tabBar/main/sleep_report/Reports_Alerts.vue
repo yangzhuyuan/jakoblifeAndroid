@@ -391,7 +391,8 @@
 								let item = res.characteristics[i]
 								if (item.properties.write) {
 									uni.showLoading({
-										title: that.$t("设置中")
+										title: that.$t("设置中"),
+										mask: true
 									})
 									that.sendwatch2(item.uuid, 1)
 								}
@@ -399,10 +400,15 @@
 						},
 						fail(res) {
 							uni.showToast({
-								title: that.$t("请检查设备连接"),
+								title: that.$t("连接中稍后再试"),
 								icon: 'none',
-								duration: 2000
+								duration: 1500
 							})
+							setTimeout(() => {
+								uni.switchTab({
+									url: '/pages/tabBar/main/Main'
+								})
+							}, 1000)
 						}
 					})
 				}
@@ -613,7 +619,8 @@
 							let item = res.characteristics[i]
 							if (item.properties.write) {
 								uni.showLoading({
-									title: that.$t("设置中")
+									title: that.$t("设置中"),
+									mask: true
 								})
 								that.sendwatch2(item.uuid, type)
 							}
@@ -621,10 +628,15 @@
 					},
 					fail(res) {
 						uni.showToast({
-							title: that.$t("请检查设备连接"),
+							title: that.$t("连接中稍后再试"),
 							icon: 'none',
-							duration: 2000
+							duration: 1500
 						})
+						setTimeout(() => {
+							uni.switchTab({
+								url: '/pages/tabBar/main/Main'
+							})
+						}, 1000)
 						setTimeout(() => {
 							that.$forceUpdate()
 							that.switchHER = true
@@ -641,7 +653,8 @@
 			getBLEDeviceCharacteristics1(type) {
 				let that = this
 				uni.showLoading({
-					title: that.$t("设置中")
+					title: that.$t("设置中"),
+					mask: true
 				})
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceId,
@@ -657,10 +670,15 @@
 					fail(res) {
 						uni.hideLoading()
 						uni.showToast({
-							title: that.$t("请检查设备连接"),
+							title: that.$t("连接中稍后再试"),
 							icon: 'none',
-							duration: 2000
+							duration: 1500
 						})
+						setTimeout(() => {
+							uni.switchTab({
+								url: '/pages/tabBar/main/Main'
+							})
+						}, 1000)
 						setTimeout(() => {
 							that.$forceUpdate()
 							that.switchHER = false
@@ -675,7 +693,8 @@
 			getBLEDeviceCharacteristics2(type) {
 				let that = this
 				uni.showLoading({
-					title: that.$t("设置中")
+					title: that.$t("设置中"),
+					mask: true
 				})
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceId,
@@ -691,10 +710,15 @@
 					fail(res) {
 						uni.hideLoading()
 						uni.showToast({
-							title: that.$t("请检查设备连接"),
+							title: that.$t("连接中稍后再试"),
 							icon: 'none',
-							duration: 2000
+							duration: 1500
 						})
+						setTimeout(() => {
+							uni.switchTab({
+								url: '/pages/tabBar/main/Main'
+							})
+						}, 1000)
 					}
 				})
 			},
@@ -823,10 +847,15 @@
 							uni.setStorageSync("switchHER", false)
 							uni.hideLoading()
 							uni.showToast({
-								title: that.$t("请检查设备连接"),
+								title: that.$t("连接中稍后再试"),
 								icon: 'none',
-								duration: 2000
+								duration: 1500
 							})
+							setTimeout(() => {
+								uni.switchTab({
+									url: '/pages/tabBar/main/Main'
+								})
+							}, 1000)
 							console.error("开始心率/血氧定时测量：", err)
 						},
 					})
@@ -905,10 +934,15 @@
 							uni.setStorageSync("switchHER", true)
 							uni.hideLoading()
 							uni.showToast({
-								title: that.$t("请检查设备连接"),
+								title: that.$t("连接中稍后再试"),
 								icon: 'none',
-								duration: 2000
+								duration: 1500
 							})
+							setTimeout(() => {
+								uni.switchTab({
+									url: '/pages/tabBar/main/Main'
+								})
+							}, 1000)
 							console.error("关闭血氧自动测量：：", err)
 						},
 					})
@@ -959,9 +993,15 @@
 						// clearInterval(that.heartbeatInterval1)
 						console.error("血压定时测量协议发送失败", err);
 						uni.showToast({
-							title: that.$t("请检查设备连接"),
-							icon: 'none'
+							title: that.$t("连接中稍后再试"),
+							icon: 'none',
+							duration: 1500
 						})
+						setTimeout(() => {
+							uni.switchTab({
+								url: '/pages/tabBar/main/Main'
+							})
+						}, 1000)
 					}
 				});
 			},
@@ -987,9 +1027,15 @@
 						// clearInterval(that.heartbeatInterval1)
 						console.error("关闭血压定时测量协议发送失败", err);
 						uni.showToast({
-							title: that.$t("请检查设备连接"),
-							icon: 'none'
+							title: that.$t("连接中稍后再试"),
+							icon: 'none',
+							duration: 1500
 						})
+						setTimeout(() => {
+							uni.switchTab({
+								url: '/pages/tabBar/main/Main'
+							})
+						}, 1000)
 					}
 				});
 			},

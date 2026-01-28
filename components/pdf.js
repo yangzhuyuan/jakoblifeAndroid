@@ -12,7 +12,8 @@ PDF.install = function(Vue, options) {
 		const A4_HEIGHT_WITH_MARGIN = A4_HEIGHT - MARGIN * 2;
 
 		uni.showLoading({
-			title: '导出中'
+			title: '导出中',
+			mask: true
 		});
 
 		// 克隆 DOM 元素

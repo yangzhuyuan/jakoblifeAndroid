@@ -49,6 +49,7 @@
 			// #endif
 			uni.showLoading({
 				title: '加载数据中',
+				mask: true
 			})
 			/**
 			 * 功能：实例化 ECG 类

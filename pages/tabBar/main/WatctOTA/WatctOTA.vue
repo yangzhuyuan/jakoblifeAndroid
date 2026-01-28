@@ -241,7 +241,8 @@
 			watcahupdate() {
 				let that = this
 				uni.showLoading({
-					title: that.$t("正在请求升级")
+					title: that.$t("正在请求升级"),
+					mask: true
 				})
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceIdss,
@@ -318,7 +319,8 @@
 							success: () => {
 								// 设置20秒超时
 								uni.showLoading({
-									title: that.$t("连接中")
+									title: that.$t("连接中"),
+									mask: true
 								});
 								that.scanTimer = setTimeout(() => {
 									if (!that.foundDevice) {
@@ -374,7 +376,8 @@
 			},
 			connect(deviceId) {
 				uni.showLoading({
-					title: '连接中...'
+					title: '连接中...',
+					mask: true
 				});
 				uni.createBLEConnection({
 					deviceId: deviceId,

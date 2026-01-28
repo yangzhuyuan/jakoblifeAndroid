@@ -59,6 +59,9 @@
 	export default {
 		data() {
 			return {
+
+				username: '',
+
 				optionslist: [{
 						val1: this.$t("没有"),
 						val2: this.$t("有几天"),
@@ -112,6 +115,7 @@
 				],
 				total: null,
 				level: "",
+				levelid: "",
 				levelColor: ""
 			};
 		},
@@ -128,6 +132,7 @@
 				this.questions = cache.questions;
 				this.total = cache.total;
 				this.level = cache.level;
+				this.levelid = cache.levelid;
 				this.levelColor = cache.levelColor;
 			}
 		},
@@ -137,8 +142,38 @@
 			uni.setNavigationBarTitle({
 				title: this.$t("患者健康问卷")
 			})
+			this.getInfoUser()
 		},
 		methods: {
+
+			getInfoUser() {
+				this.$get(this.$url_APP_IP + this.$url_getInfo, {}, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then(res => {
+					console.log(res)
+					switch (res.code) {
+						case 200:
+							this.username = res.data.nickName
+							break
+						case 500:
+							uni.showToast({
+								title: this.$t("获取数据失败"),
+								icon: 'none'
+							});
+							break
+						case 401:
+							uni.redirectTo({
+								url: "/pages/login/login_land"
+							});
+							break
+						default:
+							return;
+							break
+					}
+				})
+			},
+
 			radioChange(e, index) {
 				this.$set(this.questions[index], "value", parseInt(e.detail.value));
 			},
@@ -154,19 +189,24 @@
 				const sum = this.questions.reduce((s, q) => s + q.value, 0);
 				this.total = sum;
 				if (sum <= 4) {
-					this.level = this.$t("没有抑郁");
+					this.level = "没有抑郁";
+					this.levelid = "none"
 					this.levelColor = "#67c23a";
 				} else if (sum <= 9) {
-					this.level = this.$t("轻度抑郁");
+					this.level = "轻度抑郁";
+					this.levelid = "mild"
 					this.levelColor = "#e6a23c";
 				} else if (sum <= 14) {
-					this.level = this.$t("中度抑郁");
+					this.level = "中度抑郁";
+					this.levelid = "moderate"
 					this.levelColor = "#f56c6c";
 				} else if (sum <= 19) {
-					this.level = this.$t("中重度抑郁");
+					this.level = "中重度抑郁";
+					this.levelid = "moderately_severe"
 					this.levelColor = "#ff4d4f";
 				} else {
-					this.level = this.$t("重度抑郁");
+					this.level = "重度抑郁";
+					this.levelid = "severe"
 					this.levelColor = "#cf1322";
 				}
 				// 本地缓存
@@ -181,8 +221,70 @@
 			},
 			score_close() {
 				this.$refs.score_popup.close()
-				uni.navigateBack()
-			}
+				this.questionnaire()
+			},
+			questionnaire() {
+				let data = {
+					patientId: uni.getStorageSync("userid"), //患者唯一标识
+					// medicalRecordNo: '', //病历号
+					assessmentDate: this.getCurrentTime(), //评估日期时间
+					assessmentLocation: 'phone', //评估地点（ 门诊 / 住院 / 社区等）
+					assessorId: '剑博', //评估人员ID
+					assessmentType: 'initial', //评估类型
+					q1InterestPleasure: this.questions[0].value, //兴趣减退 / 愉快感缺乏
+					q2DepressedMood: this.questions[1].value, //情绪低落 / 抑郁
+					q3SleepProblems: this.questions[2].value, //睡眠问题
+					q4TiredFatigue: this.questions[3].value, //疲劳感
+					q5AppetiteChanges: this.questions[4].value, //食欲改变
+					q6SelfCriticism: this.questions[5].value, //自我批评 / 失败感
+					q7Concentration: this.questions[6].value, //注意力不集中
+					q8Psychomotor: this.questions[7].value, //精神运动性改变
+					q9SuicidalThoughts: this.questions[8].value, //自杀念头
+					totalScore: this.total, //总分(0 - 27)
+					severityLevel: this.levelid, //严重程度分级
+					// functionalImpairment: '', //功能损害程度(0 - 3)
+					// impairmentDomains: '', //功能损害领域（ 工作、 家庭、 社交等）
+					suicidalRiskLevel: 'none', //自杀风险等级
+					// requiresImmediateIntervention: '', //是否需要立即干预
+					// clinicalRecommendation: '', //临床建议
+					// followUpPlan: '', //随访计划
+					// referralSpecialist: '', //是否需要转诊专科
+					// medicationRecommended: '', //是否建议药物治疗
+					// assessmentDuration: '', //评估耗时（ 秒）
+					dataQuality: 'excellent', //数据质量
+					completenessPercentage: this.percent, //完成度百分比
+					createdAt: this.getCurrentTime(), //创建时间
+					updatedAt: this.getCurrentTime(), //更新时间
+					createdBy: this.username, //创建人
+					updatedBy: this.username, //更新人
+					// isDeleted: '', //软删除标记
+				}
+				console.log("questionnairedata", data)
+				this.$post(this.$url_APP_IP + "/prod-api/device/questionnaire", data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				}).then((questionnaireres) => {
+					console.log("questionnaireres", questionnaireres)
+					uni.switchTab({
+						url: "/pages/tabBar/main/Main"
+					})
+				})
+			},
+			getCurrentTime() {
+				const now = new Date();
+				const year = now.getFullYear();
+				const month = String(now.getMonth() + 1).padStart(
+					2, '0');
+				const day = String(now.getDate()).padStart(2, '0');
+				const hours = String(now.getHours()).padStart(2,
+					'0');
+				const minutes = String(now.getMinutes()).padStart(
+					2, '0');
+				const seconds = String(now.getSeconds()).padStart(
+					2, '0');
+
+				return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+			},
 		}
 	};
 </script>

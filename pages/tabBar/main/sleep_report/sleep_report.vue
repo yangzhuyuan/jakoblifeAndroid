@@ -32,7 +32,7 @@
 				// })
 				uni.showLoading({
 					title: this.$t("设置中"),
-					mask: false
+					mask: true
 				})
 				this.startheart(1)
 				uni.setStorageSync("sleep_alert", 1)
@@ -88,7 +88,8 @@
 							}
 							uni.hideLoading()
 							uni.showLoading({
-								title: that.$t("开始测量")
+								title: that.$t("开始测量"),
+								mask: true
 							})
 						},
 						fail(err) {

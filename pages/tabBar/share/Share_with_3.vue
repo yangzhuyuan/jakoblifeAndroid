@@ -62,10 +62,12 @@
 					userType: "01",
 					searchValue: this.searchValue
 				}
+				// console.log(data)
 				this.$get(this.$url_APP_IP + "/prod-api/system/user/list", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;'
 				}).then(res => {
+					// console.log(res)
 					if (res.code === 200 && res.total > 0) {
 						this.filterList = res.rows;
 					} else {
