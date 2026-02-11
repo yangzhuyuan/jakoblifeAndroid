@@ -173,7 +173,7 @@ export default {
 		实时PPG波形: '实时PPG波形\n绿色: PPG心率信号\n橙色: 红外参考信号',
 		PDF数据预览: "PDF数据预览",
 		预览: '预览',
-		开始测量: '开始测量...',
+		开始测量: '测量中...',
 
 
 
@@ -1073,7 +1073,7 @@ export default {
 		当前下载进度: '当前下载进度',
 		已经是最新版本1: '版本号 ',
 		已经是最新版本2: '已经是最新版本',
-		当前蓝牙未开启是否去设置打开: '当前蓝牙未开启，是否去设置打开？',
+		当前蓝牙未开启是否去设置打开: '您的蓝牙没有打开，请在手机设置里打开蓝牙',
 		数据不存在: '数据不存在',
 		血压手表使用指南: '血压手表使用指南',
 		血压手表问题解答: '血压手表问题解答',
@@ -1322,8 +1322,7 @@ export default {
 		实时PPG波形: 'Real-time PPG waveform\nGreen: PPG heart rate signal\nOrange: Infrared reference signal',
 		PDF数据预览: "PDF Data Preview",
 		预览: 'Preview',
-		开始测量: 'Starting measurement...',
-
+		开始测量: 'Measuring...',
 
 
 		APP历史版本: 'APP release histories',
@@ -2224,7 +2223,7 @@ export default {
 		已经是最新版本1: 'Version ',
 		已经是最新版本2: 'This version is the latest version',
 		当前下载进度: 'Current download progress',
-		当前蓝牙未开启是否去设置打开: 'Bluetooth is currently off. Go to settings to enable it',
+		当前蓝牙未开启是否去设置打开: 'Your Bluetooth is turned off. Please turn on Bluetooth in your phone’s Settings.',
 		数据不存在: 'Data does not exist',
 		血压手表使用指南: 'Blood Pressure Watch Instructions',
 		血压手表问题解答: 'Blood Pressure Watch Q&A',

@@ -2011,7 +2011,7 @@
 				});
 			},
 			onBluetoothAdapterSuccess() {
-				this.manageHeartbeatInterval(() => this.onBluetoothDeviceFound(), 2000);
+				this.manageHeartbeatInterval(() => this.onBluetoothDeviceFound(), 500);
 			},
 			handleUpdateDisabled(val) {
 				if (this.delate_icon2 === true) {
@@ -2311,48 +2311,52 @@
 			},
 			//心率立即测量
 			sleep_alert() {
-				if (this.blewatch_id === "1" || this.acktypes === 0) {
+				let that = this
+				if (that.blewatch_id === "1" || that.acktypes === 0) {
 					console.log("同步数据中")
 					uni.showLoading({
-						title: this.$t("数据同步中请稍后"),
+						title: that.$t("数据同步中请稍后"),
 						mask: true,
 					})
-					let aaawatchetime = 0
-					this.watchtimer3 = setInterval(() => {
-						aaawatchetime++
-						if (this.blewatch_id === "0") {
-							console.log("同步数据中222")
-							uni.hideLoading()
-							clearInterval(this.watchtimer3)
-							this.watchtimer3 = null
-							setTimeout(() => {
-								uni.showLoading({
-									title: this.$t("设置中"),
-									mask: true
-								})
-								this.sendstartheartwatch(this.writeuuid, 1)
-								this.sleep_alertid = 1
-							}, 1500)
-						} else {
-							if (aaawatchetime === 20) {
+					setTimeout(() => {
+						let aaawatchetime = 0
+						that.watchtimer3 = setInterval(() => {
+							aaawatchetime++
+							if (that.blewatch_id === "0") {
+								console.log("同步数据中222")
 								uni.hideLoading()
-								clearInterval(this.watchtimer3)
-								this.watchtimer3 = null
-								uni.showToast({
-									title: this.$t("请检查设备连接"),
-									icon: 'none',
-									duration: 2000
-								})
+								clearInterval(that.watchtimer3)
+								that.watchtimer3 = null
+								setTimeout(() => {
+									uni.showLoading({
+										title: that.$t("设置中"),
+										mask: true
+									})
+									that.sendstartheartwatch(that.writeuuid, 1)
+									that.sleep_alertid = 1
+								}, 1500)
+							} else {
+								if (aaawatchetime === 20) {
+									uni.hideLoading()
+									clearInterval(that.watchtimer3)
+									that.watchtimer3 = null
+									that.blewatch_id = "0"
+									uni.showToast({
+										title: that.$t("请检查设备连接"),
+										icon: 'none',
+										duration: 2000
+									})
+								}
 							}
-						}
-					}, 1000)
+						}, 1000)
+					}, 2000)
 				} else {
 					uni.showLoading({
-						title: this.$t("设置中"),
+						title: that.$t("设置中"),
 						mask: true
 					})
-					this.sendstartheartwatch(this.writeuuid, 1)
-					this.sleep_alertid = 1
+					that.sendstartheartwatch(that.writeuuid, 1)
+					that.sleep_alertid = 1
 				}
 			},
 			//血压实时测量命令：e0 00 06 F4 06 01 05 00 01 01
@@ -2366,14 +2370,19 @@
 				// } else {
 				// 	buffer2 = that.toArrayBuffer("e00006F4060105000101") //血压
 				// }
+				console.log(uni.getStorageSync("deviceIdwatch"))
+				console.log(uni.getStorageSync("serviceIdwatch"))
+				console.log(uni.getStorageSync("writeuuid"))
 				console.log(that.deviceIdwatch)
 				console.log(that.serviceIdwatch)
 				console.log(writeuuid)
 				setTimeout(() => {
 					uni.writeBLECharacteristicValue({
-						deviceId: that.deviceIdwatch,
-						serviceId: that.serviceIdwatch,
-						characteristicId: writeuuid,
+						deviceId: that.deviceIdwatch ? that.deviceIdwatch : uni.getStorageSync(
+							"deviceIdwatch"),
+						serviceId: that.serviceIdwatch ? that.serviceIdwatch : uni.getStorageSync(
+							"serviceIdwatch"),
+						characteristicId: writeuuid ? writeuuid : uni.getStorageSync("writeuuid"),
 						writeType: 'writeNoResponse',
 						value: buffer2,
 						success(res) {
@@ -2888,14 +2897,21 @@
 											that.deviceIdwatch = deviceId
 											that.serviceIdwatch = serviceId
 											that.writeuuid = item.uuid
+
+											uni.setStorageSync("deviceIdwatch", deviceId)
+											uni.setStorageSync("serviceIdwatch", serviceId)
+											uni.setStorageSync("writeuuid", item.uuid)
+
 											that.calculateChecksumsss2(deviceId, serviceId,
 												item.uuid, deviceSn)
 										},
 										fail: (writeerr) => {
 											that.writeuuid = item.uuid
+											uni.setStorageSync("deviceIdwatch", deviceId)
+											uni.setStorageSync("serviceIdwatch", serviceId)
+											uni.setStorageSync("writeuuid", item.uuid)
 											that.calculateChecksumsss2(deviceId, serviceId,
-												item
-												.uuid, deviceSn)
+												item.uuid, deviceSn)
 										}
 									});
 									that.setacktypes(1)
@@ -3749,7 +3765,6 @@
 										"步数");
 									break
 								case "10":
-									that.blewatch_id = "0"
 									if (dataList.length < 160 && dataList.length > 40) {
 										const bytes = hexStringToBytes(dataList.slice(18, dataList
 											.length));
@@ -3794,6 +3809,7 @@
 											that.jakoblife_fat_scale3(that.shoubiaomac, stats.formalReadable,
 												that.shoubiaosn, "睡眠");
 										}
+										that.blewatch_id = "0"
 										that.blewatch_id2 = "1"
 										that.resetDataState()
 									} else {
@@ -3852,12 +3868,12 @@
 							that.sendack(hexData, deviceId, serviceId, that.writeuuid);
 							that.resetDataState();
 						} else if (ProtocolIdentifier === "e0" && CMD === "01") {
-							that.blewatch_id2 = "0"
 							switch (hexData.slice(12, 14)) {
 								case "00":
 								case "02":
 								case "03":
 									setTimeout(() => {
+										that.blewatch_id2 = "0"
 										that.sendack(hexData, deviceId, serviceId, that.writeuuid);
 										that.resetDataState();
 									}, 500)
@@ -3866,7 +3882,7 @@
 						} else if (ProtocolIdentifier === "e0" && CMD === "02") {
 							that.resetDataState()
 						} else if (ProtocolIdentifier === "e0" && CMD === "03") {
-							that.blewatch_id2 = "0"
+							// that.blewatch_id2 = "0"
 							that.ProtocolSubcommand = dataList.slice(12, 14); // 协议子命令 1个字节
 							const ProtocolLength = dataList.slice(2, 6); // 协议长度 2个字节
 							that.tempBuffer = parseInt(ProtocolLength, 16) + 4;
@@ -4097,12 +4113,13 @@
 								that.jakoblife_fat_scale3(that.shoubiaomac, stats.formalReadable, that
 									.shoubiaosn, "睡眠");
 							}
+							that.blewatch_id = "0"
 							that.blewatch_id2 = "1"
 							that.resetDataState()
 						}
 						if (that.quotient > 0 && that.quotient1 > 0 && that.dataBuffer.length === that
 							.quotient + that.quotient1) {
-							that.blewatch_id2 = "1"
+
 							let firstArray = [];
 							let secondArray = [];
 							let currentArray = firstArray;
@@ -4163,14 +4180,15 @@
 									console.error('获取网络类型失败：', err);
 								}
 							});
+
 							that.xueyabiaoshi = "1"
 							that.jakoblife_fat_scale22(that.shoubiaomac, systolic, diastolic, heartRate, that
 								.shoubiaosn);
 							// 清空数据缓冲区
+							that.blewatch_id2 = "1"
 							that.resetDataState()
 						} else if (that.quotient === 0 && that.quotient1 > 0 && that.dataBuffer.length ===
 							that.quotient1) {
-							that.blewatch_id2 = "1"
 							// 合并数据
 							const AlltypeArray = that.dataBuffer;
 							const alltypearray = that.formatData(AlltypeArray);
@@ -4208,6 +4226,7 @@
 									uni.setStorageSync("xueyangtimes", xueyangtimes);
 									that.jakoblife_fat_scale3(that.shoubiaomac, heartRateData
 										.diastolic, that.shoubiaosn, "血氧");
+									that.blewatch_id2 = "1"
 									that.resetDataState()
 									break;
 								case "19":
@@ -4242,6 +4261,7 @@
 											.bloodPressureType, that.shoubiaosn);
 										uni.setStorageSync("time19", heartRateData.time)
 									}
+									that.blewatch_id2 = "1"
 									that.resetDataState()
 									break
 								default:
@@ -6574,21 +6594,22 @@
 				})
 			},
 			aaaa(rows) {
+				let that = this
 				rows.forEach((row) => {
 					if (row.deviceTypeId === "10") {
-						this.handleDeviceType10And13(row);
-						this.devicdsdmac.push(row.mac)
-						uni.setStorageSync("devicdsdmac", this.devicdsdmac)
+						that.handleDeviceType10And13(row);
+						that.devicdsdmac.push(row.mac)
+						uni.setStorageSync("devicdsdmac", that.devicdsdmac)
 					} else if (row.deviceTypeId === "13") {
-						this.handleDeviceType10And13(row);
-						this.devicdsdmac1.push(row.mac)
-						uni.setStorageSync("devicdsdmac1", this.devicdsdmac1)
+						that.handleDeviceType10And13(row);
+						that.devicdsdmac1.push(row.mac)
+						uni.setStorageSync("devicdsdmac1", that.devicdsdmac1)
 					} else if (row.deviceTypeId === "11") {
-						this.handleDeviceType11(row);
+						that.handleDeviceType11(row);
 					}
 				});
-				if (this.currentIndex === 4) { // 没有ECG的时候currentIndex要改成3
-					this.list_recipe();
+				if (that.currentIndex === 4) { // 没有ECG的时候currentIndex要改成3
+					that.list_recipe();
 				}
 			},
 			// 定义一个通用函数

@@ -109,7 +109,7 @@
 		},
 		data() {
 			return {
-				img_scan: true,
+				img_scan: false,
 				scan_img: "../../../static/image-active.png",
 				xinghao: '',
 				context_msg: this.$t('请将条码放入扫码框内即可自动扫描'),
@@ -133,46 +133,15 @@
 			uni.setNavigationBarTitle({
 				title: this.$t("绑定设备")
 			})
-
 		},
-
 		onShow() {
+			let that = this
 			uni.closeBluetoothAdapter();
-			this.resetState();
-			if (this.locationChecked) return; // 已经跑过就不再跑
-			this.locationChecked = true;
-			uni.openBluetoothAdapter({
-				success: (openBluetoothAdapter) => {
-					console.log("openBluetoothAdapter", openBluetoothAdapter)
-				},
-				fail: (openBluetoothAdaptererr) => {
-					uni.hideLoading()
-					if (openBluetoothAdaptererr.errCode === 10001) {
-						uni.showModal({
-							content: this.$t("当前蓝牙未开启是否去设置打开"),
-							showCancel: false,
-							success: (modalres) => {
-								if (modalres.confirm) {
-									this.openBLE();
-								}
-							}
-						});
-					}
-				}
-			});
-			this.openLocationServiceAndroid();
-			this.$nextTick(() => {
-				plus.android.checkPermission("android.permission.CAMERA", (granted) => {
-					if (granted.checkResult !== 0) {
-						this.$refs.popup.open('top');
-					} else {
-						setTimeout(() => {
-							this.locationChecked = false;
-							this.$refs.popup?.close(); // 可选链，防止再次报错
-						}, 3000);
-					}
-				});
-			});
+			setTimeout(() => {
+				that.onopenBlue();
+			}, 1000)
+			if (that.locationChecked) return; // 已经跑过就不再跑
+			that.locationChecked = true;
 		},
 
 		mounted() {
@@ -298,6 +267,46 @@
 			shoudongbtncancle() {
 				this.$refs.qiehuanpopup?.close()
 				this.resetState()
+			},
+
+			onopenBlue() {
+				let that = this
+				uni.openBluetoothAdapter({
+					success: (openBluetoothAdapter) => {
+						console.log("openBluetoothAdapter", openBluetoothAdapter)
+						that.resetState();
+						that.openLocationServiceAndroid();
+						that.$nextTick(() => {
+							plus.android.checkPermission("android.permission.CAMERA", (granted) => {
+								if (granted.checkResult !== 0) {
+									that.$refs.popup.open('top');
+								} else {
+									setTimeout(() => {
+										that.locationChecked = false;
+										that.$refs.popup?.close(); // 可选链，防止再次报错
+									}, 3000);
+								}
+							});
+						});
+					},
+					fail: (openBluetoothAdaptererr) => {
+						console.log("openBluetoothAdaptererr", openBluetoothAdaptererr)
+						uni.hideLoading()
+						that.img_scan = false
+						if (openBluetoothAdaptererr.errCode === 10001) {
+							uni.showModal({
+								content: that.$t("当前蓝牙未开启是否去设置打开"),
+								showCancel: false,
+								success: (modalres) => {
+									if (modalres.confirm) {
+										that.openBLE();
+										that.resetState();
+									}
+								}
+							});
+						}
+					}
+				});
 			},
 
 			resetState() {
