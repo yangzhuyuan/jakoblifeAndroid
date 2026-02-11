@@ -135,9 +135,6 @@
 							<view>
 								<image class="imashtylkkk" lazy-load src="/static/image/yundomng.png"
 									mode="aspectFit" />
-								<!-- <scroll-view class="log" scroll-y>
-									<text v-for="(l,i) in logs" :key="i">log：{{l}}\n</text>
-								</scroll-view> -->
 							</view>
 						</view>
 					</view>
@@ -1819,6 +1816,7 @@
 				types_index: uni.getStorageSync("types_index") || 0,
 				types_array: [this.$t("心情指数"), this.$t("抑郁风险评分"), this.$t("压力指数"), this.$t("疲劳指数"), this.$t("恢复指数")],
 				sleep_alertdisabled: false,
+				sleep_alertid: 0,
 				hasSynced: false,
 				MoodDays: "",
 				StressFatigueDays: "",
@@ -1902,13 +1900,11 @@
 			// 在数据操作前检查清除
 			clearDailyGoalData();
 			that.today_Daily_Goal = uni.getStorageSync("today_Daily_Goal") || "0"
-			setTimeout(() => {
-				if (that.getCurrentTime() === that.getCurrentTimePPG() + " 00:00:00") {
-					that.hasSynced = true;
-				} else {
-					that.hasSynced = false;
-				}
-			}, 2000)
+			if (that.acktypes === 0) {
+				that.hasSynced = true;
+			} else {
+				that.hasSynced = false;
+			}
 			uni.getNetworkType({
 				success: function(res) {
 					if (res.networkType === 'none') {
@@ -2315,7 +2311,7 @@
 			},
 			//心率立即测量
 			sleep_alert() {
-				if (this.blewatch_id === "1" || this.acktypes === "0") {
+				if (this.blewatch_id === "1" || this.acktypes === 0) {
 					console.log("同步数据中")
 					uni.showLoading({
 						title: this.$t("数据同步中请稍后"),
@@ -2335,7 +2331,7 @@
 									mask: true
 								})
 								this.sendstartheartwatch(this.writeuuid, 1)
-								uni.setStorageSync("sleep_alert", 1)
+								this.sleep_alertid = 1
 							}, 1500)
 						} else {
 							if (aaawatchetime === 20) {
@@ -2356,7 +2352,7 @@
 						mask: true
 					})
 					this.sendstartheartwatch(this.writeuuid, 1)
-					uni.setStorageSync("sleep_alert", 1)
+					this.sleep_alertid = 1
 				}
 			},
 			//血压实时测量命令：e0 00 06 F4 06 01 05 00 01 01
@@ -2826,37 +2822,26 @@
 								}
 							});
 							if (!that.hasSynced) { // 确保只执行一次
-								if (that.getCurrentTime() === that.getCurrentTimePPG() + " 00:00:00") {
-									console.log("睡眠时间到！", that.acktypes);
-									that.hasSynced = true
-									if (that.acktypes === 1 && that.blewatch_id2 === "1") {
-										uni.writeBLECharacteristicValue({
-											deviceId: deviceId,
-											serviceId: serviceId,
-											characteristicId: that.writeuuid,
-											writeType: 'writeNoResponse',
-											value: that.toArrayBuffer('e00006eb010101000101'),
-											complete(complete) {
-												that.blewatch_id = "1"
-												console.log("发送同步所有数据命令：e00006eb010101000101")
-											}
-										})
-									}
-								} else {
-									that.hasSynced = true; // 标记已同步
-									if (that.acktypes === 1 && that.blewatch_id2 === "1") {
-										uni.writeBLECharacteristicValue({
-											deviceId: deviceId,
-											serviceId: serviceId,
-											characteristicId: that.writeuuid,
-											writeType: 'writeNoResponse',
-											value: that.toArrayBuffer('e00006eb010101000101'),
-											complete(complete) {
-												that.blewatch_id = "1"
-												console.log("发送同步所有数据命令：e00006eb010101000101")
-											}
-										})
-									}
+								that.hasSynced = true; // 标记已同步
+								if (that.acktypes === 1 && that.blewatch_id2 === "1") {
+									uni.writeBLECharacteristicValue({
+										deviceId: deviceId,
+										serviceId: serviceId,
+										characteristicId: that.writeuuid,
+										writeType: 'writeNoResponse',
+										value: that.toArrayBuffer('e00006eb010101000101'),
+										success() {
+											that.blewatch_id = "1"
+											that.blewatch_id2 = "0"
+											console.log(
+												"发送同步当天所有数据命令：e00006eb010101000101")
+										},
+										fail() {
+											that.blewatch_id = "0"
+											console.log(
+												"发送同步当天所有数据命令失败：e00006eb010101000101")
+										}
+									})
 								}
 							}
 						},
@@ -3387,10 +3372,16 @@
 						characteristicId: writeuuid,
 						writeType: 'writeNoResponse',
 						value: that.toArrayBuffer('e00006eb010101000101'),
-						complete(complete) {
+						success() {
 							that.blewatch_id = "1"
-							console.log("发送同步所有数据命令：e00006eb010101000101")
-							// that.dataBuffer = []
+							that.blewatch_id2 = "0"
+							console.log(
+								"发送同步当天所有数据命令：e00006eb010101000101")
+						},
+						fail() {
+							that.blewatch_id = "0"
+							console.log(
+								"发送同步当天所有数据命令失败：e00006eb010101000101")
 						}
 					})
 				}, 8000)
@@ -3694,13 +3685,11 @@
 								if (res.networkType === 'none') {
 									that.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
 									that.updateBloodPressureStatus(parsedData.dia.trim(),
-										parsedData
-										.sys.trim());
+										parsedData.sys.trim());
 								} else {
 									that.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
 									that.updateBloodPressureStatus(parsedData.dia.trim(),
-										parsedData
-										.sys.trim());
+										parsedData.sys.trim());
 								}
 							},
 							fail: function(err) {
@@ -3803,10 +3792,8 @@
 											uni.setStorageSync("remMin2", remMin)
 											uni.setStorageSync("lightMin2", lightMin)
 											that.jakoblife_fat_scale3(that.shoubiaomac, stats.formalReadable,
-												that.shoubiaosn,
-												"睡眠");
+												that.shoubiaosn, "睡眠");
 										}
-										// that.sendack(dataList, deviceId, serviceId, that.writeuuid)
 										that.blewatch_id2 = "1"
 										that.resetDataState()
 									} else {
@@ -3829,13 +3816,12 @@
 							}
 						} else if (ProtocolIdentifier === "0e") {
 							if (CMD === "06") {
-								if (uni.getStorageSync("sleep_alert") === 1 || uni.getStorageSync(
-										"sendwatch") === 1) {
+								if (that.sleep_alertid === 1 || uni.getStorageSync("sendwatch") === 1) {
 									if (that.watchtimer) {
 										clearInterval(that.watchtimer);
 										that.watchtimer = null;
 									}
-									let watchtime = 20
+									let watchtime = 25
 									that.watchtimer = setInterval(() => {
 										watchtime--;
 										if (watchtime < 1) {
@@ -3850,8 +3836,7 @@
 												showCancel: false,
 												success(modal) {
 													if (modal.confirm) {
-														uni.removeStorageSync(
-															"sleep_alert")
+														that.sleep_alertid = 0
 														that.sleep_alertdisabled = false
 													}
 												}
@@ -3897,10 +3882,8 @@
 									}
 									break;
 								case "1d":
-									// console.log("hexData", hexData)
 									clearInterval(that.watchtimer);
 									that.watchtimer = null
-									uni.removeStorageSync("sleep_alert")
 									const ACCPPG = hexData.slice(hexData.length - 12, hexData.length)
 									const heartTime = ACCPPG.slice(0, 4); // 时间部分（2个字节）
 									const {
@@ -3914,43 +3897,49 @@
 									const Status = ACCPPG.slice(10, ACCPPG.length)
 									const parsePPGConfigdata = that.parsePPGConfigDescOrder(that
 										.PPGdataarray)
-									const dataall = {
-										hexData: hexData,
-										ACCPPG: ACCPPG,
-										date: "日期：" + `${year}年${month}月${day}日`,
-										PPGdataarray: 'PPG数据项定义:' + that.PPGdataarray,
-										ACCdataarrayall: 'ACC数据总组数:' + ACCdataarrayall,
-										PPGdataarrayall: 'PPG数据总组数:' + PPGdataarrayall,
-										Status: '传输状态:' + Status,
-										parsePPGConfigdata: '解析PPG数据配置字节:' + JSON.stringify(
-											parsePPGConfigdata)
-									}
+									// const dataall = {
+									// 	hexData: hexData,
+									// 	ACCPPG: ACCPPG,
+									// 	date: "日期：" + `${year}年${month}月${day}日`,
+									// 	PPGdataarray: 'PPG数据项定义:' + that.PPGdataarray,
+									// 	ACCdataarrayall: 'ACC数据总组数:' + ACCdataarrayall,
+									// 	PPGdataarrayall: 'PPG数据总组数:' + PPGdataarrayall,
+									// 	Status: '传输状态:' + Status,
+									// 	parsePPGConfigdata: '解析PPG数据配置字节:' + JSON.stringify(
+									// 		parsePPGConfigdata)
+									// }
 									// console.log("蓝牙acc/ppg收到的命令：", JSON.stringify(dataall))
-									if (that.watchtimer2) {
-										clearInterval(that.watchtimer2);
-										that.watchtimer2 = null;
-									}
-									let watchtime2 = 25
-									that.watchtimer2 = setInterval(() => {
-										watchtime2--;
-										if (watchtime2 <= 0) {
+									if (that.sleep_alertid === 1 || uni.getStorageSync("sendwatch") === 1) {
+										if (that.watchtimer2) {
 											clearInterval(that.watchtimer2);
 											that.watchtimer2 = null;
-											uni.hideLoading();
-											that.sleep_alertdisabled = false
-											that.resetDataState();
 										}
-									}, 1000)
+										let watchtime2 = 25
+										that.watchtimer2 = setInterval(() => {
+											watchtime2--;
+											if (watchtime2 <= 0) {
+												clearInterval(that.watchtimer2);
+												that.watchtimer2 = null;
+												uni.hideLoading();
+												that.sleep_alertdisabled = false
+												that.resetDataState();
+											}
+										}, 1000)
+									}
+									that.blewatch_id2 = "1"
 									switch (Status) {
 										case "01":
 											that.bufferPPG = []
 											clearInterval(that.watchtimer);
 											that.watchtimer = null
-											uni.removeStorageSync("sleep_alert")
-											setTimeout(() => {
-												that.sendack(hexData, deviceId, serviceId, that
-													.writeuuid);
-											}, 3000)
+											if (that.sleep_alertid === 1 || uni.getStorageSync("sendwatch") ===
+												1) {
+												setTimeout(() => {
+													that.sendack(hexData, deviceId, serviceId, that
+														.writeuuid);
+												}, 3000)
+											}
+											that.sleep_alertid = 0
 											that.resetDataState();
 											break
 										case "02":
@@ -3959,7 +3948,7 @@
 											that.watchtimer = null
 											clearInterval(that.watchtimer2);
 											that.watchtimer2 = null
-											uni.removeStorageSync("sleep_alert")
+											that.sleep_alertid = 0
 											const binary = that.packInt16(that.bufferPPG)
 											that.ppgdata(binary, deviceSn)
 											that.bufferPPG = []
@@ -4068,57 +4057,6 @@
 							that.loadFiles(bytes.toUpperCase(), deviceId, serviceId)
 						}
 
-						// if (that.quotient > 0 && that.quotient === that.dataBuffer.length) {
-						// 	setTimeout(() => {
-						// 		that.sendack2(that.formatData(that.dataBuffer), deviceId,
-						// 			serviceId, that
-						// 			.writeuuid);
-						// 	}, 500)
-						// 	// const AlltypeArray = that.dataBuffer;
-						// 	// const alltypearray = that.formatData(AlltypeArray);
-						// 	// // 解析血压数据
-						// 	// const Covmamlueand = alltypearray.slice(18, alltypearray.length);
-						// 	// const heartTime = Covmamlueand.slice(0, 4);
-						// 	// const {
-						// 	// 	year,
-						// 	// 	month,
-						// 	// 	day
-						// 	// } = that.parseBinaryTime(heartTime);
-						// 	// const hexData = Covmamlueand.slice(Covmamlueand.length - 16,
-						// 	// 	Covmamlueand.length);
-						// 	// const parseBloodData = that.parseHeartRateData(hexData);
-						// 	// console.log("parseBloodData", parseBloodData)
-						// 	// console.log(parseBloodData.time, uni.getStorageSync(
-						// 	// 	"parseBloodData"))
-						// 	// if (parseBloodData.time !== uni.getStorageSync("parseBloodDatatime")) {
-						// 	// 	uni.setStorageSync("parseBloodDatatime", parseBloodData.time)
-						// 	// 	that.lowPressure = that.Blood === "mmHg" ? parseBloodData.diastolic : (
-						// 	// 		Number(parseBloodData.diastolic) *
-						// 	// 		0.133).toFixed(1);
-						// 	// 	that.highPressure = that.Blood === "mmHg" ? parseBloodData.systolic : (
-						// 	// 		Number(parseBloodData.systolic) *
-						// 	// 		0.133).toFixed(1);
-						// 	// 	uni.setStorageSync("lowPressure", parseBloodData.diastolic)
-						// 	// 	uni.setStorageSync("highPressure", parseBloodData.systolic)
-						// 	// 	that.updateBloodPressureStatus(parseBloodData.diastolic,
-						// 	// 		parseBloodData.systolic);
-						// 	// 	uni.getNetworkType({
-						// 	// 		success: function(res) {
-						// 	// 			if (res.networkType === 'none') {
-						// 	// 				that.bgaaa(parseBloodData.diastolic,
-						// 	// 					parseBloodData.systolic)
-						// 	// 			}
-						// 	// 		},
-						// 	// 		fail: function(err) {
-						// 	// 			console.error('获取网络类型失败：', err);
-						// 	// 		}
-						// 	// 	});
-						// 	// 	that.xueyabiaoshi = "1"
-						// 	// 	that.jakoblife_fat_scale22(that.shoubiaomac, parseBloodData.systolic,
-						// 	// 		parseBloodData.diastolic, that.pulse, that.shoubiaosn);
-						// 	// }
-						// }
-
 						if (that.quotient2 !== 0 && that.quotient2 === that.dataBuffer.length) {
 							const bytes = hexStringToBytes(that.formatData(that.dataBuffer).slice(18, that
 								.formatData(that.dataBuffer).length));
@@ -4159,7 +4097,6 @@
 								that.jakoblife_fat_scale3(that.shoubiaomac, stats.formalReadable, that
 									.shoubiaosn, "睡眠");
 							}
-							// that.sendack(that.formatData(that.dataBuffer), deviceId, serviceId, that.writeuuid);
 							that.blewatch_id2 = "1"
 							that.resetDataState()
 						}
@@ -4171,8 +4108,7 @@
 							let currentArray = firstArray;
 							that.dataBuffer.forEach((data) => {
 								if (data.startsWith('e0')) {
-									currentArray = currentArray === firstArray ? secondArray :
-										firstArray;
+									currentArray = currentArray === firstArray ? secondArray : firstArray;
 								}
 								currentArray.push(data);
 							});
@@ -4181,42 +4117,37 @@
 							// console.log('第一组数据血压数据:', formattedSecondArray);
 							// console.log('第二组数据心率数据:', formattedFirstArray);
 							// 解析血压数据
-							const Covmamlueand = formattedSecondArray.slice(18, formattedSecondArray
-								.length);
+							const Covmamlueand = formattedSecondArray.slice(18, formattedSecondArray.length);
 							const heartTime = Covmamlueand.slice(0, 4);
 							const {
 								year,
 								month,
 								day
 							} = that.parseBinaryTime(heartTime);
-							const hexData = Covmamlueand.slice(Covmamlueand.length - 16,
-								Covmamlueand.length);
+							const hexData = Covmamlueand.slice(Covmamlueand.length - 16, Covmamlueand.length);
 							const {
 								systolic,
 								diastolic
 							} = that.parseBloodPressureData(hexData);
 							// 解析心率数据
-							const Covmamlueand1 = formattedFirstArray.slice(18, formattedFirstArray
-								.length);
+							const Covmamlueand1 = formattedFirstArray.slice(18, formattedFirstArray.length);
 							const heartTime1 = Covmamlueand1.slice(0, 4);
 							const {
 								year: year1,
 								month: month1,
 								day: day1
 							} = that.parseBinaryTime(heartTime1, that);
-							const sec = parseInt('0000d670', 16); // 54896
-							const t = new Date(sec * 1000).toISOString().substr(11, 8); // "15:14:56"
+							const sec = parseInt('0000d670', 16);
+							const t = new Date(sec * 1000).toISOString().substr(11, 8);
 							const hexData1 = formattedFirstArray.slice(formattedFirstArray.length - 16,
 								formattedFirstArray.length);
 							const {
 								diastolic: heartRate
 							} = that.parseHeartRateData(hexData1);
 							that.lowPressure = that.Blood === "mmHg" ? diastolic : (Number(diastolic) *
-									0.133)
-								.toFixed(1);
+								0.133).toFixed(1);
 							that.highPressure = that.Blood === "mmHg" ? systolic : (Number(systolic) *
-									0.133)
-								.toFixed(1);
+								0.133).toFixed(1);
 							that.pulse = heartRate;
 							uni.setStorageSync("lowPressure", diastolic)
 							uni.setStorageSync("highPressure", systolic)
@@ -4233,11 +4164,9 @@
 								}
 							});
 							that.xueyabiaoshi = "1"
-							that.jakoblife_fat_scale22(that.shoubiaomac, systolic, diastolic,
-								heartRate, that.shoubiaosn);
+							that.jakoblife_fat_scale22(that.shoubiaomac, systolic, diastolic, heartRate, that
+								.shoubiaosn);
 							// 清空数据缓冲区
-							// that.sendack(formattedFirstArray, deviceId, serviceId, that.writeuuid);
-							// that.sendack(formattedSecondArray, deviceId, serviceId, that.writeuuid);
 							that.resetDataState()
 						} else if (that.quotient === 0 && that.quotient1 > 0 && that.dataBuffer.length ===
 							that.quotient1) {
@@ -4259,7 +4188,7 @@
 							const hexData = protocolData.Covmamlueand.slice(protocolData
 								.Covmamlueand.length - 16, protocolData.Covmamlueand.length); // 最后8个字节
 							const heartRateData = that.parseHeartRateData(hexData);
-							console.log("heartRateData", heartRateData)
+							// console.log("heartRateData", heartRateData)
 							// 根据协议子命令处理数据
 							switch (protocolData.Protocolsubcommand) {
 								case "00":
@@ -4270,7 +4199,6 @@
 										that.jakoblife_fat_scale22(that.shoubiaomac, "", "",
 											heartRateData.diastolic, that.shoubiaosn);
 									}
-									// that.sendack(alltypearray, deviceId, serviceId, that.writeuuid);
 									that.resetDataState()
 									break;
 								case "02":
@@ -4280,18 +4208,13 @@
 									uni.setStorageSync("xueyangtimes", xueyangtimes);
 									that.jakoblife_fat_scale3(that.shoubiaomac, heartRateData
 										.diastolic, that.shoubiaosn, "血氧");
-									// that.sendack(alltypearray, deviceId, serviceId, that.writeuuid);
 									that.resetDataState()
 									break;
 								case "19":
 									that.lowPressure = that.Blood === "mmHg" ? heartRateData.diastolic : (
-											Number(heartRateData.diastolic) *
-											0.133)
-										.toFixed(1);
+										Number(heartRateData.diastolic) * 0.133).toFixed(1);
 									that.highPressure = that.Blood === "mmHg" ? heartRateData.systolic : (
-											Number(heartRateData.systolic) *
-											0.133)
-										.toFixed(1);
+										Number(heartRateData.systolic) * 0.133).toFixed(1);
 									that.pulse = heartRateData.bloodPressureType;
 									uni.setStorageSync("lowPressure", heartRateData.diastolic)
 									uni.setStorageSync("highPressure", heartRateData.systolic)
@@ -4301,11 +4224,9 @@
 									uni.getNetworkType({
 										success: function(res) {
 											if (res.networkType === 'none') {
-												if (uni.getStorageSync("time19") !==
-													heartRateData
+												if (uni.getStorageSync("time19") !== heartRateData
 													.time) {
-													that.bgaaa(heartRateData.diastolic,
-														heartRateData
+													that.bgaaa(heartRateData.diastolic, heartRateData
 														.systolic)
 												}
 											}
@@ -4317,13 +4238,10 @@
 									that.xueyabiaoshi = "1"
 									if (uni.getStorageSync("time19") !== heartRateData.time) {
 										that.jakoblife_fat_scale22(that.shoubiaomac, heartRateData
-											.systolic,
-											heartRateData.diastolic, heartRateData.bloodPressureType,
-											that
-											.shoubiaosn);
+											.systolic, heartRateData.diastolic, heartRateData
+											.bloodPressureType, that.shoubiaosn);
 										uni.setStorageSync("time19", heartRateData.time)
 									}
-									// that.sendack(alltypearray, deviceId, serviceId, that.writeuuid);
 									that.resetDataState()
 									break
 								default:
@@ -4332,8 +4250,7 @@
 						} else if (that.quotient3 > 0 && that.dataBuffer.length === that.quotient3) {
 							setTimeout(() => {
 								that.sendack(that.formatData(that.dataBuffer), deviceId, serviceId,
-									that
-									.writeuuid);
+									that.writeuuid);
 								that.resetDataState()
 							}, 500)
 						} else if (that.quotientACC > 0 && that.dataBuffer.length === that
@@ -4343,9 +4260,7 @@
 							const ACCdata = allDataACC.slice(18, allDataACC.length)
 							// console.log("ACC蓝牙数据包：" + allDataACC)
 							const result = AccDataParser.debugParseExample(ACCdata);
-							// console.log('ACC解析之后的数据列表:' + JSON.stringify(result));
 							if (result.success) {
-								// 获取所有X轴数据
 								const xData = result.data.map(item => item.x);
 								const yData = result.data.map(item => item.y);
 								const zData = result.data.map(item => item.z);
@@ -4360,7 +4275,6 @@
 							const allDataPPG = that.formatData(that.dataBuffer);
 							const PPGdata = allDataPPG.slice(18, allDataPPG.length)
 							// console.log("PPG蓝牙数据包：" + allDataPPG)
-							// 解析HEX字符串
 							const result = PPGParser.parsePPGData(PPGdata, `0x${that.PPGdataarray}`);
 							for (let i = 0; i < result.data.length; i++) {
 								let jsonppglist = {
@@ -4381,10 +4295,6 @@
 								that.bufferPPG.push(result.data[i].greenValue)
 							}
 							// console.log("PPG解析之后的数据包：" + JSON.stringify(result))
-							// if (result.success) {
-							// 	// 传递给PPG数据服务
-							// 	PpgDataService.onDataReceived(result, that.pulse);
-							// }
 							setTimeout(() => {
 								that.resetDataState();
 								that.sendack(allDataPPG, deviceId, serviceId, that.writeuuid);
@@ -4396,31 +4306,21 @@
 			getCurrentTime() {
 				const now = new Date();
 				const year = now.getFullYear();
-				const month = String(now.getMonth() + 1).padStart(
-					2, '0');
+				const month = String(now.getMonth() + 1).padStart(2, '0');
 				const day = String(now.getDate()).padStart(2, '0');
-				const hours = String(now.getHours()).padStart(2,
-					'0');
-				const minutes = String(now.getMinutes()).padStart(
-					2, '0');
-				const seconds = String(now.getSeconds()).padStart(
-					2, '0');
-
+				const hours = String(now.getHours()).padStart(2, '0');
+				const minutes = String(now.getMinutes()).padStart(2, '0');
+				const seconds = String(now.getSeconds()).padStart(2, '0');
 				return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 			},
 			getCurrentTimePPG() {
 				const now = new Date();
 				const year = now.getFullYear();
-				const month = String(now.getMonth() + 1).padStart(
-					2, '0');
+				const month = String(now.getMonth() + 1).padStart(2, '0');
 				const day = String(now.getDate()).padStart(2, '0');
-				const hours = String(now.getHours()).padStart(2,
-					'0');
-				const minutes = String(now.getMinutes()).padStart(
-					2, '0');
-				const seconds = String(now.getSeconds()).padStart(
-					2, '0');
-
+				const hours = String(now.getHours()).padStart(2, '0');
+				const minutes = String(now.getMinutes()).padStart(2, '0');
+				const seconds = String(now.getSeconds()).padStart(2, '0');
 				return `${year}-${month}-${day}`;
 			},
 			// PPG原始波形数据存储 
@@ -4429,7 +4329,7 @@
 					patientId: uni.getStorageSync("userid"), //患者id
 					deviceSn: deviceSn, //设备sn
 					deviceModel: "BPW1", //设备型号
-					samplingRate: 25, //采样率(Hz)
+					samplingRate: 25, //采样率(Hz)手表5.8.5版本改成100，手表5.8.2是25
 					startTime: this.getCurrentTime(), // payload.duration, 采集开始时间(微秒精度)
 					dataFormat: "INT16", //数据编码格式
 					signalRange: 0, //信号强度范围
@@ -4458,9 +4358,6 @@
 					}
 				})
 			},
-
-
-
 			//查询PPG原始波形数据存储列表
 			deviceppgdatalist() {
 				let that = this
@@ -4544,8 +4441,6 @@
 					}
 				})
 			},
-
-
 			ppgresultslist(recordId) {
 				let ppgdata = {
 					patientId: uni.getStorageSync("userid"),
@@ -5160,135 +5055,6 @@
 
 				})
 			},
-			ppgresultslist3(recordId) {
-				let endTime = this.getCurrentTimePPG() + " 23:59:59"
-				let initialDate = new Date(endTime)
-				let minusOneWeek = new Date(initialDate)
-				minusOneWeek.setDate(minusOneWeek.getDate() - 13)
-				let startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
-				let ppgdata = {
-					patientId: uni.getStorageSync("userid"),
-					startTime: startTime,
-					endTime: endTime,
-				}
-				// console.log("onshowppgdata", ppgdata)
-				this.$get(this.$url_APP_IP + "/prod-api/device/ppgresults/get_result_list_by_patient_id",
-					ppgdata, {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json;charset=UTF-8'
-					}).then((ppgresultslist) => {
-					// console.log("ppgresultslist", ppgresultslist)
-					if (ppgresultslist.code === 200 && ppgresultslist.data.length > 0) {
-						for (let p = ppgresultslist.data.length - 1; p >= 0; p--) {
-							this.signal_quality_score = ppgresultslist.data[p].analysisConfidence
-							this.ppgnewpoint = ppgresultslist.data[p].moodIndex + "/10";
-							this.depression_risk_score = ppgresultslist.data[p].depressionRiskScore +
-								"/10";
-							//综合指数
-							this.stress_Index = ppgresultslist.data[p].stressIndex +
-								"/10"; //压力指数
-							this.fatigue_index = ppgresultslist.data[p].fatigueIndex +
-								"/10"; //疲劳指数
-							this.recovery_index = ppgresultslist.data[p].recoveryIndex +
-								"/10"; //恢复指数
-						}
-						// 计算信号质量
-						switch (ppgresultslist.data[0].signalQualityLevel) {
-							case "EXCELLENT":
-								this.signal_quality_level = this.$t("信号质量极佳")
-								break
-							case "GOOD":
-								this.signal_quality_level = this.$t("信号质量良好")
-								break
-							case "FAIR":
-								this.signal_quality_level = this.$t("信号质量一般")
-								break
-							case "POOR":
-								this.signal_quality_level = this.$t("信号质量较差")
-								break
-						}
-						switch (ppgresultslist.data[0].moodDescription) {
-							case "积极愉悦":
-								this.mood_Description = this.$t("积极愉悦1")
-								break
-							case "平静稳定":
-								this.mood_Description = this.$t("平静稳定1")
-								break
-							case "轻微压力":
-								this.mood_Description = this.$t("轻微压力1")
-								break
-							case "明显压力":
-								this.mood_Description = this.$t("明显压力1")
-								break
-						}
-						//心情等级
-						switch (ppgresultslist.data[0].moodLevel) {
-							case "VERY_POSITIVE":
-								this.mood_level = this.$t("非常积极")
-								break
-							case "POSITIVE":
-								this.mood_level = this.$t("积极")
-								break
-							case "NEUTRAL":
-								this.mood_level = this.$t("平静稳定")
-								break
-							case "NEGATIVE":
-								this.mood_level = this.$t("负面")
-								break
-							case "VERY_NEGATIVE":
-								this.mood_level = this.$t("非常负面")
-								break
-						}
-
-						switch (ppgresultslist.data[0].depressionRecommendation) {
-							case "🟢 **低风险**: 保持健康生活方式，定期监测":
-								this.depression_recommendation = this.$t("保持良好的生活习惯")
-								break
-							case "🟡 **中风险**: 建议定期监测并考虑专业咨询。可尝试心理自助方法和压力管理":
-								this.depression_recommendation = this.$t("建议增加放松活动")
-								break
-							case "🔴 **高风险**: 强烈建议尽快咨询精神科医生或心理医生。建议进行专业心理评估和临床访谈":
-								this.depression_recommendation = this.$t("强烈建议咨询心理健康专业人士进行详细评估")
-								break
-							case "保持良好的生活习惯，定期监测心率变异性":
-								this.depression_recommendation = this.$t("保持良好的生活习惯")
-								break
-							case "建议增加放松活动，如冥想、深呼吸练习，考虑咨询专业人士":
-								this.depression_recommendation = this.$t("建议增加放松活动")
-								break
-							case "🔴 **高风险**: 强烈建议尽快咨询精神科医生或心理医生。建议进行专业心理评估和临床访谈":
-								this.depression_recommendation = this.$t("强烈建议咨询心理健康专业人士进行详细评估")
-								break
-						}
-						//抑郁风险等级
-						switch (ppgresultslist.data[0].depressionRiskLevel) {
-							case "LOW_RISK":
-								this.depression_risk_level = this.$t("较低风险")
-								break
-							case "MEDIUM_RISK":
-								this.depression_risk_level = this.$t("中等风险")
-								break
-							case "HIGH_RISK":
-								this.depression_risk_level = this.$t("较高风险")
-								break
-						}
-						//数据充足性
-						switch (ppgresultslist.data[0].dataSufficiency) {
-							case "SUFFICIENT":
-								this.data_sufficiency = this.$t("充足")
-								break
-							case "MODERATE":
-								this.data_sufficiency = this.$t("适中")
-								break
-							case "INSUFFICIENT":
-								this.data_sufficiency = this.$t("不足")
-								break
-						}
-					}
-				})
-			},
-
-
 			//两周平均分
 			ppgresultslist2(recordId) {
 				let endTime = this.getCurrentTimePPG() + " 23:59:59"
@@ -5718,6 +5484,133 @@
 					}
 				})
 			},
+			ppgresultslist3(recordId) {
+				let endTime = this.getCurrentTimePPG() + " 23:59:59"
+				let initialDate = new Date(endTime)
+				let minusOneWeek = new Date(initialDate)
+				minusOneWeek.setDate(minusOneWeek.getDate() - 13)
+				let startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
+				let ppgdata = {
+					patientId: uni.getStorageSync("userid"),
+					startTime: startTime,
+					endTime: endTime,
+				}
+				// console.log("onshowppgdata", ppgdata)
+				this.$get(this.$url_APP_IP + "/prod-api/device/ppgresults/get_result_list_by_patient_id",
+					ppgdata, {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json;charset=UTF-8'
+					}).then((ppgresultslist) => {
+					// console.log("ppgresultslist", ppgresultslist)
+					if (ppgresultslist.code === 200 && ppgresultslist.data.length > 0) {
+						for (let p = ppgresultslist.data.length - 1; p >= 0; p--) {
+							this.signal_quality_score = ppgresultslist.data[p].analysisConfidence
+							this.ppgnewpoint = ppgresultslist.data[p].moodIndex + "/10";
+							this.depression_risk_score = ppgresultslist.data[p].depressionRiskScore +
+								"/10";
+							//综合指数
+							this.stress_Index = ppgresultslist.data[p].stressIndex +
+								"/10"; //压力指数
+							this.fatigue_index = ppgresultslist.data[p].fatigueIndex +
+								"/10"; //疲劳指数
+							this.recovery_index = ppgresultslist.data[p].recoveryIndex +
+								"/10"; //恢复指数
+						}
+						// 计算信号质量
+						switch (ppgresultslist.data[0].signalQualityLevel) {
+							case "EXCELLENT":
+								this.signal_quality_level = this.$t("信号质量极佳")
+								break
+							case "GOOD":
+								this.signal_quality_level = this.$t("信号质量良好")
+								break
+							case "FAIR":
+								this.signal_quality_level = this.$t("信号质量一般")
+								break
+							case "POOR":
+								this.signal_quality_level = this.$t("信号质量较差")
+								break
+						}
+						switch (ppgresultslist.data[0].moodDescription) {
+							case "积极愉悦":
+								this.mood_Description = this.$t("积极愉悦1")
+								break
+							case "平静稳定":
+								this.mood_Description = this.$t("平静稳定1")
+								break
+							case "轻微压力":
+								this.mood_Description = this.$t("轻微压力1")
+								break
+							case "明显压力":
+								this.mood_Description = this.$t("明显压力1")
+								break
+						}
+						//心情等级
+						switch (ppgresultslist.data[0].moodLevel) {
+							case "VERY_POSITIVE":
+								this.mood_level = this.$t("非常积极")
+								break
+							case "POSITIVE":
+								this.mood_level = this.$t("积极")
+								break
+							case "NEUTRAL":
+								this.mood_level = this.$t("平静稳定")
+								break
+							case "NEGATIVE":
+								this.mood_level = this.$t("负面")
+								break
+							case "VERY_NEGATIVE":
+								this.mood_level = this.$t("非常负面")
+								break
+						}
+
+						switch (ppgresultslist.data[0].depressionRecommendation) {
+							case "🟢 **低风险**: 保持健康生活方式，定期监测":
+								this.depression_recommendation = this.$t("保持良好的生活习惯")
+								break
+							case "🟡 **中风险**: 建议定期监测并考虑专业咨询。可尝试心理自助方法和压力管理":
+								this.depression_recommendation = this.$t("建议增加放松活动")
+								break
+							case "🔴 **高风险**: 强烈建议尽快咨询精神科医生或心理医生。建议进行专业心理评估和临床访谈":
+								this.depression_recommendation = this.$t("强烈建议咨询心理健康专业人士进行详细评估")
+								break
+							case "保持良好的生活习惯，定期监测心率变异性":
+								this.depression_recommendation = this.$t("保持良好的生活习惯")
+								break
+							case "建议增加放松活动，如冥想、深呼吸练习，考虑咨询专业人士":
+								this.depression_recommendation = this.$t("建议增加放松活动")
+								break
+							case "🔴 **高风险**: 强烈建议尽快咨询精神科医生或心理医生。建议进行专业心理评估和临床访谈":
+								this.depression_recommendation = this.$t("强烈建议咨询心理健康专业人士进行详细评估")
+								break
+						}
+						//抑郁风险等级
+						switch (ppgresultslist.data[0].depressionRiskLevel) {
+							case "LOW_RISK":
+								this.depression_risk_level = this.$t("较低风险")
+								break
+							case "MEDIUM_RISK":
+								this.depression_risk_level = this.$t("中等风险")
+								break
+							case "HIGH_RISK":
+								this.depression_risk_level = this.$t("较高风险")
+								break
+						}
+						//数据充足性
+						switch (ppgresultslist.data[0].dataSufficiency) {
+							case "SUFFICIENT":
+								this.data_sufficiency = this.$t("充足")
+								break
+							case "MODERATE":
+								this.data_sufficiency = this.$t("适中")
+								break
+							case "INSUFFICIENT":
+								this.data_sufficiency = this.$t("不足")
+								break
+						}
+					}
+				})
+			},
 			// 在你的方法中计算统计数据
 			calculateDailyStats(dailyAverages) {
 				// 1. 计算averageMoodIndex低于5的天数
@@ -5879,12 +5772,6 @@
 				}
 			},
 
-
-
-
-
-
-
 			parsePPGConfigDescOrder(configByte) {
 				const byte = Number(configByte);
 				// 二进制字符串
@@ -5973,17 +5860,15 @@
 				const Deep = sleepObj.totalDeep
 				const Rem = sleepObj.totalRem
 				// 小睡总时长（把 type=10000 的段累加即可）
-				const napMinutes = sleepObj.partList
-					.filter(p => p.type === 10000)
-					.reduce((sum, p) => sum + p.time, 0);
+				const napMinutes = sleepObj.partList.filter(p => p.type === 10000).reduce((sum, p) => sum + p.time, 0);
 				// 含小睡
 				const totalWithNap = formalMinutes + napMinutes;
 				return {
-					formalMinutes, // 301
+					formalMinutes,
 					formalReadable: `${Math.floor(formalMinutes / 60)}${"H"}${formalMinutes % 60}${"M"}`,
-					napMinutes, // 77
+					napMinutes,
 					napReadable: `${Math.floor(napMinutes / 60)}${"H"}${napMinutes % 60}${"M"}`,
-					totalWithNap, // 378
+					totalWithNap,
 					totalReadable: `${Math.floor(totalWithNap / 60)}${"H"}${totalWithNap % 60}${"M"}`,
 					Light,
 					totalLight: `${Math.floor(Light / 60)}${"H"}${Light % 60}${"M"}`,
@@ -6092,7 +5977,6 @@
 						uni.removeStorageSync("xueyadatatype")
 						uni.removeStorageSync("xueyadata")
 						this.setbanhua(1)
-						// this.bgaaa(parsedData.dia.trim(), parsedData.sys.trim())
 						setTimeout(() => {
 							this.get_device_info(deviceSn)
 							this.StorageInfo(aaa)
@@ -6107,16 +5991,14 @@
 					mac: deviceId,
 					deviceTypeId: "0",
 					slaveData: {
-						weight: parsedData.weightUnit === 2 ? WeightConverter.parseStoneString(parsedData
-								.weight)
-							.toFixed(2) : (parsedData.weightUnit === 6 || parsedData.weightUnit === 4 ?
-								WeightConverter
+						weight: parsedData.weightUnit === 2 ? WeightConverter.parseStoneString(parsedData.weight)
+							.toFixed(2) : (parsedData.weightUnit === 6 || parsedData.weightUnit === 4 ? WeightConverter
 								.lbToKg(parsedData.weight) : parsedData.weight),
 						adc: parsedData.adc
 					},
 					time: parsedData.createTime
 				}
-				// console.log("tizhong", data)
+				console.log("体重", data)
 				uni.setStorageSync("tizhidata", data)
 				this.$post(this.$url_APP_IP + this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -6833,7 +6715,7 @@
 					'content-type': 'application/json'
 				}).then((listres) => {
 					if (listres.code === 200) {
-						if (listres.rows[0].data === "") {
+						if (listres.total === 0) {
 							uni.setStorageSync("kapianlist", this.list)
 						} else {
 							let dataArray = this.robustParseData(listres.rows[0].data);
@@ -6849,14 +6731,12 @@
 				let data = {
 					dataType: WeightData,
 				}
-				// console.log("WeightData", data)
 				this.$get(this.$url_APP_IP + "/prod-api/device/data/list", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json'
 				}).then((listres) => {
-					// console.log("listres", listres)
 					if (listres.code === 200) {
-						if (listres.rows[0].data === "") {
+						if (listres.total === 0) {
 							uni.setStorageSync("kapianlist2", this.list2)
 						} else {
 							let dataArray = this.robustParseData(listres.rows[0].data);
@@ -6893,7 +6773,6 @@
 						const fixedObjStr = objStr.replace(/([a-zA-Z_][a-zA-Z0-9_]*):([^,}]+)/g, (match, key,
 							value) => {
 							value = value.trim();
-
 							// 处理布尔值
 							if (value === 'true' || value === 'false') {
 								return `"${key}":${value}`;
@@ -6941,8 +6820,8 @@
 			//时间戳转时间
 			formatDate(value) {
 				const data = new Date(value);
-				const month = data.getMonth() + 1;
-				const day = data.getDate();
+				const month = String(data.getMonth() + 1).padStart(2, '0');
+				const day = String(data.getDate()).padStart(2, '0');
 				const year = data.getFullYear();
 				const hours = data.getHours();
 				const minutes = data.getMinutes();
@@ -6950,7 +6829,6 @@
 				const formattedTime = `${month}/${day}`;
 				return formattedTime;
 			},
-
 
 			getRegisterVal(data, type, key) {
 				const value = this.findValue(data, type, key);

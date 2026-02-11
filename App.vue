@@ -195,7 +195,7 @@
 						if (res.data.data.updateForce === 0) {
 							// console.log("不需要强制更新")
 							if (uni.getStorageSync("aboutupdate") === today) {
-								console.log("不需要强制更新，按钮取消")
+								// console.log("不需要强制更新，按钮取消")
 								return
 							}
 							uni.showModal({

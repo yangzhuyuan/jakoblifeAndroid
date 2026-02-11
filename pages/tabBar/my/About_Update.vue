@@ -79,6 +79,9 @@
 </template>
 
 <script>
+	import {
+		mapMutations
+	} from 'vuex'
 	const systemInfo = uni.getSystemInfoSync()
 	const JUMP_SIZE = 40 * 1024; // 40K偏移量
 	const HEAD_REQ = 0xD5;
@@ -323,7 +326,7 @@
 		},
 
 		methods: {
-
+			...mapMutations(['setacktypes']),
 			toArrayBuffer(data) {
 				const buffer = new ArrayBuffer(data.length / 2);
 				const dataView = new DataView(buffer);
@@ -773,20 +776,20 @@
 														deviceId: that
 															.deviceIdss,
 														complete(
-														complete) {
+															complete) {
 															console.log(
 																"complete",
 																complete
-																)
+															)
 															uni.closeBluetoothAdapter({
 																complete(
 																	closeBluetoothAdapter
-																	) {
+																) {
 																	console
 																		.log(
 																			"closeBluetoothAdapter",
 																			closeBluetoothAdapter
-																			)
+																		)
 																}
 															})
 														}
@@ -897,7 +900,7 @@
 				const maxRetries = 3;
 				uni.createBLEConnection({
 					deviceId: deviceId,
-					timeout: 10000,
+					timeout: 8000,
 					success: () => {
 						this.deviceId = deviceId;
 						this.foundDevice = true;
@@ -1434,7 +1437,7 @@
 						resolve();
 					}).catch((error) => {
 						clearTimeout(timeout);
-						console.error('ACK等待失败:', error.message);
+						// console.error('ACK等待失败:', error.message);
 						// 即使失败，如果有数据就尝试解析
 						this.otaVer = 'V1.0';
 						resolve();
@@ -2699,6 +2702,7 @@
 				setTimeout(() => {
 					this.disconnect();
 					// 不需要等待ACK，设备会立即重启
+					this.setacktypes(0)
 					console.log(
 						'设备重启中...');
 					uni.switchTab({
@@ -2706,6 +2710,7 @@
 					})
 				}, 1000)
 				this.wactchtimerid = ""
+				this.setacktypes(0)
 			},
 			handleAck(data) {
 				const ack = this.parseAckFrame(

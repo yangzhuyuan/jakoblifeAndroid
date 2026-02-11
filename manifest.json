@@ -2,8 +2,8 @@
     "name" : "JakobLife",
     "appid" : "__UNI__F833FCF",
     "description" : "JakobLife 是针对消费者开发的自我健康管理的APP，您可以使用JakobLife记录或查询自己和家人的健康和数据，通过可视化图表直观地了解每天、每周、每月的数据变化趋势。",
-    "versionName" : "3.0.0",
-    "versionCode" : 185,
+    "versionName" : "3.0.1",
+    "versionCode" : 186,
     "transformPx" : false,
     "app-plus" : {
         "ios" : {
@@ -227,7 +227,6 @@
                     "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
                     "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>",
                     "<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",

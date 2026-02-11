@@ -33257,6 +33257,63 @@ var render = function () {
         ],
         1
       ),
+      _c(
+        "uni-view",
+        { attrs: { _i: 29 } },
+        [
+          _c(
+            "uni-popup",
+            { ref: "popup1", attrs: { _i: 30 } },
+            [
+              _c(
+                "uni-view",
+                { staticClass: _vm._$g(31, "sc"), attrs: { _i: 31 } },
+                [
+                  _c(
+                    "uni-view",
+                    {
+                      staticStyle: { padding: "10px 0 40px 0" },
+                      attrs: { _i: 32 },
+                    },
+                    [
+                      _c(
+                        "uni-view",
+                        { staticClass: _vm._$g(33, "sc"), attrs: { _i: 33 } },
+                        [_vm._v(_vm._$g(33, "t0-0"))]
+                      ),
+                      _c(
+                        "uni-view",
+                        { staticClass: _vm._$g(34, "sc"), attrs: { _i: 34 } },
+                        [_vm._v(_vm._$g(34, "t0-0"))]
+                      ),
+                      _c("uni-view", { attrs: { _i: 35 } }, [
+                        _vm._v(_vm._$g(35, "t0-0")),
+                      ]),
+                    ],
+                    1
+                  ),
+                  _c(
+                    "v-uni-button",
+                    {
+                      staticClass: _vm._$g(36, "sc"),
+                      attrs: { _i: 36 },
+                      on: {
+                        click: function ($event) {
+                          return _vm.$handleViewEvent($event)
+                        },
+                      },
+                    },
+                    [_vm._v(_vm._$g(36, "t0-0"))]
+                  ),
+                ],
+                1
+              ),
+            ],
+            1
+          ),
+        ],
+        1
+      ),
     ],
     1
   )
@@ -33552,7 +33609,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../../../HBuilderX.4.66.2025051912/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "@charset \"UTF-8\";\n/**\n * 这里是uni-app内置的常用样式变量\n *\n * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量\n * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App\n *\n */\n/**\n * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能\n *\n * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件\n */\n/* 颜色变量 */\n/* 行为相关颜色 */\n/* 文字基本颜色 */\n/* 背景颜色 */\n/* 边框颜色 */\n/* 尺寸变量 */\n/* 文字尺寸 */\n/* 图片尺寸 */\n/* Border Radius */\n/* 水平间距 */\n/* 垂直间距 */\n/* 透明度 */\n/* 文章场景相关 */\n.backpage[data-v-496d680c] {\n  color: black;\n  background: #F7F7F7;\n  height: 100vh;\n  width: 100vw;\n}\n.img_scansty[data-v-496d680c] {\n  width: 100%;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 220px;\n  z-index: 100;\n  /* 确保低于弹窗的 z-index */\n}\n.img_scansty_1[data-v-496d680c] {\n  padding: 20px 20px 0 20px;\n}\n.imgss[data-v-496d680c] {\n  padding-top: 10px;\n  padding-bottom: 30px;\n  width: 90vw;\n  height: 180px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 10px;\n  background: white;\n}\n.imgss1[data-v-496d680c] {\n  padding-top: 20px;\n  width: 80vw;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  object-fit: contain;\n}\n.Model_number[data-v-496d680c] {\n  text-align: center;\n  margin: 20px 0 0;\n  font-size: 12px;\n  font-weight: bold;\n}\n.Message[data-v-496d680c] {\n  height: 22px;\n  margin-top: 50px;\n  text-align: center;\n  font-size: 12px;\n  font-weight: 400;\n  color: red;\n}\n.Message1[data-v-496d680c] {\n  height: 22px;\n  text-align: center;\n  font-size: 12px;\n  font-weight: 400;\n  color: black;\n}\n.Messageback[data-v-496d680c] {\n  position: fixed;\n  bottom: 20px;\n  width: 100vw;\n  background: #F7F7F7;\n}\n.button_style[data-v-496d680c] {\n  width: auto;\n  height: 48px;\n  margin-left: 20px;\n  margin-right: 20px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  font-size: 16px;\n  border-radius: 30px;\n  background: #3298F7;\n  color: white;\n  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);\n}\n.button_style1[data-v-496d680c] {\n  width: auto;\n  height: 48px;\n  margin: 20px 20px 0 20px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  font-size: 16px;\n  border-radius: 30px;\n  background: #3298F7;\n  color: #FFFFFF !important;\n  border: none !important;\n  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);\n}\n.imgss_sc[data-v-496d680c] {\n  padding-top: 20px;\n  width: 120px;\n  height: 120px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  object-fit: contain;\n}\n/* 弹窗内容样式 */\n.popup-content[data-v-496d680c] {\n  background: #fff;\n  border-radius: 20px;\n  padding: 20px;\n  margin: 20px;\n  box-sizing: border-box;\n}", ""]);
+exports.push([module.i, "@charset \"UTF-8\";\n/**\n * 这里是uni-app内置的常用样式变量\n *\n * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量\n * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App\n *\n */\n/**\n * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能\n *\n * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件\n */\n/* 颜色变量 */\n/* 行为相关颜色 */\n/* 文字基本颜色 */\n/* 背景颜色 */\n/* 边框颜色 */\n/* 尺寸变量 */\n/* 文字尺寸 */\n/* 图片尺寸 */\n/* Border Radius */\n/* 水平间距 */\n/* 垂直间距 */\n/* 透明度 */\n/* 文章场景相关 */\n.backpage[data-v-496d680c] {\n  color: black;\n  background: #F7F7F7;\n  height: 100vh;\n  width: 100vw;\n}\n.img_scansty[data-v-496d680c] {\n  width: 100%;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 220px;\n  z-index: 100;\n  /* 确保低于弹窗的 z-index */\n}\n.img_scansty_1[data-v-496d680c] {\n  padding: 20px 20px 0 20px;\n}\n.imgss[data-v-496d680c] {\n  padding-top: 10px;\n  padding-bottom: 30px;\n  width: 90vw;\n  height: 180px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 10px;\n  background: white;\n}\n.imgss1[data-v-496d680c] {\n  padding-top: 20px;\n  width: 80vw;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  object-fit: contain;\n}\n.Model_number[data-v-496d680c] {\n  text-align: center;\n  margin: 20px 0 0;\n  font-size: 12px;\n  font-weight: bold;\n}\n.Message[data-v-496d680c] {\n  height: 22px;\n  margin-top: 50px;\n  text-align: center;\n  font-size: 12px;\n  font-weight: 400;\n  color: red;\n}\n.Message1[data-v-496d680c] {\n  height: 22px;\n  text-align: center;\n  font-size: 12px;\n  font-weight: 400;\n  color: black;\n}\n.Messageback[data-v-496d680c] {\n  position: fixed;\n  bottom: 20px;\n  width: 100vw;\n  background: #F7F7F7;\n}\n.button_style[data-v-496d680c] {\n  width: auto;\n  height: 48px;\n  margin-left: 20px;\n  margin-right: 20px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  font-size: 16px;\n  border-radius: 30px;\n  background: #3298F7;\n  color: white;\n  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);\n}\n.button_style1[data-v-496d680c] {\n  width: auto;\n  height: 48px;\n  margin: 20px 20px 0 20px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  font-size: 16px;\n  border-radius: 30px;\n  background: #3298F7;\n  color: #FFFFFF !important;\n  border: none !important;\n  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);\n}\n.imgss_sc[data-v-496d680c] {\n  padding-top: 20px;\n  width: 120px;\n  height: 120px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  object-fit: contain;\n}\n/* 弹窗内容样式 */\n.popup-content[data-v-496d680c] {\n  background: #fff;\n  border-radius: 20px;\n  padding: 20px;\n  margin: 20px;\n  box-sizing: border-box;\n}\n.popupstusdsd_2[data-v-496d680c] {\n  border-radius: 20px;\n  background: #fff;\n  text-align: center;\n  padding: 20px;\n  margin: 60px 20px 60px 20px;\n  z-index: 999999;\n}\n.popupstusdsd[data-v-496d680c] {\n  border-radius: 20px;\n  background: #fff;\n  width: 80vw;\n  text-align: center;\n  margin: 0 40px 60px 40px;\n}\n.popupstusdsditem_1[data-v-496d680c] {\n  font-size: 18px;\n  font-weight: bold;\n}\n.butonstsd[data-v-496d680c] {\n  margin: 10px 50px 20px 50px;\n  border-radius: 20px;\n  background: #3298F7;\n  color: white;\n}", ""]);
 // Exports
 module.exports = exports;
 

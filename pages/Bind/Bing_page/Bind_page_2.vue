@@ -50,10 +50,28 @@
 				</view>
 			</uni-popup>
 		</view>
+
+		<view>
+			<uni-popup ref="popup1" :mask-click="true">
+				<view class="popupstusdsd_2">
+					<view style="padding: 10px 0 40px 0">
+						<view class="popupstusdsditem">{{$t("配对成功")}}</view>
+						<view class="popupstusdsditem_1">{{$t("蓝牙已连接成功")}}</view>
+						<view>{{$t("标准蓝牙提示")}}</view>
+					</view>
+					<button @tap="turesss()" class="butonstsd">{{$t("确定")}}</button>
+				</view>
+			</uni-popup>
+		</view>
+
 	</view>
 </template>
 
 <script>
+	import {
+		mapMutations
+	} from 'vuex'
+	const platform = uni.getSystemInfoSync().platform;
 	import appScan from "../../../uni_modules/simbalkj-scan/components/simbalkj-scan/appScan.vue"
 	const lan = uni.getLocale();
 	const modelIdToImagePathzh = {
@@ -102,23 +120,46 @@
 				modelId: '',
 				inputcontext: '',
 				locationChecked: false, // 标记位
+				BPW1deviceId: "",
+				BPW1model: '30000',
 			};
 		},
 
 		onLoad(res) {
-			console.log(JSON.stringify(res))
+			// console.log(JSON.stringify(res))
 			this.SELECT_TYPE = res.SELECT_TYPE
 			this.modelConnectType = res.modelConnectType
 			this.modelname = res.name
 			uni.setNavigationBarTitle({
 				title: this.$t("绑定设备")
 			})
+
 		},
 
 		onShow() {
+			uni.closeBluetoothAdapter();
 			this.resetState();
 			if (this.locationChecked) return; // 已经跑过就不再跑
 			this.locationChecked = true;
+			uni.openBluetoothAdapter({
+				success: (openBluetoothAdapter) => {
+					console.log("openBluetoothAdapter", openBluetoothAdapter)
+				},
+				fail: (openBluetoothAdaptererr) => {
+					uni.hideLoading()
+					if (openBluetoothAdaptererr.errCode === 10001) {
+						uni.showModal({
+							content: this.$t("当前蓝牙未开启是否去设置打开"),
+							showCancel: false,
+							success: (modalres) => {
+								if (modalres.confirm) {
+									this.openBLE();
+								}
+							}
+						});
+					}
+				}
+			});
 			this.openLocationServiceAndroid();
 			this.$nextTick(() => {
 				plus.android.checkPermission("android.permission.CAMERA", (granted) => {
@@ -144,7 +185,7 @@
 		},
 
 		methods: {
-
+			...mapMutations(['setacktypes']),
 			// #ifdef APP-PLUS
 			openLocationServiceAndroid() {
 				let system = uni.getSystemInfoSync();
@@ -217,6 +258,12 @@
 			onClosePopup() {
 				this.resetState()
 			},
+			formatMacAddress(mac) {
+				// 移除可能存在的分隔符
+				mac = mac.replace(/[^a-fA-F0-9]/g, '');
+				// 每2个字符添加冒号
+				return mac.match(/.{1,2}/g).join(':').toUpperCase();
+			},
 			shoudongbtn() {
 				if (!this.inputcontext) {
 					uni.showToast({
@@ -230,6 +277,8 @@
 						const resultStr1 = this.inputcontext.slice(0, 4)
 						if (resultStr1 === "4142") {
 							this.context_msg = "300000" + this.inputcontext
+							this.BPW1deviceId = this.formatMacAddress(this.inputcontext)
+							// console.log("this.inputcontext", this.BPW1deviceId)
 							this.get_device_info()
 							this.$refs.qiehuanpopup?.close()
 						} else {
@@ -252,6 +301,10 @@
 			},
 
 			resetState() {
+				if (Vue.prototype.$globalTimers.heartbeatInterval) {
+					clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
+					Vue.prototype.$globalTimers.heartbeatInterval = null;
+				}
 				this.img_scan = true;
 				this.scan_img = "../../../static/image-active.png";
 				this.xinghao = '';
@@ -265,8 +318,9 @@
 				if (this.modelname === "BPW1") {
 					const regex = /para=([^&]+)/;
 					const match = barNumber.match(regex);
-					console.log(match)
+					// console.log(match)
 					if (match && match[1]) {
+						this.BPW1deviceId = match[1]
 						const resultStr = match[1].replace(/:/g, '');
 						const resultStr1 = resultStr.slice(0, 4)
 						if (resultStr1 === "4142") {
@@ -356,8 +410,6 @@
 						if (res.data.model === this.modelname) {
 							if (res.data.model === "BPW1" && res.data.mac) {
 								const resultmac = data.deviceSn.slice(6, data.deviceSn.length);
-								console.log(data.deviceSn)
-								console.log(resultmac)
 								if (resultmac === res.data.deviceSn.slice(6, res.data.deviceSn.length)) {
 									this.img_scan = false;
 									this.xinghao = this.$t("型号") + res.data.model;
@@ -449,10 +501,15 @@
 				if (this.modelConnectType == 0) {
 					this.bind_device(this.context_msg1, "", modelId);
 				} else if (this.modelConnectType == 1) {
-					uni.navigateTo({
-						url: "../../Bind/Bing_xueya/Bing_xueya_LY?SELECT_TYPE=" + this.SELECT_TYPE + "&sn=" + this
-							.context_msg1 + "&modelname=" + this.modelname + "&modelId=" + modelId
-					})
+					if (this.modelname === "BPW1") {
+						this.BPW1model = modelId
+						this.BPW1binddevice(this.context_msg1, this.BPW1deviceId, modelId);
+					} else {
+						uni.navigateTo({
+							url: "../../Bind/Bing_xueya/Bing_xueya_LY?SELECT_TYPE=" + this.SELECT_TYPE + "&sn=" +
+								this.context_msg1 + "&modelname=" + this.modelname + "&modelId=" + modelId
+						})
+					}
 				} else if (this.modelConnectType == 2) {
 					uni.navigateTo({
 						url: "../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=" + this.SELECT_TYPE + "&sn=" + this
@@ -460,6 +517,367 @@
 					})
 				}
 			},
+
+			// BPW1手表设备绑定
+			BPW1binddevice(sn, MACdeviceID, modelId) {
+				let data = {
+					deviceSn: sn,
+					mac: MACdeviceID.trim()
+				};
+				this.$post(this.$url_APP_IP + this.$url_bind_device, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded;'
+				}).then(res => {
+					// console.log(res)
+					if (res.code === 200) {
+						uni.setStorageSync("appQX", "1")
+						uni.setStorageSync("deviceSn", sn);
+						uni.showLoading({
+							title: this.$t("连接中"),
+							mask: true
+						})
+						uni.openBluetoothAdapter({
+							success: (res) => {
+								uni.startBluetoothDevicesDiscovery({
+									allowDuplicatesKey: true,
+									success: () => {
+										this.onDeviceFound(MACdeviceID, sn)
+									},
+									fail: e => console.log("开始扫描失败", e),
+								});
+							},
+							fail: (err) => {
+								uni.hideLoading()
+								if (err.errCode === 10001) {
+									uni.showModal({
+										content: this.$t("当前蓝牙未开启是否去设置打开"),
+										showCancel: false,
+										success: (modalres) => {
+											if (modalres.confirm) {
+												this.openBLE();
+											}
+										}
+									});
+								}
+							}
+						});
+						this.setacktypes(0)
+					} else if (res.code === 401) {
+						uni.showToast({
+							title: this.$t("此设备已被其他账号绑定"),
+							icon: 'none'
+						})
+						return
+					} else {
+						uni.reLaunch({
+							url: "../Bing_page/Bind_fail"
+						});
+					}
+				}).catch(erro => {
+					uni.reLaunch({
+						url: "../Bing_page/Bind_fail"
+					});
+				})
+			},
+			onDeviceFound(MACdeviceID, sn) {
+				console.log(MACdeviceID, sn)
+				let that = this
+				let timersdsa = 0
+				let tiersds = null
+				let bioshi = 0
+				uni.onBluetoothDeviceFound((res) => {
+					const deviceArray = res.devices;
+					for (const item of deviceArray) {
+						let idList = []
+						idList.push(item);
+						if (idList[0].name === "BPW1" && idList[0].deviceId === MACdeviceID) {
+							uni.stopBluetoothDevicesDiscovery({
+								success: (res) => {
+									bioshi = 1
+									setTimeout(() => {
+										that.createBLEConnection(idList[0].deviceId, sn)
+									}, 5000)
+									console.log("stopBluetoothDevicesDiscovery", res)
+								}
+							})
+						}
+					}
+				});
+				tiersds = setInterval(() => {
+					timersdsa++
+					if (timersdsa === 12 && bioshi === 0) {
+						clearInterval(tiersds)
+						tiersds = null
+						uni.stopBluetoothDevicesDiscovery();
+						uni.showToast({
+							title: that.$t("连接超时"),
+							icon: "none"
+						})
+					}
+				}, 1000)
+			},
+
+			createBLEConnection(deviceId, sn) {
+				const MAX_RETRY_ATTEMPTS = 3;
+				let attemptCount = 0;
+				const executeConnection = () => {
+					attemptCount++;
+					uni.createBLEConnection({
+						deviceId: deviceId.trim(),
+						// timeout: 8000,
+						success: (res) => this.handleConnectionSuccess(deviceId, sn),
+						fail: (error) => this.handleConnectionFailure(error, deviceId, sn, attemptCount,
+							MAX_RETRY_ATTEMPTS, executeConnection)
+					});
+				};
+				executeConnection();
+			},
+
+			// 连接成功处理
+			handleConnectionSuccess(deviceId, sn) {
+				let that = this
+				uni.hideLoading();
+				if (that.$refs.popup1 && that.$refs.popup1.close) {
+					that.$refs.popup1.open("center");
+				}
+				setTimeout(() => {
+					that.getBLEDeviceServices(deviceId, sn);
+				}, 2000);
+			},
+
+			// 连接失败处理
+			handleConnectionFailure(error, deviceId, sn, currentAttempt, maxAttempts, retryCallback) {
+				console.error(`BLE连接失败 (尝试 ${currentAttempt}/${maxAttempts}):`, JSON.stringify(error), deviceId);
+				// 清理资源
+				this.cleanupBLEConnection(deviceId, sn);
+				// 根据错误码决定是否重试
+				const shouldRetry = this.shouldRetryConnection(error.errCode, currentAttempt, maxAttempts);
+				if (shouldRetry) {
+					const delay = error.errCode === 10012 ? 2000 : 2000; // 可根据错误码调整延迟
+					setTimeout(retryCallback, delay);
+				}
+				if (currentAttempt === 3) {
+					uni.showToast({
+						title: this.$t("连接超时"),
+						icon: "none"
+					})
+				}
+			},
+
+			// 判断是否应重试连接
+			shouldRetryConnection(errCode, currentAttempt, maxAttempts) {
+				if (currentAttempt >= maxAttempts) {
+					return false;
+				}
+				// 10002: 设备未找到，通常需要重置适配器后重试
+				// 10012: 连接超时，需要重试
+				// 其他错误也尝试重试一次
+				const retryableErrors = [10002, 10012];
+				return retryableErrors.includes(errCode) || true; // 默认允许重试
+			},
+
+			// 清理BLE连接资源
+			cleanupBLEConnection(deviceId, sn) {
+				// 解绑设备
+				this.getunbind(sn);
+				// 关闭连接
+				uni.closeBLEConnection({
+					deviceId: deviceId
+				});
+				// 隐藏加载
+				uni.hideLoading();
+				// 重置蓝牙适配器
+				uni.closeBluetoothAdapter();
+				uni.openBluetoothAdapter();
+			},
+
+
+
+
+			//获取蓝牙外围设备的服务
+			getBLEDeviceServices(deviceId, sn) {
+				let that = this
+				uni.getBLEDeviceServices({
+					deviceId: deviceId,
+					success: (res) => {
+						switch (res.services.length) {
+							case 3:
+								that.getBLEDeviceCharacteristics3(deviceId, res.services[1].uuid, sn)
+								break
+						}
+					},
+					fail(res) {}
+				})
+			},
+			getBLEDeviceCharacteristics3(deviceId, serviceId, sn) {
+				let that = this
+				uni.getBLEDeviceCharacteristics({
+					deviceId: deviceId,
+					serviceId: serviceId,
+					success: (res) => {
+						for (let i = 0; res.characteristics.length > i; i++) {
+							let item = res.characteristics[i]
+							if (item.properties.write) {
+								let buffer = that.toArrayBuffer("e00006e7000000000100")
+								uni.writeBLECharacteristicValue({
+									deviceId: deviceId,
+									serviceId: serviceId,
+									characteristicId: item.uuid,
+									writeType: "writeNoResponse",
+									value: buffer,
+									success: (writeres) => {
+										that.writeuuid = item.uuid
+									},
+									fail: (writeerr) => {
+										that.writeuuid = item.uuid
+									}
+								});
+							}
+							that.setacktypes(0)
+						}
+					},
+					fail(res) {
+						console.error('获取蓝牙设备某个服务中所有特征值失败222', res)
+					}
+				})
+			},
+			toArrayBuffer(data) {
+				const buffer = new ArrayBuffer(data.length / 2);
+				const dataView = new DataView(buffer);
+				for (let i = 0; i < data.length; i += 2) {
+					dataView.setUint8(i / 2, parseInt(data.substr(i, 2), 16));
+				}
+				return buffer;
+			},
+			// 定义一个函数来计算校验和
+			calculateChecksumsss2(deviceId, serviceId, writeuuid, sn) {
+				const ACK_HEADER = 0xe0; // 常量-头部
+				const BleDeviceConfig = {
+					PROTOCOL_VERSION: 0x00 // 协议版本号
+				};
+				const bindcommandId = 0x08; // CMD-协议命令
+				const bindcommandKey = 0x00; // key-协议子命令
+				const bindbtys = new Uint8Array([
+					parseInt(sn.slice(0, 2), 16),
+					parseInt(sn.slice(2, 4), 16),
+					parseInt(sn.slice(4, 6), 16),
+					parseInt(sn.slice(6, 8), 16),
+					parseInt(sn.slice(8, 10), 16),
+					parseInt(sn.slice(10, 12), 16),
+					parseInt(sn.slice(12, 14), 16),
+					parseInt(sn.slice(14, 16), 16)
+				]);
+				const binddataLen = bindbtys.length;
+				const bindcommand = new Uint8Array(binddataLen + 8);
+				bindcommand[0] = ACK_HEADER;
+				bindcommand[1] = ((5 + binddataLen) >> 8) & 0xFF;
+				bindcommand[2] = (5 + binddataLen) & 0xFF;
+				bindcommand[3] = bindcommandId;
+				bindcommand[4] = BleDeviceConfig.PROTOCOL_VERSION;
+				bindcommand[5] = bindcommandKey;
+				bindcommand[6] = (binddataLen >> 8) & 0xFF;
+				bindcommand[7] = binddataLen & 0xFF;
+				bindcommand.set(bindbtys, 8);
+				setTimeout(() => {
+					this.writeBLECommand(deviceId, serviceId, writeuuid, bindcommand, platform ===
+						"android" ? 'writeNoResponse' : 'write',
+						(res) => console.log("绑定设备成功：", res),
+						(err) => console.log("绑定设备失败：", err)
+					);
+				}, 2000);
+				const commandId = 0x02; // CMD-协议命令
+				const commandKey = 0x08; // key-协议子命令
+				const now = new Date();
+				const bytes1 = new Uint8Array([
+					(((now.getFullYear() - 2000) << 2) + ((now.getMonth() + 1) >> 2)) & 0xFF,
+					(((now.getMonth() + 1) & 0x03) << 6) + (now.getDate() << 1) + (now.getHours() >> 4),
+					(((now.getHours() & 0x0F) << 4) + (now.getMinutes() >> 2)) & 0xFF,
+					(((now.getMinutes() & 0x03) << 6) + now.getSeconds()) & 0xFF
+				]);
+				const dataLen = bytes1.length;
+				const command = new Uint8Array(dataLen + 8);
+				command[0] = ACK_HEADER;
+				command[1] = ((5 + dataLen) >> 8) & 0xFF;
+				command[2] = (5 + dataLen) & 0xFF;
+				command[3] = commandId;
+				command[4] = BleDeviceConfig.PROTOCOL_VERSION;
+				command[5] = commandKey;
+				command[6] = (dataLen >> 8) & 0xFF;
+				command[7] = dataLen & 0xFF;
+				command.set(bytes1, 8);
+				setTimeout(() => {
+					this.writeBLECommand(deviceId, serviceId, writeuuid, command, "writeNoResponse",
+						(res) => {
+							console.log("时间命令数据回复成功：", res);
+						},
+						(err) => {
+							console.log("时间命令数据回复失败：", res);
+						}
+					);
+				}, 3000);
+			},
+			calculateChecksum11(bytes) {
+				let sum = 0;
+				bytes.forEach(byte => sum += byte);
+				return sum % 256;
+			},
+			writeBLECommand(deviceId, serviceId, writeuuid, command, writeType, successCallback, failCallback) {
+				const checksum = this.calculateChecksum11(command);
+				const modifiedCommand = new Uint8Array(command.length + 1);
+				modifiedCommand.set(command.subarray(0, 3), 0);
+				modifiedCommand[3] = checksum;
+				modifiedCommand.set(command.subarray(3), 4);
+				const hexCommand = Array.from(modifiedCommand).map(byte => byte.toString(16).padStart(2, '0')).join('');
+				const buffer = this.toArrayBuffer(hexCommand);
+				uni.writeBLECharacteristicValue({
+					deviceId: deviceId,
+					serviceId: serviceId,
+					characteristicId: writeuuid,
+					writeType: writeType,
+					value: buffer,
+					success: successCallback,
+					fail: failCallback
+				});
+			},
+			//确认按钮
+			turesss() {
+				uni.hideLoading()
+				let that = this
+				that.$refs.popup1.close();
+				that.setacktypes(0)
+				uni.reLaunch({
+					url: "../../Bind/Bing_page/Bind_success?modelId=" + that
+						.BPW1model
+				})
+			},
+			getunbind(deviceSn) {
+				uni.request({
+					url: this.$url_APP_IP + this.$url_getunbind,
+					method: 'POST',
+					data: {
+						deviceSn
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync('token'),
+						'content-type': 'application/x-www-form-urlencoded'
+					},
+				});
+			},
+
+			openBLE() {
+				this.checked = false
+				if (platform === "android") {
+					const main = plus.android.runtimeMainActivity();
+					const Intent = plus.android.importClass("android.content.Intent");
+					const mIntent = new Intent('android.settings.BLUETOOTH_SETTINGS');
+					main.startActivity(mIntent);
+				} else if (platform === "ios") {
+					plus.runtime.launchApplication({
+						action: 'App-Prefs:root=BLE'
+					}, function(e) {});
+				}
+			},
+
 			bind_device(sn, MACdeviceID, modelId) {
 				const data = {
 					deviceSn: sn,
@@ -606,5 +1024,35 @@
 		padding: 20px;
 		margin: 20px;
 		box-sizing: border-box;
+	}
+
+	// BPW1绑定弹窗样式
+	.popupstusdsd_2 {
+		border-radius: 20px;
+		background: #fff;
+		text-align: center;
+		padding: 20px;
+		margin: 60px 20px 60px 20px;
+		z-index: 999999;
+	}
+
+	.popupstusdsd {
+		border-radius: 20px;
+		background: #fff;
+		width: 80vw;
+		text-align: center;
+		margin: 0 40px 60px 40px;
+	}
+
+	.popupstusdsditem_1 {
+		font-size: 18px;
+		font-weight: bold;
+	}
+
+	.butonstsd {
+		margin: 10px 50px 20px 50px;
+		border-radius: 20px;
+		background: #3298F7;
+		color: white;
 	}
 </style>
