@@ -7,6 +7,13 @@
 		checkNotificationPermissions,
 		checkNotificationAgain
 	} from "pages/api/unitls/permission.js";
+	import {
+		isInChinaByIP,
+		ISgetUserInfoUS,
+		ISgetUserInfoChina,
+	} from './pages/api/isInChinaByIP.js'; //获取定位
+
+	import keepAliveManager from "@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js";
 	const systemInfo = uni.getSystemInfoSync()
 	export default {
 		data() {
@@ -23,8 +30,6 @@
 				isMandatory: false, // 是否为强制更新
 			}
 		},
-
-
 		onLaunch: function() {
 			let that = this
 			// 根据手机系统设置app语言
@@ -54,14 +59,29 @@
 			this.stopInterval();
 			this.startInterval();
 			uni.removeStorageSync("dingwei")
+			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
+			plugin.acquireWakeLock({}, res => { //强制保留app运行
+				console.log('app.vue-强制保留app运行', res)
+				// 启动保活（Android）
+				// #ifdef APP-PLUS
+				if (uni.getSystemInfoSync().platform === 'android') {
+					keepAliveManager.init();
+				}
+				// #endif
+			})
+			// this.testModule()
+			// this.initPlugin()
+			// this.startService()
 		},
 
 		mounted() {
 			this.notifyTriggered = false; // 确保初始值为 false
 		},
 
-		onShow: function() {
+		onShow: async function() { // ✅ 添加 async
 			let that = this
+			// 配置域名
+			await that.getBaseUrl();
 			// #ifdef APP-PLUS
 			that.openLocationServiceAndroid();
 			// #endif
@@ -77,22 +97,43 @@
 			that.stopInterval();
 			that.startInterval();
 			that.setTabBarItems();
-			that.check_new_version("com.work.jakob", "0") //强制更新
 			// that.accelerometerStart();//手机传感步数
 			// uni.getPushClientId({
 			// 	success(res) {
 			// 		that.sendPushMessage(res.cid);
 			// 	},
 			// });
-
 		},
-
 		globalData: {
 			test: ''
 		},
 
 		methods: {
 			...mapMutations(['setUniverifyErrorMsg', 'setUniverifyLogin', 'setlanyaId']),
+			// ============ 异步获取基础 URL ============
+			async getBaseUrl() {
+				// const ISUserInfoChina = await ISgetUserInfoChina(this.$APP_IP1);
+				// const isUserInfoUS = await ISgetUserInfoUS(this.$APP_IP2);
+				// console.log('ISUserInfoChina', ISUserInfoChina);
+				// console.log('isUserInfoUS', isUserInfoUS);
+				// if (!isUserInfoUS && !ISUserInfoChina) {
+				// 	const isInChina = await isInChinaByIP();
+				// 	console.log('IP定位结果:', isInChina ? '中国' : '国外');
+				// 	if (isInChina) {
+				Vue.prototype.$url_APP_IP = this.$APP_IP1;
+				// 	} else {
+				// 		Vue.prototype.$url_APP_IP = this.$APP_IP2;
+				// 	}
+				// } else if (isUserInfoUS && !ISUserInfoChina) {
+				// 	Vue.prototype.$url_APP_IP = this.$APP_IP2;
+				// } else if (!isUserInfoUS && ISUserInfoChina) {
+				// 	Vue.prototype.$url_APP_IP = this.$APP_IP1;
+				// } else if (isUserInfoUS && ISUserInfoChina) {
+				// 	Vue.prototype.$url_APP_IP = this.$APP_IP2;
+				// }
+				console.log("国内baseUrl", this.$url_APP_IP);
+				this.check_new_version("com.work.jakob", "0") //强制更新
+			},
 
 			// #ifdef APP-PLUS
 			openLocationServiceAndroid() {
@@ -107,7 +148,6 @@
 				var locationService = mainActivity.getSystemService(Context.LOCATION_SERVICE);
 				// 检查GPS是否开启
 				if (!locationService.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-					console.log("哈哈哈哈哈哈哈哈哈")
 					this.locationChecked = false;
 					uni.showModal({
 						title: this.$t("提示"),
@@ -127,6 +167,7 @@
 					uni.setStorageSync("dingwei", 1)
 				}
 			},
+
 			// #endif
 			// 发送推送消息
 			sendPushMessage(pushClientId) {
@@ -159,100 +200,91 @@
 			},
 			/* 检查新版本 —— 仅改动了弹窗触发方式 */
 			check_new_version(pkgName, type) {
-				const that = this;
-				uni.request({
-					url: `${that.$url_APP_IP}/prod-api/system/version/check_new_version`,
-					method: 'POST',
-					data: {
-						pkgName,
-						type,
-						// versionName: "2.0.42"
-						versionName: systemInfo.appVersion
-					},
-					header: {
-						'content-type': 'application/x-www-form-urlencoded'
-					},
-					success(res) {
-						if (res.data.code === 4003) {
-							//已经是最新版本
-							return;
+				let that = this;
+				let data = {
+					pkgName,
+					type,
+					versionName: systemInfo.appVersion
+				}
+				console.log("检查新版本传参" + that.$url_APP_IP, data)
+				that.$post(`${that.$url_APP_IP}/prod-api/system/version/check_new_version`, data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((res) => {
+					console.log("版本检查结果", res)
+					if (res.code === 4003) {
+						//已经是最新版本
+						return;
+					}
+					let remarkParts = res.data.remark === null ? "" : res.data.remark.split("&&&");
+					// 初始化中英文变量
+					let englishPart = '';
+					let chinesePart = '';
+					// 安全地获取分割后的部分
+					if (remarkParts.length > 0) {
+						englishPart = remarkParts[0];
+					}
+					if (remarkParts.length > 1) {
+						chinesePart = remarkParts[1];
+					}
+					let lan = uni.getLocale();
+					let today = res.data.versionName;
+					if (res.data.updateForce === 0) {
+						// console.log("不需要强制更新")
+						if (uni.getStorageSync("aboutupdate") === today) {
+							// console.log("不需要强制更新，按钮取消")
+							return
 						}
-						let remarkParts = res.data.data.remark === null ? "" : res.data
-							.data.remark.split("&&&");
-						// 初始化中英文变量
-						let englishPart = '';
-						let chinesePart = '';
-						// 安全地获取分割后的部分
-						if (remarkParts.length > 0) {
-							englishPart = remarkParts[0];
-						}
-						if (remarkParts.length > 1) {
-							chinesePart = remarkParts[1];
-						}
-						let lan = uni.getLocale();
-						let today = res.data.data.versionName;
-						// console.log("today", today)
-						if (res.data.data.updateForce === 0) {
-							// console.log("不需要强制更新")
-							if (uni.getStorageSync("aboutupdate") === today) {
-								// console.log("不需要强制更新，按钮取消")
-								return
+						uni.showModal({
+							content: `${that.$t('版本更新1')}${res.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
+							confirmText: that.$t('安装'),
+							cancelText: that.$t('稍后安装'),
+							success(modal) {
+								if (modal.confirm) {
+									/* ① 打开 GlobalPopup 下载弹窗 */
+									uni.$emit('APP_WANT_POPUP', {
+										mode: 'download',
+										title: that.$t('正在下载更新'),
+										progress: 0
+									});
+									/* ② 开始下载 */
+									that.checkUpdate(res.data.path);
+								} else {
+									uni.setStorageSync("aboutupdate", today)
+								}
 							}
-							uni.showModal({
-								content: `${that.$t('版本更新1')}${res.data.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
-								confirmText: that.$t('安装'),
-								cancelText: that.$t('稍后安装'),
-								success(modal) {
-									if (modal.confirm) {
-										/* ① 打开 GlobalPopup 下载弹窗 */
-										uni.$emit('APP_WANT_POPUP', {
-											mode: 'download',
-											title: that.$t('正在下载更新'),
-											progress: 0
-										});
-										/* ② 开始下载 */
-										that.checkUpdate(res.data.data.path);
-									} else {
-										uni.setStorageSync("aboutupdate", today)
-									}
+						});
+					} else {
+						console.log("需要强制更新")
+						uni.showModal({
+							content: `${that.$t('版本更新1')}${res.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
+							confirmText: that.$t('安装'),
+							showCancel: false,
+							success(modal) {
+								if (modal.confirm) {
+									/* ① 打开 GlobalPopup 下载弹窗 */
+									uni.$emit('APP_WANT_POPUP', {
+										mode: 'download',
+										title: that.$t('正在下载更新'),
+										progress: 0
+									});
+									/* ② 开始下载 */
+									that.checkUpdate(res.data.path);
 								}
-							});
-						} else {
-							console.log("需要强制更新")
-							uni.showModal({
-								content: `${that.$t('版本更新1')}${res.data.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
-								confirmText: that.$t('安装'),
-								showCancel: false,
-								success(modal) {
-									if (modal.confirm) {
-										/* ① 打开 GlobalPopup 下载弹窗 */
-										uni.$emit('APP_WANT_POPUP', {
-											mode: 'download',
-											title: that.$t('正在下载更新'),
-											progress: 0
-										});
-										/* ② 开始下载 */
-										that.checkUpdate(res.data.data.path);
-									}
-								}
-							});
-						}
-					},
-					fail() {
-						uni.showToast({
-							title: that.$t('检查更新失败'),
-							icon: 'none'
+							}
 						});
 					}
-				});
+				}).catch((err) => {
+					console.log(err);
+					uni.showToast({
+						title: that.$t('检查更新失败'),
+						icon: 'none'
+					});
+				})
 			},
-
 			/* 执行更新 —— 只改“进度通知”和“关闭弹窗”方式 */
 			checkUpdate(path) {
-				// 重置
 				this.downloadTask = null;
 				this.isDownloading = true;
-
 				this.downloadTask = uni.downloadFile({
 					url: path,
 					success: res => {
@@ -265,7 +297,6 @@
 							});
 							return;
 						}
-
 						/* 安装 APK */
 						plus.runtime.install(
 							res.tempFilePath, {
@@ -279,7 +310,8 @@
 									uni.showModal({
 										title: this.$t('安装成功'),
 										content: this.$t('需要重启应用生效'),
-										success: r => r.confirm && plus.runtime.restart()
+										success: r => r.confirm && plus.runtime
+											.restart()
 									});
 								}
 							},
@@ -322,7 +354,6 @@
 					}
 				});
 			},
-
 			/* 取消下载（按钮在 GlobalPopup 里） */
 			cancelDownload() {
 				if (this.downloadTask) {
@@ -334,7 +365,6 @@
 					});
 				}
 			},
-
 			//闹钟
 			naozhog() {
 				let that = this
@@ -435,7 +465,8 @@
 											}
 										} else if (autiolist[i].Audios ==
 											"灯塔") {
-											if (uni.getSystemInfoSync().platform === "android") {
+											if (uni.getSystemInfoSync().platform ===
+												"android") {
 												const innerAudioContext = uni
 													.createInnerAudioContext();
 												innerAudioContext.autoplay =
@@ -518,6 +549,41 @@
 					})
 				}, 3000);
 			},
+
+
+			// 第一步：测试模块是否能加载
+			testModule() {
+				// #ifdef APP-PLUS
+				const module = uni.requireNativePlugin('KeepAliveModule');
+				console.log('模块对象:', module ? '模块加载成功' : '模块加载失败');
+				// #endif
+			},
+
+			// 第二步：初始化
+			async initPlugin() {
+				try {
+					const res = await KeepAlive.init();
+					console.log('初始化结果:', res);
+				} catch (e) {
+					console.error('初始化失败:', e);
+				}
+			},
+
+			// 第三步：启动服务
+			async startService() {
+				try {
+					const res = await KeepAlive.startService({
+						title: 'JakobLife',
+						content: this.$t("正在运行")
+					});
+					console.log('正在运行');
+				} catch (e) {
+					console.error('启动失败:', e);
+				}
+			},
+
+
+
 			startInterval() {
 				// 启动定时器
 				this.intervalId = setInterval(this.receiver_list, 5000);
@@ -543,100 +609,149 @@
 						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
 					},
 					success(pending) {
-						if (pending.data.code === 200 && pending.data.data && pending.data.data.length > 0) {
+						if (pending.data.code === 200 && pending.data.data && pending.data.data
+							.length > 0) {
 							let pendingDevices = pending.data.data;
 							that.notifyTriggered = false
 							uni.getStorageInfo({
 								success(res) {
 									if (res.keys.includes("switchList")) {
-										if (uni.getStorageSync("switchList").length === pendingDevices
+										if (uni.getStorageSync("switchList").length ===
+											pendingDevices
 											.length) {
-											const shuzhangya1 = uni.getStorageSync("shuzhangyaId1")
-											const shuzhangya2 = uni.getStorageSync("shuzhangyaId2")
-											const shousuoya1 = uni.getStorageSync("shousuoyaId1")
-											const shousuoya2 = uni.getStorageSync("shousuoyaId2")
-											const maibo1 = uni.getStorageSync("maiboId1")
-											const maibo2 = uni.getStorageSync("maiboId2")
-											const xeuyang1 = uni.getStorageSync("xeuyang1")
-											const xeuyang2 = uni.getStorageSync("xeuyang2")
+											const shuzhangya1 = uni.getStorageSync(
+												"shuzhangyaId1")
+											const shuzhangya2 = uni.getStorageSync(
+												"shuzhangyaId2")
+											const shousuoya1 = uni.getStorageSync(
+												"shousuoyaId1")
+											const shousuoya2 = uni.getStorageSync(
+												"shousuoyaId2")
+											const maibo1 = uni.getStorageSync(
+												"maiboId1")
+											const maibo2 = uni.getStorageSync(
+												"maiboId2")
+											const xeuyang1 = uni.getStorageSync(
+												"xeuyang1")
+											const xeuyang2 = uni.getStorageSync(
+												"xeuyang2")
 											// 判断设备数量是否一致
-											const storedDevices = uni.getStorageSync("switchList") || [];
-											if (storedDevices.length === pendingDevices.length) {
+											const storedDevices = uni.getStorageSync(
+												"switchList") || [];
+											if (storedDevices.length === pendingDevices
+												.length) {
 												// 创建快速查找映射
-												const pendingMap = new Map(pendingDevices.map(d => [d
-													.sharerId, d
-												]));
+												const pendingMap = new Map(
+													pendingDevices.map(d => [d
+														.sharerId, d
+													]));
 												// 更新 storedDevices 中的 registerVal 值
-												const updatedDevices = storedDevices.map(storedDevice => {
-													const pendingDevice = pendingMap.get(
-														storedDevice.sharerId);
-													if (!pendingDevice) return storedDevice;
-													const updatedDataPoints = storedDevice
-														.dataPoints.flatMap(dp => {
-															const pendingDataPoints =
-																pendingDevice.dataPoints
-																.filter(pdp => pdp.register ===
-																	dp.register);
-															if (pendingDataPoints.length > 0) {
-																// 为每个匹配的 pendingDataPoint 创建一个新的 dp 对象
-																return pendingDataPoints.map(
-																	pendingDataPoint => ({
-																		...dp,
-																		registerVal: pendingDataPoint
-																			.registerVal
-																	}));
-															} else {
-																// 如果没有匹配项，保留原始的 dp 对象
-																return dp;
-															}
-														});
-													return {
-														...storedDevice,
-														dataPoints: updatedDataPoints
-													};
-												});
+												const updatedDevices = storedDevices
+													.map(storedDevice => {
+														const pendingDevice =
+															pendingMap.get(
+																storedDevice
+																.sharerId);
+														if (!pendingDevice)
+															return storedDevice;
+														const updatedDataPoints =
+															storedDevice
+															.dataPoints.flatMap(
+																dp => {
+																	const
+																		pendingDataPoints =
+																		pendingDevice
+																		.dataPoints
+																		.filter(
+																			pdp =>
+																			pdp
+																			.register ===
+																			dp
+																			.register
+																		);
+																	if (pendingDataPoints
+																		.length > 0
+																	) {
+																		// 为每个匹配的 pendingDataPoint 创建一个新的 dp 对象
+																		return pendingDataPoints
+																			.map(
+																				pendingDataPoint =>
+																				({
+																					...
+																					dp,
+																					registerVal: pendingDataPoint
+																						.registerVal
+																				})
+																			);
+																	} else {
+																		// 如果没有匹配项，保留原始的 dp 对象
+																		return dp;
+																	}
+																});
+														return {
+															...storedDevice,
+															dataPoints: updatedDataPoints
+														};
+													});
 												// 如果数据发生变化，保存更新后的数据到本地存储
-												uni.setStorageSync("switchList", updatedDevices);
+												uni.setStorageSync("switchList",
+													updatedDevices);
 												// 保存原始副本
-												const originalData = JSON.parse(JSON.stringify(
-													storedDevices));
+												const originalData = JSON.parse(JSON
+													.stringify(
+														storedDevices));
 												// 检查数据是否发生变化
 												let hasDataChanged = false;
-												for (let i = 0; i < updatedDevices.length; i++) {
-													if (updatedDevices[i].swicth === true) {
+												for (let i = 0; i < updatedDevices
+													.length; i++) {
+													if (updatedDevices[i].swicth ===
+														true) {
 														// 找到原始数据中对应的设备
-														const originalDevice = originalData.find(device =>
-															device.sharerId === updatedDevices[i]
-															.sharerId);
+														const originalDevice =
+															originalData.find(device =>
+																device.sharerId ===
+																updatedDevices[i]
+																.sharerId);
 														if (!originalDevice) {
 															// 如果原始数据中没有找到对应的设备，说明数据发生了变化
 															hasDataChanged = true;
 															break;
 														}
 														// 比较 dataPoints 是否发生变化
-														const originalDataPoints = originalDevice
+														const originalDataPoints =
+															originalDevice
 															.dataPoints;
-														const updatedDataPoints = updatedDevices[i]
+														const updatedDataPoints =
+															updatedDevices[i]
 															.dataPoints;
 
-														if (originalDataPoints.length !== updatedDataPoints
+														if (originalDataPoints
+															.length !==
+															updatedDataPoints
 															.length) {
 															// 如果 dataPoints 数组长度不同，说明数据发生了变化
 															hasDataChanged = true;
 															break;
 														}
-														for (let j = 0; j < originalDataPoints
+														for (let j = 0; j <
+															originalDataPoints
 															.length; j++) {
-															const originalPoint = originalDataPoints[j];
-															const updatedPoint = updatedDataPoints.find(
-																point => point.register ===
-																originalPoint.register);
+															const originalPoint =
+																originalDataPoints[j];
+															const updatedPoint =
+																updatedDataPoints.find(
+																	point => point
+																	.register ===
+																	originalPoint
+																	.register);
 															if (!updatedPoint) {
 																// 如果更新后的 dataPoints 中没有找到对应的字段，说明数据发生了变化
 																hasDataChanged = true;
 																break;
 															}
-															if (originalPoint.registerVal !== updatedPoint
+															if (originalPoint
+																.registerVal !==
+																updatedPoint
 																.registerVal) {
 																// 如果字段值发生变化，说明数据发生了变化
 																hasDataChanged = true;
@@ -649,78 +764,138 @@
 													}
 												}
 												if (hasDataChanged) {
-													let aaa = uni.getStorageSync("switchList")
+													let aaa = uni.getStorageSync(
+														"switchList")
 													let bbb = []
 													// 保存更新后的数据到本地存储
-													for (let i = 0; aaa.length > i; i++) {
-														for (let aa = 0; aaa[i].dataPoints.length >
+													for (let i = 0; aaa.length >
+														i; i++) {
+														for (let aa = 0; aaa[i]
+															.dataPoints.length >
 															aa; aa++) {
-															if (aaa[i].dataPoints[aa].register ===
+															if (aaa[i].dataPoints[aa]
+																.register ===
 																"lowPressure") {
-																const lowPressure = parseInt(aaa[i]
-																	.dataPoints[aa].registerVal);
-																if (shuzhangya1 <= lowPressure &&
-																	shuzhangya2 >= lowPressure) {
-																	aaa[i].jingbaoshow1 = false
-																	aaa[i].jingbao1 = lowPressure + "mmHg"
+																const lowPressure =
+																	parseInt(aaa[i]
+																		.dataPoints[aa]
+																		.registerVal);
+																if (shuzhangya1 <=
+																	lowPressure &&
+																	shuzhangya2 >=
+																	lowPressure) {
+																	aaa[i]
+																		.jingbaoshow1 =
+																		false
+																	aaa[i].jingbao1 =
+																		lowPressure +
+																		"mmHg"
 																} else {
-																	aaa[i].jingbaoshow1 = true
-																	aaa[i].jingbao1 = lowPressure + "mmHg"
-																	that.notifyTriggered = true
+																	aaa[i]
+																		.jingbaoshow1 =
+																		true
+																	aaa[i].jingbao1 =
+																		lowPressure +
+																		"mmHg"
+																	that.notifyTriggered =
+																		true
 																}
 															}
-															if (aaa[i].dataPoints[aa].register ===
+															if (aaa[i].dataPoints[aa]
+																.register ===
 																"highPressure") {
-																const highPressure = parseInt(aaa[i]
-																	.dataPoints[aa].registerVal);
-																if (shousuoya1 <= highPressure &&
-																	shousuoya2 >= highPressure) {
-																	aaa[i].jingbaoshow2 = false
-																	aaa[i].jingbao2 = highPressure + "mmHg"
+																const highPressure =
+																	parseInt(aaa[i]
+																		.dataPoints[aa]
+																		.registerVal);
+																if (shousuoya1 <=
+																	highPressure &&
+																	shousuoya2 >=
+																	highPressure) {
+																	aaa[i]
+																		.jingbaoshow2 =
+																		false
+																	aaa[i].jingbao2 =
+																		highPressure +
+																		"mmHg"
 																} else {
-																	aaa[i].jingbaoshow2 = true
-																	aaa[i].jingbao2 = highPressure + "mmHg"
-																	that.notifyTriggered = true
+																	aaa[i]
+																		.jingbaoshow2 =
+																		true
+																	aaa[i].jingbao2 =
+																		highPressure +
+																		"mmHg"
+																	that.notifyTriggered =
+																		true
 																}
 															}
-															if (aaa[i].dataPoints[aa].register ===
+															if (aaa[i].dataPoints[aa]
+																.register ===
 																"heartrate") {
-																const heartrate = parseInt(aaa[i]
-																	.dataPoints[aa].registerVal);
-																if (maibo1 <= heartrate && maibo2 >=
+																const heartrate =
+																	parseInt(aaa[i]
+																		.dataPoints[aa]
+																		.registerVal);
+																if (maibo1 <=
+																	heartrate &&
+																	maibo2 >=
 																	heartrate) {
-																	aaa[i].jingbaoshow3 = false
-																	aaa[i].jingbao3 = heartrate + "BPM"
+																	aaa[i]
+																		.jingbaoshow3 =
+																		false
+																	aaa[i].jingbao3 =
+																		heartrate +
+																		"BPM"
 																} else {
-																	aaa[i].jingbaoshow3 = true
-																	aaa[i].jingbao3 = heartrate + "BPM"
-																	that.notifyTriggered = true
+																	aaa[i]
+																		.jingbaoshow3 =
+																		true
+																	aaa[i].jingbao3 =
+																		heartrate +
+																		"BPM"
+																	that.notifyTriggered =
+																		true
 																}
 															}
-															if (aaa[i].dataPoints[aa].register ===
+															if (aaa[i].dataPoints[aa]
+																.register ===
 																"oxygen") {
-																const oxygen = parseInt(aaa[i].dataPoints[
-																	aa].registerVal);
-																if (xeuyang1 <= oxygen && xeuyang2 >=
+																const oxygen =
+																	parseInt(aaa[i]
+																		.dataPoints[
+																			aa]
+																		.registerVal);
+																if (xeuyang1 <=
+																	oxygen &&
+																	xeuyang2 >=
 																	oxygen) {
-																	aaa[i].jingbaoshow4 = false
-																	aaa[i].jingbao4 = oxygen + "%"
+																	aaa[i]
+																		.jingbaoshow4 =
+																		false
+																	aaa[i].jingbao4 =
+																		oxygen + "%"
 																} else {
-																	aaa[i].jingbaoshow4 = true
-																	aaa[i].jingbao4 = oxygen + "%"
-																	that.notifyTriggered = true
+																	aaa[i]
+																		.jingbaoshow4 =
+																		true
+																	aaa[i].jingbao4 =
+																		oxygen + "%"
+																	that.notifyTriggered =
+																		true
 
 																}
 															}
 														}
 														bbb.push(aaa[i])
-														uni.setStorageSync("switchList", bbb)
+														uni.setStorageSync(
+															"switchList", bbb)
 													}
 													that.checkAndNotify();
 												}
 											}
 										} else {
-											let array1 = uni.getStorageSync("switchList");
+											let array1 = uni.getStorageSync(
+												"switchList");
 											let array2 = [];
 											// 遍历 pendingdata
 											pendingDevices.forEach(item => {
@@ -731,51 +906,87 @@
 												item.jingbao2 = "";
 												item.jingbaoshow3 = false;
 												item.jingbao3 = "";
-												item.dataPoints.forEach(dataPoint => {
-													let value = parseInt(dataPoint
-														.registerVal);
-													switch (dataPoint.register) {
-														case "lowPressure":
-															that.checkAlarm(item, dataPoint
-																.register, value, that
-																.shuzhangya1, that
-																.shuzhangya2,
-																"jingbaoshow1",
-																"jingbao1", "mmHg");
-															break;
-														case "highPressure":
-															that.checkAlarm(item, dataPoint
-																.register, value, that
-																.shousuoya1, that
-																.shousuoya2,
-																"jingbaoshow2",
-																"jingbao2", "mmHg");
-															break;
-														case "heartrate":
-															that.checkAlarm(item, dataPoint
-																.register, value, that
-																.maibo1, that.maibo2,
-																"jingbaoshow3",
-																"jingbao3", "BPM");
-															break;
-														case "oxygen":
-															that.checkAlarm(item, dataPoint
-																.register, value, that
-																.xeuyang1, that
-																.xeuyang2,
-																"jingbaoshow4",
-																"jingbao4", "%");
-															break;
-													}
-												});
+												item.dataPoints.forEach(
+													dataPoint => {
+														let value =
+															parseInt(
+																dataPoint
+																.registerVal
+															);
+														switch (dataPoint
+															.register) {
+															case "lowPressure":
+																that.checkAlarm(
+																	item,
+																	dataPoint
+																	.register,
+																	value,
+																	that
+																	.shuzhangya1,
+																	that
+																	.shuzhangya2,
+																	"jingbaoshow1",
+																	"jingbao1",
+																	"mmHg"
+																);
+																break;
+															case "highPressure":
+																that.checkAlarm(
+																	item,
+																	dataPoint
+																	.register,
+																	value,
+																	that
+																	.shousuoya1,
+																	that
+																	.shousuoya2,
+																	"jingbaoshow2",
+																	"jingbao2",
+																	"mmHg"
+																);
+																break;
+															case "heartrate":
+																that.checkAlarm(
+																	item,
+																	dataPoint
+																	.register,
+																	value,
+																	that
+																	.maibo1,
+																	that
+																	.maibo2,
+																	"jingbaoshow3",
+																	"jingbao3",
+																	"BPM"
+																);
+																break;
+															case "oxygen":
+																that.checkAlarm(
+																	item,
+																	dataPoint
+																	.register,
+																	value,
+																	that
+																	.xeuyang1,
+																	that
+																	.xeuyang2,
+																	"jingbaoshow4",
+																	"jingbao4",
+																	"%"
+																);
+																break;
+														}
+													});
 												array2.push(item);
 											});
 											let combinedArray = array2.concat(
 												array1.filter(item => !array2.some(
-													longItem => longItem.id === item.id))
+													longItem => longItem.id ===
+													item.id))
 											);
 											// 更新
-											uni.setStorageSync("switchList", combinedArray)
+											uni.setStorageSync("switchList",
+												combinedArray)
 										}
 									}
 								}
@@ -908,7 +1119,6 @@
 					index: 4,
 					text: this.$t('我的')
 				});
-
 			}
 		}
 	}

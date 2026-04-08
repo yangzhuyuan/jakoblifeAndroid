@@ -1,5 +1,5 @@
 <template>
-	<view style="padding-top: 20px;background: #F7F7F7; color: black;width: 100vw; height: 100vh;">
+	<view style="padding-top: 20px;background: #F7F7F7; color: #000000;width: 100vw; height: 100vh;">
 		<view style="margin:20px;font-size: 14px;color: gray;">
 			{{loact==='境内'?$t('请输入您新绑定的手机号'):$t('请输入您新绑定的邮箱')}}
 		</view>
@@ -23,7 +23,7 @@
 			<view class="modalss">
 				<view style="background: white;  margin-left: 20px;margin-right: 20px;border-radius: 20px;">
 					<view
-						style="text-align: center; font-size: 16px; color: black; font-weight: bold;padding-top: 20px;">
+						style="text-align: center; font-size: 16px; color: #000000; font-weight: bold;padding-top: 20px;">
 						{{$t('请填写图形验证码')}}
 					</view>
 					<view class="modal-content_bg">

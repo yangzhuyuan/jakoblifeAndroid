@@ -185,14 +185,14 @@
 
 <style>
 	.backstye {
-		color: black;
+		color: #000000;
 		height: 100vh;
 		background: #EFEFF4;
 	}
 
 	.typesstyles {
 		padding: 20px;
-		color: black;
+		color: #000000;
 		font-weight: 400;
 		font-size: 16px;
 	}

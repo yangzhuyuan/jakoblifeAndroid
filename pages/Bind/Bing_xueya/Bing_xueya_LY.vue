@@ -136,7 +136,7 @@
 <style>
 	.pagestyls {
 		display: flex;
-		color: black;
+		color: #000000;
 		flex-direction: column;
 	}
 
@@ -201,7 +201,7 @@
 	}
 
 	.textstyle {
-		color: black;
+		color: #000000;
 		font-weight: 600;
 		margin-left: 2px;
 	}

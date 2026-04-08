@@ -63,7 +63,7 @@
 				switchsdss: uni.getStorageSync("myswics") || false,
 				// 菜单项数组
 				menuItems: [{
-						title: '单位设置',
+						title: '设置',
 						url: '/pages/tabBar/my/Unit_setting'
 					},
 					{

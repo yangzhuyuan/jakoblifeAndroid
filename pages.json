@@ -246,7 +246,7 @@
 				// "app-plus": {
 				// 	"pullToRefresh": {
 				// 		"support": true,
-				// 		"color": "#000000", //小圈圈的颜色
+				// 		"color": "black", //小圈圈的颜色
 				// 		"style": "circle" //小圈圈的样式
 				// 	}
 				// }
@@ -809,6 +809,38 @@
 				"navigationBarBackgroundColor": "#F5F5F5",
 				"navigationBarTextStyle": "black"
 			}
+		},
+		{
+			"path": "pages/tabBar/share/share_history",
+			"style": {
+				"navigationBarTitleText": "情绪",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/globalweather",
+			"style": {
+				"navigationBarTitleText": "天气",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/share/share_history_BOOL",
+			"style": {
+				"navigationBarTitleText": "情绪",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/bloodpressuretimer",
+			"style": {
+				"navigationBarTitleText": "定时血压测量",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
 		}
 	],
 
@@ -816,7 +848,7 @@
 		"pageOrientation": "portrait",
 		"navigationBarTitleText": "JakobLife",
 		"navigationBarTextStyle": "white",
-		"navigationBarBackgroundColor": "black",
+		"navigationBarBackgroundColor": "#000000",
 		"backgroundColor": "#F8F8F8",
 		"backgroundColorTop": "#F4F5F6",
 		"backgroundColorBottom": "#F4F5F6",

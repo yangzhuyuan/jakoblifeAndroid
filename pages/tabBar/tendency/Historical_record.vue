@@ -88,11 +88,12 @@
 		},
 
 		data() {
-			const currentDate = new Date();
-			const currentMonth =
-				`${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
-			const today = currentDate.toISOString().slice(0, 10);
-
+			const now = new Date();
+			const year = now.getFullYear();
+			const month = (now.getMonth() + 1).toString().padStart(2, '0');
+			const day = now.getDate().toString().padStart(2, '0');
+			const currentMonth = `${year}-${month}`;
+			const today = `${year}-${month}-${day}`; // 本地日期，不是 UTC
 			return {
 				// 常量定义
 				ITEM_TYPES: {
@@ -302,20 +303,26 @@
 						'Authorization': 'Bearer ' + uni.getStorageSync("token")
 					});
 					if (res.code === 200 && res.rows && res.rows.length > 0) {
-						this.deviceSn = res.rows.map(item => item.deviceSn);
+						this.deviceSn = [];
+						this.deviceSn.push(uni.getStorageSync("userid"))
+						// this.deviceSn = res.rows.map(item => item.deviceSn);
 						await this.fetchData();
 					} else {
 						this.deviceSn = [];
+						this.deviceSn.push(uni.getStorageSync("userid"))
 						this.swipeList = [];
-						uni.showToast({
-							title: res.msg || this.$t('当前未绑定任何设备'),
-							icon: 'none'
-						});
+						// uni.showToast({
+						// 	title: this.$t('当前未绑定任何设备'),
+						// 	icon: 'none'
+						// });
+						await this.fetchData();
 					}
 				} catch (error) {
 					console.error('设备查询失败:', error);
 					this.deviceSn = [];
+					this.deviceSn.push(uni.getStorageSync("userid"))
 					this.swipeList = [];
+					await this.fetchData();
 				} finally {
 					this.loading = false;
 				}
@@ -342,19 +349,19 @@
 					startTime,
 					endTime,
 				};
-
+				console.log("原始血压数据传参:" + this.$url_APP_IP, data);
+				console.log("原始血压数据传参:" + this.$url_APP_IP, uni.getStorageSync("token"));
 				const res = await this.$post(this.$url_APP_IP + this.$url_query_log_v2, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				});
-
+				console.log("原始血压数据:", res);
 				if (res.code === 200) {
 					this.processBloodPressureData(res.data || []);
 				} else {
 					throw new Error(res.msg || '血压数据查询失败');
 				}
 			},
-
 			// 体脂数据查询
 			async queryBodyFatData(deviceSn, startTime, endTime) {
 				const data = {
@@ -367,11 +374,9 @@
 					startTime,
 					endTime,
 				};
-
 				const res = await this.$post(this.$url_APP_IP + this.$url_query_log_v2, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token")
 				});
-
 				if (res.code === 200) {
 					this.processBodyFatData(res.data || []);
 				} else {

@@ -159,7 +159,7 @@
 			}
 		},
 		onLoad() {
-			console.log(uni.getStorageSync("appQX"))
+			// console.log(uni.getStorageSync("appQX"))
 			if (uni.getStorageSync("appQX") === "1") {
 				if (this.qunxisnds === "") {
 					this.checkNotificationPermissions1()
@@ -197,8 +197,6 @@
 			}
 		},
 
-
-
 		onShow() {
 			let that = this
 			uni.setNavigationBarTitle({
@@ -207,7 +205,6 @@
 			// 设置用户头像和名称
 			that.avatar = that.info.avatar || '/static/icons/80x80.png';
 			that.name = that.info.nickName || that.info.userName;
-
 			// 定义存储键和对应的变量名
 			const storageKeys = [{
 					key: "shuzhangyaId1",
@@ -250,7 +247,6 @@
 					variable: "swicth"
 				}
 			];
-
 			// 获取存储信息
 			uni.getStorageInfo({
 				success(res) {
@@ -270,10 +266,23 @@
 					}
 				}
 			});
+			// that.get_user_alarm_list()
+		},
 
+		onHide() {
+			console.log("onHide")
 		},
 
 		onUnload() {
+			console.log("onUnload")
+			this.clearIntervalTimer()
+			if (this.listletnewtimers) {
+				clearInterval(this.listletnewtimers);
+				this.listletnewtimers = null;
+			}
+		},
+		beforeDestroy() {
+			console.log("beforeDestroy")
 			this.clearIntervalTimer()
 			if (this.listletnewtimers) {
 				clearInterval(this.listletnewtimers);
@@ -282,6 +291,39 @@
 		},
 
 		methods: {
+			// 根据当前用户查询告警规则列表
+			get_user_alarm_list() {
+				this.$get(this.$url_APP_IP + "/prod-api/user/trigger/get_user_alarm_list", {}, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then(get_user_alarm_listres => {
+					console.log("get_user_alarm_listres", get_user_alarm_listres)
+					if (get_user_alarm_listres.code === 200) {
+						if (get_user_alarm_listres.total > 0) {
+							for (let i = 0; get_user_alarm_listres.rows.length > i; i++) {
+								switch (get_user_alarm_listres.rows[i].register) {
+									case "lowPressure":
+										this.shousuoya1 = get_user_alarm_listres.rows[i].inputMin
+										this.shousuoya2 = get_user_alarm_listres.rows[i].inputMax
+										break
+									case "highPressure":
+										this.shuzhangya1 = get_user_alarm_listres.rows[i].inputMin
+										this.shuzhangya2 = get_user_alarm_listres.rows[i].inputMax
+										break
+									case "heartrate":
+										this.maibo1 = get_user_alarm_listres.rows[i].inputMin
+										this.maibo2 = get_user_alarm_listres.rows[i].inputMax
+										break
+									case "oxygen":
+										this.xeuyang1 = get_user_alarm_listres.rows[i].inputMin
+										this.xeuyang2 = get_user_alarm_listres.rows[i].inputMax
+										break
+								}
+							}
+						}
+					}
+				})
+			},
 
 			gotoAppPermissionSetting() {
 				// #ifdef APP-PLUS
@@ -297,7 +339,6 @@
 				}
 				// #endif
 			},
-
 			// #ifdef APP-PLUS
 			/**
 			 * 检测并申请通知权限（仅 Android 端）
@@ -347,7 +388,6 @@
 				});
 			},
 			// #endif
-
 			checkNotificationPermissions1() {
 				// 申请通知权限
 				plus.android.requestPermissions(['android.permission.POST_NOTIFICATIONS'], function(e) {
@@ -386,7 +426,6 @@
 					}
 				}, function(e) {});
 			},
-
 			// 定义一个函数来获取最新的血压和心率数据
 			getLatestPressureAndHeartRate(data, slaveSn) {
 				const filteredData = data.filter(item => item.slaveSn === slaveSn);
@@ -507,7 +546,6 @@
 				}
 				// 都空——认为这组跳过，返回 true（后面可改）
 				if (empty1 && empty2) return true;
-
 				// 数值校验
 				const v1 = Number(value1);
 				const v2 = Number(value2);
@@ -532,7 +570,6 @@
 				}
 				return true;
 			},
-
 			//点击确认设置
 			clickset() {
 				let that = this;
@@ -590,11 +627,47 @@
 				storageKeys.forEach(item => {
 					that[item.key] = uni.getStorageSync(item.key);
 				});
+				// that.usertrigger()
 				// 提示设定成功
 				uni.showToast({
 					title: that.$t("设定成功"),
 					icon: 'none'
 				});
+			},
+			//新增用户告警规则
+			usertrigger() {
+				let data = [{
+						userId: uni.getStorageSync("userid"),
+						register: "lowPressure",
+						inputMin: this.shousuoya1,
+						inputMax: this.shousuoya2
+					},
+					{
+						userId: uni.getStorageSync("userid"),
+						register: "highPressure",
+						inputMin: this.shuzhangya1,
+						inputMax: this.shuzhangya2
+					},
+					{
+						userId: uni.getStorageSync("userid"),
+						register: "heartrate",
+						inputMin: this.maibo1,
+						inputMax: this.maibo2
+					},
+					{
+						userId: uni.getStorageSync("userid"),
+						register: "oxygen",
+						inputMin: this.xeuyang1,
+						inputMax: this.xeuyang2
+					}
+				]
+				console.log("usertrigger", data)
+				this.$post(this.$url_APP_IP + "/prod-api/user/trigger", data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then(usertriggerres => {
+					console.log("usertriggerres", usertriggerres)
+				})
 			},
 			list_recipe() {
 				const data = {
@@ -604,6 +677,7 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
+					console.log("list_recipe", res)
 					if (res.code == 200) {
 						// 获取氧含量
 						let oxygen = this.getRegisterVal(res.data, "register", "oxygen");
@@ -670,6 +744,7 @@
 						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
 					},
 					success(pending) {
+						console.log("pending", pending)
 						if (pending.data.code === 200 && pending.data.data && pending.data.data.length > 0) {
 							that.filterList = []
 							const pendingdata = pending.data.data

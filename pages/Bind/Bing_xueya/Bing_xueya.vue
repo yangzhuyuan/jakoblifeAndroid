@@ -1,5 +1,5 @@
 <template>
-	<view style="display: flex; color: black;height: 100vh;">
+	<view style="display: flex; color: #000000;height: 100vh;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
 			<view class="shebeistyle">
 				<image style="width: 280px;" :src="SELECT_TYPE === '0' ? imagess:imagess1" />

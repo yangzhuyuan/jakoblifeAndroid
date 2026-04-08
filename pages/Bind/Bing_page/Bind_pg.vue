@@ -1,5 +1,5 @@
 <template>
-	<view style="color: black;height: 100vh;">
+	<view style="color: #000000;height: 100vh;">
 		<view style="display: flex;justify-content: center;padding-top: 80px;">
 			<circle-progress-bar :pro="prosgress_bg / 100" :border_back_color="'#dcdcdc'" :border_color="'#297DFE'"
 				style="color: #297DFE; font-size: 24px; font-weight: 600;">

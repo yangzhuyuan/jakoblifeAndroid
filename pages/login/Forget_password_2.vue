@@ -39,13 +39,7 @@
 			}
 		},
 		onLoad(res) {
-			//带过来的数据res
-			console.log(res)
-
 			this.phone = res.phone
-
-
-
 		},
 
 

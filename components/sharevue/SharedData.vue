@@ -16,7 +16,19 @@
 						style="width: 20vw; color: #999999; font-weight: 400; font-size: 16px; text-align: right; margin-right: 15px;">
 						{{ getRegisterValue(dataPoint.register, dataPoint.registerVal) }}
 					</view>
-					<uni-icons type="right" size="16"></uni-icons>
+					<view v-if="show1">
+						<uni-icons type="right" size="16"></uni-icons>
+					</view>
+					<view v-else>
+						<view v-if="getRegisterValueICON(dataPoint.register, dataPoint.registerVal)">
+							<image @click="viewHistory(getRegisterName(dataPoint.register),item.sharerId)"
+								mode="aspectFit" style="width: 20px; height: 20px;object-fit: contain;"
+								:src="getRegisterValueICON(dataPoint.register, dataPoint.registerVal)"></image>
+						</view>
+						<view v-else>
+							<uni-icons type="right" size="16"></uni-icons>
+						</view>
+					</view>
 				</view>
 				<view style="background: gainsboro; height: 1px; width: 100vw;"></view>
 			</view>
@@ -38,6 +50,11 @@
 					highPressure: this.$t('收缩压'),
 					heartrate: this.$t('脉搏'),
 					oxygen: this.$t('血氧'),
+					mood_index: this.$t("心情指数"),
+					depression_risk_score: this.$t("抑郁风险评分"),
+					stress_index: this.$t("压力指数"),
+					fatigue_index: this.$t("疲劳指数"),
+					recovery_index: this.$t("恢复指数"),
 					temperature: this.$t('体温'),
 					pressure: this.$t('压力'),
 					start_weight: this.$t('初始体重'),
@@ -65,10 +82,46 @@
 					bmi: 'kg/m²',
 					oxygen: '%',
 					temperature: '℃',
-					pressure: 'kPa'
+					pressure: 'kPa',
+					mood_index: "/10",
+					depression_risk_score: "/10",
+					stress_index: "/10",
+					fatigue_index: "/10",
+					recovery_index: "/10",
 				};
 				return `${value}${units[register] || ''}`;
-			}
+			},
+			getRegisterValueICON(register, value) {
+				const imageicon = {
+					lowPressure: "/static/page_icon/share_chakan.png",
+					highPressure: "/static/page_icon/share_chakan.png",
+					heartrate: "/static/page_icon/share_chakan.png",
+					mood_index: "/static/page_icon/share_chakan.png",
+					depression_risk_score: "/static/page_icon/share_chakan.png",
+					stress_index: "/static/page_icon/share_chakan.png",
+					fatigue_index: "/static/page_icon/share_chakan.png",
+					recovery_index: "/static/page_icon/share_chakan.png",
+				};
+				return `${imageicon[register] || ''}`;
+			},
+
+			// 新增：查看历史
+			viewHistory(register, shareid) {
+				console.log("register", register)
+				console.log("shareid", shareid)
+				if (this.show1) return
+				if (register === this.$t('舒张压') || register === this.$t('收缩压') || register === this.$t('脉搏')) {
+					// 跳转到历史数据页面
+					uni.navigateTo({
+						url: `../share/share_history_BOOL?register=${register}&shareid=${shareid}`
+					})
+				} else {
+					// 跳转到历史数据页面
+					uni.navigateTo({
+						url: `../share/share_history?register=${register}&shareid=${shareid}`
+					})
+				}
+			},
 		}
 	}
 </script>

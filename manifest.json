@@ -2,8 +2,8 @@
     "name" : "JakobLife",
     "appid" : "__UNI__F833FCF",
     "description" : "JakobLife 是针对消费者开发的自我健康管理的APP，您可以使用JakobLife记录或查询自己和家人的健康和数据，通过可视化图表直观地了解每天、每周、每月的数据变化趋势。",
-    "versionName" : "3.0.1",
-    "versionCode" : 186,
+    "versionName" : "3.2.002",
+    "versionCode" : 198,
     "transformPx" : false,
     "app-plus" : {
         "ios" : {
@@ -166,8 +166,8 @@
             }
         },
         "compatible" : {
-            "runtimeVersion" : "4.85", //根据实际情况填写  
-            "compilerVersion" : "4.85", //根据实际情况填写  
+            "runtimeVersion" : "5.06", //根据实际情况填写  
+            "compilerVersion" : "5.06", //根据实际情况填写  
             "ignoreVersion" : true
         },
         "usingComponents" : true,
@@ -187,7 +187,8 @@
             "Bluetooth" : {},
             "iBeacon" : {},
             "Push" : {},
-            "OAuth" : {}
+            "OAuth" : {},
+            "Geolocation" : {}
         },
         "distribute" : {
             "android" : {
@@ -386,7 +387,8 @@
                         "hms" : {},
                         "honor" : {}
                     }
-                }
+                },
+                "maps" : {}
             },
             // "url": "https://example.com",
             // "activity": "com.example.MainActivity"
@@ -394,6 +396,7 @@
             "splashscreen" : {
                 "useOriginalMsgbox" : true,
                 "androidStyle" : "common",
+                "backgroundColor" : "#FFFFFF", // 启动页背景色（十六进制）
                 "android" : {
                     "hdpi" : "",
                     "xhdpi" : "",
@@ -459,6 +462,20 @@
                 "__plugin_info__" : {
                     "name" : "TestThirdSdkPlugin",
                     "description" : "Android配对标准蓝牙",
+                    "platforms" : "Android",
+                    "url" : "",
+                    "android_package_name" : "",
+                    "ios_bundle_id" : "",
+                    "isCloud" : false,
+                    "bought" : -1,
+                    "pid" : "",
+                    "parameters" : {}
+                }
+            },
+            "KeepAlivesdkplugin" : {
+                "__plugin_info__" : {
+                    "name" : "KeepAlivesdkplugin",
+                    "description" : "UniApp后台保活与定时唤醒插件",
                     "platforms" : "Android",
                     "url" : "",
                     "android_package_name" : "",

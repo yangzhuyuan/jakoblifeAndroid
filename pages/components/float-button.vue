@@ -256,6 +256,7 @@
 		justify-content: center;
 		width: 50px;
 		height: 50px;
+		margin: 5px;
 		border-radius: 10px;
 		animation: subButtonAppear 0.3s ease forwards;
 		opacity: 0;

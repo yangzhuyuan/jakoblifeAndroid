@@ -1,8 +1,8 @@
 name:OTAÉı¼¶ÅäÖÃ
-unique_code:693241F80656352E382E320741423536313043
+unique_code:69C0EB890656352E382E370741423536313043
 part_id:0x08
-part_addr:0x6a3000
-part_len:0x7000
+part_addr:0x68f000
+part_len:0xe000
 bin_file:0x08.bin
 
 #name£ºOTAÃû³Æ

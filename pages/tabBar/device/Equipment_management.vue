@@ -368,9 +368,11 @@
 					characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
 					value: bindbuffer,
 					success(res) {
+						uni.removeStorageSync("otadatares")
 						console.log("0解绑设备：", res)
 					},
 					fail(err) {
+						uni.removeStorageSync("otadatares")
 						console.log("1解绑设备：", err)
 					}
 				})

@@ -42,6 +42,7 @@
 			<switch :checked="switchHER" @change="switch1ChangeHER" color="#4CD964" />
 		</view>
 		<button class="buttonstyle" @click="clickset()">{{$t("保存")}}</button>
+		<view style="margin: 20px;color: red;">{{$t("注意如果选择每5分钟测一次")}}</view>
 		<!-- <view class="context_btn2">
 			<view class="context_title1">{{$t('抬手亮屏')}}</view>
 			<switch @change="switch1Change" style="transform:scale(0.8);" :checked="switchRaise" color="#3298F7" />
@@ -102,7 +103,7 @@
 				time1: uni.getStorageSync("starttime") !== '' ? uni.getStorageSync("starttime") : this.getCurrentTime(),
 				time2: uni.getStorageSync("endtime") !== '' ? uni.getStorageSync("endtime") : this
 					.getCurrentTimePlusHour(),
-				array1: [this.$t('分钟60'), this.$t('分钟120'), this.$t('分钟240')],
+				array1: [this.$t('分钟5'), this.$t('分钟60'), this.$t('分钟120'), this.$t('分钟240')],
 				index1: uni.getStorageSync("Interval_time") !== "" ? uni.getStorageSync("Interval_time") : 0,
 				deviceId: uni.getStorageSync("landeviceId"),
 				serviceId: uni.getStorageSync("lanserviceId"),
@@ -776,12 +777,14 @@
 
 			sendwatch(writeuuid, type) {
 				let that = this
-				let jiangetime = 60
+				let jiangetime = 5
 				if (that.index1 === 0) {
-					jiangetime = 60
+					jiangetime = 5
 				} else if (that.index1 === 1) {
-					jiangetime = 120
+					jiangetime = 60
 				} else if (that.index1 === 2) {
+					jiangetime = 120
+				} else if (that.index1 === 3) {
 					jiangetime = 240
 				}
 				const ackConfigByteset = new Uint8Array(16);
@@ -863,12 +866,14 @@
 			},
 			sendwatch2(writeuuid, type) {
 				let that = this
-				let jiangetime = 60
+				let jiangetime = 5
 				if (that.index1 === 0) {
-					jiangetime = 60
+					jiangetime = 5
 				} else if (that.index1 === 1) {
-					jiangetime = 120
+					jiangetime = 60
 				} else if (that.index1 === 2) {
+					jiangetime = 120
+				} else if (that.index1 === 3) {
 					jiangetime = 240
 				}
 				const ackConfigByteset = new Uint8Array(16);

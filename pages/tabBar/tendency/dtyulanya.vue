@@ -272,23 +272,23 @@
 					<view class="listitemall">
 						<view style="width: 12%;"></view>
 						<view class="listitemall_2">
-							<view class="itemall">{{$t("舒张压")}}</view>
-							<view class="itemall_1">{{$t("收缩压")}}</view>
+							<view class="itemall">{{$t("收缩压")}}</view>
+							<view class="itemall_1">{{$t("舒张压")}}</view>
 							<view class="itemall_1">{{$t("脉搏")}}</view>
 						</view>
 						<view class="listitemall_2">
-							<view class="itemall">{{$t("舒张压")}}</view>
-							<view class="itemall_1">{{$t("收缩压")}}</view>
+							<view class="itemall">{{$t("收缩压")}}</view>
+							<view class="itemall_1">{{$t("舒张压")}}</view>
 							<view class="itemall_1">{{$t("脉搏")}}</view>
 						</view>
 						<view class="listitemall_2">
-							<view class="itemall">{{$t("舒张压")}}</view>
-							<view class="itemall_1">{{$t("收缩压")}}</view>
+							<view class="itemall">{{$t("收缩压")}}</view>
+							<view class="itemall_1">{{$t("舒张压")}}</view>
 							<view class="itemall_1">{{$t("脉搏")}}</view>
 						</view>
 						<view class="listitemall_2">
-							<view class="itemall">{{$t("舒张压")}}</view>
-							<view class="itemall_1">{{$t("收缩压")}}</view>
+							<view class="itemall">{{$t("收缩压")}}</view>
+							<view class="itemall_1">{{$t("舒张压")}}</view>
 							<view class="itemall_1">{{$t("脉搏")}}</view>
 						</view>
 					</view>
@@ -929,6 +929,11 @@
 		onShow() {
 			this.getUserInfo()
 			this.queryDevices()
+			setTimeout(() => {
+				if (uni.getStorageSync("pdfreport")) {
+					this.generatePDF()
+				}
+			}, 1000)
 		},
 
 		created() {
@@ -991,18 +996,27 @@
 			},
 
 			renderOver(e) {
+				uni.removeStorageSync("pdfreport")
 				// e为导出的图片（base64）
 				// console.log('==== renderOver :', e)
 			},
 			beforeSavePDF(e) {
+				uni.removeStorageSync("pdfreport")
 				// e为导出的pdf（base64）
 				// console.log('==== beforeSavePDF :', e)
 			},
 			successSavePDF(path) {
+				uni.removeStorageSync("pdfreport")
+				uni.hideLoading()
 				// e为打开的pdf（临时路径）
 				// console.log('==== successSavePDF :', path)
 			},
 			generatePDF() {
+				uni.setStorageSync("pdfreport", true)
+				uni.showLoading({
+					title: this.$t("生成中"),
+					mask: true
+				})
 				this.$refs.renderRef.h2pRenderDom()
 			},
 			getUserInfo() {
@@ -1048,7 +1062,7 @@
 									for (let i = 0; res.data.rows.length > i; i++) {
 										if (res.data.rows[i].deviceModelId === "10005") {
 											let deviceSnlist = []
-											deviceSnlist.push(res.data.rows[i].deviceSn)
+											deviceSnlist.push(uni.getStorageSync("userid"))
 											that.Testing_equipment = res.data.rows[i].name
 											that.get_retVarList(res.data.rows[i].deviceSn)
 											that.get_finalRetVarList(res.data.rows[i].deviceSn)
@@ -1060,7 +1074,7 @@
 												.rows[i]
 												.deviceModelId === "20001") {
 												let deviceSnlist1 = []
-												deviceSnlist1.push(res.data.rows[i].deviceSn)
+												deviceSnlist1.push(uni.getStorageSync("userid"))
 												that.query_log_v22(deviceSnlist1)
 											}
 										}, 1000)
@@ -1071,7 +1085,7 @@
 									for (let i = 0; res.data.rows.length > i; i++) {
 										if (res.data.rows[i].deviceModelId === "30000") {
 											let deviceSnlist = []
-											deviceSnlist.push(res.data.rows[i].deviceSn)
+											deviceSnlist.push(uni.getStorageSync("userid"))
 											that.Testing_equipment = res.data.rows[i].name
 											that.get_retVarList(res.data.rows[i].deviceSn)
 											that.get_finalRetVarList(res.data.rows[i].deviceSn)
@@ -1083,7 +1097,7 @@
 												.rows[i]
 												.deviceModelId === "20001") {
 												let deviceSnlist1 = []
-												deviceSnlist1.push(res.data.rows[i].deviceSn)
+												deviceSnlist1.push(uni.getStorageSync("userid"))
 												that.query_log_v22(deviceSnlist1)
 											}
 										}, 1000)
@@ -1091,6 +1105,11 @@
 									that.shebei = 1
 								}
 							}
+						} else if (res.data.code === 401) {
+							uni.showToast({
+								title: that.$t("登录账号已过期"),
+								icon: 'none'
+							})
 						} else {
 							uni.showToast({
 								title: res.data.msg,
@@ -1100,343 +1119,337 @@
 					}
 				})
 			},
-
-
+			// 血压指标中间表查询
 			get_retVarList(deviceSn) {
 				let that = this
-				uni.request({
-					url: that.$url_APP_IP + "/prod-api/device_app/get_retVarList",
-					method: 'POST',
-					data: {
-						deviceSn: deviceSn,
-						profDate: that.pacitime,
-						filterVarList: that.filterVarList,
-						retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(get_retVarList) {
-						if (get_retVarList.data.code === 200) {
-							let resultArray = get_retVarList.data.data.retVarList.split(";");
-							that.chartData.categories = []
-							for (let i = 0; resultArray.length > i; i++) {
-								let resultArray1 = resultArray[i].split(",");
-								if (that.idsss === "1") {
-									that.chartData.categories.push(resultArray1[0].trim().slice(10, 13) + that.$t(
-										"时"))
-								} else {
-									that.chartData.categories.push(resultArray1[0].trim().slice(8, 10) + that.$t(
-										"日"))
-								}
-								that.chartData.series[0].data.push(resultArray1[1])
-								that.chartData.series[1].data.push(resultArray1[2])
-								that.chartData.series[2].data.push(resultArray1[3])
+				let data = {
+					deviceSn: deviceSn,
+					profDate: that.pacitime,
+					filterVarList: that.filterVarList,
+					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
+				}
+				console.log("1血压指标中间表查询", data)
+				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_retVarList", data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((get_retVarList) => {
+					console.log("2血压指标中间表查询", get_retVarList)
+					if (get_retVarList.code === 200) {
+						let resultArray = get_retVarList.data.retVarList.split(";");
+						that.chartData.categories = []
+						for (let i = 0; resultArray.length > i; i++) {
+							let resultArray1 = resultArray[i].split(",");
+							if (that.idsss === "1") {
+								that.chartData.categories.push(resultArray1[0].trim().slice(10, 13) + that.$t(
+									"时"))
+							} else {
+								that.chartData.categories.push(resultArray1[0].trim().slice(8, 10) + that.$t(
+									"日"))
 							}
-						} else {
-							that.chartData.categories = []
-							that.chartData.series[0].data = []
-							that.chartData.series[1].data = []
-							that.chartData.series[2].data = []
+							that.chartData.series[0].data.push(resultArray1[1])
+							that.chartData.series[1].data.push(resultArray1[2])
+							that.chartData.series[2].data.push(resultArray1[3])
 						}
+					} else {
+						that.chartData.categories = []
+						that.chartData.series[0].data = []
+						that.chartData.series[1].data = []
+						that.chartData.series[2].data = []
 					}
 				})
 			},
+
 			//血压指标最终表查询
 			get_finalRetVarList(deviceSn) {
 				let that = this
-				uni.request({
-					url: that.$url_APP_IP + "/prod-api/device_app/get_finalRetVarList",
-					method: 'POST',
-					data: {
-						deviceSn: deviceSn,
-						profDate: that.pacitime,
-						period: that.period,
-						retVarList: that.finlretVarList1
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(get_finalRetVarList) {
-						if (get_finalRetVarList.data.code === 200) {
-							if (get_finalRetVarList.data.data.retVarList !== "") {
-								let resultArray = get_finalRetVarList.data.data.retVarList.split(";");
-								const checkAndAssign = (value) => {
-									return value === "999999998.00" || value === "999999999.00" ? "NA" : value;
-								};
-								for (let i = 0; i < resultArray.length; i++) {
-									let resultArray1 = resultArray[i].split(",");
-									// 有效数据个数百分比
-									that.youxiao_SZY_b = checkAndAssign(resultArray1[0]);
-									that.youxiao_SZY_Y = checkAndAssign(resultArray1[1]);
-									that.youxiao_SZY_Q = checkAndAssign(resultArray1[2]);
-									that.youxiao_SZY_H = checkAndAssign(resultArray1[3]);
-									that.youxiao_1 = resultArray1[4]
-									that.youxiao_2 = resultArray1[5]
-									that.youxiao_3 = resultArray1[6]
-									if (that.youxiao_3 === "0") {
-										that.jianyi6 = ""
-										that.fenxi11 = ""
-									} else {
-										that.jianyi6 = that.$t("建议9")
-										that.fenxi11 = that.$t("分析9")
+				let data = {
+					deviceSn: deviceSn,
+					profDate: that.pacitime,
+					period: that.period,
+					retVarList: that.finlretVarList1
+				}
+				console.log("1血压指标最终表查询", data)
+				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_finalRetVarList", data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((get_finalRetVarList) => {
+					console.log("2血压指标最终表查询", get_finalRetVarList)
+					if (get_finalRetVarList.code === 200) {
+						if (get_finalRetVarList.data.retVarList !== "") {
+							let resultArray = get_finalRetVarList.data.retVarList.split(";");
+							const checkAndAssign = (value) => {
+								return value === "999999998.00" || value === "999999999.00" ? "NA" : value;
+							};
+							for (let i = 0; i < resultArray.length; i++) {
+								let resultArray1 = resultArray[i].split(",");
+								// 有效数据个数百分比
+								that.youxiao_SZY_b = checkAndAssign(resultArray1[0]);
+								that.youxiao_SZY_Y = checkAndAssign(resultArray1[1]);
+								that.youxiao_SZY_Q = checkAndAssign(resultArray1[2]);
+								that.youxiao_SZY_H = checkAndAssign(resultArray1[3]);
+								that.youxiao_1 = resultArray1[4]
+								that.youxiao_2 = resultArray1[5]
+								that.youxiao_3 = resultArray1[6]
+								if (that.youxiao_3 === "0") {
+									that.jianyi6 = ""
+									that.fenxi11 = ""
+								} else {
+									that.jianyi6 = that.$t("建议9")
+									that.fenxi11 = that.$t("分析9")
+								}
+								// 均值
+								that.junzhi_SZY_b = checkAndAssign(resultArray1[7]);
+								that.junzhi_SSY_b = checkAndAssign(resultArray1[8]);
+								that.junzhi_pulse_b = checkAndAssign(resultArray1[9]);
+								that.junzhi_SZY_Y = checkAndAssign(resultArray1[10]);
+								that.junzhi_SSY_Y = checkAndAssign(resultArray1[11]);
+								that.junzhi_pulse_Y = checkAndAssign(resultArray1[12]);
+								that.junzhi_SZY_Q = checkAndAssign(resultArray1[13]);
+								that.junzhi_SSY_Q = checkAndAssign(resultArray1[14]);
+								that.junzhi_pulse_Q = checkAndAssign(resultArray1[15]);
+								that.junzhi_SZY_H = checkAndAssign(resultArray1[16]);
+								that.junzhi_SSY_H = checkAndAssign(resultArray1[17]);
+								that.junzhi_pulse_H = checkAndAssign(resultArray1[18]);
+								that.junzhi_1 = resultArray1[19];
+								that.junzhi_2 = resultArray1[20];
+								that.junzhi_3 = resultArray1[21];
+								that.junzhi_4 = resultArray1[22];
+								that.junzhi_5 = resultArray1[23];
+								that.junzhi_6 = resultArray1[24];
+								that.junzhi_7 = resultArray1[25];
+								that.junzhi_8 = resultArray1[26];
+								if (that.junzhi_1 === "0" && that.junzhi_2 === "0" && that.junzhi_3 === "0" &&
+									that.junzhi_4 === "0" && that.junzhi_5 === "0" && that.junzhi_6 === "0") {
+									that.jianyi5 = ""
+									that.fenxi5 = ""
+									that.fenxi6 = ""
+									that.fenxi7 = ""
+									that.fenxi8 = ""
+									that.fenxi9 = ""
+									that.fenxi10 = ""
+								} else {
+									that.jianyi5 = that.$t("建议8")
+									if (that.junzhi_1 === "1") {
+										that.fenxi5 = that.$t("分析8")
+									} else if (that.junzhi_2 === "1") {
+										that.fenxi6 = that.$t("分析81")
+									} else if (that.junzhi_3 === "1") {
+										that.fenxi7 = that.$t("分析83")
+									} else if (that.junzhi_4 === "1") {
+										that.fenxi8 = that.$t("分析84")
+									} else if (that.junzhi_5 === "1") {
+										that.fenxi9 = that.$t("分析86")
+									} else if (that.junzhi_6 === "1") {
+										that.fenxi10 = that.$t("分析87")
 									}
-									// 均值
-									that.junzhi_SZY_b = checkAndAssign(resultArray1[7]);
-									that.junzhi_SSY_b = checkAndAssign(resultArray1[8]);
-									that.junzhi_pulse_b = checkAndAssign(resultArray1[9]);
-									that.junzhi_SZY_Y = checkAndAssign(resultArray1[10]);
-									that.junzhi_SSY_Y = checkAndAssign(resultArray1[11]);
-									that.junzhi_pulse_Y = checkAndAssign(resultArray1[12]);
-									that.junzhi_SZY_Q = checkAndAssign(resultArray1[13]);
-									that.junzhi_SSY_Q = checkAndAssign(resultArray1[14]);
-									that.junzhi_pulse_Q = checkAndAssign(resultArray1[15]);
-									that.junzhi_SZY_H = checkAndAssign(resultArray1[16]);
-									that.junzhi_SSY_H = checkAndAssign(resultArray1[17]);
-									that.junzhi_pulse_H = checkAndAssign(resultArray1[18]);
-									that.junzhi_1 = resultArray1[19];
-									that.junzhi_2 = resultArray1[20];
-									that.junzhi_3 = resultArray1[21];
-									that.junzhi_4 = resultArray1[22];
-									that.junzhi_5 = resultArray1[23];
-									that.junzhi_6 = resultArray1[24];
-									that.junzhi_7 = resultArray1[25];
-									that.junzhi_8 = resultArray1[26];
-									if (that.junzhi_1 === "0" && that.junzhi_2 === "0" && that.junzhi_3 === "0" &&
-										that.junzhi_4 === "0" && that.junzhi_5 === "0" && that.junzhi_6 === "0") {
-										that.jianyi5 = ""
-										that.fenxi5 = ""
-										that.fenxi6 = ""
-										that.fenxi7 = ""
-										that.fenxi8 = ""
-										that.fenxi9 = ""
-										that.fenxi10 = ""
-									} else {
-										that.jianyi5 = that.$t("建议8")
-										if (that.junzhi_1 === "1") {
-											that.fenxi5 = that.$t("分析8")
-										} else if (that.junzhi_2 === "1") {
-											that.fenxi6 = that.$t("分析81")
-										} else if (that.junzhi_3 === "1") {
-											that.fenxi7 = that.$t("分析83")
-										} else if (that.junzhi_4 === "1") {
-											that.fenxi8 = that.$t("分析84")
-										} else if (that.junzhi_5 === "1") {
-											that.fenxi9 = that.$t("分析86")
-										} else if (that.junzhi_6 === "1") {
-											that.fenxi10 = that.$t("分析87")
-										}
+								}
+								if (that.youxiao_1 === "0" && that.junzhi_7 == "0") {
+									that.jianyi7 = ""
+									that.fenxi12 = ""
+									that.fenxi13 = ""
+								} else {
+									that.jianyi7 = that.$t("建议10")
+									if (that.youxiao_1 === "1") {
+										that.fenxi12 = that.$t("分析10")
+									} else if (that.junzhi_7 == "1") {
+										that.fenxi13 = that.$t("分析101")
 									}
-									if (that.youxiao_1 === "0" && that.junzhi_7 == "0") {
-										that.jianyi7 = ""
-										that.fenxi12 = ""
-										that.fenxi13 = ""
-									} else {
-										that.jianyi7 = that.$t("建议10")
-										if (that.youxiao_1 === "1") {
-											that.fenxi12 = that.$t("分析10")
-										} else if (that.junzhi_7 == "1") {
-											that.fenxi13 = that.$t("分析101")
-										}
-									}
+								}
 
-									if (that.youxiao_2 === "0" && that.junzhi_8 === "0") {
-										that.jianyi8 = ""
-										that.fenxi14 = ""
-										that.fenxi15 = ""
-									} else {
-										that.jianyi8 = that.$t("建议11")
-										if (that.youxiao_2 === "1") {
-											that.fenxi14 = that.$t("分析a")
-										} else if (that.junzhi_8 == "1") {
-											that.fenxi15 = that.$t("分析aa")
-										}
+								if (that.youxiao_2 === "0" && that.junzhi_8 === "0") {
+									that.jianyi8 = ""
+									that.fenxi14 = ""
+									that.fenxi15 = ""
+								} else {
+									that.jianyi8 = that.$t("建议11")
+									if (that.youxiao_2 === "1") {
+										that.fenxi14 = that.$t("分析a")
+									} else if (that.junzhi_8 == "1") {
+										that.fenxi15 = that.$t("分析aa")
 									}
-									// 标准差
-									that.biaozhun_SZY_b = checkAndAssign(resultArray1[27]);
-									that.biaozhun_SSY_b = checkAndAssign(resultArray1[28]);
-									that.biaozhun_pulse_b = checkAndAssign(resultArray1[29]);
-									that.biaozhun_SZY_Y = checkAndAssign(resultArray1[30]);
-									that.biaozhun_SSY_Y = checkAndAssign(resultArray1[31]);
-									that.biaozhun_pulse_Y = checkAndAssign(resultArray1[32]);
-									that.biaozhun_SZY_Q = checkAndAssign(resultArray1[33]);
-									that.biaozhun_SSY_Q = checkAndAssign(resultArray1[34]);
-									that.biaozhun_pulse_Q = checkAndAssign(resultArray1[35]);
-									that.biaozhun_SZY_H = checkAndAssign(resultArray1[36]);
-									that.biaozhun_SSY_H = checkAndAssign(resultArray1[37]);
-									that.biaozhun_pulse_H = checkAndAssign(resultArray1[38]);
-									// 最大值
-									that.zuida_SZY_b = checkAndAssign(resultArray1[39]);
-									that.zuida_SSY_b = checkAndAssign(resultArray1[40]);
-									that.zuida_pulse_b = checkAndAssign(resultArray1[41]);
-									that.zuida_SZY_Y = checkAndAssign(resultArray1[42]);
-									that.zuida_SSY_Y = checkAndAssign(resultArray1[43]);
-									that.zuida_pulse_Y = checkAndAssign(resultArray1[44]);
-									that.zuida_SZY_Q = checkAndAssign(resultArray1[45]);
-									that.zuida_SSY_Q = checkAndAssign(resultArray1[46]);
-									that.zuida_pulse_Q = checkAndAssign(resultArray1[47]);
-									that.zuida_SZY_H = checkAndAssign(resultArray1[48]);
-									that.zuida_SSY_H = checkAndAssign(resultArray1[49]);
-									that.zuida_pulse_H = checkAndAssign(resultArray1[50]);
-									// 中位数
-									that.zhongweishu_SZY_b = checkAndAssign(resultArray1[51]);
-									that.zhongweishu_SSY_b = checkAndAssign(resultArray1[52]);
-									that.zhongweishu_pulse_b = checkAndAssign(resultArray1[53]);
-									that.zhongweishu_SZY_Y = checkAndAssign(resultArray1[54]);
-									that.zhongweishu_SSY_Y = checkAndAssign(resultArray1[55]);
-									that.zhongweishu_pulse_Y = checkAndAssign(resultArray1[56]);
-									that.zhongweishu_SZY_Q = checkAndAssign(resultArray1[57]);
-									that.zhongweishu_SSY_Q = checkAndAssign(resultArray1[58]);
-									that.zhongweishu_pulse_Q = checkAndAssign(resultArray1[59]);
-									that.zhongweishu_SZY_H = checkAndAssign(resultArray1[60]);
-									that.zhongweishu_SSY_H = checkAndAssign(resultArray1[61]);
-									that.zhongweishu_pulse_H = checkAndAssign(resultArray1[62]);
-									// 最小值
-									that.zuixiaozhi_SZY_b = checkAndAssign(resultArray1[63]);
-									that.zuixiaozhi_SSY_b = checkAndAssign(resultArray1[64]);
-									that.zuixiaozhi_pulse_b = checkAndAssign(resultArray1[65]);
-									that.zuixiaozhi_SZY_Y = checkAndAssign(resultArray1[66]);
-									that.zuixiaozhi_SSY_Y = checkAndAssign(resultArray1[67]);
-									that.zuixiaozhi_pulse_Y = checkAndAssign(resultArray1[68]);
-									that.zuixiaozhi_SZY_Q = checkAndAssign(resultArray1[69]);
-									that.zuixiaozhi_SSY_Q = checkAndAssign(resultArray1[70]);
-									that.zuixiaozhi_pulse_Q = checkAndAssign(resultArray1[71]);
-									that.zuixiaozhi_SZY_H = checkAndAssign(resultArray1[72]);
-									that.zuixiaozhi_SSY_H = checkAndAssign(resultArray1[73]);
-									that.zuixiaozhi_pulse_H = checkAndAssign(resultArray1[74]);
-									// 血压负荷
-									that.xeuyafuhe_SZY_b = checkAndAssign(resultArray1[75]);
-									that.xeuyafuhe_SSY_b = checkAndAssign(resultArray1[76]);
-									that.xeuyafuhe_SZY_Y = checkAndAssign(resultArray1[77]);
-									that.xeuyafuhe_SSY_Y = checkAndAssign(resultArray1[78]);
-									that.xeuyafuhe_SZY_Q = checkAndAssign(resultArray1[79]);
-									that.xeuyafuhe_SSY_Q = checkAndAssign(resultArray1[80]);
-									that.xeuyafuhe_SZY_H = checkAndAssign(resultArray1[81]);
-									that.xeuyafuhe_SSY_H = checkAndAssign(resultArray1[82]);
-									that.xeuyafuhe_1 = resultArray1[83];
-									that.xeuyafuhe_2 = resultArray1[84];
-									that.xeuyafuhe_3 = resultArray1[85];
-									that.xeuyafuhe_4 = resultArray1[86];
-									that.xeuyafuhe_5 = resultArray1[87];
-									that.xeuyafuhe_6 = resultArray1[88];
-									that.xeuyafuhe_7 = resultArray1[89];
-									that.xeuyafuhe_8 = resultArray1[90];
-									if (that.xeuyafuhe_1 === "0" && that.xeuyafuhe_2 === "0" && that
-										.xeuyafuhe_3 === "0" && that.xeuyafuhe_4 === "0" && that.xeuyafuhe_5 ===
-										"0" && that.xeuyafuhe_6 === "0" && that.xeuyafuhe_7 === "0" && that
-										.xeuyafuhe_8 === "0") {
-										that.jianyi2 = ""
+								}
+								// 标准差
+								that.biaozhun_SZY_b = checkAndAssign(resultArray1[27]);
+								that.biaozhun_SSY_b = checkAndAssign(resultArray1[28]);
+								that.biaozhun_pulse_b = checkAndAssign(resultArray1[29]);
+								that.biaozhun_SZY_Y = checkAndAssign(resultArray1[30]);
+								that.biaozhun_SSY_Y = checkAndAssign(resultArray1[31]);
+								that.biaozhun_pulse_Y = checkAndAssign(resultArray1[32]);
+								that.biaozhun_SZY_Q = checkAndAssign(resultArray1[33]);
+								that.biaozhun_SSY_Q = checkAndAssign(resultArray1[34]);
+								that.biaozhun_pulse_Q = checkAndAssign(resultArray1[35]);
+								that.biaozhun_SZY_H = checkAndAssign(resultArray1[36]);
+								that.biaozhun_SSY_H = checkAndAssign(resultArray1[37]);
+								that.biaozhun_pulse_H = checkAndAssign(resultArray1[38]);
+								// 最大值
+								that.zuida_SZY_b = checkAndAssign(resultArray1[39]);
+								that.zuida_SSY_b = checkAndAssign(resultArray1[40]);
+								that.zuida_pulse_b = checkAndAssign(resultArray1[41]);
+								that.zuida_SZY_Y = checkAndAssign(resultArray1[42]);
+								that.zuida_SSY_Y = checkAndAssign(resultArray1[43]);
+								that.zuida_pulse_Y = checkAndAssign(resultArray1[44]);
+								that.zuida_SZY_Q = checkAndAssign(resultArray1[45]);
+								that.zuida_SSY_Q = checkAndAssign(resultArray1[46]);
+								that.zuida_pulse_Q = checkAndAssign(resultArray1[47]);
+								that.zuida_SZY_H = checkAndAssign(resultArray1[48]);
+								that.zuida_SSY_H = checkAndAssign(resultArray1[49]);
+								that.zuida_pulse_H = checkAndAssign(resultArray1[50]);
+								// 中位数
+								that.zhongweishu_SZY_b = checkAndAssign(resultArray1[51]);
+								that.zhongweishu_SSY_b = checkAndAssign(resultArray1[52]);
+								that.zhongweishu_pulse_b = checkAndAssign(resultArray1[53]);
+								that.zhongweishu_SZY_Y = checkAndAssign(resultArray1[54]);
+								that.zhongweishu_SSY_Y = checkAndAssign(resultArray1[55]);
+								that.zhongweishu_pulse_Y = checkAndAssign(resultArray1[56]);
+								that.zhongweishu_SZY_Q = checkAndAssign(resultArray1[57]);
+								that.zhongweishu_SSY_Q = checkAndAssign(resultArray1[58]);
+								that.zhongweishu_pulse_Q = checkAndAssign(resultArray1[59]);
+								that.zhongweishu_SZY_H = checkAndAssign(resultArray1[60]);
+								that.zhongweishu_SSY_H = checkAndAssign(resultArray1[61]);
+								that.zhongweishu_pulse_H = checkAndAssign(resultArray1[62]);
+								// 最小值
+								that.zuixiaozhi_SZY_b = checkAndAssign(resultArray1[63]);
+								that.zuixiaozhi_SSY_b = checkAndAssign(resultArray1[64]);
+								that.zuixiaozhi_pulse_b = checkAndAssign(resultArray1[65]);
+								that.zuixiaozhi_SZY_Y = checkAndAssign(resultArray1[66]);
+								that.zuixiaozhi_SSY_Y = checkAndAssign(resultArray1[67]);
+								that.zuixiaozhi_pulse_Y = checkAndAssign(resultArray1[68]);
+								that.zuixiaozhi_SZY_Q = checkAndAssign(resultArray1[69]);
+								that.zuixiaozhi_SSY_Q = checkAndAssign(resultArray1[70]);
+								that.zuixiaozhi_pulse_Q = checkAndAssign(resultArray1[71]);
+								that.zuixiaozhi_SZY_H = checkAndAssign(resultArray1[72]);
+								that.zuixiaozhi_SSY_H = checkAndAssign(resultArray1[73]);
+								that.zuixiaozhi_pulse_H = checkAndAssign(resultArray1[74]);
+								// 血压负荷
+								that.xeuyafuhe_SZY_b = checkAndAssign(resultArray1[75]);
+								that.xeuyafuhe_SSY_b = checkAndAssign(resultArray1[76]);
+								that.xeuyafuhe_SZY_Y = checkAndAssign(resultArray1[77]);
+								that.xeuyafuhe_SSY_Y = checkAndAssign(resultArray1[78]);
+								that.xeuyafuhe_SZY_Q = checkAndAssign(resultArray1[79]);
+								that.xeuyafuhe_SSY_Q = checkAndAssign(resultArray1[80]);
+								that.xeuyafuhe_SZY_H = checkAndAssign(resultArray1[81]);
+								that.xeuyafuhe_SSY_H = checkAndAssign(resultArray1[82]);
+								that.xeuyafuhe_1 = resultArray1[83];
+								that.xeuyafuhe_2 = resultArray1[84];
+								that.xeuyafuhe_3 = resultArray1[85];
+								that.xeuyafuhe_4 = resultArray1[86];
+								that.xeuyafuhe_5 = resultArray1[87];
+								that.xeuyafuhe_6 = resultArray1[88];
+								that.xeuyafuhe_7 = resultArray1[89];
+								that.xeuyafuhe_8 = resultArray1[90];
+								if (that.xeuyafuhe_1 === "0" && that.xeuyafuhe_2 === "0" && that
+									.xeuyafuhe_3 === "0" && that.xeuyafuhe_4 === "0" && that.xeuyafuhe_5 ===
+									"0" && that.xeuyafuhe_6 === "0" && that.xeuyafuhe_7 === "0" && that
+									.xeuyafuhe_8 === "0") {
+									that.jianyi2 = ""
+									that.fenxi2 = ""
+								} else {
+									that.jianyi2 = that.$t("建议5")
+									if (that.xeuyafuhe_1 === "1") {
+										that.fenxi2 = that.$t("分析5")
+									} else if (that.xeuyafuhe_2 === "1") {
+										that.fenxi2 = that.$t("分析52")
+									} else if (that.xeuyafuhe_3 === "1") {
+										that.fenxi2 = that.$t("分析53")
+									} else if (that.xeuyafuhe_4 === "1") {
+										that.fenxi2 = that.$t("分析54")
+									} else if (that.xeuyafuhe_5 === "1") {
+										that.fenxi2 = that.$t("分析55")
+									} else if (that.xeuyafuhe_6 === "1") {
+										that.fenxi2 = that.$t("分析56")
+									} else if (that.xeuyafuhe_7 === "1") {
+										that.fenxi2 = that.$t("分析57")
+									} else if (that.xeuyafuhe_8 === "1") {
+										that.fenxi2 = that.$t("分析58")
+									} else {
 										that.fenxi2 = ""
-									} else {
-										that.jianyi2 = that.$t("建议5")
-										if (that.xeuyafuhe_1 === "1") {
-											that.fenxi2 = that.$t("分析5")
-										} else if (that.xeuyafuhe_2 === "1") {
-											that.fenxi2 = that.$t("分析52")
-										} else if (that.xeuyafuhe_3 === "1") {
-											that.fenxi2 = that.$t("分析53")
-										} else if (that.xeuyafuhe_4 === "1") {
-											that.fenxi2 = that.$t("分析54")
-										} else if (that.xeuyafuhe_5 === "1") {
-											that.fenxi2 = that.$t("分析55")
-										} else if (that.xeuyafuhe_6 === "1") {
-											that.fenxi2 = that.$t("分析56")
-										} else if (that.xeuyafuhe_7 === "1") {
-											that.fenxi2 = that.$t("分析57")
-										} else if (that.xeuyafuhe_8 === "1") {
-											that.fenxi2 = that.$t("分析58")
-										} else {
-											that.fenxi2 = ""
-										}
 									}
-									// 夜间血压下降率
-									if (resultArray1[93] === "1") {
-										that.yejian_1 = "1"
-										that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "反杓型";
-										that.jianyi = that.$t("建议1")
-										that.fenxi = that.$t("分析1")
-									} else if (resultArray1[94] === "1") {
-										that.yejian_1 = "1"
-										that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "非杓型";
-										that.jianyi = that.$t("建议2")
-										that.fenxi = that.$t("分析2")
-									} else if (resultArray1[95] === "1") {
-										that.yejian_1 = "0"
-										that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "杓型";
-										that.jianyi = that.$t("建议4")
-										that.fenxi = that.$t("分析4")
-									} else if (resultArray1[96] === "1") {
-										that.yejian_1 = "1"
-										that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "超杓型";
-										that.jianyi = that.$t("建议3")
-										that.fenxi = that.$t("分析3")
-									} else {
-										that.yejian_1 = "0"
-										that.jianyi = ""
-										that.fenxi = ""
-									}
-									if (resultArray1[93] === "1") {
-										that.yejian_2 = "1"
-										that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "反杓型";
-										that.jianyi1 = that.$t("建议1")
-										that.fenxi1 = that.$t("分析11")
-									} else if (resultArray1[94] === "1") {
-										that.yejian_2 = "1"
-										that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "非杓型";
-										that.jianyi1 = that.$t("建议2")
-										that.fenxi1 = that.$t("分析22")
-									} else if (resultArray1[95] === "1") {
-										that.yejian_2 = "0"
-										that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "杓型";
-										that.jianyi1 = that.$t("建议4")
-										that.fenxi1 = that.$t("分析44")
-									} else if (resultArray1[96] === "1") {
-										that.yejian_2 = "1"
-										that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "超杓型";
-										that.jianyi1 = that.$t("建议3")
-										that.fenxi1 = that.$t("分析33")
-									} else {
-										that.yejian_2 = "0"
-										that.jianyi1 = ""
-										that.fenxi1 = ""
-									}
-									// 血压晨峰
-									that.xycf_SZY_H = checkAndAssign(resultArray1[101]);
-									that.xycf_SSY_H = checkAndAssign(resultArray1[102]);
-									that.xycf_1 = resultArray1[103]
+								}
+								// 夜间血压下降率
+								if (resultArray1[93] === "1") {
+									that.yejian_1 = "1"
+									that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "反杓型";
+									that.jianyi = that.$t("建议1")
+									that.fenxi = that.$t("分析1")
+								} else if (resultArray1[94] === "1") {
+									that.yejian_1 = "1"
+									that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "非杓型";
+									that.jianyi = that.$t("建议2")
+									that.fenxi = that.$t("分析2")
+								} else if (resultArray1[95] === "1") {
+									that.yejian_1 = "0"
+									that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "杓型";
+									that.jianyi = that.$t("建议4")
+									that.fenxi = that.$t("分析4")
+								} else if (resultArray1[96] === "1") {
+									that.yejian_1 = "1"
+									that.yejian_SZY_H = checkAndAssign(resultArray1[91]) + "超杓型";
+									that.jianyi = that.$t("建议3")
+									that.fenxi = that.$t("分析3")
+								} else {
+									that.yejian_1 = "0"
+									that.jianyi = ""
+									that.fenxi = ""
+								}
+								if (resultArray1[93] === "1") {
+									that.yejian_2 = "1"
+									that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "反杓型";
+									that.jianyi1 = that.$t("建议1")
+									that.fenxi1 = that.$t("分析11")
+								} else if (resultArray1[94] === "1") {
+									that.yejian_2 = "1"
+									that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "非杓型";
+									that.jianyi1 = that.$t("建议2")
+									that.fenxi1 = that.$t("分析22")
+								} else if (resultArray1[95] === "1") {
+									that.yejian_2 = "0"
+									that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "杓型";
+									that.jianyi1 = that.$t("建议4")
+									that.fenxi1 = that.$t("分析44")
+								} else if (resultArray1[96] === "1") {
+									that.yejian_2 = "1"
+									that.yejian_SSY_H = checkAndAssign(resultArray1[92]) + "超杓型";
+									that.jianyi1 = that.$t("建议3")
+									that.fenxi1 = that.$t("分析33")
+								} else {
+									that.yejian_2 = "0"
+									that.jianyi1 = ""
+									that.fenxi1 = ""
+								}
+								// 血压晨峰
+								that.xycf_SZY_H = checkAndAssign(resultArray1[101]);
+								that.xycf_SSY_H = checkAndAssign(resultArray1[102]);
+								that.xycf_1 = resultArray1[103]
 
-									if (that.xycf_1 === "0") {
-										that.jianyi3 = ""
-										that.fenxi3 = ""
-									} else {
-										that.jianyi3 = that.$t("建议6")
-										that.fenxi3 = that.$t("分析6")
-									}
-									// 变异系数
-									that.byxs_SZY_b = checkAndAssign(resultArray1[104]);
-									that.byxs_SSY_b = checkAndAssign(resultArray1[105]);
-									that.byxs_pulse_b = checkAndAssign(resultArray1[106]);
-									that.byxs_SZY_Y = checkAndAssign(resultArray1[107]);
-									that.byxs_SSY_Y = checkAndAssign(resultArray1[108]);
-									that.byxs_pulse_Y = checkAndAssign(resultArray1[109]);
-									that.byxs_SZY_Q = checkAndAssign(resultArray1[110]);
-									that.byxs_SSY_Q = checkAndAssign(resultArray1[111]);
-									that.byxs_pulse_Q = checkAndAssign(resultArray1[112]);
-									that.byxs_SZY_H = checkAndAssign(resultArray1[113]);
-									that.byxs_SSY_H = checkAndAssign(resultArray1[114]);
-									that.byxs_pulse_H = checkAndAssign(resultArray1[115]);
-									// // 动脉硬化指数
-									that.dmyhzs_SSY_H = checkAndAssign(resultArray1[116]);
-									that.dmyhzs = resultArray1[117]
-									if (that.dmyhzs === "0") {
-										that.jianyi4 = ""
-										that.fenxi4 = ""
-									} else {
-										that.jianyi4 = that.$t("建议7")
-										that.fenxi4 = that.$t("分析7")
-									}
+								if (that.xycf_1 === "0") {
+									that.jianyi3 = ""
+									that.fenxi3 = ""
+								} else {
+									that.jianyi3 = that.$t("建议6")
+									that.fenxi3 = that.$t("分析6")
+								}
+								// 变异系数
+								that.byxs_SZY_b = checkAndAssign(resultArray1[104]);
+								that.byxs_SSY_b = checkAndAssign(resultArray1[105]);
+								that.byxs_pulse_b = checkAndAssign(resultArray1[106]);
+								that.byxs_SZY_Y = checkAndAssign(resultArray1[107]);
+								that.byxs_SSY_Y = checkAndAssign(resultArray1[108]);
+								that.byxs_pulse_Y = checkAndAssign(resultArray1[109]);
+								that.byxs_SZY_Q = checkAndAssign(resultArray1[110]);
+								that.byxs_SSY_Q = checkAndAssign(resultArray1[111]);
+								that.byxs_pulse_Q = checkAndAssign(resultArray1[112]);
+								that.byxs_SZY_H = checkAndAssign(resultArray1[113]);
+								that.byxs_SSY_H = checkAndAssign(resultArray1[114]);
+								that.byxs_pulse_H = checkAndAssign(resultArray1[115]);
+								// // 动脉硬化指数
+								that.dmyhzs_SSY_H = checkAndAssign(resultArray1[116]);
+								that.dmyhzs = resultArray1[117]
+								if (that.dmyhzs === "0") {
+									that.jianyi4 = ""
+									that.fenxi4 = ""
+								} else {
+									that.jianyi4 = that.$t("建议7")
+									that.fenxi4 = that.$t("分析7")
 								}
 							}
 						}
@@ -1468,16 +1481,16 @@
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "5D") {
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 5); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate() - 4); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "6D") {
 					const minusOneDay = new Date(initialDate);
-					minusOneDay.setDate(minusOneDay.getDate() - 4); // setDate 方法会自动处理日期的增减
+					minusOneDay.setDate(minusOneDay.getDate() - 5); // setDate 方法会自动处理日期的增减
 					startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "1W") {
 					// 减去一周（7天）
 					const minusOneWeek = new Date(initialDate);
-					minusOneWeek.setDate(minusOneWeek.getDate() - 5); // 减去一周
+					minusOneWeek.setDate(minusOneWeek.getDate() - 6); // 减去一周
 					startTime = minusOneWeek.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				} else if (that.period === "2W") {
 					// 减去一周（7天）
@@ -1503,121 +1516,78 @@
 					minusOneMonth.setMonth(minusOneMonth.getMonth() - 3); // 减去一个月
 					startTime = minusOneMonth.toISOString().replace('T', ' ').substring(0, 10) + " 00:00:00"
 				}
-				uni.request({
-					url: that.$url_APP_IP + that.$url_query_log_v2,
-					method: 'POST',
-					data: {
-						deviceSn: deviceSn,
-						dataType: "pressure",
-						slaveList: [{
-								slaveSn: "0",
-								register: "highPressure"
-							},
-							{
-								slaveSn: "0",
-								register: "lowPressure"
-							},
-							{
-								slaveSn: "0",
-								register: "heartrate"
-							}
-						],
-						startTime: startTime,
-						endTime: endTime,
-					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json' //自定义请求头信息
-					},
-					success(res) {
-						console.log('血压', res)
-						if (res.data.code == 200) {
-							if (res.data.data !== "") {
-								that.listall = []
-								// ---------- 1. 记录每日是否命中高血压 ----------
-								const dailyHit = []; // true / false
+				let data = {
+					deviceSn: deviceSn,
+					dataType: "pressure",
+					slaveList: [{
+							slaveSn: "0",
+							register: "highPressure"
+						},
+						{
+							slaveSn: "0",
+							register: "lowPressure"
+						},
+						{
+							slaveSn: "0",
+							register: "heartrate"
+						}
+					],
+					startTime: startTime,
+					endTime: endTime,
+				}
+				console.log('血压历史数据', data)
+				that.$post(that.$url_APP_IP + that.$url_query_log_v2, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then((res) => {
+					console.log('血压', res)
+					if (res.code == 200) {
+						if (res.data !== "") {
+							that.listall = []
+							// ---------- 1. 记录每日是否命中高血压 ----------
+							const dailyHit = []; // true / false
+							res.data.forEach(day => {
+								let hit = false;
+								// 1.1 原有 setBloodPressureLevel 逻辑（不变）
+								const sum = day.object.summary;
+								const l = sum.lowPressureAvg;
+								const h = sum.highPressureAvg;
+								if (l >= 61 && l <= 80 && h >= 91 && h <= 120) {
+									that.setBloodPressureLevel(1);
+								} else if ((l >= 81 && l <= 90) || (h >= 121 && h <= 140)) {
+									that.setBloodPressureLevel(2);
+								} else if ((l >= 91 && l <= 100) || (h >= 141 && h <= 160)) {
+									that.setBloodPressureLevel(3);
+								} else if ((l >= 101 && l <= 110) || (h >= 161 && h <= 180)) {
+									that.setBloodPressureLevel(4);
+								}
+								// 1.2 判断当天是否出现高血压记录
+								day.object.details.forEach(item => {
+									const lp = item.lowPressure;
+									const hp = item.highPressure;
 
-								res.data.data.forEach(day => {
-									let hit = false;
-
-									// 1.1 原有 setBloodPressureLevel 逻辑（不变）
-									const sum = day.object.summary;
-									const l = sum.lowPressureAvg;
-									const h = sum.highPressureAvg;
-
-									if (l >= 61 && l <= 80 && h >= 91 && h <= 120) {
-										that.setBloodPressureLevel(1);
-									} else if ((l >= 81 && l <= 90) || (h >= 121 && h <= 140)) {
-										that.setBloodPressureLevel(2);
-									} else if ((l >= 91 && l <= 100) || (h >= 141 && h <= 160)) {
-										that.setBloodPressureLevel(3);
-									} else if ((l >= 101 && l <= 110) || (h >= 161 && h <= 180)) {
-										that.setBloodPressureLevel(4);
+									if (
+										(lp >= 81 && lp <= 90) || (hp >= 121 && hp <= 140) ||
+										(lp >= 91 && lp <= 100) || (hp >= 141 && hp <= 160) ||
+										(lp >= 101 && lp <= 110) || (hp >= 161 && hp <= 180)
+									) {
+										hit = true;
 									}
-
-									// 1.2 判断当天是否出现高血压记录
-									day.object.details.forEach(item => {
-										const lp = item.lowPressure;
-										const hp = item.highPressure;
-
-										if (
-											(lp >= 81 && lp <= 90) || (hp >= 121 && hp <= 140) ||
-											(lp >= 91 && lp <= 100) || (hp >= 141 && hp <= 160) ||
-											(lp >= 101 && lp <= 110) || (hp >= 161 && hp <= 180)
-										) {
-											hit = true;
-										}
-
-										// 原有 listall 组装逻辑（不变）
-										item.date = day.dateTime;
-										item.modelName = day.modelName;
-										that.listall.push(item);
-									});
-
-									dailyHit.push(hit);
+									// 原有 listall 组装逻辑（不变）
+									item.date = day.dateTime;
+									item.modelName = day.modelName;
+									that.listall.push(item);
 								});
 
-								// ---------- 2. 仅当最近连续 3 天都命中时，才置 gaoya = 0 ----------
-								const n = dailyHit.length;
-								if (n >= 3 && dailyHit[n - 1] && dailyHit[n - 2] && dailyHit[n - 3]) {
-									that.gaoya = 0;
-								}
-
-								// for (let i = 0; res.data.data.length > i; i++) {
-								// 	let lowPressureAvg = res.data.data[i].object.summary.lowPressureAvg
-								// 	let highPressureAvg = res.data.data[i].object.summary.highPressureAvg
-								// 	if ((lowPressureAvg >= 61 && lowPressureAvg <= 80) && (highPressureAvg >= 91 &&
-								// 			highPressureAvg <= 120)) {
-								// 		that.setBloodPressureLevel(1)
-								// 	} else if ((lowPressureAvg >= 81 && lowPressureAvg <= 90) || (
-								// 			highPressureAvg >= 121 && highPressureAvg <= 140)) {
-								// 		that.setBloodPressureLevel(2)
-								// 	} else if ((lowPressureAvg >= 91 && lowPressureAvg <= 100) || (
-								// 			highPressureAvg >= 141 && highPressureAvg <= 160)) {
-								// 		that.setBloodPressureLevel(3)
-								// 	} else if ((lowPressureAvg >= 101 && lowPressureAvg <= 110) || (
-								// 			highPressureAvg >= 161 && highPressureAvg <= 180)) {
-								// 		that.setBloodPressureLevel(4)
-								// 	}
-								// 	res.data.data[i].object.details.forEach((item1, index1) => {
-								// 		item1.date = res.data.data[i].dateTime
-								// 		item1.modelName = res.data.data[i].modelName
-								// 		if ((item1.lowPressure >= 81 && item1.lowPressure <= 90) || (item1
-								// 				.highPressure >= 121 && item1.highPressure <= 140)) {
-								// 			that.gaoya = 0
-								// 		} else if ((item1.lowPressure >= 91 && item1.lowPressure <= 100) ||
-								// 			(item1.highPressure >= 141 && item1.highPressure <= 160)) {
-								// 			that.gaoya = 0
-								// 		} else if ((item1.lowPressure >= 101 && item1.lowPressure <=
-								// 				110) || (item1.highPressure >= 161 && item1.highPressure <=
-								// 				180)) {
-								// 			that.gaoya = 0
-								// 		}
-								// 		that.listall.push(item1)
-								// 	});
-								// }
-								that.checkDateRange()
+								dailyHit.push(hit);
+							});
+							// ---------- 2. 仅当最近连续 3 天都命中时，才置 gaoya = 0 ----------
+							const n = dailyHit.length;
+							// console.log('n血压', n)
+							if (n >= 3 && dailyHit[n - 1] && dailyHit[n - 2] && dailyHit[n - 3]) {
+								that.gaoya = 0;
 							}
+							that.checkDateRange()
 						}
 					}
 				})

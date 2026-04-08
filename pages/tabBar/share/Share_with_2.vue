@@ -53,14 +53,33 @@
 						name: '血氧',
 						key: 'oxygen'
 					},
+
+
+
 					{
-						name: '压力',
-						key: 'pressure'
+						name: '心情指数',
+						key: 'mood_index'
+					}, {
+						name: '抑郁风险评分',
+						key: 'depression_risk_score'
+					}, {
+						name: '压力指数',
+						key: 'stress_index'
+					}, {
+						name: '疲劳指数',
+						key: 'fatigue_index'
+					}, {
+						name: '恢复指数',
+						key: 'recovery_index'
 					},
-					{
-						name: '体温',
-						key: 'temperature'
-					},
+					// {
+					// 	name: '压力',
+					// 	key: 'pressure'
+					// },
+					// {
+					// 	name: '体温',
+					// 	key: 'temperature'
+					// },
 					{
 						name: '初始体重',
 						key: 'start_weight'

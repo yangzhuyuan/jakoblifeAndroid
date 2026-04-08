@@ -362,8 +362,10 @@
 					value: bindbuffer,
 					success(res) {
 						console.log("0解绑设备：", res)
+						uni.removeStorageSync("otadatares")
 					},
 					fail(err) {
+						uni.removeStorageSync("otadatares")
 						console.log("1解绑设备：", err)
 					}
 				})

@@ -134,10 +134,12 @@
 			//注销用户
 			delete_self() {
 				let that = this
+				console.log("注销用户" + that.$url_APP_IP, uni.getStorageSync("token"))
 				that.$post(that.$url_APP_IP + that.$url_delete_self, {}, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
+					console.log("注销用户", res)
 					if (res.code == 200) {
 						if (Vue.prototype.$globalTimers.heartbeatInterval) {
 							clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);

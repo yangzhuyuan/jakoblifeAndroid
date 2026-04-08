@@ -44,7 +44,6 @@
 								name:{{item.name}}</view>
 							<view style="text-align: left">deviceId:{{item.deviceId}}</view>
 						</view>
-
 						<view>
 							<image v-if="item.RSSI<= -80" src="../../../static/page_icon/lanya_iocn_1.png"
 								style="height: 30px;width: 30px;">
@@ -55,14 +54,13 @@
 							<image v-else-if="item.RSSI >= -60" src="../../../static/page_icon/lanya_iocn_3.png"
 								style="height: 30px;width: 30px;"></image>
 						</view>
-
 					</view>
 				</view>
 			</view>
 		</view>
 		<view style="position: fixed;top: 0;left: 0; right: 0;">
 			<view class="titlestyle">
-				<uni-icons style="margin-top: 30px;" @click="back()" type="left" size="24" color="black"></uni-icons>
+				<uni-icons style="margin-top: 30px;" @click="back()" type="left" size="24" color="#000000"></uni-icons>
 				<view style="font-size: 16px; font-weight: 600;margin-top: 30px;">{{$t('蓝牙搜索页面')}}</view>
 				<view @click="batch_del()" style="margin-top: 30px;">{{$t('刷新')}}</view>
 			</view>
@@ -111,15 +109,17 @@
 					}
 				}
 			})
-		},
+			// that.clearHeartbeatInterval()
+			uni.openBluetoothAdapter()
 
+		},
+		//上个页面带过来的数据
 		onLoad(res) {
 			this.sn = res.sn
 			this.SELECT_TYPE = res.SELECT_TYPE
 			this.modelId = res.modelId
-
 		},
-
+		//定义初始化值
 		data() {
 			return {
 				sn: '',
@@ -163,10 +163,17 @@
 		},
 
 		methods: {
-
-
+			back() {
+				uni.navigateBack()
+			},
+			//暂停首页定时任务
+			clearHeartbeatInterval() {
+				if (Vue.prototype.$globalTimers.heartbeatInterval) {
+					clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
+					Vue.prototype.$globalTimers.heartbeatInterval = null;
+				}
+			},
 			switch1Change(e) {
-				console.log("大师罗杰斯打卡大数据", e.detail.value)
 				if (e.detail.value == true) {
 					this.checked = true
 					this.initBluetooth()
@@ -175,16 +182,92 @@
 					this.bluetoothList = []
 				}
 			},
-
-
-
 			goService() {
 				this.tipShow = true;
 			},
 			move() {
 				uni.stopPullDownRefresh()
-				// uni.offBluetoothDeviceFound();
 				uni.stopBluetoothDevicesDiscovery();
+			},
+			async batch_del() {
+				if (this.isRefreshing) return;
+				this.isRefreshing = true;
+				try {
+					uni.showLoading({
+						title: this.$t("刷新中"),
+						mask: true
+					});
+					// 先停止所有蓝牙操作
+					await this.stopDiscovery();
+					await this.closeBluetoothAdapterAsync();
+					// 清空列表但保留已连接设备
+					this.bluetoothList = [];
+					this.deviceMap = new Map();
+					if (this.checked) {
+						await this.initBluetoothAsync();
+					}
+				} catch (err) {
+					console.error('刷新失败:', err);
+					uni.showToast({
+						title: this.$t('刷新失败'),
+						icon: 'none'
+					});
+				} finally {
+					uni.hideLoading();
+					this.isRefreshing = false;
+				}
+			},
+			// 新增停止发现方法
+			async stopDiscovery() {
+				return new Promise((resolve) => {
+					uni.stopBluetoothDevicesDiscovery({
+						success: resolve,
+						fail: resolve // 即使失败也继续
+					});
+				});
+			},
+			// ➕ 关闭蓝牙适配器（Promise 封装）
+			async closeBluetoothAdapterAsync() {
+				return new Promise((resolve, reject) => {
+					uni.closeBluetoothAdapter({
+						success: resolve,
+						fail: reject,
+					});
+				});
+			},
+			// 初始化蓝牙优化版
+			async initBluetoothAsync() {
+				try {
+					await new Promise((resolve, reject) => {
+						uni.openBluetoothAdapter({
+							success: resolve,
+							fail: reject,
+						});
+					});
+					// 初始化设备Map
+					this.deviceMap = new Map();
+					this.connectBluetooth();
+				} catch (err) {
+					if (err.errCode === 10001) {
+						await this.showBluetoothAlert();
+					}
+					throw err;
+				}
+			},
+			// 显示蓝牙提示框
+			async showBluetoothAlert() {
+				return new Promise((resolve) => {
+					uni.showModal({
+						content: this.$t("当前蓝牙未开启是否去设置打开"),
+						showCancel: false,
+						success: (modalres) => {
+							if (modalres.confirm) {
+								this.openBLE();
+							}
+							resolve();
+						}
+					});
+				});
 			},
 			/*选中蓝牙*/
 			selectBluetooth1(item) {
@@ -240,7 +323,6 @@
 									});
 								}
 							}
-
 						})
 					}
 				})
@@ -292,26 +374,22 @@
 							});
 						}
 					}
-
 				});
 			},
-
+			//连接低功耗蓝牙
 			createBLEConnection(deviceId, item) {
 				let that = this;
 				that.$refs.popup.open("bottom")
 				uni.createBLEConnection({
 					deviceId: deviceId,
 					success: (res) => {
-						that.$refs.popup1.open("bottom")
 						console.log("连接低功耗蓝牙设备成功", res);
-						that.$refs.popup.close()
 						if (item != "") {
 							that.bluetoothList1.push(item)
 							uni.setStorageSync("listdadsa", that.bluetoothList1)
 						}
 						//需延时连接，不然会报错
 						setTimeout(function() {
-							that.getBLEDeviceServices(deviceId)
 							//设置MTU
 							uni.setBLEMTU({
 								deviceId: deviceId,
@@ -320,20 +398,15 @@
 									console.log("设置蓝牙最大传输单元", resMTU);
 								}
 							})
-						}, 1000);
+							that.getBLEDeviceServices(deviceId)
+						}, 2000);
 					},
 					fail(erro) {
 						that.$refs.popup.close()
-						// uni.showToast({
-						// 	title: "连接失败或设备已经连接",
-						// 	icon: 'none'
-						// })
 						console.log("连接低功耗蓝牙设备失败", erro);
 					}
 				});
 			},
-
-
 			//获取蓝牙外围设备的服务
 			getBLEDeviceServices(deviceId) {
 				let that = this
@@ -347,9 +420,7 @@
 						console.log("获取蓝牙外围设备的服务失败", res)
 					}
 				})
-
 			},
-
 			//获取蓝牙外围设备的特征值
 			getBLEDeviceCharacteristics(deviceId, serviceId) {
 				let that = this
@@ -358,19 +429,24 @@
 					serviceId: serviceId,
 					success: (res) => {
 						console.log('获取蓝牙设备某个服务中所有特征值(characteristic)', res.characteristics)
-
-						that.deviceId = deviceId
-						that.serviceId = serviceId
-						that.uuid = res.characteristics[0].uuid
-
+						for (let i = 0; res.characteristics.length > i; i++) {
+							let item = res.characteristics[i]
+							//蓝牙消息通知
+							if (item.properties.write) {
+								that.deviceId = deviceId
+								that.serviceId = serviceId
+								that.uuid = item.uuid
+							}
+							that.$refs.popup1.open("bottom")
+							that.$refs.popup.close()
+						}
 					},
 					fail(res) {
 						console.error('getBLEDeviceCharacteristics', res)
 					}
 				})
 			},
-
-
+			//确认按钮
 			turesss() {
 				let that = this
 				that.$refs.popup1.close()
@@ -379,13 +455,8 @@
 						"&serviceId=" + that.serviceId + "&uuid=" + that.uuid + "&sn=" + that.sn +
 						"&SELECT_TYPE=" + that.SELECT_TYPE + "&modelId=" + that.modelId
 				})
-
 			},
-
-
-
 			android() {
-
 				var main = plus.android.runtimeMainActivity();
 				var Context = plus.android.importClass("android.content.Context");
 				var BManager = main.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -397,15 +468,12 @@
 				// var resultDiv = document.getElementById('bluetooth_list');
 				var iterator = lists.iterator();
 				plus.android.importClass(iterator);
-
 				while (iterator.hasNext()) {
 					var d = iterator.next();
 					plus.android.importClass(d);
 					console.log("名称：" + d.getName() + "，地址：" + d.getAddress());
 				}
 			},
-
-
 
 			enableBluetooth() {
 				return new Promise((resolve, reject) => {
@@ -418,8 +486,6 @@
 					});
 				});
 			},
-
-
 			getPairedDevices() {
 				plus.bluetooth.getPairedDevices(function(devices) {
 					if (devices.length > 0) {
@@ -435,8 +501,6 @@
 					console.log("获取已配对设备失败：" + err);
 				});
 			},
-
-
 			/*搜索连接蓝牙*/
 			connectBluetooth() {
 				console.log('开始搜索蓝牙')
@@ -482,7 +546,7 @@
 	.tablebody {
 		height: 100vh;
 		width: 100vw;
-		color: black;
+		color: #000000;
 	}
 
 	.tableitem {

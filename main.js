@@ -1,30 +1,27 @@
+// 导入文件
 import App from './App'
 import store from './store'
 import VueI18n from 'vue-i18n';
 import Messages from './pages/api/language.js'
 import Vue from 'vue'
 import GlobalPopup from '@/components/GlobalPopup.vue'
-
 import {
 	myRequest,
 	getRequest,
 	postRequest,
 	putRequest,
 } from './pages/api/request.js'
-
+// 引入全局组件
 Vue.config.productionTip = false
 Vue.prototype.$store = store
 Vue.prototype.$myRequest = myRequest;
 Vue.prototype.$get = getRequest;
 Vue.prototype.$post = postRequest;
 Vue.prototype.$put = putRequest;
-
 // 全局定时任务管理器
 Vue.prototype.$globalTimers = {
 	heartbeatInterval: null
 };
-
-
 // 全局注册组件
 Vue.component('GlobalPopup', GlobalPopup)
 // 再挂到原型，方便任何页面 this.$popup 直接调用
@@ -46,13 +43,12 @@ Vue.prototype.$popupProgress = function(p) {
 	if (comp && comp.mode === 'download') comp.onProgress(p)
 }
 //测试域名
-// const APP_IP_OA = 'https://jakoblife-qa.jakob-techs.com' //中国测试服务器
-// const APP_IP_OA_EN = 'https://jakoblife-qa.jakob-techs.com' //美国测试服务器
+// const APP_IP_CN = "https://jakoblife-qa.jakob-techs.com"; //中国测试服务器
 //正式域名
-const APP_IP_OA = 'https://jakoblife.jakob-techs.com' //中国正式服务器
-// const APP_IP_OA_EN = 'https://jakoblife.jakob-techs.com'//美国正式服务器
-
-Vue.prototype.$url_APP_IP = APP_IP_OA
+const APP_IP_CN = 'https://jakoblife.jakob-techs.com' //中国正式服务器
+const APP_IP_US = 'https://jakoblife.us.jakob-techs.com' //美国正式服务器
+Vue.prototype.$APP_IP1 = APP_IP_CN
+Vue.prototype.$APP_IP2 = APP_IP_US
 //获取用户信息
 Vue.prototype.$url_getInfo = "/prod-api/app/user/profile/getInfo"
 //获取图形验证码
@@ -141,8 +137,6 @@ Vue.prototype.$url_batch_del_data_log = "/prod-api/device_app/batch_del_data_log
 Vue.prototype.$url_jakoblife_fat_scale = "/prod-api/jakoblife/fat_scale"
 //获取待处理分享请求列表
 Vue.prototype.$url_pending = "/prod-api/share/data/pending"
-
-
 Vue.prototype.$backgroundAudioData = {
 	playing: false,
 	playTime: 0,
@@ -155,22 +149,24 @@ const i18n = new VueI18n({
 	messages: Messages //language中的语言包
 })
 Vue.prototype._i18n = i18n;
-App.mpType = 'app'
-const app = new Vue({
-	store,
-	i18n,
-	...App
+// Vue 实例并挂载应用
+App.mpType = 'app' // 标记为应用类型（App）
+const app = new Vue({ // 创建 Vue 根实例
+	store, // 注入 Vuex 状态管理
+	i18n, // 注入国际化插件
+	...App // 展开 App.vue 的配置（data, methods, lifecycle等）
 })
-app.$mount()
+app.$mount() // 挂载应用到页面
+
 
 import {
 	createSSRApp
 } from 'vue'
 export function createApp() {
-	const app = createSSRApp(App)
-	app.use(store)
-	app.config.globalProperties.$adpid = "1111111111"
-	app.config.globalProperties.$backgroundAudioData = {
+	const app = createSSRApp(App) // 创建 SSR 应用实例
+	app.use(store) // 创建 SSR 应用实例
+	app.config.globalProperties.$adpid = "1111111111" // 全局属性：广告ID
+	app.config.globalProperties.$backgroundAudioData = { // 全局属性：背景音频数据
 		playing: false,
 		playTime: 0,
 		formatedPlayTime: '00:00:00'

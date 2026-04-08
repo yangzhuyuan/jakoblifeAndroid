@@ -1,5 +1,5 @@
 <template>
-	<view style=" color: black;height: 100vh;background: #EFEFF4;">
+	<view style=" color: #000000;height: 100vh;background: #EFEFF4;">
 		<view style="display: flex; justify-self: center;flex-direction: column;">
 			<view class="shebeistyle">
 				<image style="padding: 40px;" :src="SELECT_TYPE === '0' ? imagess:imagess1" />
@@ -15,13 +15,13 @@
 				{{$t("绑定提醒3")}}
 			</view>
 			<!-- <view style="position: fixed;bottom: 0; width: 100vw;"> -->
-				<view style="flex-direction: row; display: flex; justify-content: center;margin-top: 118px;">
-					<checkbox style="font-size: 12px;" color="#ffffff" class="round" activeBackgroundColor="#3298F7"
-						active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('准备就绪')}}
-					</checkbox>
-				</view>
-				<button plain="true" class="btn" :style="getback(cb)" @click="btn_next()">{{$t('下一步')}}</button>
-				<view class="textsss" @click="bing_fail()">{{$t('绑定失败')}}</view>
+			<view style="flex-direction: row; display: flex; justify-content: center;margin-top: 118px;">
+				<checkbox style="font-size: 12px;" color="#ffffff" class="round" activeBackgroundColor="#3298F7"
+					active-border-color="#DBDBDB" :checked="cb" @click="checked">{{$t('准备就绪')}}
+				</checkbox>
+			</view>
+			<button plain="true" class="btn" :style="getback(cb)" @click="btn_next()">{{$t('下一步')}}</button>
+			<view class="textsss" @click="bing_fail()">{{$t('绑定失败')}}</view>
 			<!-- </view> -->
 		</view>
 		<view>

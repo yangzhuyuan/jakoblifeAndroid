@@ -1,9 +1,11 @@
 <template>
 	<view>
 		<view class="controller">
+
 			<view class="today-btn_1">
 				<view style="font-weight: bold;font-size: 14px;">{{$t("帮助")}}</view>
 			</view>
+
 			<view class="action">
 				<!-- 月份切换 -->
 				<view class="arrow left" :class="{disabled: prevDisabled}" @click="handleChange('prev')">
@@ -14,16 +16,20 @@
 					<text class="icon"></text>
 				</view>
 			</view>
+
 			<view class="today-btn">
 				<view style="font-weight: bold;font-size: 14px;" @click="backToday">{{$t("回到今天")}}</view>
 			</view>
+
 		</view>
+
 		<view class="calender" :class="[viewType]">
 			<view class="week-box">
 				<view :key="index" v-for="(item,index) in week" class="week">
 					{{ item }}
 				</view>
 			</view>
+
 			<view class="day-box">
 				<view class="placeholder" :class="[changeType]">
 					<view :key="index" v-for="(item,index) in virtually_data" class="item" :class="{
@@ -41,6 +47,7 @@
 						<view class="dots" v-show="item[keyName]"></view>
 					</view>
 				</view>
+
 				<view class="days" :class="[changeType]" @touchend="touchend" @touchmove="touchmove"
 					@touchstart="touchstart">
 					<view :key="index" v-for="(item,index) in days" class="item" :class="{
@@ -74,7 +81,12 @@
 		formattedDate,
 		getMonthDays,
 		reduMonths,
-		getAppointDate
+		getAppointDate,
+		getBeijingWeekDay,
+		getMonthBounds,
+		getWeekStart,
+		parseBeijingDate,
+		getDateInfo
 	} from './dateManage.js'
 	import getChineseCalendar from './chineseCalendar.js'
 	import getSolarTerm from './solarTerm.js'
@@ -82,54 +94,52 @@
 		solarFestival,
 		lunarFestival
 	} from './festival.js'
+
 	const today = currentDate()
-	let startX = 0
-	let endX = 0
 
 	export default {
 		props: {
-			dots: { // 数据点
+			dots: {
 				type: Array,
 				default: () => []
 			},
-			keyName: { // 数据点的key
+			keyName: {
 				type: String,
 				default: 'value'
 			},
-			defaultViewType: { // 日历视图
+			defaultViewType: {
 				type: String,
 				default: 'month'
 			},
-			allowFuture: { // 允许选择未来日期
+			allowFuture: {
 				type: Boolean,
 				default: false
 			},
-			minDate: { // 过去日期限制
+			minDate: {
 				type: String,
 				default: ''
 			},
-			showLunarCalendar: { // 显示农历
+			showLunarCalendar: {
 				type: Boolean,
 				default: false
 			},
-			showSolarTerm: { // 显示24节气
+			showSolarTerm: {
 				type: Boolean,
 				default: false
 			},
-			showFestival: { // 显示节日
+			showFestival: {
 				type: Boolean,
 				default: false
 			},
-
-			customStyle: { // 自定义默认样式
+			customStyle: {
 				type: Object,
 				default: () => {}
 			},
-			activeBgColor: { // 自定义选中样式
+			activeBgColor: {
 				type: String,
 				default: '#3c9cff'
 			},
-			activeColor: { // 自定义选中样式
+			activeColor: {
 				type: String,
 				default: '#fff'
 			}
@@ -144,7 +154,13 @@
 				changeType: '',
 				prevDisabled: false,
 				nextDisabled: true,
-				viewType: ''
+				viewType: '',
+				// 手势相关
+				touchStartX: 0,
+				touchStartY: 0,
+				touchStartTime: 0,
+				isTouching: false,
+				isMoving: false
 			}
 		},
 		watch: {
@@ -165,11 +181,8 @@
 				return this.current != today
 			},
 			dateLabel() {
-				if (this.viewType === 'week') {
-					return formattedDate(this.current, 'yyyy-mm')
-				} else {
-					return formattedDate(this.current, 'yyyy-mm')
-				}
+				const parts = parseBeijingDate(this.current)
+				return `${parts.year}-${padStart(parts.month)}`
 			},
 			cty() {
 				return {
@@ -186,10 +199,11 @@
 		},
 		methods: {
 			/**
-			 * 回今日
+			 * 回到今天
 			 */
 			backToday() {
 				this.nextDisabled = !this.allowFuture
+				this.current = today
 				this.init()
 			},
 
@@ -241,9 +255,8 @@
 					}
 				}
 				if (this.minDate) {
-					const cd = new Date(date)
-					const firstDay = formattedDate(new Date(cd.getFullYear(), cd.getMonth(), 1))
-					const minDiff = getDaysDifference(firstDay, this.minDate)
+					const bounds = getMonthBounds(date)
+					const minDiff = getDaysDifference(bounds.firstDay, this.minDate)
 					this.prevDisabled = minDiff <= 0
 					if (getDaysDifference(date, this.minDate) <= 0) {
 						_default = this.minDate
@@ -251,7 +264,6 @@
 				}
 				this.current = _default
 
-				// 500ms节流
 				setTimeout(() => {
 					this.changeType = ''
 					this._clock = false
@@ -269,7 +281,6 @@
 
 				this.initWeekCalender(this.current, type)
 
-				// 500ms节流
 				setTimeout(() => {
 					this.changeType = ''
 					this._clock = false
@@ -281,9 +292,10 @@
 			 * 日期点击
 			 */
 			itemClick(data) {
-				if (data.after && !this.allowFuture || data.before || this.current == data.date) return
+				// 如果正在滑动，不触发点击
+				if (this.isMoving) return
+				if ((data.after && !this.allowFuture) || data.before || this.current == data.date) return
 				this.current = data.date
-				// 点击其他月份的日期，切换日历
 				if (data.type !== 'current') {
 					this.handleChange(data.type)
 				}
@@ -307,58 +319,59 @@
 			 * 初始化月份日历
 			 */
 			initMonthCalender(value) {
-				let date = new Date()
-				if (value) {
-					date = new Date(value)
+				const dateStr = value || today
+				const bounds = getMonthBounds(dateStr)
+				const {
+					year,
+					month,
+					days
+				} = bounds
+
+				this._nowYear = year
+				this._nowMonth = month
+
+				const firstDayWeekday = getBeijingWeekDay(year, month, 1)
+
+				let prevYear = year
+				let prevMonth = month - 1
+				if (prevMonth === 0) {
+					prevMonth = 12
+					prevYear = year - 1
 				}
-				const nowMonth = date.getMonth() + 1
-				const nowYear = date.getFullYear()
-				const nowDay = date.getDate()
+				const prevMonthDays = getMonthDays(prevMonth, prevYear)
 
-				this._nowYear = nowYear
-				this._nowMonth = nowMonth
-				this._nowDay = nowDay
-
-				const days = getMonthDays(nowMonth, nowYear)
-				const start_date = new Date(nowYear, nowMonth - 1, 1)
-				const end_date = new Date(nowYear, nowMonth - 1, days)
-				const prev_date = new Date(start_date.getTime() - 1)
-				const prev_date_days = prev_date.getDate()
-				const next_date = new Date(end_date.getTime() + 86401 * 1000)
-				const start_week = start_date.getDay()
 				const date_arrs = []
 
 				if (this.minDate) {
-					const cd = new Date(date)
-					const firstDay = formattedDate(new Date(cd.getFullYear(), cd.getMonth(), 1))
-					this.prevDisabled = getDaysDifference(firstDay, this.minDate) <= 0
+					this.prevDisabled = getDaysDifference(bounds.firstDay, this.minDate) <= 0
 				}
 
-				// 上月
-				for (let i = prev_date_days - start_week + 1; i <= prev_date_days; i++) {
-					const _d = this.dateComplement(`${prev_date.getFullYear()}-${prev_date.getMonth()+1}-${i}`)
-
+				for (let i = prevMonthDays - firstDayWeekday + 1; i <= prevMonthDays; i++) {
+					const _d = `${prevYear}-${padStart(prevMonth)}-${padStart(i)}`
 					date_arrs.push({
 						type: 'prev',
 						...this.getDateDetail(_d, i)
 					})
 				}
 
-				// 当前月
 				for (let i = 1; i <= days; i++) {
-					const _d = this.dateComplement(`${nowYear}-${nowMonth}-${i}`)
-
+					const _d = `${year}-${padStart(month)}-${padStart(i)}`
 					date_arrs.push({
 						type: 'current',
 						...this.getDateDetail(_d, i)
 					})
 				}
 
-				// 下月
-				const date_arrs_length = date_arrs.length
-				for (let i = 1; i <= 42 - date_arrs_length; i++) {
-					const _d = this.dateComplement(`${next_date.getFullYear()}-${next_date.getMonth()+1}-${i}`)
+				const remaining = 42 - date_arrs.length
+				let nextYear = year
+				let nextMonth = month + 1
+				if (nextMonth === 13) {
+					nextMonth = 1
+					nextYear = year + 1
+				}
 
+				for (let i = 1; i <= remaining; i++) {
+					const _d = `${nextYear}-${padStart(nextMonth)}-${padStart(i)}`
 					date_arrs.push({
 						type: 'next',
 						...this.getDateDetail(_d, i)
@@ -382,40 +395,48 @@
 					current: 0,
 					next: 7
 				}
-				const timestamp = 3600 * 24 * 1000
-				const t_date = new Date(new Date(date || this.current).getTime() + typeMap[type] * timestamp)
-				const ty = t_date.getFullYear()
-				const tm = t_date.getMonth()
-				const td = t_date.getDate() - t_date.getDay()
-				const weekStart = new Date(ty, tm, td)
+
+				const baseStr = date || this.current
+				const baseInfo = getDateInfo(baseStr)
+
+				const currentWeekday = baseInfo.weekday
+				const weekStartStr = getWeekStart(baseStr)
+				const offsetDays = typeMap[type]
+				const targetStartStr = getAppointDate(weekStartStr, offsetDays)
+
 				const weekDays = []
-				for (var i = 0; i < 7; i++) {
-					const _d = getAppointDate(formattedDate(weekStart), i)
-					const day = new Date(_d).getDate()
+
+				for (let i = 0; i < 7; i++) {
+					const dayStr = getAppointDate(targetStartStr, i)
+					const dayInfo = getDateInfo(dayStr)
 
 					weekDays.push({
 						type: 'current',
-						...this.getDateDetail(_d, day)
+						...this.getDateDetail(dayStr, dayInfo.day)
 					})
 				}
-				const selectDate = weekDays[new Date(this.current).getDay()].date
-				let _default = selectDate
+
+				let selectDate = weekDays[Math.min(currentWeekday, 6)].date
+
 				if (!this.allowFuture) {
-					const weekDiff = getDaysDifference(today, weekDays[weekDays.length - 1].date)
-					this.nextDisabled = weekDiff <= 0
-					if (getDaysDifference(today, _default) < 0) {
-						_default = today
+					const lastDayOfWeek = weekDays[6].date
+					this.nextDisabled = getDaysDifference(today, lastDayOfWeek) < 0
+
+					if (getDaysDifference(today, selectDate) < 0) {
+						selectDate = today
 					}
 				}
+
 				if (this.minDate) {
-					const firstDay = weekDays[0].date
-					const minDiff = getDaysDifference(firstDay, this.minDate)
-					this.prevDisabled = minDiff <= 0
+					const firstDayOfWeek = weekDays[0].date
+					this.prevDisabled = getDaysDifference(firstDayOfWeek, this.minDate) <= 0
+
 					if (getDaysDifference(selectDate, this.minDate) <= 0) {
-						_default = this.minDate
+						selectDate = this.minDate
 					}
 				}
-				this.current = _default
+
+				this.current = selectDate
 				this.days = weekDays
 				this.__days = weekDays
 				if (!this.virtually_data.length) {
@@ -449,69 +470,60 @@
 			 * 月份切换计算
 			 */
 			getMonth(type) {
-				let nowYear = parseInt(this._nowYear)
-				let nowMonth = parseInt(this._nowMonth)
-				let nowDay = new Date(this.current).getDate()
+				const parts = parseBeijingDate(this.current)
+				let {
+					year,
+					month,
+					day
+				} = parts
 
 				if (type == 'prev') {
-					if (nowMonth == 1) {
-						nowMonth = 12
-						nowYear = nowYear - 1
+					if (month == 1) {
+						month = 12
+						year = year - 1
 					} else {
-						nowMonth--
+						month--
 					}
 				} else if (type == 'next') {
-					if (nowMonth == 12) {
-						nowMonth = 1
-						nowYear = nowYear + 1
+					if (month == 12) {
+						month = 1
+						year = year + 1
 					} else {
-						nowMonth++
+						month++
 					}
 				}
 
-				let days = getMonthDays(nowMonth, nowYear)
-				if (nowDay > days) {
-					nowDay = days
+				const days = getMonthDays(month, year)
+				if (day > days) {
+					day = days
 				}
-				return this.dateComplement(`${nowYear}-${nowMonth}-${nowDay}`)
-			},
-
-			/**
-			 * 日期格式化
-			 */
-			dateComplement(date) {
-				return date.replace(/-(\d)(?!\d)/g, '-0$1')
+				return `${year}-${padStart(month)}-${padStart(day)}`
 			},
 
 			/**
 			 * 获取日期详情
-			 * @param {String} date 公历日期 yyyy-mm-dd
-			 * @param {String} day 公历日期 dd
 			 */
 			getDateDetail(date, day) {
 				const dayDiff = getDaysDifference(today, date)
 				const minDayDiff = this.minDate ? getDaysDifference(date, this.minDate) : 0
-				const isToday = today == date
+				const isToday = date === today
 				const obj = {
-					date, // 日期  yyyy-mm-dd
-					day: isToday ? this.$t("今") : day, // 日期  dd
-					today: isToday, // 今天
-					before: minDayDiff < 0, // 是否过往日期
-					after: dayDiff < 0, // 是否以后日期
-					lunarDate: '', // 农历日期
-					lunarCalendar: {}, // 农历数据集
-					solarTermName: '', // 24节气
-					festival: '' // 节日
+					date,
+					day: isToday ? this.$t("今") : day,
+					today: isToday,
+					before: minDayDiff < 0,
+					after: dayDiff < 0,
+					lunarDate: '',
+					lunarCalendar: {},
+					solarTermName: '',
+					festival: ''
 				}
-
-				// 农历
 				if (this.showLunarCalendar) {
 					const lcd = getChineseCalendar(date)
 					obj.lunarDate = lcd.day || lcd.month
 					obj.lunarCalendar = lcd
 				}
 
-				// 24节气
 				if (this.showSolarTerm) {
 					const stn = getSolarTerm(date)
 					if (stn) {
@@ -520,7 +532,6 @@
 					}
 				}
 
-				// 节日
 				if (this.showFestival) {
 					const _sf = solarFestival[date.substr(5)]
 					if (_sf) {
@@ -540,59 +551,111 @@
 				return obj
 			},
 
-			// 手势滑动操作
+			// ========== 手势滑动修复 ==========
+
+			/**
+			 * 触摸开始
+			 */
 			touchstart(e) {
 				if (this.changeType) return
-				this.__st = e.timeStamp
-				startX = e.touches[0].pageX
+
+				this.isTouching = true
+				this.isMoving = false
+				this.touchStartX = e.touches[0].pageX
+				this.touchStartY = e.touches[0].pageY
+				this.touchStartTime = Date.now()
 			},
 
+			/**
+			 * 触摸移动
+			 */
 			touchmove(e) {
-				if (this.changeType) return
-				endX = e.touches[0].pageX
-			},
+				if (!this.isTouching || this.changeType) return
 
-			touchend(e) {
-				if (this.changeType) return
-				try {
-					// 300毫秒快速操作，切换日历
-					if (e.timeStamp - this.__st > 300 || endX == 0) {
-						startX = 0
-						endX = 0
-						return
-					}
+				const moveX = e.touches[0].pageX
+				const moveY = e.touches[0].pageY
+				const deltaX = Math.abs(moveX - this.touchStartX)
+				const deltaY = Math.abs(moveY - this.touchStartY)
 
-					const rangeX = Math.abs(endX - startX)
-					// 滑动范围限制
-					if (rangeX < 80) return
-					let type = ''
-
-					if (endX < startX) {
-						if (this.nextDisabled) return
-						type = 'next'
-
-					} else if (endX > startX) {
-						if (this.prevDisabled) return
-						type = 'prev'
-					}
-
-					startX = 0
-					endX = 0
-
-					this.handleChange(type)
-
-					// 500ms节流
-					setTimeout(() => {
-						this.changeType = ''
-						this.virtually_data = [...this.__days]
-					}, 500)
-				} catch (e) {
-					console.error('touchend', e);
+				// 水平滑动超过10px，且水平滑动大于垂直滑动（防止上下滚动时误触发）
+				if (deltaX > 10 && deltaX > deltaY) {
+					this.isMoving = true
+					// 阻止默认滚动行为
+					e.preventDefault()
 				}
 			},
+
+			/**
+			 * 触摸结束
+			 */
+			touchend(e) {
+				if (!this.isTouching || this.changeType) {
+					this.resetTouch()
+					return
+				}
+
+				const endTime = Date.now()
+				const duration = endTime - this.touchStartTime
+				const endX = e.changedTouches[0].pageX
+				const deltaX = endX - this.touchStartX
+				const absDeltaX = Math.abs(deltaX)
+
+				// 快速点击（时间短 + 位移小）= 不滑动
+				if (duration < 300 && absDeltaX < 30) {
+					this.resetTouch()
+					return
+				}
+
+				// 滑动距离必须超过80px
+				if (absDeltaX < 80) {
+					this.resetTouch()
+					return
+				}
+
+				// 执行滑动切换
+				let type = ''
+				if (deltaX < 0) {
+					// 向左滑 -> 下一页
+					if (this.nextDisabled) {
+						this.resetTouch()
+						return
+					}
+					type = 'next'
+				} else {
+					// 向右滑 -> 上一页
+					if (this.prevDisabled) {
+						this.resetTouch()
+						return
+					}
+					type = 'prev'
+				}
+
+				this.resetTouch()
+				this.handleChange(type)
+
+				setTimeout(() => {
+					this.changeType = ''
+					this.virtually_data = [...this.__days]
+				}, 500)
+			},
+
+			/**
+			 * 重置触摸状态
+			 */
+			resetTouch() {
+				this.isTouching = false
+				this.isMoving = false
+				this.touchStartX = 0
+				this.touchStartY = 0
+				this.touchStartTime = 0
+			}
 		}
 	}
 </script>
+
+<style lang="scss" scoped>
+	@import './index.scss';
+</style>
 
 <style lang="scss" scoped>
 	@import './index.scss';

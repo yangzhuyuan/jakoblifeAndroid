@@ -139,14 +139,14 @@
 					this.isPassword2 = true
 				}
 			},
-			True_Register() {
-				if (this.vip_unername == '' || this.vip_unername == undefined) {
+			async True_Register() {
+				if (!this.vip_unername) {
 					uni.showToast({
 						title: this.$t('会员名未设置'),
 						icon: 'none'
 					})
 					return
-				} else if (this.vip_password == '' || this.vip_password == undefined) {
+				} else if (!this.vip_password) {
 					uni.showToast({
 						title: this.$t('密码未设置'),
 						icon: 'none'
@@ -159,7 +159,7 @@
 						icon: 'none'
 					})
 					return
-				} else if (this.vip_password_2 == '' || this.vip_password_2 == undefined) {
+				} else if (!this.vip_password_2) {
 					uni.showToast({
 						title: this.$t('再次输入的密码未设置'),
 						icon: 'none'
@@ -172,77 +172,81 @@
 						icon: 'none'
 					})
 					return
-				} else if (this.cb == false) {
+				} else if (!this.cb) {
 					uni.showToast({
 						title: this.$t('请阅读并同意JakobLife软件服务使用协议'),
 						icon: 'none'
 					})
 					return
 				} else {
-					this.register()
+					uni.showLoading({
+						title: this.$t('注册中'),
+						mask: true
+					})
+					// const isInChina = await isInChinaByIP();
+					// console.log("忘记密码判断当前位置：", isInChina);
+					// Vue.prototype.$url_APP_IP = isInChina ? this.$APP_IP1 : this.$APP_IP2;
+					this.register();
 				}
 			},
 			//App用户名密码注册
 			register() {
 				let that = this
-				uni.request({
-					url: that.$url_APP_IP + "/prod-api/app/register",
-					method: 'POST',
-					data: {
-						username: that.vip_unername,
-						password: that.vip_password,
-						code: "",
-						uuid: "",
-						smsCode: "",
-						email: '',
-						phone: "",
-						userType: '01', //（00系统用户，01App用户）
-						phoneNum: "",
-						nickName: ''
-					},
-					header: {
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success: (res) => {
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								that.register_token(res.data.token)
-								that.register_unername(that.vip_unername)
-								uni.showToast({
-									title: that.$t("成功"),
-									icon: 'none'
-								})
-								setTimeout(function() {
-									if (that.loact === "境内") {
-										uni.navigateTo({
-											url: '../login/Bind_phone',
-										})
-									} else if (that.loact === "境外") {
-										uni.navigateTo({
-											url: "/pages/login/true_register_email"
-										})
-									}
-								}, 300)
-							} else if (res.data.code == 500) {
-								uni.showToast({
-									title: that.$t("注册账号已存在"),
-									icon: 'none'
-								})
-							} else {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							}
-						}
-					},
-					fail(res) {
-						console.log("失败", res)
+				let data = {
+					username: that.vip_unername,
+					password: that.vip_password,
+					code: "",
+					uuid: "",
+					smsCode: "",
+					email: '',
+					phone: "",
+					userType: '01', //（00系统用户，01App用户）
+					phoneNum: "",
+					nickName: ''
+				}
+				console.log("App用户名密码注册：" + that.$url_APP_IP, data)
+				that.$post(that.$url_APP_IP + "/prod-api/app/register", data, {
+					'content-type': 'application/json;charset=UTF-8'
+				}).then((res) => {
+					console.log("App用户名密码注册res：" + JSON.stringify(res))
+					uni.hideLoading()
+					switch (res.code) {
+						case 200:
+							that.register_token(res.token)
+							that.register_unername(that.vip_unername)
+							uni.showToast({
+								title: that.$t("成功"),
+								icon: 'none'
+							})
+							setTimeout(function() {
+								if (that.loact === "境内") {
+									uni.navigateTo({
+										url: '../login/Bind_phone',
+									})
+								} else if (that.loact === "境外") {
+									uni.navigateTo({
+										url: "/pages/login/true_register_email"
+									})
+								}
+							}, 300)
+							break;
+						case 500:
+							uni.showToast({
+								title: that.$t("注册账号已存在"),
+								icon: 'none'
+							})
+							break;
+						default:
+							uni.showToast({
+								title: res.msg,
+								icon: 'none'
+							})
+							break;
 					}
+				}).catch((Error) => {
+					uni.hideLoading()
 				})
 			}
-
-
 		}
 	}
 </script>

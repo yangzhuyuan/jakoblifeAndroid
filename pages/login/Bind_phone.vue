@@ -1,5 +1,5 @@
 <template>
-	<view style="padding-top: 20px; background: #F7F7F7; color: black;width: 100vw; height: 100vh;">
+	<view style="padding-top: 20px; background: #F7F7F7; color: #000000;width: 100vw; height: 100vh;">
 		<view class="linear">
 			<image class="img_bg" src="../../static/icons/17.png" />
 			<input type="number" :placeholder="$t('请输入手机号')" style="width: 70vw;margin-left: 10px; " maxlength="11"
@@ -23,7 +23,7 @@
 			<view class="modalss">
 				<view style="background: white;  margin-left: 20px;margin-right: 20px;border-radius: 20px;">
 					<view
-						style="text-align: center; font-size: 16px; color: black; font-weight: bold;padding-top: 20px;">
+						style="text-align: center; font-size: 16px; color: #000000; font-weight: bold;padding-top: 20px;">
 						{{$t('请填写图形验证码')}}
 					</view>
 					<view class="modal-content_bg">
@@ -257,48 +257,42 @@
 			//第三方登录后用户绑定手机号
 			bind_phone() {
 				let that = this
-				uni.request({
-					url: that.$url_APP_IP + that.$url_bind_phone,
-					method: 'PUT',
-					data: {
-						code: that.yanzhengma,
-						phoneNum: that.unername_phone
-					},
-					header: {
-						'Authorization': 'Bearer ' + that.tokens,
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success(res) {
-						console.log("第三方登录后用户绑定手机号:", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.showToast({
-									title: that.$t("成功"),
-									icon: 'none'
+				let data = {
+					code: that.yanzhengma,
+					phoneNum: that.unername_phone
+				}
+				console.log("第三方登录后用户绑定手机号:" + that.$url_APP_IP, data)
+				that.$put(that.$url_APP_IP + that.$url_bind_phone, data, {
+					'Authorization': 'Bearer ' + that.tokens,
+					'content-type': 'application/json;charset=UTF-8'
+				}).then((res) => {
+					console.log("第三方登录后用户绑定手机号:", res)
+					switch (res.code) {
+						case 200:
+							uni.showToast({
+								title: that.$t("成功"),
+								icon: 'none'
+							})
+							setTimeout(function() {
+								uni.navigateTo({
+									url: '../../pages/login/Register_success'
 								})
-								setTimeout(function() {
-									uni.navigateTo({
-										url: '../../pages/login/Register_success'
-									})
-								}, 300)
-							} else if (res.data.code === 500) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							} else {
-								uni.showToast({
-									title: that.$t("该手机号已被绑定"),
-									icon: 'none'
-								})
-							}
-						}
-					},
-					fail(res) {
-						console.log("失败", res)
+							}, 300)
+							break;
+						case 500:
+							uni.showToast({
+								title: res.msg,
+								icon: 'none'
+							})
+							break;
+						default:
+							uni.showToast({
+								title: that.$t("该手机号已被绑定"),
+								icon: 'none'
+							})
+							break;
 					}
 				})
-
 			},
 
 		}
@@ -395,7 +389,7 @@
 	}
 
 	.edit_bg {
-		color: black;
+		color: #000000;
 		margin-left: 10px;
 		padding: 10px;
 		height: 35px;

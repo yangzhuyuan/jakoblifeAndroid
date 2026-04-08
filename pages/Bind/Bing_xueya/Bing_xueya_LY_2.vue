@@ -1,5 +1,5 @@
 <template>
-	<view style="display: flex; flex-direction: column;color: black;width: 100vw;height: 100vh;">
+	<view style="display: flex; flex-direction: column;color: #000000;width: 100vw;height: 100vh;">
 		<view class="shebeistyle">
 			<image style="padding: 20px;" src="/static/image/ly.png"></image>
 		</view>

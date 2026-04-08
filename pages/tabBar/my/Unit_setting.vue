@@ -4,6 +4,10 @@
 			<unit-row v-for="(item, index) in rows" :key="index" :title="$t(item.title)" :array="item.array"
 				:storage-key="item.key" :current-index="indexMap[item.key] || 0" @unit-change="collectUnit" />
 		</view>
+		<view class="context_btn2">
+			<view class="context_title1">{{$t('压力开关')}}</view>
+			<switch :checked="switchHER" @change="switch1ChangeHER" color="#4CD964" />
+		</view>
 		<button type="primary" style="margin:50px 20px 0 20px;border-radius: 100px;" @tap="saveUnit">
 			{{ $t("保存") }}
 		</button>
@@ -34,16 +38,30 @@
 					}
 				],
 				unitMap: {}, // 保存单位值
-				indexMap: {} // 保存索引
+				indexMap: {}, // 保存索引
+				switchHER: uni.getStorageSync("yaliswitchHER") || true,
 			}
 		},
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('单位设置')
+				title: this.$t('设置')
 			})
 			this.cardlist()
 		},
 		methods: {
+			switch1ChangeHER(e) {
+				let that = this
+				that.switchHER = e.detail.value
+				that.$forceUpdate()
+				if (e.detail.value === false) {
+					// console.log("1that.switchHER", that.switchHER)
+					// 关键点：添加下一行确保视图更新
+					that.$nextTick(() => that.$forceUpdate())
+				} else if (e.detail.value === true) {
+					// console.log("2that.switchHER", that.switchHER)
+				}
+			},
+
 			// 接口获取单位配置
 			cardlist() {
 				const data = {
@@ -53,6 +71,7 @@
 					Authorization: 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/json'
 				}).then(res => {
+					// console.log("获取单位配置", res)
 					if (res.code === 200 && res.rows.length > 0 && res.rows[0].data) {
 						const parsed = this.robustParseData(res.rows[0].data);
 						if (!parsed.length) return;
@@ -61,10 +80,20 @@
 						const keyMap = {
 							Blood: 'bloodUnit',
 							danwei1: 'heightUnit',
-							danwei2: 'weightUnit'
+							danwei2: 'weightUnit',
+							yaliswitchHER: 'switchHER'
 						};
 						/* ② 统一循环：值 → 索引 → 缓存 */
 						Object.keys(keyMap).forEach(key => {
+							// 处理开关
+							if (key === 'yaliswitchHER') {
+								const switchVal = unitData[keyMap[key]];
+								if (switchVal !== undefined) {
+									this.switchHER = switchVal === true || switchVal === 'true';
+									uni.setStorageSync("yaliswitchHER", this.switchHER);
+								}
+								return;
+							}
 							const value = unitData[keyMap[key]];
 							const row = this.rows.find(r => r.key === key);
 							if (!row) return;
@@ -74,7 +103,6 @@
 							this.$set(this.indexMap, key, safe);
 							uni.setStorageSync(key, safe); // 直接存索引
 						});
-						// console.log('[cardlist] 单位映射完成', this.unitMap, this.indexMap);
 					}
 				});
 			},
@@ -88,14 +116,14 @@
 				const postData = {
 					bloodUnit: this.unitMap.Blood,
 					heightUnit: this.unitMap.danwei1,
-					weightUnit: this.unitMap.danwei2
+					weightUnit: this.unitMap.danwei2,
+					switchHER: this.switchHER
 				}
 				const editData = {
 					dataType: 'Unitdata',
 					data: this.formatDatacard([postData])
 				}
-				console.log("postData", postData)
-				console.log("editData", editData)
+				// console.log("editData", editData)
 				this.$post(this.$url_APP_IP + '/prod-api/device/data/editData', editData, {
 					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/json'
@@ -103,7 +131,7 @@
 					if (res.code === 200) {
 						uni.showToast({
 							title: this.$t('保存成功'),
-							icon: 'icon'
+							icon: 'none'
 						})
 						this.cardlist()
 					}
@@ -149,5 +177,34 @@
 		line-height: 48px;
 		border-radius: 10px;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.context_btn2 {
+		display: flex;
+		flex-direction: row;
+		background: white;
+		align-items: center;
+		height: auto;
+		/* 改为自动高度，支持多行 */
+		min-height: 56px;
+		/* 最小高度保持原样 */
+		margin: 30px 0;
+		padding: 12px 20px;
+		/* 增加上下内边距 */
+		border-radius: 10px;
+		box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.15);
+	}
+
+	.context_title1 {
+		flex: 1;
+		/* 占据剩余空间 */
+		font-size: 16px;
+		color: black;
+		line-height: 1.4;
+		/* 设置合适的行高 */
+		word-break: break-word;
+		/* 允许断行 */
+		padding-right: 12px;
+		/* 与switch保持间距 */
 	}
 </style>

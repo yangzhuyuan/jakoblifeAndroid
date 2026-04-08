@@ -186,7 +186,8 @@
 					bloodUnit: uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" :
 						"kPa",
 					heightUnit: Height_index === 0 || Height_index === "" ? "inch" : 'cm',
-					weightUnit: Width_index === 0 || Width_index === "" ? "kg" : "lb"
+					weightUnit: Width_index === 0 || Width_index === "" ? "kg" : "lb",
+					switchHER: uni.getStorageSync("yaliswitchHER") || true,
 				}
 				const editData = {
 					dataType: 'Unitdata',

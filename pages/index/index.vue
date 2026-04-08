@@ -7,11 +7,6 @@
 			<view style="display: flex; justify-content:center;">
 				<image style="width: 180px;height: 180px;" :src="loginimg" />
 			</view>
-			<!-- <view class="warp">
-				<view class="view_circle1"></view>
-				<view class="view_circle2"></view>
-				<view class="view_circle3"></view>
-			</view> -->
 		</view>
 	</view>
 </template>
@@ -56,7 +51,7 @@
 	.splash_bg {
 		width: 100vw;
 		height: 100vh;
-		color: black;
+		color: #000000;
 		background: #FFFFFF;
 		display: flex;
 		flex-direction: column;

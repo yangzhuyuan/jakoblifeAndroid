@@ -6,6 +6,7 @@ function request(url, method, data = {}, header = {}) {
 			method: method,
 			data: data,
 			header: header,
+			timeout: 60000 * 20,
 			success: (res) => {
 				// 这里可以根据你的需要处理响应结果
 				if (res.statusCode === 200) {

@@ -70,7 +70,7 @@
 <style>
 	.backpage {
 		padding-top: 20px;
-		color: black;
+		color: #000000;
 		background: #F7F7F7;
 		height: 100vh;
 	}
@@ -114,7 +114,7 @@
 	.context_title {
 		width: 55vw;
 		font-size: 16px;
-		color: black;
+		color: #000000;
 		font-weight: 400;
 		margin-left: 15px;
 	}

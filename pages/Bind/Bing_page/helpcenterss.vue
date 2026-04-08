@@ -1,5 +1,5 @@
 <template>
-	<view style="color: black;height: 100vh;background: #F7F7F7;">
+	<view style="color: #000000;height: 100vh;background: #F7F7F7;">
 		<view class="title_bg">{{title}}</view>
 		<view style="padding: 10px 20px 60px 20px">
 			<rich-text :nodes="content"></rich-text>

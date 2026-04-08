@@ -143,18 +143,26 @@
 					'监测时间在前3月之内')],
 				index1: uni.getStorageSync("Monitoring") !== "" ? uni.getStorageSync("Monitoring") : 0,
 				selectID: '',
-				select: uni.getStorageSync("select") !== "" ? uni.getStorageSync("select") : this.$t('请选择'),
-				select2: uni.getStorageSync("select2") !== "" ? uni.getStorageSync("select2") : this.$t('请选择'),
-				select3: uni.getStorageSync("select3") !== "" ? uni.getStorageSync("select3") : this.$t('请选择'),
-				select4: uni.getStorageSync("select4") !== "" ? uni.getStorageSync("select4") : this.$t('请选择'),
+				select: this.getSelectValue("select"),
+				select2: this.getSelectValue("select2"),
+				select3: this.getSelectValue("select3"),
+				select4: this.getSelectValue("select4"),
 			}
 		},
 
-
-
 		methods: {
 
-
+			getSelectValue(key, defaultText = '请选择') {
+				const value = uni.getStorageSync(key);
+				if (!value || value === "") {
+					return this.$t(defaultText);
+				}
+				// 判断是否为"是/Yes"
+				const isYes = value === "是" || value === "Yes";
+				// 返回对应的翻译
+				const translateKey = isYes ? "是" : "否";
+				return this.$t(translateKey);
+			},
 			getCurrentTime() {
 				const now = new Date(); // 获取当前时间
 				// 获取年、月、日

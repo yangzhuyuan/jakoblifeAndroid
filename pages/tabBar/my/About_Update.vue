@@ -104,12 +104,6 @@
 		REBOOT: 0x0E,
 		GET_OTA_VER: 0x0F,
 	};
-	// const TIMEOUT = {
-	// 	PARTITION_TABLE: 5000,
-	// 	CHECKSUM: 3000,
-	// 	BLOCK: 2000,
-	// 	TOTAL_CHECKSUM: 5000
-	// };
 	const BLOCK_SIZE = 4096;
 	const OTA_SERVICE_UUID = '000018A8-0000-1000-8000-00805F9B34FB';
 	const WRITE_CHAR_UUID = '00002AA9-0000-1000-8000-00805F9B34FB';
@@ -178,11 +172,9 @@
 					0x09: 5 // 表盘区
 				},
 				dev: null,
-
 				scanTimer: null, // 扫描超时计时器
 				targetDeviceId: '',
 				targetDeviceName: '',
-
 				connected: false,
 				percent: -1,
 				deviceId: '',
@@ -221,29 +213,16 @@
 				wactchtimerid: "",
 			}
 		},
-
+		//返回按钮
 		onBackPress() {
 			let that = this
 			console.log(that.otaState)
 			if (that.otaState === "GETTING_INFO" || that.otaState === "UPGRADING") {
-				// uni.showModal({
-				// 	content: that.$t("当前OTA正在升级"),
-				// 	confirmText: that.$t('确定'),
-				// 	cancelText: that.$t('取消'),
-				// 	success(modal) {
-				// 		if (modal.confirm) {
-				// 			that.endOta()
-				// 		} else {
-				// 			return true
-				// 		}
-				// 	}
-				// });
 				return true
 			} else {
 				return false
 			}
 		},
-
 		onShow() {
 			let that = this
 			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
@@ -269,7 +248,6 @@
 									if (modal.confirm) {
 										console.log('接收到的updateId:', id)
 										that.scan()
-
 									} else {
 										console.log('1111接收到的updateId:', id)
 										uni.showModal({
@@ -292,13 +270,13 @@
 				})
 			}, 1000)
 		},
-
 		beforeDestroy() {
+			console.log("beforeDestroy")
 			this.disconnect();
 			this.stopScan();
 		},
-
 		onUnload() {
+			console.log("onUnload")
 			if (this.updateIdChangedtimer) {
 				clearInterval(this.updateIdChangedtimer)
 			}
@@ -307,6 +285,13 @@
 			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 			// 禁止熄屏
 			plugin.keepScreenOn(false)
+			setTimeout(() => {
+				uni.closeBLEConnection({
+					deviceId: this.deviceIdss,
+					complete(complete) {}
+				});
+			}, 5000)
+			this.disconnect()
 		},
 		computed: {
 			// 格式化已下载大小
@@ -318,13 +303,11 @@
 				return this.formatBytes(this.totalSize);
 			}
 		},
-
 		onLoad() {
 			uni.setNavigationBarTitle({
 				title: this.$t('关于更新')
 			})
 		},
-
 		methods: {
 			...mapMutations(['setacktypes']),
 			toArrayBuffer(data) {
@@ -335,7 +318,6 @@
 				}
 				return buffer;
 			},
-
 			// 格式化字节数为易读格式
 			formatBytes(bytes, decimals = 2) {
 				if (bytes === 0) return '0 Bytes';
@@ -345,7 +327,6 @@
 				const i = Math.floor(Math.log(bytes) / Math.log(k));
 				return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 			},
-
 			// 取消下载
 			cancelDownload() {
 				if (this.downloadTask) {
@@ -357,13 +338,11 @@
 					});
 				}
 			},
-
 			beiandianji() {
 				uni.navigateTo({
 					url: "/pages/tabBar/my/Webview"
 				})
 			},
-
 			// 保留原有的导航方法
 			Text_content2() {
 				uni.navigateTo({
@@ -380,176 +359,143 @@
 					url: "../my/APP_update_his?id=1166"
 				})
 			},
-
 			watcahupdate() {
 				let that = this
 				uni.showLoading({
 					title: that.$t("正在请求升级"),
 					mask: true
 				})
+				uni.setStorageSync("arguments00", 1)
 				setTimeout(() => {
-					uni.getBLEDeviceCharacteristics({
-						deviceId: that.deviceIdss,
-						serviceId: that.serviceIdss,
-						success: (res) => {
-							for (let i = 0; res.characteristics.length > i; i++) {
-								let item = res.characteristics[i]
-								if (item.properties.write) {
-									const ackConfigByteset = new Uint8Array(9);
-									ackConfigByteset[0] = 0xE0;
-									ackConfigByteset[1] = 0x00;
-									ackConfigByteset[2] = 0x06;
-									ackConfigByteset[3] = 0x20;
-									ackConfigByteset[4] = 0x01;
-									ackConfigByteset[5] = 0x01;
-									ackConfigByteset[6] = 0x00;
-									ackConfigByteset[7] = 0x01;
-									ackConfigByteset[8] = 0x00;
-									let ackConfigBytesum2 = 0;
-									for (let i = 0; i < ackConfigByteset.length; i++) {
-										ackConfigBytesum2 += ackConfigByteset[i];
-									}
-									ackConfigBytesum2 = ackConfigBytesum2 % 256;
-									const modifiedCommand2 = new Uint8Array(ackConfigByteset.length +
-										1);
-									modifiedCommand2.set(ackConfigByteset.subarray(0, 3), 0);
-									modifiedCommand2[3] = ackConfigBytesum2;
-									modifiedCommand2.set(ackConfigByteset.subarray(3), 4);
-									const hexCommand2 = Array.from(modifiedCommand2).map(byte => byte
-										.toString(16)
-										.padStart(2, '0')).join('');
-									const buffer2 = that.toArrayBuffer(hexCommand2);
-									console.log(hexCommand2)
-									console.log(that.deviceIdss)
-									console.log(that.serviceIdss)
-									console.log(item.uuid)
-									setTimeout(() => {
-										uni.writeBLECharacteristicValue({
-											deviceId: that.deviceIdss,
-											serviceId: that.serviceIdss,
-											characteristicId: item.uuid,
-											writeType: 'writeNoResponse',
-											value: buffer2,
-											success(res) {
-												if (that.wactchtimerid === "1") {
-													console.log("hhhhh")
-													that.wactchtimerid = "1"
-													if (that.updateIdChangedtimer) {
-														clearInterval(that
-															.updateIdChangedtimer)
-														that.updateIdChangedtimer =
-															null
-													}
-													setTimeout(() => {
-														uni.hideLoading()
-														uni.showModal({
-															content: that
-																.$t(
-																	"请求成功可以开始升级手表"
-																),
-															confirmText: that
-																.$t(
-																	'确定'
-																),
-															cancelText: that
-																.$t(
-																	'取消'
-																),
-															success(
-																modal
-															) {
-																if (modal
-																	.confirm
-																) {
-																	that.scan()
-																} else {
-																	uni.showModal({
-																		content: that
-																			.$t(
-																				"手表将在秒后重置"
-																			),
-																		confirmText: that
-																			.$t(
-																				'确定'
-																			),
-																		showCancel: false,
-																		success(
-																			modal
-																		) {
-																			if (modal
-																				.confirm
-																			) {}
-																		}
-																	});
-																}
-															}
-														});
-													}, 3000)
-													if (Vue.prototype.$globalTimers
-														.heartbeatInterval) {
-														clearInterval(Vue.prototype
-															.$globalTimers
-															.heartbeatInterval);
-														Vue.prototype.$globalTimers
-															.heartbeatInterval = null;
-													}
-												}
-											},
-											fail(err) {
-												uni.hideLoading()
-												uni.showToast({
-													title: "请求手环升级信息失败",
-													icon: 'none'
-												})
-											},
-										})
-									}, 3000)
-								}
-							}
-						},
-						fail(res) {
-							uni.hideLoading()
-							if (Vue.prototype.$globalTimers
-								.heartbeatInterval) {
-								clearInterval(Vue.prototype
-									.$globalTimers
-									.heartbeatInterval);
-								Vue.prototype.$globalTimers
-									.heartbeatInterval = null;
-							}
-							uni.showModal({
-								content: that.$t("请求成功可以开始升级手表"),
-								confirmText: that.$t('确定'),
-								cancelText: that.$t('取消'),
-								success(modal) {
-									if (modal.confirm) {
-										that.scan()
-									} else {
-										uni.showModal({
-											content: that.$t("手表将在秒后重置"),
-											confirmText: that.$t('确定'),
-											showCancel: false,
-											success(modal) {
-												if (modal.confirm) {}
-											}
-										});
-									}
-								}
-							});
-						}
-					})
+					that.watcahupdategetBLEDeviceCharacteristics()
 				}, 5000)
 			},
-
-
-			Text_content9() { //软件更新
+			watcahupdategetBLEDeviceCharacteristics() {
+				let that = this
+				uni.getBLEDeviceCharacteristics({
+					deviceId: that.deviceIdss,
+					serviceId: that.serviceIdss,
+					success: (res) => {
+						for (let i = 0; res.characteristics.length > i; i++) {
+							let item = res.characteristics[i]
+							if (item.properties.write) {
+								const ackConfigByteset = new Uint8Array(9);
+								ackConfigByteset[0] = 0xE0;
+								ackConfigByteset[1] = 0x00;
+								ackConfigByteset[2] = 0x06;
+								ackConfigByteset[3] = 0x20;
+								ackConfigByteset[4] = 0x01;
+								ackConfigByteset[5] = 0x01;
+								ackConfigByteset[6] = 0x00;
+								ackConfigByteset[7] = 0x01;
+								ackConfigByteset[8] = 0x00;
+								let ackConfigBytesum2 = 0;
+								for (let i = 0; i < ackConfigByteset.length; i++) {
+									ackConfigBytesum2 += ackConfigByteset[i];
+								}
+								ackConfigBytesum2 = ackConfigBytesum2 % 256;
+								const modifiedCommand2 = new Uint8Array(ackConfigByteset.length + 1);
+								modifiedCommand2.set(ackConfigByteset.subarray(0, 3), 0);
+								modifiedCommand2[3] = ackConfigBytesum2;
+								modifiedCommand2.set(ackConfigByteset.subarray(3), 4);
+								const hexCommand2 = Array.from(modifiedCommand2).map(byte => byte.toString(16)
+									.padStart(2, '0')).join('');
+								const buffer2 = that.toArrayBuffer(hexCommand2);
+								setTimeout(() => {
+									uni.writeBLECharacteristicValue({
+										deviceId: that.deviceIdss,
+										serviceId: that.serviceIdss,
+										characteristicId: item.uuid,
+										writeType: 'writeNoResponse',
+										value: buffer2,
+										success(res) {
+											that.watcahwriteBLECharacteristicValue()
+										},
+										fail(err) {
+											uni.hideLoading()
+											uni.showToast({
+												title: "请求手环升级信息失败",
+												icon: 'none'
+											})
+										},
+									})
+								}, 3000)
+							}
+						}
+					},
+					fail(res) {
+						uni.hideLoading()
+						if (Vue.prototype.$globalTimers
+							.heartbeatInterval) {
+							clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
+							Vue.prototype.$globalTimers.heartbeatInterval = null;
+						}
+						uni.showModal({
+							content: that.$t("请求成功可以开始升级手表"),
+							confirmText: that.$t('确定'),
+							cancelText: that.$t('取消'),
+							success(modal) {
+								if (modal.confirm) {
+									that.scan()
+								} else {
+									uni.showModal({
+										content: that.$t("手表将在秒后重置"),
+										confirmText: that.$t('确定'),
+										showCancel: false,
+										success(modal) {
+											if (modal.confirm) {}
+										}
+									});
+								}
+							}
+						});
+					}
+				})
+			},
+			watcahwriteBLECharacteristicValue() {
+				let that = this
+				if (that.wactchtimerid === "1") {
+					that.wactchtimerid = "1"
+					if (that.updateIdChangedtimer) {
+						clearInterval(that.updateIdChangedtimer)
+						that.updateIdChangedtimer = null
+					}
+					setTimeout(() => {
+						uni.hideLoading()
+						uni.showModal({
+							content: that.$t("请求成功可以开始升级手表"),
+							confirmText: that.$t('确定'),
+							cancelText: that.$t('取消'),
+							success(modal) {
+								if (modal.confirm) {
+									that.scan()
+								} else {
+									uni.showModal({
+										content: that.$t("手表将在秒后重置"),
+										confirmText: that.$t('确定'),
+										showCancel: false,
+										success(modal) {
+											if (modal.confirm) {}
+										}
+									});
+								}
+							}
+						});
+					}, 3000)
+					if (Vue.prototype.$globalTimers.heartbeatInterval) {
+						clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
+						Vue.prototype.$globalTimers.heartbeatInterval = null;
+					}
+				}
+			},
+			//软件更新
+			Text_content9() {
 				if (uni.getSystemInfoSync().platform === 'android') {
 					this.check_new_version("com.work.jakob", "0")
 				} else {
 					this.check_new_version("io.dcloud.jakob", "1")
 				}
 			},
-
 			// 检查新版本
 			check_new_version(pkgName, type) {
 				let that = this;
@@ -559,7 +505,6 @@
 					data: {
 						pkgName: pkgName,
 						type: type,
-						// versionName: "2.0.42",
 						versionName: systemInfo.appVersion,
 					},
 					header: {
@@ -596,7 +541,10 @@
 										that.$refs.down_popup.open("center")
 										that.checkUpdate(version.data.data.path)
 									} else {
-
+										uni.showToast({
+											title: that.$t('稍后安装'),
+											icon: 'none'
+										});
 									}
 								}
 							});
@@ -610,14 +558,12 @@
 					}
 				})
 			},
-
 			// 执行更新
 			checkUpdate(path) {
 				// 重置进度
 				this.progress = 0;
 				this.downloadedSize = 0;
 				this.totalSize = 0;
-
 				// 下载APK
 				this.downloadTask = uni.downloadFile({
 					url: path,
@@ -631,7 +577,6 @@
 							});
 							return;
 						}
-
 						// 安装APK
 						plus.runtime.install(
 							res.tempFilePath, {
@@ -672,13 +617,11 @@
 						});
 					}
 				});
-
 				// 监听下载进度
 				this.downloadTask.onProgressUpdate(res => {
 					this.progress = res.progress;
 					this.downloadedSize = res.totalBytesWritten;
 					this.totalSize = res.totalBytesExpectedToWrite;
-
 					// 下载完成时显示安装提示
 					if (res.progress >= 100) {
 						uni.showToast({
@@ -689,8 +632,6 @@
 					}
 				});
 			},
-
-
 			// 手表
 			/* ------------ 滚动条相关方法 ------------ */
 			getPartitionName(index) {
@@ -749,7 +690,6 @@
 					this.$forceUpdate();
 				}
 			},
-
 			/* ------------ BLE ------------ */
 			scan() {
 				let that = this
@@ -758,50 +698,7 @@
 						uni.startBluetoothDevicesDiscovery({
 							allowDuplicatesKey: true,
 							success: () => {
-								uni.showLoading({
-									title: that.$t("搜索蓝牙设备中"),
-									mask: true
-								})
-								that.scanTimer = setTimeout(() => {
-									if (!that.foundDevice) {
-										uni.hideLoading();
-										that.stopScan();
-										uni.showModal({
-											content: that.$t("未找到设备"),
-											confirmText: that.$t('确定'),
-											showCancel: false,
-											success(modal) {
-												if (modal.confirm) {
-													uni.closeBLEConnection({
-														deviceId: that
-															.deviceIdss,
-														complete(
-															complete) {
-															console.log(
-																"complete",
-																complete
-															)
-															uni.closeBluetoothAdapter({
-																complete(
-																	closeBluetoothAdapter
-																) {
-																	console
-																		.log(
-																			"closeBluetoothAdapter",
-																			closeBluetoothAdapter
-																		)
-																}
-															})
-														}
-													})
-													that.endOta()
-												}
-											}
-										});
-										console.log('扫描超时，未找到设备');
-									}
-								}, 10000); // 10秒
-								uni.onBluetoothDeviceFound(that.onDeviceFound);
+								that.scanscanTimer()
 							},
 							fail: e => console.log("开始扫描失败", e),
 						});
@@ -816,6 +713,46 @@
 					},
 				});
 			},
+
+			scanscanTimer() {
+				let that = this
+				uni.showLoading({
+					title: that.$t("搜索蓝牙设备中"),
+					mask: true
+				})
+				that.scanTimer = setTimeout(() => {
+					if (!that.foundDevice) {
+						uni.hideLoading();
+						that.stopScan();
+						uni.showModal({
+							content: that.$t("未找到设备"),
+							confirmText: that.$t('确定'),
+							showCancel: false,
+							success(modal) {
+								if (modal.confirm) {
+									uni.closeBLEConnection({
+										deviceId: that.deviceIdss,
+										complete(complete) {
+											console.log("complete", complete)
+											uni.closeBluetoothAdapter({
+												complete(closeBluetoothAdapter) {
+													console.log("closeBluetoothAdapter",
+														closeBluetoothAdapter
+													)
+												}
+											})
+										}
+									})
+									that.endOta()
+								}
+							}
+						});
+						console.log('扫描超时，未找到设备');
+					}
+				}, 10000); // 10秒
+				uni.onBluetoothDeviceFound(that.onDeviceFound);
+			},
+
 			onDeviceFound(res) {
 				let that = this
 				that.foundDevice = false;
@@ -825,20 +762,16 @@
 					let idList = []
 					idList.push(item);
 					if (idList[0].name === "BPW1") {
-						console.log("idList", idList)
-						console.log("idList", idList[0].name)
 						that.targetDeviceId = idList[0].deviceId
 						console.log("that.targetDeviceId", that.targetDeviceId)
 						uni.stopBluetoothDevicesDiscovery({
 							success: (res) => {
 								uni.hideLoading()
-								// that.targetDeviceId = idList[0].deviceId
 								// 1. 清除超时计时器
 								clearTimeout(that.scanTimer);
 								that.scanTimer = null;
 								that.foundDevice = true;
 								that.dev = deviceArray;
-								console.log("stopBluetoothDevicesDiscovery", res)
 								if (that.targetDeviceId === that.deviceIdss) {
 									console.log("请检查设备连接")
 									uni.showModal({
@@ -864,14 +797,12 @@
 													title: that.$t("连接中"),
 													mask: true,
 												})
-												console.log("that.targetDeviceId", that
-													.targetDeviceId)
 												that.connect(that.targetDeviceId, 0);
-												console.log("设置自动连接设备")
 											} else {
+												that.disconnect()
+												that.stopScan()
 												uni.showModal({
-													content: that.$t(
-														"手表将在秒后重置"),
+													content: that.$t("手表将在秒后重置"),
 													confirmText: that.$t('确定'),
 													showCancel: false,
 													success(modal) {
@@ -909,7 +840,6 @@
 						}, 2000);
 					},
 					fail: (e) => {
-						console.log(e)
 						if (Vue.prototype.$globalTimers.heartbeatInterval) {
 							clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
 							Vue.prototype.$globalTimers.heartbeatInterval = null;
@@ -937,7 +867,16 @@
 			disconnect() {
 				if (this.deviceId) {
 					uni.closeBLEConnection({
-						deviceId: this.deviceId
+						deviceId: this.deviceId,
+						complete(complete) {
+							console.log("complete", complete)
+						}
+					});
+					uni.closeBLEConnection({
+						deviceId: this.deviceIdss,
+						complete(complete) {
+							console.log("complete", complete)
+						}
 					});
 					this.connected = false;
 					this.otaState = 'IDLE';
@@ -951,9 +890,8 @@
 						// 修复：遍历所有服务，查找OTA服务
 						const otaService = res.services.find(s => {
 							const uuid = s.uuid.toUpperCase();
-							return uuid === OTA_SERVICE_UUID ||
-								uuid.includes('18A8') ||
-								uuid.includes('18A8');
+							return uuid === OTA_SERVICE_UUID || uuid.includes('18A8') || uuid.includes(
+								'18A8');
 						});
 						if (otaService) {
 							that.serviceId = otaService.uuid;
@@ -988,15 +926,11 @@
 						});
 						// 如果没找到精确匹配，尝试找属性匹配的
 						if (!writeChar) {
-							writeChar = res.characteristics.find(c =>
-								c.properties && (c.properties.write || c.properties
-									.writeWithoutResponse)
-							);
+							writeChar = res.characteristics.find(c => c.properties && (c.properties.write || c
+								.properties.writeWithoutResponse));
 						}
 						if (!notifyChar) {
-							notifyChar = res.characteristics.find(c =>
-								c.properties && c.properties.notify
-							);
+							notifyChar = res.characteristics.find(c => c.properties && c.properties.notify);
 						}
 						if (writeChar && notifyChar) {
 							this.writeId = writeChar.uuid;
@@ -1035,10 +969,8 @@
 						// 连接成功后等待用户点击开始OTA
 						console.log('设备已连接，可以开始OTA');
 						setTimeout(() => {
-							console.log('1111设备已连接，可以开始OTA');
 							this.startOta()
 						}, 2000)
-
 					},
 					fail: (e) => {
 						console.log('开启通知失败', e);
@@ -1075,7 +1007,6 @@
 					}, 100);
 				}
 			},
-
 			// 尝试解析数据帧
 			tryParseFrame(data) {
 				if (!data || data.length === 0) {
@@ -1086,7 +1017,6 @@
 				const startByte = data[0];
 				// 处理ACK帧 (0xD6开头)
 				if (startByte === 0xD6) {
-					// ACK帧最小长度检查: 1+1+1+1+1+2+2 = 9字节
 					if (data.length < 9) {
 						return {
 							success: false
@@ -1100,7 +1030,6 @@
 						// 有足够数据，提取完整帧
 						const frame = data.slice(0, fullFrameLength);
 						const remainingData = data.slice(fullFrameLength);
-
 						return {
 							success: true,
 							frame: frame,
@@ -1116,7 +1045,6 @@
 				}
 				// 处理命令帧 (0xD5开头)
 				else if (startByte === 0xD5) {
-					// 命令帧最小长度检查: 1+1+1+1+2+1+2+2 = 11字节
 					if (data.length < 11) {
 						return {
 							success: false
@@ -1129,7 +1057,6 @@
 					if (data.length >= fullFrameLength) {
 						const frame = data.slice(0, fullFrameLength);
 						const remainingData = data.slice(fullFrameLength);
-
 						return {
 							success: true,
 							frame: frame,
@@ -1157,7 +1084,6 @@
 			async write(buf, retryCount = 5) { // 增加默认重试次数到5
 				const hexStr = this.ab2hex(buf);
 				const u8Array = new Uint8Array(buf);
-
 				for (let i = 0; i < retryCount; i++) {
 					try {
 						await new Promise((resolve, reject) => {
@@ -1173,8 +1099,7 @@
 									}, 10);
 								},
 								fail: (e) => {
-									console.log(`写入失败 (尝试 ${i+1}/${retryCount}):`,
-										e);
+									console.log(`写入失败 (尝试 ${i+1}/${retryCount}):`, e);
 									// 检查是否是蓝牙断开错误
 									if (e.errCode === 10012 || e.errMsg.includes(
 											'not connected')) {
@@ -1382,8 +1307,7 @@
 							clearTimeout(timeout);
 							if (ackData && ackData.data) {
 								try {
-									const deviceInfo = this.parseDeviceInfoAck(
-										ackData);
+									const deviceInfo = this.parseDeviceInfoAck(ackData);
 									if (deviceInfo) {
 										this.deviceInfo = deviceInfo;
 									} else {
@@ -1405,30 +1329,23 @@
 			async getOtaVersion() {
 				const frame = this.buildFrame(FUNC.GET_OTA_VER, 0x01, 0, 0);
 				console.log("获取OTA小系统版本", this.ab2hex(frame));
-
 				// 先创建Promise（注册解析器），再发送数据
 				const ackPromise = this.waitForAck(FUNC.GET_OTA_VER, 0x01);
-
 				// 等待一小段时间确保解析器已注册
 				await new Promise(resolve => setTimeout(resolve, 10));
-
 				// 然后发送数据
 				await this.write(frame);
-
 				return new Promise((resolve) => {
 					const timeout = setTimeout(() => {
 						console.log('如果系统两秒内没有回应就是 V1.0 版本');
 						this.otaVer = 'V1.0';
 						resolve();
 					}, 2000);
-
 					ackPromise.then(ackData => {
 						clearTimeout(timeout);
 						console.log("接收到OTA版本响应", ackData);
-						if (ackData && ackData.data && ackData.data
-							.length > 0) {
-							const version = String.fromCharCode(...ackData
-								.data);
+						if (ackData && ackData.data && ackData.data.length > 0) {
+							const version = String.fromCharCode(...ackData.data);
 							console.log(`OTA小系统版本: ${version}`);
 							this.otaVer = version;
 						} else {
@@ -1437,61 +1354,26 @@
 						resolve();
 					}).catch((error) => {
 						clearTimeout(timeout);
-						// console.error('ACK等待失败:', error.message);
 						// 即使失败，如果有数据就尝试解析
 						this.otaVer = 'V1.0';
 						resolve();
 					});
 				});
 			},
-			// async getOtaVersion() {
-			// 	const frame = this.buildFrame(FUNC.GET_OTA_VER, 0x01, 0, 0);
-			// 	console.log("获取OTA小系统版本", this.ab2hex(frame))
-			// 	await this.write(frame);
-			// 	return new Promise((resolve) => {
-			// 		const timeout = setTimeout(() => {
-			// 			console.log('如果系统两秒内没有回应就是 V1.0 版本');
-			// 			this.otaVer = 'V1.0';
-			// 			resolve();
-			// 		}, 2000);
-			// 		this.waitForAck(FUNC.GET_OTA_VER, 0x01).then(ackData => {
-			// 			console.log(ackData)
-			// 			clearTimeout(timeout);
-			// 			if (ackData && ackData.data && ackData.data.length > 0) {
-			// 				const version = String.fromCharCode(...ackData.data);
-			// 				this.otaVer = version;
-			// 				console.log(`OTA版本: ${version}`);
-			// 			}
-			// 			resolve();
-			// 		}).catch(() => {
-			// 			clearTimeout(timeout);
-			// 			this.otaVer = 'V1.0';
-			// 			resolve();
-			// 		});
-			// 	});
-			// },
-
 			async getMtu() {
 				const frame = this.buildFrame(FUNC.GET_MTU, 0x01, 0, 0);
 				await this.write(frame);
 				return new Promise((resolve) => {
 					this.waitForAck(FUNC.GET_MTU, 0x01).then(ackData => {
-						if (ackData && ackData.data && ackData.data
-							.length >= 2) {
+						if (ackData && ackData.data && ackData.data.length >= 2) {
 							// 修复：大端解析
-							this.mtu = (ackData.data[0] << 8) | ackData
-								.data[1];
+							this.mtu = (ackData.data[0] << 8) | ackData.data[1];
 							// 设置包大小为MTU减去协议头长度(11字节)
-							this.packetSize = Math.min(this.mtu - 11,
-								BLOCK_SIZE);
+							this.packetSize = Math.min(this.mtu - 11, BLOCK_SIZE);
 							// 确保是512的倍数
-							this.packetSize = Math.floor(this
-								.packetSize / 512) * 512;
-							if (this.packetSize < 512) this
-								.packetSize = 128;
-							console.log(
-								`MTU: ${this.mtu}, 包大小: ${this.packetSize}`
-							);
+							this.packetSize = Math.floor(this.packetSize / 512) * 512;
+							if (this.packetSize < 512) this.packetSize = 128;
+							console.log(`MTU: ${this.mtu}, 包大小: ${this.packetSize}`);
 						}
 						resolve();
 					}).catch(() => {
@@ -1544,40 +1426,29 @@
 							if (configContent) {
 								// 解析配置文件（键值对格式）
 								const config = this.parseConfigFile(configContent);
-								if (config.part_id && config.part_addr && config
-									.part_len) {
-									const partId = this.parseHexValue(config
-										.part_id);
-									const addr = this.parseHexValue(config
-										.part_addr);
-									const len = this.parseHexValue(config
-										.part_len);
+								if (config.part_id && config.part_addr && config.part_len) {
+									const partId = this.parseHexValue(config.part_id);
+									const addr = this.parseHexValue(config.part_addr);
+									const len = this.parseHexValue(config.part_len);
 									if (partId === type) { // 验证分区ID匹配
 										const partitionInfo = {
 											type: type,
 											addr: addr,
 											len: len,
-											name: config.name || partitionMap[
-													type]?.name ||
-												`分区0x${hexType}`,
-											func: partitionMap[type]?.func ||
-												type,
-											binFileName: config.bin_file ||
-												`0x${hexType}.bin`
+											name: config.name || partitionMap[type]?.name || `分区0x${hexType}`,
+											func: partitionMap[type]?.func || type,
+											binFileName: config.bin_file || `0x${hexType}.bin`
 										};
 										this.partition.push(partitionInfo);
 										// 尝试加载对应的bin文件
 										await this.loadFirmwareFile(partitionInfo);
 									}
 								} else {
-									console.log(
-										`分区文件 ${txtFileName} 格式不正确，缺少必要字段`);
+									console.log(`分区文件 ${txtFileName} 格式不正确，缺少必要字段`);
 								}
 							}
 						} catch (e) {
-							// 文件不存在，这个分区不需要升级
-							console.log(
-								`分区文件 ${txtFileName} 不存在或读取失败: ${e.message}`);
+							console.log(`分区文件 ${txtFileName} 不存在或读取失败: ${e.message}`);
 							continue;
 						}
 					}
@@ -1639,11 +1510,9 @@
 						plus.io.resolveLocalFileSystemURL(
 							`_www/${filePath}`, (entry) => {
 								entry.file((file) => {
-									const reader = new plus.io
-										.FileReader();
+									const reader = new plus.io.FileReader();
 									reader.onloadend = (e) => {
-										resolve(e.target
-											.result);
+										resolve(e.target.result);
 									};
 									reader.readAsText(file);
 								}, reject);
@@ -1693,24 +1562,13 @@
 					plus.io.resolveLocalFileSystemURL('_www/' + path,
 						entry => {
 							entry.file(file => {
-								const reader = new plus.io
-									.FileReader();
+								const reader = new plus.io.FileReader();
 								reader.onload = e => {
-									const base64 = e
-										.target.result
-										.split(',')[1];
-									const binary =
-										atob(base64);
-									const bytes =
-										new Uint8Array(
-											binary
-											.length);
-									for (let i = 0; i <
-										binary
-										.length; i++)
-										bytes[i] =
-										binary
-										.charCodeAt(i);
+									const base64 = e.target.result.split(',')[1];
+									const binary = atob(base64);
+									const bytes = new Uint8Array(binary.length);
+									for (let i = 0; i < binary.length; i++)
+										bytes[i] = binary.charCodeAt(i);
 									resolve(bytes);
 								};
 								reader.readAsDataURL(file);
@@ -1722,10 +1580,8 @@
 						url: path,
 						method: 'GET',
 						responseType: 'arraybuffer',
-						success: res => resolve(new Uint8Array(
-							res.data)),
-						fail: err => reject(new Error(
-							'请求失败: ' + err.errMsg))
+						success: res => resolve(new Uint8Array(res.data)),
+						fail: err => reject(new Error('请求失败: ' + err.errMsg))
 					});
 					// #endif
 				});
@@ -1735,16 +1591,19 @@
 					throw new Error('没有分区信息');
 				}
 				const partitionData = this.buildPartitionData();
-				const frame = this.buildFrame(FUNC.PARTITION, 0x01, 0, 0,
-					partitionData);
+				// 1. 先创建ACK等待Promise
+				const ackPromise = this.waitForAck(FUNC.PARTITION, 0x01, 10000);
+				// 2. 然后发送数据
+				const frame = this.buildFrame(FUNC.PARTITION, 0x01, 0, 0, partitionData);
+				console.log('下发分区表...');
 				await this.write(frame);
-				await this.waitForAck(FUNC.PARTITION, 0x01);
+				// 3. 等待ACK
+				await ackPromise;
 				console.log('分区表下发成功');
 			},
 
 			buildPartitionData() {
-				const data = new Uint8Array(this.partition.length *
-					9); // 每个分区9字节
+				const data = new Uint8Array(this.partition.length * 9); // 每个分区9字节
 				for (let i = 0; i < this.partition.length; i++) {
 					const p = this.partition[i];
 					const offset = i * 9;
@@ -1772,29 +1631,19 @@
 					this.skip4KChecks = false;
 					this.currentPartition = partition;
 					// 设置该分区的滚动条总块数
-					const totalBlocks = Math.ceil(partition.len /
-						4096);
-					this.setPartitionTotalBlocks(partition.type,
-						totalBlocks);
+					const totalBlocks = Math.ceil(partition.len / 4096);
+					this.setPartitionTotalBlocks(partition.type, totalBlocks);
 					// 1. 准备分区数据
-					const partitionData = this.preparePartitionData(
-						partition);
+					const partitionData = this.preparePartitionData(partition);
 					// 2. 发送4K块校验值
-					await this.send4KChecksums(partition,
-						partitionData);
+					await this.send4KChecksums(partition, partitionData);
 					// 调试：打印当前状态
-					const partitionFailedBlocks = this.failedBlocks
-						.filter(
-							fb => fb.partition === partition.type
-						);
+					const partitionFailedBlocks = this.failedBlocks.filter(fb => fb.partition === partition.type);
 					// 3. 只有在有校验失败的块时才需要发送数据
-					if (partitionFailedBlocks.length > 0 || this
-						.skip4KChecks) {
+					if (partitionFailedBlocks.length > 0 || this.skip4KChecks) {
 						// 打印详细的失败块信息
 						if (partitionFailedBlocks.length > 0) {
-							const indices = partitionFailedBlocks.map(
-								fb => fb.blockIndex).sort((a, b) =>
-								a - b);
+							const indices = partitionFailedBlocks.map(fb => fb.blockIndex).sort((a, b) => a - b);
 						}
 						await this.sendPartitionData(partition,
 							partitionData);
@@ -1805,17 +1654,12 @@
 						// 标记该分区完成
 						this.markPartitionComplete(partition.type);
 					}
-
 					// 4. 发送分区总校验
-					await this.sendPartitionTotalChecksum(partition,
-						partitionData);
-
+					await this.sendPartitionTotalChecksum(partition, partitionData);
 					console.log(`分区 ${partition.name} 升级成功完成`);
 					return true;
 				} catch (error) {
-					console.log(
-						`分区 ${partition.name} 升级失败: ${error.message}`
-					);
+					console.log(`分区 ${partition.name} 升级失败: ${error.message}`);
 					// 标记分区失败
 					this.markPartitionFailed(partition.type);
 					throw error;
@@ -1826,149 +1670,93 @@
 				const BLOCK_SIZE = 4096;
 				const INITIAL_BLOCK_COUNT = 10;
 				const JUMP_SIZE = 40 * 1024; // 40K偏移量
-
-				console.log(
-					`发送前 ${INITIAL_BLOCK_COUNT} 个4K块的校验值...`);
-
+				console.log(`发送前 ${INITIAL_BLOCK_COUNT} 个4K块的校验值...`);
 				// 计算总共能有多少个完整的4K块
-				const totalBlocks = Math.ceil(partitionData
-					.length / BLOCK_SIZE);
-				const blocksToCheck = Math.min(INITIAL_BLOCK_COUNT,
-					totalBlocks);
-
+				const totalBlocks = Math.ceil(partitionData.length / BLOCK_SIZE);
+				const blocksToCheck = Math.min(INITIAL_BLOCK_COUNT, totalBlocks);
 				if (blocksToCheck === 0) {
 					console.log('没有数据需要校验');
 					return;
 				}
-
 				// 构建校验数据
-				const checkDataSize = blocksToCheck * (this
-					.otaVer === 'V1.1' ? 8 : 4);
+				const checkDataSize = blocksToCheck * (this.otaVer === 'V1.1' ? 8 : 4);
 				const checkData = new Uint8Array(checkDataSize);
-
 				for (let blockIndex = 0; blockIndex <
 					blocksToCheck; blockIndex++) {
 					const blockOffset = blockIndex * BLOCK_SIZE;
-					const endOffset = Math.min(blockOffset +
-						BLOCK_SIZE, partitionData.length);
-					const blockData = partitionData.slice(
-						blockOffset, endOffset);
-
+					const endOffset = Math.min(blockOffset + BLOCK_SIZE, partitionData.length);
+					const blockData = partitionData.slice(blockOffset, endOffset);
 					// 计算校验值
 					let blockChecksum;
 					if (this.otaVer === 'V1.1') {
-						blockChecksum = this.calcBlockCheckV11(
-							blockData);
+						blockChecksum = this.calcBlockCheckV11(blockData);
 					} else {
-						blockChecksum = this.calcBlockCheckV10(
-							blockData);
+						blockChecksum = this.calcBlockCheckV10(blockData);
 					}
-
 					// 复制到校验数据数组
-					const dataOffset = blockIndex * blockChecksum
-						.length;
+					const dataOffset = blockIndex * blockChecksum.length;
 					checkData.set(blockChecksum, dataOffset);
 				}
-
-				// 发送前10个4K块的校验值
-				const frame = this.buildFrame(FUNC.BLOCK_CHECK,
-					0x01, 0, 0, checkData);
-				console.log("发送前10个块的校验值", this.ab2hex(frame));
-				await this.write(frame);
-
-				// 等待设备响应
 				try {
-					const ack = await this.waitForAck(FUNC
-						.BLOCK_CHECK, 0x01, 5000);
+					// 1. 先创建ACK等待Promise
+					const ackPromise = this.waitForAck(FUNC.BLOCK_CHECK, 0x01, 10000);
+					// 2. 然后发送数据
+					const frame = this.buildFrame(FUNC.BLOCK_CHECK, 0x01, 0, 0, checkData);
+					console.log("发送前10个块的校验值", this.ab2hex(frame));
+					await this.write(frame);
+					// 3. 等待设备响应
+					const ack = await ackPromise;
 					if (ack.data && ack.data.length > 0) {
 						const result = ack.data[0];
 						if (result === 0xFF) {
-							console.log(
-								'✅ 前10个4K块校验正确，继续偏移40K后的校验');
+							console.log('✅ 前10个4K块校验正确，继续偏移40K后的校验');
 							// 如果前10个校验正确，往后面偏移40K位置再发校验值
-							await this.sendSubsequentChecksums(
-								partition, partitionData,
-								JUMP_SIZE);
-						} else if (result >= 0x00 && result <=
-							0x09) {
+							await this.sendSubsequentChecksums(partition, partitionData, JUMP_SIZE);
+						} else if (result >= 0x00 && result <= 0x09) {
 							// result 是失败块的相对索引（0-9）
 							const failedBlockIndex = result;
-							console.log(
-								`❌ 第 ${failedBlockIndex} 个4K块校验出错，从该区域开始发送文件，后续不再4K校验`
-							);
-
+							console.log(`❌ 第 ${failedBlockIndex} 个4K块校验出错，从该区域开始发送文件，后续不再4K校验`);
 							// 根据协议：从校验错误的区域开始发送代码文件，后续不再4K校验
 							this.skip4KChecks = true;
-
 							// 清除该分区的旧失败记录
-							this.failedBlocks = this.failedBlocks
-								.filter(
-									fb => fb.partition !==
-									partition.type
-								);
-
+							this.failedBlocks = this.failedBlocks.filter(fb => fb.partition !== partition.type);
 							// 记录从失败块开始的所有块都需要发送（包括失败块本身）
 							for (let i = failedBlockIndex; i <
 								totalBlocks; i++) {
 								this.failedBlocks.push({
-									partition: partition
-										.type,
+									partition: partition.type,
 									blockIndex: i,
 									offset: i * BLOCK_SIZE,
 									reason: 'failed_in_4k_check'
 								});
 							}
-
-							console.log(
-								`[记录] 已记录从块 ${failedBlockIndex} 到 ${totalBlocks-1} 的所有块需要发送`
-							);
-							console.log(
-								`[总数] 共记录了 ${totalBlocks - failedBlockIndex} 个块`
-							);
-
+							console.log(`[记录] 已记录从块 ${failedBlockIndex} 到 ${totalBlocks-1} 的所有块需要发送`);
+							console.log(`[总数] 共记录了 ${totalBlocks - failedBlockIndex} 个块`);
 							// 打印验证信息
-							const recordedBlocks = this
-								.failedBlocks.filter(fb => fb
-									.partition === partition.type);
+							const recordedBlocks = this.failedBlocks.filter(fb => fb.partition === partition.type);
 							if (recordedBlocks.length > 0) {
-								const minIndex = Math.min(...
-									recordedBlocks.map(fb => fb
-										.blockIndex));
-								const maxIndex = Math.max(...
-									recordedBlocks.map(fb => fb
-										.blockIndex));
-								console.log(
-									`[验证] 记录范围: ${minIndex} 到 ${maxIndex}，共 ${recordedBlocks.length} 个块`
-								);
+								const minIndex = Math.min(...recordedBlocks.map(fb => fb.blockIndex));
+								const maxIndex = Math.max(...recordedBlocks.map(fb => fb.blockIndex));
+								console.log(`[验证] 记录范围: ${minIndex} 到 ${maxIndex}，共 ${recordedBlocks.length} 个块`);
 							}
 						} else {
-							console.log(
-								`❌ 未知响应: 0x${result.toString(16)}，当作校验失败`
-							);
-							// 未知响应，当作全部失败
-							this.markAllBlocksAsFailed(partition
-								.type, totalBlocks);
+							console.log(`❌ 未知响应: 0x${result.toString(16)}，当作校验失败`);
+							this.markAllBlocksAsFailed(partition.type, totalBlocks);
 						}
 					} else {
-						// 没有响应数据，当作全部失败
 						console.log('❌ 校验响应无效，当作全部失败');
-						this.markAllBlocksAsFailed(partition.type,
-							totalBlocks);
+						this.markAllBlocksAsFailed(partition.type, totalBlocks);
 					}
 				} catch (error) {
-					console.log(
-						`❌ 4K校验响应失败: ${error.message}，当作全部失败`);
-					this.markAllBlocksAsFailed(partition.type,
-						totalBlocks);
+					console.log(`❌ 4K校验响应失败: ${error.message}，当作全部失败`);
+					this.markAllBlocksAsFailed(partition.type, totalBlocks);
 				}
 			},
-
 			// 辅助方法：标记所有块为失败
 			markAllBlocksAsFailed(partitionType, totalBlocks) {
 				this.skip4KChecks = true;
 				this.failedBlocks = this.failedBlocks.filter(fb =>
 					fb.partition !== partitionType);
-
 				for (let i = 0; i < totalBlocks; i++) {
 					this.failedBlocks.push({
 						partition: partitionType,
@@ -1977,7 +1765,6 @@
 						reason: 'unknown_error_or_timeout'
 					});
 				}
-
 				console.log(`[记录] 标记了所有 ${totalBlocks} 个块为失败状态`);
 			},
 			// 发送后续校验值（偏移40K）
@@ -1986,288 +1773,190 @@
 				const BLOCK_SIZE = 4096;
 				const BLOCK_COUNT = 10;
 				const JUMP_SIZE = 40 * 1024; // 添加这行
-				console.log(
-					`✅ 开始偏移40K后的校验，起始偏移: ${startOffset}字节`);
+				console.log(`✅ 开始偏移40K后的校验，起始偏移: ${startOffset}字节`);
 				let currentOffset = startOffset;
 				const totalLength = partitionData.length;
-				const totalBlocks = Math.ceil(totalLength /
-					BLOCK_SIZE);
-				while (currentOffset < totalLength && !this
-					.skip4KChecks) {
+				const totalBlocks = Math.ceil(totalLength / BLOCK_SIZE);
+				while (currentOffset < totalLength && !this.skip4KChecks) {
 					// 计算这次要校验的块数
-					const remainingBlocks = Math.ceil((
-							totalLength - currentOffset) /
-						BLOCK_SIZE);
-					const blocksToCheck = Math.min(BLOCK_COUNT,
-						remainingBlocks);
-
+					const remainingBlocks = Math.ceil((totalLength - currentOffset) / BLOCK_SIZE);
+					const blocksToCheck = Math.min(BLOCK_COUNT, remainingBlocks);
 					if (blocksToCheck === 0) break;
-
 					// 计算起始块索引
-					const startBlockIndex = Math.floor(
-						currentOffset / BLOCK_SIZE);
-					console.log(
-						`开始校验块 ${startBlockIndex} 到 ${startBlockIndex+blocksToCheck-1}`
-					);
-
+					const startBlockIndex = Math.floor(currentOffset / BLOCK_SIZE);
+					console.log(`开始校验块 ${startBlockIndex} 到 ${startBlockIndex+blocksToCheck-1}`);
 					// 构建校验数据
-					const checkData = new Uint8Array(
-						blocksToCheck * (this.otaVer ===
-							'V1.1' ? 8 : 4));
-
+					const checkData = new Uint8Array(blocksToCheck * (this.otaVer === 'V1.1' ? 8 : 4));
 					// 计算校验值
 					for (let i = 0; i < blocksToCheck; i++) {
-						const blockOffset = currentOffset + (
-							i * BLOCK_SIZE);
-						if (blockOffset >= partitionData
-							.length) {
+						const blockOffset = currentOffset + (i * BLOCK_SIZE);
+						if (blockOffset >= partitionData.length) {
 							break;
 						}
-						const endOffset = Math.min(
-							blockOffset + BLOCK_SIZE,
-							partitionData.length);
-						const blockData = partitionData.slice(
-							blockOffset, endOffset);
-
+						const endOffset = Math.min(blockOffset + BLOCK_SIZE, partitionData.length);
+						const blockData = partitionData.slice(blockOffset, endOffset);
 						// 计算校验值
 						let blockChecksum;
 						if (this.otaVer === 'V1.1') {
-							blockChecksum = this
-								.calcBlockCheckV11(blockData);
+							blockChecksum = this.calcBlockCheckV11(blockData);
 						} else {
-							blockChecksum = this
-								.calcBlockCheckV10(blockData);
+							blockChecksum = this.calcBlockCheckV10(blockData);
 						}
-
 						// 复制到校验数据数组
-						const dataOffset = i * blockChecksum
-							.length;
-						checkData.set(blockChecksum,
-							dataOffset);
+						const dataOffset = i * blockChecksum.length;
+						checkData.set(blockChecksum, dataOffset);
 					}
-
-					// 发送校验值 - 使用起始块索引作为包序号
-					const frame = this.buildFrame(FUNC
-						.BLOCK_CHECK, 0x01,
-						startBlockIndex, 0, checkData);
-					console.log(
-						`发送块 ${startBlockIndex} 到 ${startBlockIndex+blocksToCheck-1} 的校验值`
-					);
-					await this.write(frame);
-
-					// 等待设备响应
 					try {
-						const ack = await this.waitForAck(FUNC
-							.BLOCK_CHECK, 0x01, 3000);
+						// 1. 先创建ACK等待Promise（这会注册解析器）
+						const ackPromise = this.waitForAck(FUNC.BLOCK_CHECK, 0x01, 10000);
+						// 2. 然后发送数据（确保解析器已经注册）
+						const frame = this.buildFrame(FUNC.BLOCK_CHECK, 0x01, startBlockIndex, 0, checkData);
+						console.log(`发送块 ${startBlockIndex} 到 ${startBlockIndex+blocksToCheck-1} 的校验值`);
+						await this.write(frame);
+						// 3. 等待ACK
+						const ack = await ackPromise;
 						if (ack.data && ack.data.length > 0) {
 							const result = ack.data[0];
 							if (result === 0xFF) {
-								console.log(
-									`✅ 块 ${startBlockIndex} 到 ${startBlockIndex+blocksToCheck-1} 校验全部正确`
-								);
-								currentOffset += 40 *
-									1024; // 直接使用40*1024，避免JUMP_SIZE变量问题
-							} else if (result >= 0x00 &&
-								result <= 0x09) {
+								console.log(`✅ 块 ${startBlockIndex} 到 ${startBlockIndex+blocksToCheck-1} 校验全部正确`);
+								currentOffset += 40 * 1024; // 直接使用40*1024，避免JUMP_SIZE变量问题
+							} else if (result >= 0x00 && result <= 0x09) {
 								// result 是失败块的相对索引（相对于当前批次）
-								const failedRelativeIndex =
-									result;
-								const failedBlockIndex =
-									startBlockIndex +
-									failedRelativeIndex;
-								console.log(
-									`❌ 第 ${failedRelativeIndex} 个4K块校验出错（全局块索引: ${failedBlockIndex}）`
-								);
-								console.log(
-									`📋 从块 ${failedBlockIndex} 开始发送文件，后续不再4K校验`
-								);
-
+								const failedRelativeIndex = result;
+								const failedBlockIndex = startBlockIndex + failedRelativeIndex;
+								console.log(`❌ 第 ${failedRelativeIndex} 个4K块校验出错（全局块索引: ${failedBlockIndex}）`);
+								console.log(`📋 从块 ${failedBlockIndex} 开始发送文件，后续不再4K校验`);
 								// 根据协议：从校验错误的区域开始发送代码文件，后续不再4K校验
 								this.skip4KChecks = true;
-
 								// 清除该分区的旧失败记录
-								this.failedBlocks = this
-									.failedBlocks.filter(
-										fb => fb.partition !==
-										partition.type
-									);
-
+								this.failedBlocks = this.failedBlocks.filter(fb => fb.partition !== partition.type);
 								// 记录从失败块开始的所有块都需要发送（包括失败块本身）
-								for (let i =
-										failedBlockIndex; i <
-									totalBlocks; i++) {
+								for (let i = failedBlockIndex; i < totalBlocks; i++) {
 									this.failedBlocks.push({
-										partition: partition
-											.type,
+										partition: partition.type,
 										blockIndex: i,
-										offset: i *
-											BLOCK_SIZE,
+										offset: i * BLOCK_SIZE,
 										reason: 'failed_in_40k_offset_check'
 									});
 								}
-
-								console.log(
-									`[记录] 已记录从块 ${failedBlockIndex} 到 ${totalBlocks-1} 的所有块需要发送`
-								);
+								console.log(`[记录] 已记录从块 ${failedBlockIndex} 到 ${totalBlocks-1} 的所有块需要发送`);
 								break;
 							} else {
-								console.log(
-									`❌ 未知响应: 0x${result.toString(16)}，当作校验失败`
-								);
+								console.log(`❌ 未知响应: 0x${result.toString(16)}，当作校验失败`);
 								this.skip4KChecks = true;
-								this.markAllBlocksAsFailed(
-									partition.type,
-									totalBlocks);
+								this.markAllBlocksAsFailed(partition.type, totalBlocks);
 								break;
 							}
 						} else {
 							console.log('❌ 校验响应无效，当作校验失败');
 							this.skip4KChecks = true;
-							this.markAllBlocksAsFailed(
-								partition.type, totalBlocks
-							);
+							this.markAllBlocksAsFailed(partition.type, totalBlocks);
 							break;
 						}
 					} catch (error) {
-						console.log(
-							`❌ 校验响应失败: ${error.message}，当作校验失败`
-						);
+						console.log(`❌ 校验响应失败: ${error.message}，当作校验失败`);
 						this.skip4KChecks = true;
-						this.markAllBlocksAsFailed(partition
-							.type, totalBlocks);
+						this.markAllBlocksAsFailed(partition.type, totalBlocks);
 						break;
 					}
 				}
-
 				// 检查是否所有校验都通过
-				if (!this.skip4KChecks && currentOffset >=
-					totalLength) {
+				if (!this.skip4KChecks && currentOffset >= totalLength) {
 					console.log(`✅ 所有4K块校验完成，所有校验都正确，无需发送数据`);
 					// 清除该分区的所有失败记录
-					this.failedBlocks = this.failedBlocks
-						.filter(
-							fb => fb.partition !== partition
-							.type
-						);
-					console.log(
-						`已清除分区 ${partition.name} 的所有失败块记录`);
+					this.failedBlocks = this.failedBlocks.filter(fb => fb.partition !== partition.type);
+					console.log(`已清除分区 ${partition.name} 的所有失败块记录`);
 				}
 			},
 			/* ------------ 总校验 ------------ */
-			async sendPartitionTotalChecksum(partition,
-				partitionData) {
+			async sendPartitionTotalChecksum(partition, partitionData) {
 				console.log(`开始 ${partition.name} 总校验...`);
-				// 1. 计算总校验值（和校验）
+
+				// 1. 计算总校验值
 				let totalSum = 0;
-				for (let i = 0; i < partitionData
-					.length; i++) {
+				for (let i = 0; i < partitionData.length; i++) {
 					totalSum += partitionData[i];
 				}
-				// 2. 构建校验数据 - 只需要4字节校验和
-				const checkData = new Uint8Array(
-					4); // 注意：4字节，不是5字节！
+
+				const checkData = new Uint8Array(4);
 				checkData[0] = (totalSum >> 24) & 0xFF;
 				checkData[1] = (totalSum >> 16) & 0xFF;
 				checkData[2] = (totalSum >> 8) & 0xFF;
 				checkData[3] = totalSum & 0xFF;
-				// 3. 发送总校验 - 功能码0x0A，标识码0x01
-				const frame = this.buildFrame(FUNC
-					.TOTAL_CHECK, 0x01, 0, 0, checkData
-				);
-				// 调试：打印完整帧
-				const frameHex = this.ab2hex(
-					new Uint8Array(frame));
-				console.log(`发送总校验帧: ${frameHex}`);
-				await this.write(frame);
 				try {
-					// 使用修改后的waitForAck（不指定idCode）
-					const ack = await this.waitForAck(FUNC
-						.TOTAL_CHECK, 0x01, 5000);
-					// 处理不同标识码
+					// 2. 先创建ACK等待Promise（注册解析器）
+					const ackPromise = this.waitForAck(FUNC.TOTAL_CHECK, 0x01, 15000);
+					// 3. 然后发送总校验帧
+					const frame = this.buildFrame(FUNC.TOTAL_CHECK, 0x01, 0, 0, checkData);
+					const frameHex = this.ab2hex(new Uint8Array(frame));
+					console.log(`发送总校验帧: ${frameHex}`);
+					await this.write(frame);
+					// 4. 等待ACK响应
+					const ack = await ackPromise;
+					// 检查标识码
 					if (ack.identifier === 0x01) {
-						console.log(
-							`✅ ${partition.name} 总校验成功`
-						);
+						console.log(`✅ ${partition.name} 总校验成功`);
 						return true;
-					} else if (ack.identifier === 0x03) {
-						console.log(
-							`❌ ${partition.name} 总校验失败：校验和错误`
-						);
-						// 可以考虑在这里重新发送整个分区
-						throw new Error(
-							'总校验和错误，需要重新升级该分区');
 					} else {
-						const errorMsg = this
-							.getIdentifierName(ack
-								.identifier);
-						console.log(
-							`❌ ${partition.name} 总校验失败: ${errorMsg}`
-						);
-						throw new Error(
-							`总校验失败: ${errorMsg}`);
+						const errorMsg = this.getIdentifierName(ack.identifier);
+						console.log(`❌ ${partition.name} 总校验失败: ${errorMsg}`);
+						uni.closeBLEConnection({
+							deviceId: this.targetDeviceId,
+							complete: (complete) => {
+								console.log('complete', complete);
+							}
+						})
+						uni.closeBluetoothAdapter()
+						throw new Error(`总校验失败: ${errorMsg}`);
 					}
 
 				} catch (error) {
-					console.log(
-						`总校验过程出错: ${error.message}`);
+					console.log(`总校验过程出错: ${error.message}`);
+					uni.closeBLEConnection({
+						deviceId: this.targetDeviceId,
+						complete: (complete) => {
+							console.log('complete', complete);
+						}
+					})
+					uni.closeBluetoothAdapter()
 					throw error;
 				}
 			},
 			preparePartitionData(partition) {
 				// 获取该分区的固件数据
-				const rawData = this.fwData[partition
-					.type] || new Uint8Array(0);
+				const rawData = this.fwData[partition.type] || new Uint8Array(0);
 				// 显示原始数据信息
 				if (rawData.length > 0) {
-					const preview = Array.from(rawData
-							.slice(0, 32))
-						.map(b => b.toString(16).padStart(
-							2, '0'))
-						.join(' ');
+					const preview = Array.from(rawData.slice(0, 32)).map(b => b.toString(16).padStart(2, '0')).join(' ');
 					// 检查是否全是0x00
-					const allZero = rawData.every(byte =>
-						byte === 0);
+					const allZero = rawData.every(byte => byte === 0);
 					if (allZero) {
 						console.log(`警告: 原始数据全是0x00!`);
 					}
 				}
-
 				// 检查是否有实际数据
 				if (rawData.length === 0) {
-					console.log(
-						`错误: 分区 ${partition.name} 没有数据，无法升级`
-					);
-					throw new Error(
-						`分区 ${partition.name} 缺少固件数据`);
+					console.log(`错误: 分区 ${partition.name} 没有数据，无法升级`);
+					throw new Error(`分区 ${partition.name} 缺少固件数据`);
 				}
-
 				// 如果原始数据比分区长度小，补零
 				if (rawData.length < partition.len) {
-					const zeroCount = partition.len -
-						rawData.length;
-					console.log(
-						`数据不足，需要补零: ${zeroCount} 字节`);
-					const result = new Uint8Array(partition
-						.len);
+					const zeroCount = partition.len - rawData.length;
+					console.log(`数据不足，需要补零: ${zeroCount} 字节`);
+					const result = new Uint8Array(partition.len);
 					result.set(rawData);
-					// 后面部分自动为0
 					return result;
 				}
 				// 如果原始数据比分区长度大，截断
 				else if (rawData.length > partition.len) {
-					const truncateCount = rawData.length -
-						partition.len;
-					console.log(
-						`数据过大，需要截断: ${truncateCount} 字节`
-					);
+					const truncateCount = rawData.length - partition.len;
+					console.log(`数据过大，需要截断: ${truncateCount} 字节`);
 					return rawData.slice(0, partition.len);
 				}
-
 				return rawData;
 			},
 			concatUint8Arrays(array1, array2) {
-				const result = new Uint8Array(array1
-					.length + array2.length);
+				const result = new Uint8Array(array1.length + array2.length);
 				result.set(array1);
 				result.set(array2, array1.length);
 				return result;
@@ -2276,57 +1965,37 @@
 			async sendPartitionData(partition,
 				partitionData) {
 				const BLOCK_SIZE = 4096;
-				const totalBlocks = Math.ceil(partition
-					.len / BLOCK_SIZE);
+				const totalBlocks = Math.ceil(partition.len / BLOCK_SIZE);
 				// 检查连接状态
 				if (!this.connected) {
 					throw new Error('蓝牙连接已断开，请重新连接设备');
 				}
 				// 获取该分区的失败块列表
-				const partitionFailedBlocks = this
-					.failedBlocks.filter(
-						fb => fb.partition ===
-						partition.type
-					);
+				const partitionFailedBlocks = this.failedBlocks.filter(fb => fb.partition === partition.type);
 				console.log(
-					`[DEBUG] 总块数: ${totalBlocks}, 失败块数: ${partitionFailedBlocks.length}, skip4KChecks: ${this.skip4KChecks}`
+					`[DEBUG] 总块数: ${totalBlocks}, 需发送块数: ${partitionFailedBlocks.length}, skip4KChecks: ${this.skip4KChecks}`
 				);
 				// 统计需要发送的块数
 				let sendCount = 0;
 				let skipCount = 0;
-
-				for (let blockIndex = 0; blockIndex <
-					totalBlocks; blockIndex++) {
+				for (let blockIndex = 0; blockIndex < totalBlocks; blockIndex++) {
 					// 检查连接状态
 					if (!this.connected) {
-						throw new Error(
-							'蓝牙连接已断开，停止发送');
+						throw new Error('蓝牙连接已断开，停止发送');
 					}
 					// 检查是否应该发送该块
-					const shouldSend = this
-						.shouldSendBlock(partition
-							.type, blockIndex);
+					const shouldSend = this.shouldSendBlock(partition.type, blockIndex);
 					if (shouldSend) {
 						sendCount++;
-						console.log(
-							`✅ [${sendCount}] 发送块 ${blockIndex}`
-						);
-						await this.sendSingleDataBlock(
-							partition,
-							partitionData,
-							blockIndex);
+						console.log(`✅ [${sendCount}] 发送块 ${blockIndex}`);
+						await this.sendSingleDataBlock(partition, partitionData, blockIndex);
 					} else {
 						skipCount++;
-						console.log(
-							`⏭️ [${skipCount}] 跳过块 ${blockIndex} (校验正确)`
-						);
+						console.log(`⏭️ [${skipCount}] 跳过块 ${blockIndex} (校验正确)`);
 						// 即使跳过也要更新进度
-						this.updateProgress(
-							BLOCK_SIZE);
+						this.updateProgress(BLOCK_SIZE);
 						// 更新滚动条进度
-						this.updatePartitionProgress(
-							partition.type,
-							blockIndex);
+						this.updatePartitionProgress(partition.type, blockIndex);
 					}
 					// 块间延时，避免发送过快
 					if (blockIndex < totalBlocks - 1) {
@@ -2334,46 +2003,24 @@
 					}
 					// 每10个块打印一次统计信息
 					if ((blockIndex + 1) % 10 === 0) {
-						console.log(
-							`[进度] 已处理 ${blockIndex + 1}/${totalBlocks} 个块 (发送:${sendCount}, 跳过:${skipCount})`
-						);
+						console.log(`[进度] 已处理 ${blockIndex + 1}/${totalBlocks} 个块 (发送:${sendCount}, 跳过:${skipCount})`);
 					}
 				}
-
-				console.log(
-					`[完成] 分区 ${partition.name} 数据发送完成`
-				);
-				console.log(
-					`[统计] 总块数: ${totalBlocks}, 发送: ${sendCount}, 跳过: ${skipCount}`
-				);
-
-				// 标记该分区完成
-				this.markPartitionComplete(partition
-					.type);
+				console.log(`[完成] 分区 ${partition.name} 数据发送完成`);
+				console.log(`[统计] 总块数: ${totalBlocks}, 发送: ${sendCount}, 跳过: ${skipCount}`);
+				this.markPartitionComplete(partition.type);
 			},
 			// 判断块是否需要发送
-			shouldSendBlock(partitionType,
-				blockIndex) {
+			shouldSendBlock(partitionType, blockIndex) {
 				// 获取该分区的失败块列表
-				const partitionFailedBlocks = this
-					.failedBlocks.filter(
-						fb => fb.partition ===
-						partitionType
-					);
+				const partitionFailedBlocks = this.failedBlocks.filter(fb => fb.partition === partitionType);
 				// 如果有4K校验失败的记录（skip4KChecks=true）
 				if (this.skip4KChecks) {
 					// 如果分区有失败记录，检查块是否在失败列表中
-					if (partitionFailedBlocks.length >
-						0) {
-						const isFailed =
-							partitionFailedBlocks.some(
-								fb => fb.blockIndex ===
-								blockIndex
-							);
+					if (partitionFailedBlocks.length > 0) {
+						const isFailed = partitionFailedBlocks.some(fb => fb.blockIndex === blockIndex);
 						if (!isFailed) {
-							console.log(
-								`[警告] 块 ${blockIndex} 不在失败列表中，但skip4KChecks=true`
-							);
+							console.log(`[警告] 块 ${blockIndex} 不在失败列表中，但skip4KChecks=true`);
 						}
 						// 只要skip4KChecks=true，就发送所有块（确保不遗漏）
 						return true;
@@ -2383,240 +2030,120 @@
 					}
 				}
 				// 正常模式：只发送失败列表中的块
-				const isFailed = partitionFailedBlocks
-					.some(
-						fb => fb.blockIndex ===
-						blockIndex
-					);
+				const isFailed = partitionFailedBlocks.some(fb => fb.blockIndex === blockIndex);
 				return isFailed;
 			},
 			// 发送单个4K数据块
-			async sendSingleDataBlock(partition,
-				partitionData, blockIndex) {
+			async sendSingleDataBlock(partition, partitionData, blockIndex) {
 				const BLOCK_SIZE = 4096;
 				const MAX_RETRIES = 3; // 最大重试次数
-
-				const blockOffset = blockIndex *
-					BLOCK_SIZE;
+				const blockOffset = blockIndex * BLOCK_SIZE;
 				// 检查偏移是否超出范围
-				if (blockOffset >= partitionData
-					.length) {
+				if (blockOffset >= partitionData.length) {
 					return;
 				}
-
-				const endOffset = Math.min(
-					blockOffset + BLOCK_SIZE,
-					partitionData.length);
-				let blockData = partitionData
-					.slice(blockOffset, endOffset);
-
+				const endOffset = Math.min(blockOffset + BLOCK_SIZE, partitionData.length);
+				let blockData = partitionData.slice(blockOffset, endOffset);
 				// 数据不足时补零
-				if (blockData.length <
-					BLOCK_SIZE) {
-					const zeros = new Uint8Array(
-						BLOCK_SIZE - blockData
-						.length);
-					blockData = this
-						.concatUint8Arrays(
-							blockData, zeros);
-					console.log(
-						`块 ${blockIndex} 补零 ${zeros.length} 字节`
-					);
+				if (blockData.length < BLOCK_SIZE) {
+					const zeros = new Uint8Array(BLOCK_SIZE - blockData.length);
+					blockData = this.concatUint8Arrays(blockData, zeros);
+					console.log(`块 ${blockIndex} 补零 ${zeros.length} 字节`);
 				}
-
 				// 计算4K块的校验值
 				let blockChecksum;
 				if (this.otaVer === 'V1.1') {
-					blockChecksum = this
-						.calcBlockCheckV11(
-							blockData);
+					blockChecksum = this.calcBlockCheckV11(blockData);
 				} else {
-					blockChecksum = this
-						.calcBlockCheckV10(
-							blockData);
+					blockChecksum = this.calcBlockCheckV10(blockData);
 				}
 				// 重试逻辑
-				for (let retryCount =
-						0; retryCount <
-					MAX_RETRIES; retryCount++) {
+				for (let retryCount = 0; retryCount < MAX_RETRIES; retryCount++) {
 					try {
 						// 检查连接状态
 						if (!this.connected) {
-							throw new Error(
-								'蓝牙连接已断开');
+							throw new Error('蓝牙连接已断开');
 						}
-
 						// 将4K数据分成多个包发送
-						const packetsPerBlock =
-							Math.ceil(BLOCK_SIZE /
-								this.packetSize);
-
+						const packetsPerBlock = Math.ceil(BLOCK_SIZE / this.packetSize);
 						// 发送数据包
-						for (let packetIndex =
-								0; packetIndex <
-							packetsPerBlock; packetIndex++
-						) {
+						for (let packetIndex = 0; packetIndex < packetsPerBlock; packetIndex++) {
 							// 检查连接状态
 							if (!this.connected) {
-								throw new Error(
-									'蓝牙连接已断开');
+								throw new Error('蓝牙连接已断开');
 							}
-
-							const dataOffset =
-								packetIndex * this
-								.packetSize;
-							const packetSize = Math
-								.min(this
-									.packetSize,
-									blockData
-									.length -
-									dataOffset);
-							if (packetSize <= 0)
-								break;
-
-							const packetData =
-								blockData.slice(
-									dataOffset,
-									dataOffset +
-									packetSize);
-
+							const dataOffset = packetIndex * this.packetSize;
+							const packetSize = Math.min(this.packetSize, blockData.length - dataOffset);
+							if (packetSize <= 0) break;
+							const packetData = blockData.slice(dataOffset, dataOffset + packetSize);
 							// 发送数据包
-							const frame = this
-								.buildFrame(
-									partition.func,
-									0x01,
-									blockIndex,
-									packetIndex,
-									packetData
-								);
-
-							await this.write(
-								frame);
-
+							const frame = this.buildFrame(partition.func, 0x01, blockIndex, packetIndex, packetData);
+							await this.write(frame);
 							// 包间延时，避免发送过快
-							if (packetIndex <
-								packetsPerBlock - 1
-							) {
-								await this.delay(
-									20
-								); // 增加延时到20ms
+							if (packetIndex < packetsPerBlock - 1) {
+								await this.delay(50); // 增加延时到20ms
 							}
 						}
-
-						// 发送校验值
-						const checkFrame = this
-							.buildFrame(
-								FUNC.BLOCK_CHECK,
-								0x01,
-								blockIndex,
-								0,
-								blockChecksum
-							);
-
-						console.log(
-							`发送块 ${blockIndex} 的校验值: ${this.ab2hex(checkFrame)}`
+						// 1. 先创建ACK等待Promise
+						const ackPromise = this.waitForAck(FUNC.BLOCK_CHECK, 0x01, 10000);
+						// 2. 然后发送校验值
+						const checkFrame = this.buildFrame(
+							FUNC.BLOCK_CHECK,
+							0x01,
+							blockIndex,
+							0,
+							blockChecksum
 						);
-						await this.write(
-							checkFrame);
-
-						// 等待ACK，增加超时时间到5秒
-						const ack = await this
-							.waitForAck(FUNC
-								.BLOCK_CHECK, 0x01,
-								5000);
-
+						console.log(`发送块 ${blockIndex} 的校验值`, this.ab2hex(checkFrame));
+						await this.write(checkFrame);
+						// 3. 等待ACK
+						const ack = await ackPromise;
 						// 检查标识码
-						if (ack.identifier !==
-							0x01) {
-							const errorMsg = this
-								.getIdentifierName(
-									ack.identifier
-								);
-							console.log(
-								`❌ 块 ${blockIndex} 校验失败: ${errorMsg}`
-							);
-							throw new Error(
-								`块 ${blockIndex} 校验失败: ${errorMsg}`
-							);
+						if (ack.identifier !== 0x01) {
+							const errorMsg = this.getIdentifierName(ack.identifier);
+							console.log(`❌ 块 ${blockIndex} 校验失败: ${errorMsg}`);
+							throw new Error(`块 ${blockIndex} 校验失败: ${errorMsg}`);
 						}
-
 						// 根据协议，响应应该包含数据
-						if (ack.data && ack.data
-							.length > 0) {
-							const result = ack
-								.data[0];
+						if (ack.data && ack.data.length > 0) {
+							const result = ack.data[0];
 							if (result === 0xFF) {
-								console.log(
-									`✅ 块 ${blockIndex} 校验通过 (尝试 ${retryCount+1}/${MAX_RETRIES})`
-								);
-								this.updateProgress(
-									BLOCK_SIZE);
-								this.updatePartitionProgress(
-									partition
-									.type,
-									blockIndex);
+								console.log(`✅ 块 ${blockIndex} 校验通过 (尝试 ${retryCount+1}/${MAX_RETRIES})`);
+								this.updateProgress(BLOCK_SIZE);
+								this.updatePartitionProgress(partition.type, blockIndex);
 								return true;
-							} else if (result >=
-								0x00 && result <=
-								0x09) {
-								console.log(
-									`❌ 块 ${blockIndex} 校验失败，错误码: 0x${result.toString(16)}`
-								);
-								throw new Error(
-									`块 ${blockIndex} 校验失败，错误码: 0x${result.toString(16)}`
-								);
+							} else if (result >= 0x00 && result <= 0x09) {
+								console.log(`❌ 块 ${blockIndex} 校验失败，错误码: 0x${result.toString(16)}`);
+								throw new Error(`块 ${blockIndex} 校验失败，错误码: 0x${result.toString(16)}`);
 							} else {
-								throw new Error(
-									`块 ${blockIndex} 未知响应: 0x${result.toString(16)}`
-								);
+								throw new Error(`块 ${blockIndex} 未知响应: 0x${result.toString(16)}`);
 							}
 						} else {
 							// 没有数据响应也当作成功
-							console.log(
-								`✅ 块 ${blockIndex} 校验通过`
-							);
-							this.updateProgress(
-								BLOCK_SIZE);
-							this.updatePartitionProgress(
-								partition.type,
-								blockIndex);
+							console.log(`✅ 块 ${blockIndex} 校验通过`);
+							this.updateProgress(BLOCK_SIZE);
+							this.updatePartitionProgress(partition.type, blockIndex);
 							return true;
 						}
-
 					} catch (error) {
-						console.log(
-							`块 ${blockIndex} 发送失败 (尝试 ${retryCount+1}/${MAX_RETRIES}): ${error.message}`
-						);
-
-						if (retryCount ===
-							MAX_RETRIES - 1) {
+						console.log(`块 ${blockIndex} 发送失败 (尝试 ${retryCount+1}/${MAX_RETRIES}): ${error.message}`);
+						if (retryCount === MAX_RETRIES - 1) {
 							// 最后一次尝试也失败了
-							console.log(
-								`❌ 块 ${blockIndex} 重试 ${MAX_RETRIES} 次后仍然失败`
-							);
-
+							console.log(`❌ 块 ${blockIndex} 重试 ${MAX_RETRIES} 次后仍然失败`);
 							// 添加到失败列表
-							this.failedBlocks
-								.push({
-									partition: partition
-										.type,
-									blockIndex: blockIndex,
-									offset: blockIndex *
-										BLOCK_SIZE,
-									error: error
-										.message,
-									retryCount: retryCount +
-										1
-								});
-
+							this.failedBlocks.push({
+								partition: partition.type,
+								blockIndex: blockIndex,
+								offset: blockIndex * BLOCK_SIZE,
+								error: error.message,
+								retryCount: retryCount + 1
+							});
 							throw error;
 						}
-
-						// 等待一段时间后重试
-						console.log(
-							`等待2秒后重试块 ${blockIndex}...`
-						);
-						await this.delay(2000);
+						// 等待一段时间后重试，重试间隔逐渐增加
+						const delayTime = 1000 * (retryCount + 1);
+						console.log(`等待${delayTime/1000}秒后重试块 ${blockIndex}...`);
+						await this.delay(delayTime);
 					}
 				}
 			},
@@ -2638,41 +2165,32 @@
 					0x0C: "未初始化",
 					0x0D: "参数错误"
 				};
-				return identifierNames[
-						identifier] ||
-					`未知错误 (0x${identifier.toString(16)})`;
+				return identifierNames[identifier] || `未知错误 (0x${identifier.toString(16)})`;
 			},
 			calcBlockCheckV10(blockData) {
 				// V1.0: 4字节和校验
 				let sum = 0;
-				for (let i = 0; i < blockData
-					.length; i++) {
+				for (let i = 0; i < blockData.length; i++) {
 					sum += blockData[i];
 				}
-
 				const result = new Uint8Array(4);
 				result[0] = (sum >> 24) & 0xFF;
 				result[1] = (sum >> 16) & 0xFF;
 				result[2] = (sum >> 8) & 0xFF;
 				result[3] = sum & 0xFF;
-
 				return result;
 			},
-
 			calcBlockCheckV11(blockData) {
 				// V1.1: 8字节奇偶校验
 				let evenSum = 0; // 偶数下标和
 				let oddSum = 0; // 奇数下标和
-
-				for (let i = 0; i < blockData
-					.length; i++) {
+				for (let i = 0; i < blockData.length; i++) {
 					if (i % 2 === 0) {
 						evenSum += blockData[i];
 					} else {
 						oddSum += blockData[i];
 					}
 				}
-
 				const result = new Uint8Array(8);
 				// 偶数校验值 (4字节，大端)
 				result[0] = (evenSum >> 24) & 0xFF;
@@ -2684,15 +2202,11 @@
 				result[5] = (oddSum >> 16) & 0xFF;
 				result[6] = (oddSum >> 8) & 0xFF;
 				result[7] = oddSum & 0xFF;
-
 				return result;
 			},
-
 			async sendRebootCommand() {
 				console.log('发送重启指令...');
-				const frame = this.buildFrame(
-					FUNC.REBOOT, 0x01, 0, 0
-				);
+				const frame = this.buildFrame(FUNC.REBOOT, 0x01, 0, 0);
 				await this.write(frame);
 				uni.showToast({
 					title: this.$t("成功"),
@@ -2703,8 +2217,7 @@
 					this.disconnect();
 					// 不需要等待ACK，设备会立即重启
 					this.setacktypes(0)
-					console.log(
-						'设备重启中...');
+					console.log('设备重启中...');
 					uni.switchTab({
 						url: "/pages/tabBar/main/Main"
 					})
@@ -2713,32 +2226,149 @@
 				this.setacktypes(0)
 			},
 			handleAck(data) {
-				const ack = this.parseAckFrame(
-					data);
-				if (!ack) {
-					console.log(
-						'无法解析为有效的ACK帧');
-					return;
-				}
-				const funcHex =
-					`0x${ack.funcCode.toString(16).padStart(2, '0')}`;
-				// 关键修改：尝试多种键匹配
-				const possibleKeys = [
-					`${ack.funcCode}-${ack.identifier}`, // 精确匹配
-					`${ack.funcCode}`, // 只匹配功能码
-				];
-				for (const key of
-						possibleKeys) {
-					if (this.ackResolvers[
-							key]) {
-						const resolver = this
-							.ackResolvers[key];
-						delete this
-							.ackResolvers[key];
+				try {
+					const ack = this.parseAckFrame(data);
+					if (!ack) {
+						console.log('❌ 无法解析为有效的ACK帧');
+						return;
+					}
+					const funcHex = `0x${ack.funcCode.toString(16).padStart(2, '0')}`;
+					const idHex = `0x${ack.identifier.toString(16).padStart(2, '0')}`;
+					// 构建所有可能的键值
+					const exactKey = `${ack.funcCode}-${ack.identifier}`;
+					const funcKey = `${ack.funcCode}`;
+					// 记录当前的解析器状态（调试用）
+					const resolverKeys = Object.keys(this.ackResolvers);
+					// 优先使用精确匹配
+					if (this.ackResolvers[exactKey]) {
+						const resolver = this.ackResolvers[exactKey];
+						// 在调用前就删除，避免回调中再次触发
+						delete this.ackResolvers[exactKey];
+						// 也删除功能码匹配的解析器
+						if (this.ackResolvers[funcKey]) {
+							delete this.ackResolvers[funcKey];
+						}
 						resolver(ack);
 						return;
 					}
+
+					// 其次尝试功能码匹配（对于某些特定功能）
+					if (this.ackResolvers[funcKey]) {
+						console.log(`✅ 找到功能码匹配的解析器: ${funcKey}`);
+						const resolver = this.ackResolvers[funcKey];
+						delete this.ackResolvers[funcKey];
+						resolver(ack);
+						return;
+					}
+
+					// 对于块校验（0x02），可能有多个包序号，我们接受任何包序号的响应
+					if (ack.funcCode === FUNC.BLOCK_CHECK) {
+						// 查找所有以 "2-" 开头的解析器
+						for (const key in this.ackResolvers) {
+							if (key.startsWith('2-')) {
+								console.log(`🔧 找到块校验的通用解析器: ${key}`);
+								const resolver = this.ackResolvers[key];
+								// 清理所有相关的解析器
+								this.cleanResolversForFunc(FUNC.BLOCK_CHECK);
+								resolver(ack);
+								return;
+							}
+						}
+					}
+					const recentFuncs = [FUNC.BLOCK_CHECK, FUNC.TOTAL_CHECK, FUNC.PARTITION];
+					if (recentFuncs.includes(ack.funcCode)) {
+						console.log(`⚠️ 收到迟到的 ${funcHex} ACK，可能已经处理过，忽略`);
+						return;
+					}
+
+					// 如果还是没有找到，可能是迟到的ACK或错误的ACK
+					console.log(`⚠️ 未找到匹配的ACK解析器，ACK被忽略`);
+					console.log(`ACK详情:`, {
+						funcCode: funcHex,
+						identifier: idHex,
+						frameSeq: ack.frameSeq,
+						dataLength: ack.dataLength,
+						data: ack.data ? this.ab2hex(ack.data) : '无数据'
+					});
+
+				} catch (error) {
+					console.log(`⚠️ 处理ACK时出错: ${error.message}`);
 				}
+			},
+
+			// 新增：清理特定功能的所有解析器
+			cleanResolversForFunc(funcCode) {
+				const funcStr = funcCode.toString();
+				for (const key in this.ackResolvers) {
+					if (key === funcStr || key.startsWith(`${funcStr}-`)) {
+						delete this.ackResolvers[key];
+					}
+				}
+			},
+			// 修改 waitForAck 方法，解决超时逻辑问题
+			waitForAck(func, idCode, timeout = 10000) {
+				return new Promise((resolve, reject) => {
+					const exactKey = `${func}-${idCode}`;
+					const funcKey = `${func}`;
+					const funcHex = `0x${func.toString(16).padStart(2, '0')}`;
+					const idCodeHex = `0x${idCode.toString(16).padStart(2, '0')}`;
+					// 清理可能冲突的旧解析器
+					this.cleanResolversForFunc(func);
+					let hasResolved = false;
+					let isTimeout = false;
+					const timer = setTimeout(() => {
+						if (!hasResolved) {
+							isTimeout = true;
+							console.log(`⏰ ACK等待超时: func=${funcHex}, idCode=${idCodeHex}`);
+							// 清理相关解析器
+							this.cleanResolversForFunc(func);
+							hasResolved = true;
+							reject(new Error(`等待ACK超时: func=${funcHex}, idCode=${idCodeHex}`));
+						}
+					}, timeout);
+
+					// 创建解析器回调
+					const resolverCallback = (ack) => {
+						if (hasResolved) {
+							console.log(`⚠️ 解析器已被调用过，忽略重复ACK`);
+							return;
+						}
+						clearTimeout(timer);
+						hasResolved = true;
+						// 立即清理所有相关解析器
+						this.cleanResolversForFunc(func);
+						resolve(ack);
+					};
+
+					// 注册解析器
+					this.ackResolvers[exactKey] = resolverCallback;
+
+					// 对于某些功能，也注册功能码匹配
+					if ([FUNC.BLOCK_CHECK, FUNC.TOTAL_CHECK, FUNC.PARTITION].includes(func)) {
+						this.ackResolvers[funcKey] = resolverCallback;
+					}
+
+					// 保存清理函数，用于Promise结束后的清理
+					const cleanup = () => {
+						if (!hasResolved && !isTimeout) {
+							console.log(`🧹 主动清理未完成的解析器: ${exactKey}`);
+							this.cleanResolversForFunc(func);
+						}
+					};
+
+					// 确保Promise结束时清理
+					const originalResolve = resolve;
+					resolve = (value) => {
+						cleanup();
+						originalResolve(value);
+					};
+
+					const originalReject = reject;
+					reject = (reason) => {
+						cleanup();
+						originalReject(reason);
+					};
+				});
 			},
 			// 解析功能0x01的响应（获取手环升级信息）
 			parseDeviceInfoAck(ack) {
@@ -2746,40 +2376,28 @@
 					return null;
 				}
 				if (ack.identifier !== 0x01) {
-					console.log(
-						`警告: 标识码非正常响应 (0x${ack.identifier.toString(16)})`
-					);
+					console.log(`警告: 标识码非正常响应 (0x${ack.identifier.toString(16)})`);
 				}
 				const data = ack.data;
 				if (!data || data.length < 6) {
-					console.log(
-						'错误: 设备信息数据过短');
+					console.log('错误: 设备信息数据过短');
 					return null;
 				}
 				let offset = 0;
 				// 1. 时间戳 (4字节，大端序)
-				const timestamp = (data[
-						offset] << 24) | (data[
-						offset + 1] << 16) |
-					(data[offset + 2] << 8) |
-					data[offset + 3];
+				const timestamp = (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset +
+					3];
 				offset += 4;
 				// 2. 版本号长度
-				const versionLen = data[
-					offset];
+				const versionLen = data[offset];
 				offset += 1;
 				// 检查长度是否足够
-				if (offset + versionLen > data
-					.length) {
+				if (offset + versionLen > data.length) {
 					return null;
 				}
 				// 3. 版本号 (ASCII字符串)
-				const versionBytes = data
-					.slice(offset, offset +
-						versionLen);
-				const version = String
-					.fromCharCode.apply(null,
-						versionBytes);
+				const versionBytes = data.slice(offset, offset + versionLen);
+				const version = String.fromCharCode.apply(null, versionBytes);
 				offset += versionLen;
 				// 4. 项目名长度
 				if (offset >= data.length) {
@@ -2789,22 +2407,13 @@
 						projectName: ''
 					};
 				}
-				const projectNameLen = data[
-					offset];
+				const projectNameLen = data[offset];
 				offset += 1;
 				// 5. 项目名 (ASCII字符串)
 				let projectName = '';
-				if (projectNameLen > 0 &&
-					offset + projectNameLen <=
-					data.length) {
-					const projectNameBytes =
-						data.slice(offset,
-							offset +
-							projectNameLen);
-					projectName = String
-						.fromCharCode.apply(
-							null,
-							projectNameBytes);
+				if (projectNameLen > 0 && offset + projectNameLen <= data.length) {
+					const projectNameBytes = data.slice(offset, offset + projectNameLen);
+					projectName = String.fromCharCode.apply(null, projectNameBytes);
 				}
 				console.log(
 					`解析成功: 时间戳=${timestamp},版本号长度=${versionLen}, 版本=${version}, 项目名长度=${projectNameLen}, 项目名=${projectName}`
@@ -2818,68 +2427,6 @@
 					projectNameLen: projectNameLen,
 				};
 			},
-			waitForAck(func, idCode, timeout =
-				5000) { // 增加默认超时到5秒
-				return new Promise((resolve,
-					reject) => {
-					const key =
-						`${func}-${idCode}`;
-					const funcHex =
-						`0x${func.toString(16).padStart(2, '0')}`;
-					const idCodeHex =
-						`0x${idCode.toString(16).padStart(2, '0')}`;
-
-					// 检查是否已有相同的等待
-					if (this
-						.ackResolvers[
-							key]) {
-						console.log(
-							`检测到重复的ACK等待，清理旧的: ${key}`
-						);
-						delete this
-							.ackResolvers[
-								key];
-					}
-
-					const timer =
-						setTimeout(
-							() => {
-								if (this
-									.ackResolvers[
-										key
-									]
-								) {
-									delete this
-										.ackResolvers[
-											key
-										];
-									reject
-										(new Error(
-											`等待ACK超时: func=${funcHex}, idCode=${idCodeHex}`
-										));
-								}
-							}, timeout
-						);
-
-					// 存储解析器
-					this.ackResolvers[
-						key] = (
-						ack) => {
-						clearTimeout
-							(
-								timer
-							);
-						delete this
-							.ackResolvers[
-								key
-							];
-						resolve(
-							ack
-						);
-					};
-				});
-			},
-
 		}
 	}
 </script>

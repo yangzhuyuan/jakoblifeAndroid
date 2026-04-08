@@ -23,7 +23,6 @@
 			</view>
 			<view class="btn">
 				<button class="buttonst" @click="agree()">{{$t("下一步")}}</button>
-				<!-- <button class="buttonst_1" @click="disagree()">{{$t("拒绝")}}</button> -->
 			</view>
 		</view>
 	</view>
@@ -50,26 +49,50 @@
 			checkToken() {
 				uni.getStorageInfo({
 					success: (res) => {
-						if (res.keys.includes("token")) {
-							// 如果存在token，则切换到主页面
-							setTimeout(() => {
-								uni.switchTab({
-									url: "../tabBar/main/Main"
-								});
-							}, 3000);
-						} else {
-							// 如果不存在token，则跳转到登录页面
-							setTimeout(() => {
+						const hasToken = res.keys.includes("token");
+						// 统一处理延迟跳转
+						const delay = 1500; // 建议1.5秒，或根据需求调整
+						setTimeout(() => {
+							if (hasToken) { // 可选：进一步验证token有效性
+								this.validateTokenAndRedirect();
+							} else {
 								uni.redirectTo({
 									url: '../login/login_land'
 								});
-							}, 3000);
-						}
+							}
+						}, delay);
+					},
+					fail: (err) => {
+						console.error('获取存储信息失败:', err);
+						// 失败时默认跳转到登录页（安全降级）
+						setTimeout(() => {
+							uni.redirectTo({
+								url: '../login/login_land'
+							});
+						}, 2000);
 					}
 				});
 			},
+			// 新增：验证token有效性（可选增强）
+			validateTokenAndRedirect() {
+				// 如果有后端验证需求，可以在这里调用接口
+				// 示例：简单检查token格式
+				const token = uni.getStorageSync('token');
+				if (!token || token.length < 10) {
+					// token格式异常，清除并跳转登录
+					uni.removeStorageSync('token');
+					uni.redirectTo({
+						url: '../login/login_land'
+					});
+					return;
+				}
+				// 验证通过，进入主页
+				uni.switchTab({
+					url: "../tabBar/main/Main"
+				});
+			},
 			linkClick(num) {
-				if (num == 1) {
+				if (num === 1) {
 					uni.navigateTo({
 						url: '../service/Usage_agreement?id=1'
 					})
@@ -120,7 +143,7 @@
 	.splash_bg {
 		width: 100vw;
 		height: 100vh;
-		color: black;
+		color: #000000;
 		background: #FFFFFF;
 		display: flex;
 		flex-direction: column;
@@ -225,20 +248,5 @@
 		font-size: 16px;
 		font-weight: 600;
 		color: white;
-	}
-
-	.buttonst_1 {
-		width: 50vw;
-		height: 48px;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		margin: 0 20px 20px 20px;
-		border-radius: 50px;
-		background: #3298F7;
-		font-size: 16px;
-		font-weight: 600;
-		color: white;
-		background: #F55A5A;
 	}
 </style>

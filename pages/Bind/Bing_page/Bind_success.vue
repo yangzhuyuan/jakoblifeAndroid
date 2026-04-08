@@ -1,5 +1,5 @@
 <template>
-	<view style="color: black; height: 100vh; background: #F7F7F7;">
+	<view style="color: #000000; height: 100vh; background: #F7F7F7;">
 		<view style="display: flex; justify-content: center;">
 			<image class="img" src="../../../static/icons/success.png"></image>
 		</view>
@@ -142,7 +142,7 @@
 	}
 
 	.notice-text {
-		color: black;
+		color: #000000;
 		margin: 10px 20px 0 20px;
 		font-size: 14px;
 		font-weight: 600;

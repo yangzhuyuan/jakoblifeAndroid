@@ -39,7 +39,7 @@
 		</view>
 		<view class="titlesdsdsa">
 			<view class="titlestyle">
-				<uni-icons style="margin-top: 30px;" @click="back()" type="left" size="24" color="black"></uni-icons>
+				<uni-icons style="margin-top: 30px;" @click="back()" type="left" size="24" color="#000000"></uni-icons>
 				<view class="lanysty">{{$t('蓝牙搜索页面')}}</view>
 				<view @click="batch_del()" class="shauxins">{{$t('刷新')}}</view>
 			</view>
@@ -105,6 +105,7 @@
 					}
 				}
 			});
+			// that.clearHeartbeatInterval()
 			uni.openBluetoothAdapter()
 		},
 
@@ -167,6 +168,13 @@
 				uni.navigateBack({
 					delta: 1
 				});
+			},
+
+			clearHeartbeatInterval() {
+				if (Vue.prototype.$globalTimers.heartbeatInterval) {
+					clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
+					Vue.prototype.$globalTimers.heartbeatInterval = null;
+				}
 			},
 			turesss_faile() {
 				this.$refs.popup_fail.close()
@@ -522,7 +530,6 @@
 				}
 			},
 			/*蓝牙初始化*/
-			// 优化后的初始化蓝牙方法
 			initBluetooth() {
 				this.isFirstLoad = true;
 				uni.openBluetoothAdapter({
@@ -572,7 +579,6 @@
 				let timer = null;
 				let renderIndex = 0;
 				const batchSize = 10; // OPPO 分批数量
-
 				uni.onBluetoothDeviceFound((res) => {
 					res.devices.forEach(item => {
 						if (item.name && !this.deviceMap.has(item.deviceId)) {
@@ -580,12 +586,10 @@
 							this.deviceMap.set(item.deviceId, item);
 						}
 					});
-
 					clearTimeout(timer);
 					timer = setTimeout(() => {
 						const list = Array.from(this.deviceMap.values())
 							.sort((a, b) => b.discoveryTime - a.discoveryTime);
-
 						// 分批渲染，避免一次性 setData
 						this.bluetoothList.splice(0, this.bluetoothList.length, ...list.slice(0,
 							batchSize));
@@ -1306,7 +1310,7 @@
 <style>
 	.tablebody {
 		height: 100vh;
-		color: black;
+		color: #000000;
 	}
 
 	.tablebody_1 {

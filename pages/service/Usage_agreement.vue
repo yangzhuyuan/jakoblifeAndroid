@@ -63,20 +63,18 @@
 		methods: {
 			article(id) {
 				let that = this
-				uni.request({
-					url: that.$url_APP_IP + that.$url_article,
-					method: 'GET',
-					data: {
-						articleId: id
-					},
-					header: {
-						'content-type': 'application/json' //自定义请求头信息
-					},
-					success(res) {
-						console.log("根据文章id获取内容详细信息", res)
-						that.title = res.data.data.title
-						that.content = res.data.data.content
-					}
+				let data = {
+					articleId: id
+				}
+				console.log("根据文章id获取内容详细信息" + that.$url_APP_IP, data)
+				that.$get(that.$url_APP_IP + that.$url_article, data, {
+					'content-type': 'application/json'
+				}).then((res) => {
+					console.log("根据文章id获取内容详细信息", res)
+					that.title = res.data.title
+					that.content = res.data.content
+				}).catch((err) => {
+					console.log("根据文章id获取内容详细信息失败", err)
 				})
 			},
 		}
