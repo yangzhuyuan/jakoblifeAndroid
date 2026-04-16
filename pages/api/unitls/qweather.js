@@ -379,7 +379,7 @@ export async function getGlobalLocalWeather() {
 			url: 'http://ip-api.com/json/?lang=zh-CN',
 			success: async (res) => {
 				try {
-					// console.log('IP定位结果：', res.data);
+					console.log('IP定位结果：', res.data);
 					if (res.data.status === 'success') {
 						const {
 							lat,

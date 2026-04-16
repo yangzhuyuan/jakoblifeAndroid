@@ -841,6 +841,30 @@
 				"navigationBarBackgroundColor": "#F5F5F5",
 				"navigationBarTextStyle": "black"
 			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/Personal_Information",
+			"style": {
+				"navigationBarTitleText": "个人信息",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/hour_monitoring_report_24",
+			"style": {
+				"navigationBarTitleText": "24小时监测报告",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/day_monitoring_report_7",
+			"style": {
+				"navigationBarTitleText": "7天动态监测报告",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
 		}
 	],
 

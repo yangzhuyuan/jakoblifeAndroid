@@ -61,13 +61,13 @@
 			uni.removeStorageSync("dingwei")
 			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 			plugin.acquireWakeLock({}, res => { //强制保留app运行
-				console.log('app.vue-强制保留app运行', res)
+				// console.log('app.vue-强制保留app运行', res)
 				// 启动保活（Android）
-				// #ifdef APP-PLUS
-				if (uni.getSystemInfoSync().platform === 'android') {
-					keepAliveManager.init();
-				}
-				// #endif
+				// // #ifdef APP-PLUS
+				// if (uni.getSystemInfoSync().platform === 'android') {
+				// 	keepAliveManager.init();
+				// }
+				// // #endif
 			})
 			// this.testModule()
 			// this.initPlugin()
@@ -305,8 +305,10 @@
 							() => {
 								uni.$emit('CLOSE_GLOBAL_POPUP'); // 关闭弹窗
 								if (this.isMandatory) {
+									uni.removeStorageSync("token")
 									plus.runtime.restart();
 								} else {
+									uni.removeStorageSync("token")
 									uni.showModal({
 										title: this.$t('安装成功'),
 										content: this.$t('需要重启应用生效'),
@@ -998,7 +1000,7 @@
 			},
 			// 定义报警逻辑的通用函数
 			checkAlarm(item, register, value, min, max, showKey, alarmKey, unit) {
-				if (min !== "" && max !== "") {
+				if (min && max) {
 					if (value >= min && value <= max) {
 						item[showKey] = false;
 						item[alarmKey] = "";

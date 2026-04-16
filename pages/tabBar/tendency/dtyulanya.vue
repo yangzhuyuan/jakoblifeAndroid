@@ -709,6 +709,7 @@
 					padding: [15, 10, 0, 15],
 					enableScroll: false,
 					legend: {},
+					dataLabel: false, // 在根级别关闭所有数据标签
 					xAxis: {
 						disableGrid: false,
 						gridType: "dash",
@@ -739,7 +740,13 @@
 						line: {
 							type: "straight",
 							width: 2,
-							activeType: "hollow"
+							activeType: "hollow",
+							// 确保这里没有 dataLabel 属性，或者显式设为 false
+							dataLabel: false,
+							// 关闭数据点上的文本显示
+							showPoint: true, // 显示点
+							pointSize: 3, // 点的大小
+							// 不设置 label 相关属性
 						}
 					}
 				},

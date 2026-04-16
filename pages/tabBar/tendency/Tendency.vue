@@ -691,11 +691,17 @@
 					series: [{
 						legendShape: "#FC7F41",
 						name: this.$t("收缩压"),
-						data: [0]
+						data: [0],
+						connectNulls: true, // 不连接null值
+						pointShape: 'circle',
+						showSymbol: true // 显示数据点
 					}, {
 						legendShape: "#7AE545",
 						name: this.$t("舒张压"),
-						data: [0]
+						data: [0],
+						connectNulls: true, // 不连接null值
+						pointShape: 'circle',
+						showSymbol: true // 显示数据点
 					}]
 				},
 				xeuyaopts: {
@@ -851,7 +857,11 @@
 			this.Blood = uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" : "kPa"
 			switch (this.types_index) {
 				case 0:
+					this.slaveSn = "3"
+					this.tendentypes = true
+					break
 				case 1:
+					this.slaveSn = "2"
 					this.tendentypes = true
 					break
 				case 2:
@@ -1266,13 +1276,13 @@
 
 							switch (this.types_index) {
 								case 0:
-									this.slaveSn = "3"
+									// this.slaveSn = "3"
 									this.get_trend_data(this.startTime, this.endTime)
 									this.query_month_avg(this.startTime, this.endTime)
 									this.query_minmax(this.startTime, this.endTime)
 									break
 								case 1:
-									this.slaveSn = "2"
+									// this.slaveSn = "2"
 									this.get_trend_data(this.startTime, this.endTime)
 									this.query_month_avg(this.startTime, this.endTime)
 									this.query_minmax(this.startTime, this.endTime)
@@ -1634,8 +1644,7 @@
 			//数据趋势
 			get_trend_data(startTime, endTime) {
 				let data = {
-					// deviceSn: this.TenddeviceSn,
-					deviceSn: uni.getStorageSync("userid"), //根据userid查询数据
+					deviceSn: uni.getStorageSync("userid"),
 					timeLevel: this.timeLevel,
 					slaveList: [{
 							slaveSn: this.slaveSn,
@@ -1654,63 +1663,301 @@
 					endTime: endTime,
 					aggregateType: this.aggregateType
 				}
-				// console.log("get_trend_data", data)
+				console.log("get_trend_data", data)
 				this.$post(this.$url_APP_IP + this.$url_get_trend_data, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					// console.log("get_trend_datares", res)
+					console.log("get_trend_datares", res)
+
 					if (res.code == 200) {
+						// 清空数据
 						this.chartData.categories = []
-						this.chartData.series[0].data = []
-						// 处理高压数据
+						this.chartData.series[0].data = [] // 高压
+						this.chartData.series[1].data = [] // 低压
+						this.chartData2.categories = []
+						this.chartData2.series[0].data = [] // 体重
+						// ========== 辅助函数 ==========
+						const timestampToDateStr = (timestamp) => {
+							let date = new Date(parseInt(timestamp))
+							let year = date.getFullYear()
+							let month = (date.getMonth() + 1).toString().padStart(2, '0')
+							let day = date.getDate().toString().padStart(2, '0')
+							return `${year}-${month}-${day}`
+						}
+						// ========== 处理血压数据 ==========
+						let dataMap = new Map()
 						if (res.data.highPressure) {
 							res.data.highPressure.forEach(item => {
-								this.chartData.series[0].data.push(item[0]);
-							});
+								let dateStr = timestampToDateStr(item[1])
+								if (!dataMap.has(dateStr)) {
+									dataMap.set(dateStr, {
+										high: null,
+										low: null
+									})
+								}
+								dataMap.get(dateStr).high = item[0] ? parseFloat(item[0]) : null
+							})
 						}
-						this.chartData.series[1].data = []
-						// 处理低压数据
+
 						if (res.data.lowPressure) {
 							res.data.lowPressure.forEach(item => {
-								let time = this.formatDate(parseInt(item[1]));
-								this.chartData.categories.push(time);
-								this.chartData.series[1].data.push(item[0]);
-							});
+								let dateStr = timestampToDateStr(item[1])
+								if (!dataMap.has(dateStr)) {
+									dataMap.set(dateStr, {
+										high: null,
+										low: null
+									})
+								}
+								dataMap.get(dateStr).low = item[0] ? parseFloat(item[0]) : null
+							})
 						}
-						this.chartData2.series[0].data = []
-						this.chartData2.categories = []
-						// 处理体重数据
-						if (res.data.weight) {
+
+						// 2. 解析查询的起止日期
+						let startDate = new Date(startTime)
+						let endDate = new Date(endTime)
+
+						// 计算时间跨度（天数）
+						let timeSpan = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1
+
+
+						// 3. 生成日期数组
+						let dateList = []
+						let currentDate = new Date(startDate)
+
+						while (currentDate <= endDate) {
+							let year = currentDate.getFullYear()
+							let month = currentDate.getMonth() + 1
+							let day = currentDate.getDate()
+							let dateStr =
+								`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+
+							dateList.push({
+								dateStr: dateStr,
+								year: year,
+								month: month,
+								day: day,
+								fullDate: new Date(currentDate)
+							})
+
+							currentDate.setDate(currentDate.getDate() + 1)
+						}
+
+						// 4. 填充数据
+						dateList.forEach((item, index) => {
+							let dayData = dataMap.get(item.dateStr)
+							this.chartData.series[0].data.push(dayData && dayData.high !== null ? dayData
+								.high : null)
+							this.chartData.series[1].data.push(dayData && dayData.low !== null ? dayData
+								.low : null)
+						})
+						// 5. 设置X轴标签
+						if (this.WEEK) {
+							// ========== 一周视图 ==========
+							let startLabel = `${dateList[0].month}/${dateList[0].day}`
+							let endLabel =
+								`${dateList[dateList.length - 1].month}/${dateList[dateList.length - 1].day}`
+
+							dateList.forEach((item, index) => {
+								if (index === 0) {
+									this.chartData.categories.push(startLabel)
+								} else if (index === dateList.length - 1) {
+									this.chartData.categories.push(endLabel)
+								} else {
+									this.chartData.categories.push('')
+								}
+							})
+						} else if (this.MON) {
+							// ========== 月视图（31天以内）==========
+							let startLabel = `${dateList[0].month}/${dateList[0].day}` // 2/1
+
+							// 获取今天日期
+							let today = new Date()
+							let todayYear = today.getFullYear()
+							let todayMonth = today.getMonth() + 1
+							let todayDay = today.getDate()
+
+							// 查询的结束日期
+							let queryEndYear = dateList[dateList.length - 1].year
+							let queryEndMonth = dateList[dateList.length - 1].month
+							let queryEndDay = dateList[dateList.length - 1].day
+
+							let endLabel
+
+							// 判断是否是当前月份
+							if (queryEndYear === todayYear && queryEndMonth === todayMonth) {
+								// 查询的是当前月，显示到今天
+								endLabel = `${todayMonth}/${todayDay}` // 2/28（或当前日期）
+							} else {
+								// 查询的是其他月，显示实际结束日期
+								endLabel = `${queryEndMonth}/${queryEndDay}` // 2/28
+							}
+
+							// 生成X轴标签
+							dateList.forEach((item, index) => {
+								if (index === 0) {
+									this.chartData.categories.push(startLabel) // 2/1
+								} else if (index === dateList.length - 1) {
+									this.chartData.categories.push(endLabel) // 2/28
+								} else {
+									this.chartData.categories.push('')
+								}
+							})
+						} else {
+							// ========== 年度视图 ==========
+							let startYear = dateList[0].year
+							let startMonth = dateList[0].month.toString().padStart(2, '0')
+
+							// 获取今天日期
+							let today = new Date()
+							let todayYear = today.getFullYear()
+							let todayMonth = (today.getMonth() + 1).toString().padStart(2, '0')
+
+							// 查询的结束日期
+							let queryEndYear = dateList[dateList.length - 1].year
+							let queryEndMonth = dateList[dateList.length - 1].month.toString().padStart(2, '0')
+
+							let endLabel
+
+							// 如果查询的是今年，且结束日期大于今天，则显示到当前月份
+							if (queryEndYear === todayYear && queryEndYear === startYear) {
+								// 查询的是今年全年，显示到当前月份
+								endLabel = `${todayMonth}`
+							} else {
+								// 查询的是往年，显示实际结束月份
+								endLabel = `${queryEndMonth}`
+							}
+
+							let startLabel = `${startYear}/${startMonth}`
+
+							// 生成X轴标签
+							dateList.forEach((item, index) => {
+								if (index === 0) {
+									this.chartData.categories.push(startLabel) // 2026/01
+								} else if (index === dateList.length - 1) {
+									this.chartData.categories.push(endLabel) // 2026/03（当前月份）
+								} else {
+									this.chartData.categories.push('')
+								}
+							})
+						}
+
+						// ========== 处理体重数据（同样的逻辑）==========
+						let weightMap = new Map()
+						if (res.data.weight && res.data.weight.length > 0) {
 							res.data.weight.forEach(item => {
-								let time = this.formatDate(parseInt(item[1]));
-								this.chartData2.categories.push(time);
-								this.chartData2.series[0].data.push(item[0]);
-							});
+								let dateStr = timestampToDateStr(item[1])
+								weightMap.set(dateStr, item[0] ? parseFloat(item[0]) : null)
+							})
+						}
+
+						dateList.forEach((item, index) => {
+							let weightValue = weightMap.get(item.dateStr) || null
+							this.chartData2.series[0].data.push(weightValue)
+						})
+
+						// 体重X轴标签
+						if (this.WEEK) {
+							let startLabel = `${dateList[0].month}/${dateList[0].day}`
+							let endLabel =
+								`${dateList[dateList.length - 1].month}/${dateList[dateList.length - 1].day}`
+							dateList.forEach((item, index) => {
+								if (index === 0) {
+									this.chartData2.categories.push(startLabel)
+								} else if (index === dateList.length - 1) {
+									this.chartData2.categories.push(endLabel)
+								} else {
+									this.chartData2.categories.push('')
+								}
+							})
+						} else if (this.MON) {
+							// ========== 月视图（31天以内）==========
+							let startLabel = `${dateList[0].month}/${dateList[0].day}` // 2/1
+							// 获取今天日期
+							let today = new Date()
+							let todayYear = today.getFullYear()
+							let todayMonth = today.getMonth() + 1
+							let todayDay = today.getDate()
+							// 查询的结束日期
+							let queryEndYear = dateList[dateList.length - 1].year
+							let queryEndMonth = dateList[dateList.length - 1].month
+							let queryEndDay = dateList[dateList.length - 1].day
+							let endLabel
+							// 判断是否是当前月份
+							if (queryEndYear === todayYear && queryEndMonth === todayMonth) {
+								// 查询的是当前月，显示到今天
+								endLabel = `${todayMonth}/${todayDay}` // 2/28（或当前日期）
+							} else {
+								// 查询的是其他月，显示实际结束日期
+								endLabel = `${queryEndMonth}/${queryEndDay}` // 2/28
+							}
+							// 生成X轴标签
+							dateList.forEach((item, index) => {
+								if (index === 0) {
+									this.chartData2.categories.push(startLabel) // 2/1
+								} else if (index === dateList.length - 1) {
+									this.chartData2.categories.push(endLabel) // 2/28
+								} else {
+									this.chartData2.categories.push('')
+								}
+							})
+
+						} else {
+							let startYear = dateList[0].year
+							let startMonth = dateList[0].month.toString()
+
+							let today = new Date()
+							let todayYear = today.getFullYear()
+							let todayMonth = (today.getMonth() + 1).toString()
+
+							let queryEndYear = dateList[dateList.length - 1].year
+							let queryEndMonth = dateList[dateList.length - 1].month.toString()
+
+							let endLabel
+							if (queryEndYear === todayYear && queryEndYear === startYear) {
+								endLabel = `${todayYear}/${todayMonth}`
+							} else {
+								endLabel = `${queryEndYear}/${queryEndMonth}`
+							}
+
+							let startLabel = `${startYear}/${startMonth}`
+
+							dateList.forEach((item, index) => {
+								if (index === 0) {
+									this.chartData2.categories.push(startLabel)
+								} else if (index === dateList.length - 1) {
+									this.chartData2.categories.push(endLabel)
+								} else {
+									this.chartData2.categories.push('')
+								}
+							})
 						}
 					} else if (res.code == 500) {
-						this.chartData.categories = ["0"]
-						this.chartData.series[0].data = ["0"]
-						this.chartData.series[1].data = ["0"]
-						this.chartData2.categories = ["0"]
-						this.chartData2.series[0].data = ["0"]
+						this.setDefaultData()
 						return
 					} else {
 						uni.showToast({
 							title: res.msg,
 							icon: 'none'
 						})
-						this.chartData.categories = ["0"]
-						this.chartData.series[0].data = ["0"]
-						this.chartData.series[1].data = ["0"]
-						this.chartData2.categories = ["0"]
-						this.chartData2.series[0].data = ["0"]
+						this.setDefaultData()
 						return
 					}
-					// 关键点：添加下一行确保视图更新
+
 					this.$nextTick(() => this.$forceUpdate())
 				})
 			},
+
+			setDefaultData() {
+				this.chartData.categories = ["0"]
+				this.chartData.series[0].data = [null]
+				this.chartData.series[1].data = [null]
+				this.chartData2.categories = ["0"]
+				this.chartData2.series[0].data = [null]
+			},
+
+
+
 			//血压计统计每日平均值计算总最大最小值
 			query_month_avg(startTime, endTime) {
 				let data = {
@@ -1722,19 +1969,23 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				// console.log("query_month_avg", data)
+				console.log("血压计统计每日平均值计算总最大最小值data", data)
 				this.$post(this.$url_APP_IP + this.$url_query_month_avg, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					// console.log("query_month_avgres", res)
+					console.log("血压计统计每日平均值计算总最大最小值res", res)
 					if (res.code == 200) {
-						this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.high.min + "-" + res.data
-							.high.max : (Number(res.data.high.min) * 0.133).toFixed(1) + "-" + (Number(res.data
-								.high.max) * 0.133).toFixed(1)
-						this.Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.low.min + "-" + res.data
-							.low.max : (Number(res.data.low.min) * 0.133).toFixed(1) + "-" + (Number(res.data.low
-								.max) * 0.133).toFixed(1)
+						// this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.high.min + "-" + res.data
+						// 	.high.max : (Number(res.data.high.min) * 0.133).toFixed(1) + "-" + (Number(res.data
+						// 		.high.max) * 0.133).toFixed(1)
+						// this.Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.low.min + "-" + res.data
+						// 	.low.max : (Number(res.data.low.min) * 0.133).toFixed(1) + "-" + (Number(res.data.low
+						// 		.max) * 0.133).toFixed(1)
+						this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.highPressure : (Number(
+							res.data.avg.highPressure) * 0.133).toFixed(1)
+						this.Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.lowPressure : (Number(
+							res.data.avg.lowPressure) * 0.133).toFixed(1)
 					} else if (res.code == 500) {
 						this.Systolic_blood_pressure = "--"
 						this.Diastolic_blood_pressure = "--"
@@ -1750,7 +2001,6 @@
 			//血压计最高最低平均数值
 			query_minmax(startTime, endTime) {
 				let data = {
-					// deviceSn: this.TenddeviceSn,
 					deviceSn: uni.getStorageSync("userid"),
 					dataType: "min",
 					slaveList: [{
@@ -1760,12 +2010,12 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				// console.log("query_minmax", data)
+				console.log("query_minmax", data)
 				this.$post(this.$url_APP_IP + this.$url_query_minmax, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					// console.log("query_minmaxres", res)
+					console.log("query_minmaxres", res)
 					if (res.code == 200) {
 						//最近
 						this.lately_Blood_pressure = this.bgaaa(res.data.last.lowPressure, res.data.last

@@ -12,7 +12,6 @@ export async function isInChinaByIP() {
 		}
 		if (res?.data?.status === 'success') {
 			const countryCode = res.data.countryCode;
-			console.log('国家代码:', countryCode);
 			return ['CN', 'HK', 'MO', 'TW'].includes(countryCode);
 		}
 
@@ -35,7 +34,7 @@ export async function isInChinaByIP() {
 			}
 			if (res2?.statusCode === 200 && res2?.data?.country) {
 				const countryCode = res2.data.country;
-				console.log('备用API成功，国家代码:', countryCode);
+				console.log('备用API成功，国家代码:', res2);
 				return ['CN', 'HK', 'MO', 'TW'].includes(countryCode);
 			}
 			return false;

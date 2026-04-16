@@ -1365,6 +1365,16 @@
 								})
 							}
 						},
+						{
+							icon: '/static/page_icon/dingshiBP.png',
+							text: this.$t("监测"),
+							handler: () => {
+								//定时血压测量
+								uni.navigateTo({
+									url: "/pages/tabBar/main/globalweather/bloodpressuretimer"
+								})
+							}
+						},
 					],
 				},
 				stepsData: {}, // 用于存储每天步数的对象
@@ -1883,6 +1893,7 @@
 				currentDatehis: boolhistoday,
 				boolserverData: null,
 				isInitDone: false,
+				isProcessed: uni.getStorageSync("isProcessed") || false, // 标志位
 			}
 		},
 		mounted() {
@@ -1900,10 +1911,6 @@
 				clearInterval(this.timsdpad);
 				this.timsdpad = null;
 			}
-			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
-			// plugin.acquireWakeLock({}, res => { //强制保留app运行
-			// 	console.log('强制保留app运行', res)
-			// })
 		},
 		onLoad() {
 			// 监听全局事件
@@ -1924,6 +1931,7 @@
 		},
 		onShow: async function() { // ✅ 添加 async
 			let that = this
+			uni.removeStorageSync("jiance")
 			// const ISUserInfoChina = await ISgetUserInfoChina(that.$APP_IP1);
 			// const isUserInfoUS = await ISgetUserInfoUS(that.$APP_IP2);
 			// console.log('ISUserInfoChina', ISUserInfoChina);
@@ -2608,8 +2616,10 @@
 				console.log(writeuuid)
 				setTimeout(() => {
 					let buffer2 = that.toArrayBuffer("e00006F3060104000101")
-					if (uni.getStorageSync("otadatares") === "6986AF9F0656352E382E350741423536313043" || uni
-						.getStorageSync("otadatares") === "69C0EB890656352E382E370741423536313043") {
+					if (uni.getStorageSync("otadatares") === "6986AF9F0656352E382E350741423536313043" ||
+						uni.getStorageSync("otadatares") === "69C0EB890656352E382E370741423536313043" ||
+						uni.getStorageSync("otadatares") === "69D616630656352E382E380741423536313043"
+					) {
 						buffer2 = that.toArrayBuffer("e0000611030125000101") //5.8.5||5.8.7的版本情绪测量命令
 					} else {
 						buffer2 = that.toArrayBuffer("e00006F3060104000101")
@@ -4342,6 +4352,7 @@
 									that.resetDataState()
 									break
 								case "10":
+									uni.setStorageSync("jiance", true)
 									if (dataList.length < 160 && dataList.length > 40) {
 										const bytes = hexStringToBytes(dataList.slice(18, dataList.length));
 										const sleepObj = receive5610SleepData(bytes);
@@ -5175,7 +5186,7 @@
 					const key = `${bp.date} ${bp.time}`;
 					// 检查是否已存在
 					if (existingTimes.has(key)) {
-						console.log('血压已存在，跳过:', key);
+						// console.log('血压已存在，跳过:', key);
 						return; // 跳过已存在的数据
 					}
 					const matchedHr = hrMap.get(key);
@@ -5221,7 +5232,7 @@
 							that.datatime(key)
 						);
 					} else if (existingTimes.has(key)) {
-						console.log('心率已存在，跳过:', key);
+						// console.log('心率已存在，跳过:', key);
 					}
 				});
 			},
@@ -7623,14 +7634,10 @@
 					success(res) {
 						if (res.keys.includes("swichs") && uni.getStorageSync("swichs") ===
 							true) {
-							const notify = {
-								triggered: false
-							};
 							if (res.keys.includes("xeuyang1") || res.keys.includes(
 									"xeuyang2")) {
 								that.checkAndNotify("xeuyang1", "xeuyang2", aaa.oxygen,
-									"血氧",
-									notify);
+									"血氧", );
 							}
 						}
 					},
@@ -7638,50 +7645,35 @@
 			},
 			StorageInfo(aaa) {
 				let that = this
-				uni.getStorageInfo({
-					success(res) {
-						if (res.keys.includes("swichs") && uni.getStorageSync("swichs") ===
-							true) {
-							const notify = {
-								triggered: false
-							};
-							if (res.keys.includes("shuzhangyaId1") || res.keys.includes(
-									"shuzhangyaId2")) {
-								that.checkAndNotify("shuzhangyaId1", "shuzhangyaId2", aaa
-									.lowPressure,
-									"舒张压",
-									notify);
-							}
-							if (res.keys.includes("shousuoyaId1") || res.keys.includes(
-									"shousuoyaId2")) {
-								that.checkAndNotify("shousuoyaId1", "shousuoyaId2", aaa
-									.highPressure,
-									"收缩压",
-									notify);
-							}
-							if (res.keys.includes("maiboId1") || res.keys.includes(
-									"maiboId2")) {
-								that.checkAndNotify("maiboId1", "maiboId2", aaa.heartrate,
-									"脉搏", notify);
-							}
-						}
-					},
-				})
+				if (uni.getStorageSync("swichs")) {
+					if (uni.getStorageSync("shuzhangyaId1") || uni.getStorageSync("shuzhangyaId2")) {
+						that.checkAndNotify("shuzhangyaId1", "shuzhangyaId2", aaa
+							.lowPressure, "舒张压");
+					}
+					if (uni.getStorageSync("shousuoyaId1") || uni.getStorageSync("shousuoyaId2")) {
+						that.checkAndNotify("shousuoyaId1", "shousuoyaId2", aaa
+							.highPressure, "收缩压");
+					}
+					if (uni.getStorageSync("maiboId1") || uni.getStorageSync("maiboId2")) {
+						that.checkAndNotify("maiboId1", "maiboId2", aaa.heartrate,
+							"脉搏");
+					}
+				}
 			},
-
 			// 封装检查和通知的逻辑
-			checkAndNotify() {
-				let that = this
-				if (that.notifyTriggered) {
-					uni.getPushClientId({
-						success(res) {
-							that.sendPushMessage(res.cid);
-							that.notifyTriggered = false;
-						},
-						fail(err) {
-							that.notifyTriggered = false;
-						}
-					});
+			checkAndNotify(key1, key2, value, messageKey) {
+				const storedValue1 = uni.getStorageSync(key1);
+				const storedValue2 = uni.getStorageSync(key2);
+				if ((storedValue1 && value < storedValue1) ||
+					(storedValue2 && value > storedValue2)) {
+					// 如果已经触发了通知，则不再重复触发
+					if (!uni.getStorageSync("isProcessed")) {
+						this.Notificationss(this.$t("测量通知"));
+						uni.setStorageSync("isProcessed", true) // 标记已触发通知
+						setTimeout(() => {
+							uni.removeStorageSync("isProcessed")
+						}, 5000)
+					}
 				}
 			},
 
@@ -7714,8 +7706,7 @@
 				const now = new Date();
 				const year = now.getFullYear();
 				const month = (now.getMonth() + 1) < 10 ? "0" + (now.getMonth() + 1) : now
-					.getMonth() +
-					1;
+					.getMonth() + 1;
 				const day = now.getDate() < 10 ? "0" + now.getDate() : now.getDate();
 				const hours = now.getHours() < 10 ? "0" + now.getHours() : now.getHours();
 				const minutes = now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes();
@@ -9138,10 +9129,7 @@
 				// uni.navigateTo({
 				// 	url: "/pages/tabBar/main/globalweather/globalweather"
 				// })
-				//定时血压测量
-				// uni.navigateTo({
-				// 	url: "/pages/tabBar/main/globalweather/bloodpressuretimer"
-				// })
+
 			},
 			tizhiclick() {
 				this.fillOut = true

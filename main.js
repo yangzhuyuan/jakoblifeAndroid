@@ -1,3 +1,16 @@
+// 必须在第一行
+import {
+	TextEncoder,
+	TextDecoder
+} from 'text-encoding'
+
+// 挂载到全局
+if (typeof global.TextEncoder === 'undefined') {
+	global.TextEncoder = TextEncoder
+}
+if (typeof global.TextDecoder === 'undefined') {
+	global.TextDecoder = TextDecoder
+}
 // 导入文件
 import App from './App'
 import store from './store'
@@ -159,19 +172,19 @@ const app = new Vue({ // 创建 Vue 根实例
 app.$mount() // 挂载应用到页面
 
 
-import {
-	createSSRApp
-} from 'vue'
-export function createApp() {
-	const app = createSSRApp(App) // 创建 SSR 应用实例
-	app.use(store) // 创建 SSR 应用实例
-	app.config.globalProperties.$adpid = "1111111111" // 全局属性：广告ID
-	app.config.globalProperties.$backgroundAudioData = { // 全局属性：背景音频数据
-		playing: false,
-		playTime: 0,
-		formatedPlayTime: '00:00:00'
-	}
-	return {
-		app
-	}
-}
+// import {
+// 	createSSRApp
+// } from 'vue'
+// export function createApp() {
+// 	const app = createSSRApp(App) // 创建 SSR 应用实例
+// 	app.use(store) // 创建 SSR 应用实例
+// 	app.config.globalProperties.$adpid = "1111111111" // 全局属性：广告ID
+// 	app.config.globalProperties.$backgroundAudioData = { // 全局属性：背景音频数据
+// 		playing: false,
+// 		playTime: 0,
+// 		formatedPlayTime: '00:00:00'
+// 	}
+// 	return {
+// 		app
+// 	}
+// }

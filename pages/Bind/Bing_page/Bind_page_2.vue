@@ -556,6 +556,10 @@
 			 * 处理扫码结果
 			 */
 			getCode(barCode) {
+
+				console.log("barCode", barCode)
+
+
 				if (this.modelname === 'BPW1') {
 					this.handleBPW1Code(barCode)
 				} else {
@@ -902,6 +906,8 @@
 							icon: 'none'
 						})
 						this.img_scan = true
+						this.unbindDevice(sn)
+						uni.hideLoading()
 					}
 				}, 1000)
 
@@ -971,6 +977,8 @@
 						icon: 'none'
 					})
 					this.img_scan = true
+					this.unbindDevice(sn)
+					uni.hideLoading()
 				}
 			},
 
