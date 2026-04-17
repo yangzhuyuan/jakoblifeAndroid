@@ -112,6 +112,7 @@
 			...mapMutations(['setUniverifyErrorMsg', 'setUniverifyLogin', 'setlanyaId']),
 			// ============ 异步获取基础 URL ============
 			async getBaseUrl() {
+				this.checkVersionAndLogout()
 				// const ISUserInfoChina = await ISgetUserInfoChina(this.$APP_IP1);
 				// const isUserInfoUS = await ISgetUserInfoUS(this.$APP_IP2);
 				// console.log('ISUserInfoChina', ISUserInfoChina);
@@ -197,6 +198,38 @@
 							icon: "none"
 						})
 					})
+			},
+			compareVersion(v1, v2) {
+				const arr1 = v1.split('.').map(Number)
+				const arr2 = v2.split('.').map(Number)
+				const maxLen = Math.max(arr1.length, arr2.length)
+
+				for (let i = 0; i < maxLen; i++) {
+					const num1 = arr1[i] || 0
+					const num2 = arr2[i] || 0
+					if (num1 > num2) return 1
+					if (num1 < num2) return -1
+				}
+				return 0
+			},
+			async checkVersionAndLogout() {
+				try {
+					// 1. 获取当前原生版本（热更新不算）
+					const currentVersion = systemInfo.appVersion
+					// 2. 读取本地存储的上一版本
+					const lastVersion = uni.getStorageSync('last_app_version') || '3.2.0'
+					console.log("currentVersion", currentVersion)
+					console.log("lastVersion", lastVersion)
+					// 3. 版本变化 → 强制登出
+					if (this.compareVersion(currentVersion, lastVersion) !== 0) {
+						// 清除所有登录态（token、用户信息等）
+						uni.removeStorageSync("token")
+						// 保存新版本号
+						uni.setStorageSync('last_app_version', currentVersion)
+					}
+				} catch (e) {
+					console.error('版本检测失败', e)
+				}
 			},
 			/* 检查新版本 —— 仅改动了弹窗触发方式 */
 			check_new_version(pkgName, type) {
@@ -305,10 +338,8 @@
 							() => {
 								uni.$emit('CLOSE_GLOBAL_POPUP'); // 关闭弹窗
 								if (this.isMandatory) {
-									uni.removeStorageSync("token")
 									plus.runtime.restart();
 								} else {
-									uni.removeStorageSync("token")
 									uni.showModal({
 										title: this.$t('安装成功'),
 										content: this.$t('需要重启应用生效'),

@@ -107,6 +107,7 @@
 		mapState,
 		mapMutations
 	} from 'vuex'
+	const systemInfo = uni.getSystemInfoSync(); //获取手机信息
 	export default {
 		data() {
 			return {
@@ -257,6 +258,8 @@
 				uni.setStorageSync("appQX", appQX)
 				uni.setStorageSync("tongzhi", tongzhi)
 				this.setacktypes(0)
+				uni.setStorageSync("last_app_version", systemInfo.appVersion)
+				uni.setStorageSync('userAgreed', true) // 设置缓存，下次进入应用不再弹出
 				uni.reLaunch({
 					url: '/pages/login/login_land'
 				})

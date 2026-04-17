@@ -586,11 +586,9 @@
 								this.$refs.down_popup?.close();
 								if (this.isMandatory) {
 									// 强制更新直接重启
-									uni.removeStorageSync("token")
 									plus.runtime.restart();
 								} else {
 									// 普通更新询问用户
-									uni.removeStorageSync("token")
 									uni.showModal({
 										title: this.$t('安装成功'),
 										content: this.$t('需要重启应用生效'),

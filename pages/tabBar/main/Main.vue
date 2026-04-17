@@ -1932,6 +1932,7 @@
 		onShow: async function() { // ✅ 添加 async
 			let that = this
 			uni.removeStorageSync("jiance")
+			uni.setStorageSync("last_app_version", systemInfo.appVersion)
 			// const ISUserInfoChina = await ISgetUserInfoChina(that.$APP_IP1);
 			// const isUserInfoUS = await ISgetUserInfoUS(that.$APP_IP2);
 			// console.log('ISUserInfoChina', ISUserInfoChina);

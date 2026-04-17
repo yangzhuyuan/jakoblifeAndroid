@@ -733,11 +733,11 @@
 			calculateTimeRange() {
 				const now = new Date();
 				const endTime =
-					`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 23:59:59`;
+					`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 22:00:00`;
 				const startDate = new Date(now);
 				startDate.setDate(startDate.getDate() - 6);
 				const startTime =
-					`${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')} 00:00:00`;
+					`${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')} 08:00:00`;
 				this.monitorInfo.startTime = startTime;
 				this.monitorInfo.endTime = endTime;
 				this.pacitime = startTime;

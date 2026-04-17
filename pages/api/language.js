@@ -47,7 +47,6 @@ export default {
 		最低日均: '最低日均',
 		白天天比值7: '白天/7天 比值',
 		夜间天比值7: '夜间/7天 比值',
-
 		天血压极值记录7: '7天血压极值记录',
 		天数据分布7: '7天数据分布',
 		监测时段: '监测时段',
@@ -56,20 +55,10 @@ export default {
 		连续天7: '连续7天',
 		均: '均',
 		范围: '范围',
-
 		天平均血压7: '7天平均血压',
 		测量次数: '测量次数',
 		收缩压范围: '收缩压范围',
 		次数: '次数',
-
-
-
-
-
-
-
-
-
 		天: '天',
 		药物种类: '药物种类',
 		服药时间: '服药时间',
@@ -108,15 +97,13 @@ export default {
 		确诊时长: '确诊时长',
 		提交并保存: '提交并保存',
 		报告预览: '报告预览',
-
-
 		已达最大数量: '已达最大数量',
 		请先关闭监测模式: '请先关闭监测模式',
 		关闭天监测将启用自定义配置是否继续: '关闭7天监测将启用自定义配置，是否继续？',
-		开启天监测将覆盖当前配置并关闭小时监测是否继续: '开启7天监测将覆盖当前配置并关闭24小时监测，是否继续？',
+		开启天监测将覆盖当前配置并关闭小时监测是否继续: '1.开启7天监测将覆盖当前配置并关闭24小时监测，是否继续？\n2.开启之后，请在7天内，每天早上8：00-晚上22：00保持手表佩戴;\n3.7天之后可以生成“7天动态监测报告”，可以将其分享给医生.',
 		关闭小时监测将启用自定义配置是否继续: '关闭24小时监测将启用自定义配置，是否继续？',
 		确认关闭: '确认关闭',
-		开启小时监测将覆盖当前配置并关闭天监测是否继续: '开启24小时监测将覆盖当前配置并关闭7天监测，是否继续？',
+		开启小时监测将覆盖当前配置并关闭天监测是否继续: '1.开启24小时监测将覆盖当前配置并关闭7天监测，是否继续？\n2.开启之后，请在24小时之内保持手表佩戴;\n3.24小时之后可以生成“24小时动态监测报告”，可以将其分享给医生',
 		确认开启: '确认开启',
 		自定义监测: '自定义监测',
 		每: '每',
@@ -1413,10 +1400,10 @@ export default {
 		已达最大数量: 'Maximum limit reached',
 		请先关闭监测模式: 'Please turn off monitoring mode first',
 		关闭天监测将启用自定义配置是否继续: 'Turning off 7-day monitoring will enable custom configuration, continue?',
-		开启天监测将覆盖当前配置并关闭小时监测是否继续: 'Enabling 7-day monitoring will override current configuration and disable 24-hour monitoring, continue?',
+		开启天监测将覆盖当前配置并关闭小时监测是否继续: '1. Enabling 7-day monitoring will override the current configuration and disable 24-hour monitoring. Continue?\n2. After enabling, please wear the watch daily from 8:00 AM to 10:00 PM for 7 consecutive days.\n3. After 7 days, a "7-Day Dynamic Monitoring Report" will be generated, which can be shared with your doctor.',
 		关闭小时监测将启用自定义配置是否继续: 'Turning off 24-hour monitoring will enable custom configuration, continue?',
 		确认关闭: 'Confirm Disable',
-		开启小时监测将覆盖当前配置并关闭天监测是否继续: 'Enabling 24-hour monitoring will override current configuration and disable 7-day monitoring, continue?',
+		开启小时监测将覆盖当前配置并关闭天监测是否继续: '1. Enabling 24-hour monitoring will override the current configuration and disable 7-day monitoring. Continue?\n2. After enabling, please keep the watch on continuously for 24 hours.\n3. After 24 hours, a "24-Hour Dynamic Monitoring Report" will be generated, which can be shared with your doctor.',
 		确认开启: 'Confirm Enable',
 		自定义监测: 'Custom Monitoring',
 		每: 'Every',

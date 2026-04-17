@@ -42,8 +42,6 @@
 			that.loginimg = lan === 'zh-Hans' ? '/static/icons/14.png' : '/static/icons/loginssss.png';
 			if (that.agreed === true) {
 				that.checkToken()
-			} else {
-				uni.removeStorageSync("token")
 			}
 		},
 

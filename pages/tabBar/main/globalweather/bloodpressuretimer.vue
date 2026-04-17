@@ -345,14 +345,14 @@
 				items.push({
 					index: 0,
 					enabled: true,
-					startTime: '00:00',
-					endTime: '23:59',
-					interval: 480,
-					intervalIndex: this.getIntervalIndex(480),
-					startHour: 0,
+					startTime: '08:00',
+					endTime: '22:00',
+					interval: 210,
+					intervalIndex: this.getIntervalIndex(210),
+					startHour: 8,
 					startMinute: 0,
-					endHour: 23,
-					endMinute: 59
+					endHour: 22,
+					endMinute: 0
 				});
 
 				this.config.items = items;
