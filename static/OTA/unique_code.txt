@@ -1,5 +1,5 @@
 name:OTA…˝º∂≈‰÷√
-unique_code:69D616630656352E382E380741423536313043
+unique_code:69E587830656352E382E380741423536313043
 bluetooth:BPW1
 setting_ble_name:BPW1
 setting_bt_name:BPW1

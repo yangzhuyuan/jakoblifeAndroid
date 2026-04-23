@@ -61,6 +61,9 @@ export default class BluetoothManager {
 				case 4:
 					await bluetooth.getCharacteristics1(bluetooth.services[3].uuid);
 					break;
+					// case 6:
+					// 	await bluetooth.getCharacteristics6(bluetooth.services[2].uuid);
+					// 	break;
 			}
 			this.connectedDevices[deviceId] = bluetooth;
 			return this.connectedDevices[deviceId];
@@ -95,6 +98,9 @@ export default class BluetoothManager {
 			case 4:
 				await bluetooth.getCharacteristics1(bluetooth.services[3].uuid);
 				break;
+				// case 6:
+				// 	await bluetooth.getCharacteristics6(bluetooth.services[2].uuid);
+				// 	break;
 		}
 		this.connectedDevices[deviceId] = bluetooth;
 	}

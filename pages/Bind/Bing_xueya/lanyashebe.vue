@@ -84,6 +84,12 @@
 	import {
 		mapMutations
 	} from 'vuex'
+	import {
+		u16proBLE
+	} from '../../api/protocol/u16pro-ble-manager.js'
+	import {
+		U16ProProtocol
+	} from '../../api/protocol/u16pro-protocol.js'
 	const platform = uni.getSystemInfoSync().platform;
 	export default {
 
@@ -157,7 +163,7 @@
 		},
 
 		methods: {
-			...mapMutations(['setlanyaId', 'setacktypes']),
+			...mapMutations(['setlanyaId', 'setacktypes', 'setacktypes6']),
 
 			// 判断是否是新设备（最近10秒内发现的）
 			isNewDevice(item) {
@@ -772,6 +778,9 @@
 					deviceId: deviceId,
 					success: (res) => {
 						switch (res.services.length) {
+							// case 6:
+							// 	that.getBLEDeviceCharacteristics6(deviceId, res.services[2].uuid)
+							// 	break
 							case 3:
 								if (res.services[1].uuid === "81EEA001-E735-49EC-8A11-7E32CAE1E14E") {
 									that.getBLEDeviceCharacteristics3(deviceId, res.services[1].uuid)
@@ -801,6 +810,15 @@
 					fail(res) {}
 				})
 			},
+			// 同步时间
+			async syncTime(deviceId) {
+				try {
+					await u16proBLE.setTime(new Date(), 0, deviceId) // 0=中文
+					console.log('时间同步成功')
+				} catch (err) {
+					console.error('时间同步失败:', err)
+				}
+			},
 			//获取蓝牙外围设备的特征值
 			getBLEDeviceCharacteristics1(deviceId, serviceId) {
 				let that = this
@@ -829,6 +847,70 @@
 					}
 				})
 			},
+			// async getBLEDeviceCharacteristics6(deviceId, serviceId) {
+			// 	const that = this;
+			// 	try {
+			// 		const res = await this._getBLEDeviceCharacteristics(deviceId, serviceId);
+			// 		// 只执行一次时间同步和电量读取
+			// 		let hasWriten = false;
+			// 		for (let i = 0; i < res.characteristics.length; i++) {
+			// 			const item = res.characteristics[i];
+			// 			// 处理可写入的特征值（只执行一次）
+			// 			if (item.properties.write && !hasWriten) {
+			// 				hasWriten = true;
+			// 				try {
+			// 					// 连接成功后同步时间
+			// 					await that.syncTime(deviceId);
+			// 					await u16proBLE.readBattery(deviceId);
+			// 				} catch (err) {
+			// 					console.error('同步失败:', err);
+			// 				}
+			// 			}
+
+			// 			// 蓝牙消息通知
+			// 			if (item.properties.notify) {
+			// 				try {
+			// 					await this._notifyBLECharacteristicValueChange({
+			// 						state: true,
+			// 						deviceId: deviceId,
+			// 						serviceId: serviceId,
+			// 						characteristicId: item.uuid
+			// 					});
+			// 					// await u16proBLE._initListener();
+			// 					console.log('notify 启用成功:', item.uuid);
+			// 				} catch (notifyerr) {
+			// 					console.error('notify 启用失败:', notifyerr);
+			// 				}
+			// 			}
+			// 		}
+			// 		that.setacktypes6(0)
+			// 	} catch (res) {
+			// 		console.error('getBLEDeviceCharacteristics 失败:', res);
+			// 	}
+			// },
+
+			// // 封装 Promise 版本的 API
+			// _getBLEDeviceCharacteristics(deviceId, serviceId) {
+			// 	return new Promise((resolve, reject) => {
+			// 		uni.getBLEDeviceCharacteristics({
+			// 			deviceId: deviceId,
+			// 			serviceId: serviceId,
+			// 			success: resolve,
+			// 			fail: reject
+			// 		});
+			// 	});
+			// },
+
+			// _notifyBLECharacteristicValueChange(options) {
+			// 	return new Promise((resolve, reject) => {
+			// 		uni.notifyBLECharacteristicValueChange({
+			// 			...options,
+			// 			success: resolve,
+			// 			fail: reject
+			// 		});
+			// 	});
+			// },
+
 			//获取蓝牙外围设备的特征值
 			getBLEDeviceCharacteristics2(deviceId, serviceId) {
 				let that = this

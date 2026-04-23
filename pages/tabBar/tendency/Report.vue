@@ -1237,7 +1237,6 @@
 					}
 				})
 			},
-			// 血压指标中间表查询
 			get_retVarList(deviceSn) {
 				let that = this
 				let data = {
@@ -1246,36 +1245,104 @@
 					filterVarList: that.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
 				}
-				console.log("1血压指标中间表查询", data)
+				console.log("get_retVarLisdata参数：", data)
 				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_retVarList", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((get_retVarList) => {
-					console.log("2血压指标中间表查询", get_retVarList)
+					console.log("get_retVarLis：", get_retVarList)
 					if (get_retVarList.code === 200) {
 						let resultArray = get_retVarList.data.retVarList.split(";");
-						that.chartData.categories = []
-						for (let i = 0; resultArray.length > i; i++) {
+
+						// 获取第一个和最后一个时间点
+						let firstTime = resultArray[0].split(",")[0].trim();
+						let lastTime = resultArray[resultArray.length - 1].split(",")[0].trim();
+
+						// 提取日期部分
+						let startDate = firstTime.split(" ")[0];
+						let endDate = lastTime.split(" ")[0];
+
+						// 清空categories和series数据
+						that.chartData.categories = [];
+						that.chartData.series[0].data = [];
+						that.chartData.series[1].data = [];
+						that.chartData.series[2].data = [];
+
+						// 循环处理所有数据点
+						for (let i = 0; i < resultArray.length; i++) {
 							let resultArray1 = resultArray[i].split(",");
-							if (that.idsss === "1") {
-								that.chartData.categories.push(resultArray1[0].trim().slice(10, 13) + that.$t(
-									"时"))
+
+							// X轴标签：只在第一个和最后一个位置显示日期，其他位置显示空字符串
+							if (i === 0) {
+								if (that.idsss === "1") {
+									// 小时模式显示具体时间
+									that.chartData.categories.push(resultArray1[0].trim().slice(10, 16) + that.$t(
+										"时"));
+								} else {
+									// 日期模式显示开始日期
+									that.chartData.categories.push(startDate);
+								}
+							} else if (i === resultArray.length - 1) {
+								// 最后一个显示结束日期
+								that.chartData.categories.push(endDate);
 							} else {
-								that.chartData.categories.push(resultArray1[0].trim().slice(8, 10) + that.$t(
-									"日"))
+								// 中间的点显示空字符串
+								that.chartData.categories.push("");
 							}
-							that.chartData.series[0].data.push(resultArray1[1])
-							that.chartData.series[1].data.push(resultArray1[2])
-							that.chartData.series[2].data.push(resultArray1[3])
+
+							// 添加数据点（所有数据都保留）
+							that.chartData.series[0].data.push(parseFloat(resultArray1[1]));
+							that.chartData.series[1].data.push(parseFloat(resultArray1[2]));
+							that.chartData.series[2].data.push(parseFloat(resultArray1[3]));
 						}
+
 					} else {
-						that.chartData.categories = []
-						that.chartData.series[0].data = []
-						that.chartData.series[1].data = []
-						that.chartData.series[2].data = []
+						that.chartData.categories = [];
+						that.chartData.series[0].data = [];
+						that.chartData.series[1].data = [];
+						that.chartData.series[2].data = [];
 					}
 				})
 			},
+			// 血压指标中间表查询
+			// get_retVarList(deviceSn) {
+			// 	let that = this
+			// 	let data = {
+			// 		deviceSn: deviceSn,
+			// 		profDate: that.pacitime,
+			// 		filterVarList: that.filterVarList,
+			// 		retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
+			// 	}
+			// 	console.log("1血压指标中间表查询", data)
+			// 	that.$post(that.$url_APP_IP + "/prod-api/device_app/get_retVarList", data, {
+			// 		'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+			// 		'content-type': 'application/x-www-form-urlencoded'
+			// 	}).then((get_retVarList) => {
+			// 		console.log("2血压指标中间表查询", get_retVarList)
+			// 		if (get_retVarList.code === 200) {
+			// 			let resultArray = get_retVarList.data.retVarList.split(";");
+			// 			that.chartData.categories = []
+			// 			for (let i = 0; resultArray.length > i; i++) {
+			// 				let resultArray1 = resultArray[i].split(",");
+			// 				if (that.idsss === "1") {
+			// 					that.chartData.categories.push(resultArray1[0].trim().slice(10, 13) + that.$t(
+			// 						"时"))
+			// 				} else {
+			// 					that.chartData.categories.push(resultArray1[0].trim().slice(8, 10) + that.$t(
+			// 						"日"))
+			// 				}
+			// 				that.chartData.series[0].data.push(resultArray1[1])
+			// 				that.chartData.series[1].data.push(resultArray1[2])
+			// 				that.chartData.series[2].data.push(resultArray1[3])
+			// 			}
+			// 		} else {
+			// 			that.chartData.categories = []
+			// 			that.chartData.series[0].data = []
+			// 			that.chartData.series[1].data = []
+			// 			that.chartData.series[2].data = []
+			// 		}
+			// 	})
+			// },
 
 			//血压指标最终表查询
 			get_finalRetVarList(deviceSn) {

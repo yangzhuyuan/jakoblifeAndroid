@@ -479,7 +479,6 @@
 					bmi: this.bmi,
 					whtr: this.whtr
 				}
-				console.log(this.type)
 				switch (this.type) {
 					case "7":
 						uni.navigateTo({

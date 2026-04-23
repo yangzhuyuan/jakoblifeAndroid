@@ -215,6 +215,30 @@
 								url: 'https://v.douyin.com/5K9JlbdgQsE/ x@f.bA 07/29 cnd:/'
 							}
 						]
+					},
+					{
+						title: this.$t('如何用手表产生医生可用的小时天血压动态报告'),
+						list: [{
+								platform: 'youtube',
+								url: 'https://youtu.be/qwYaomWlT64?si=qjpWqavXuF0D1j5X'
+							},
+							{
+								platform: 'douyin',
+								url: 'https://v.douyin.com/o3hA5zzdlsk/ 04/18 o@D.Hv Ivs:/'
+							}
+						]
+					},
+					{
+						title: this.$t('如何在APP里设置血压自动测量'),
+						list: [{
+								platform: 'youtube',
+								url: 'https://youtube.com/shorts/WAfacqE1_Rw?feature=share'
+							},
+							{
+								platform: 'douyin',
+								url: 'https://v.douyin.com/1FYQ-soHSyc/ xsE:/ F@H.II 04/04'
+							}
+						]
 					}
 				].filter(g => g.list.length), // 过滤掉空分组
 			}

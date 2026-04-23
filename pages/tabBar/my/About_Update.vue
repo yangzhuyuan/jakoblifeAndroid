@@ -48,7 +48,8 @@
 		<view>
 			<uni-popup ref="watchdown_popup" :mask-click="false">
 				<view class="progress_all" v-if="percent>=0&&percent!==100">
-					<view style="color: red;">{{$t("手表更新提示")}}</view>
+					<view style="color: red;">1.{{$t("手表更新提示")}}</view>
+					<view style="color: green;">2.{{$t("手表更新提示1")}}</view>
 					<view class="progress">
 						<view>{{$t("总进度")}}{{percent}}%</view>
 					</view>

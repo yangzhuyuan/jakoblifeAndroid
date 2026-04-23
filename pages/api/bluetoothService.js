@@ -64,7 +64,24 @@ export default class BluetoothService {
 			});
 		});
 	}
-
+	// 获取特征值
+	// async getCharacteristics6(serviceId) {
+	// 	return new Promise((resolve, reject) => {
+	// 		uni.getBLEDeviceCharacteristics({
+	// 			deviceId: this.deviceId,
+	// 			serviceId: serviceId,
+	// 			success: (res) => {
+	// 				// console.log("获取特征值成功", res.characteristics);
+	// 				this.characteristics[serviceId] = res.characteristics;
+	// 				resolve(res.characteristics);
+	// 			},
+	// 			fail: (err) => {
+	// 				console.error("获取特征值失败", err);
+	// 				reject(err);
+	// 			},
+	// 		});
+	// 	});
+	// }
 	// 获取特征值
 	async getCharacteristics1(serviceId) {
 		return new Promise((resolve, reject) => {

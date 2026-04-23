@@ -13,7 +13,7 @@
 		ISgetUserInfoChina,
 	} from './pages/api/isInChinaByIP.js'; //获取定位
 
-	import keepAliveManager from "@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js";
+	// import keepAliveManager from "@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js";
 	const systemInfo = uni.getSystemInfoSync()
 	export default {
 		data() {
@@ -61,7 +61,7 @@
 			uni.removeStorageSync("dingwei")
 			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 			plugin.acquireWakeLock({}, res => { //强制保留app运行
-				// console.log('app.vue-强制保留app运行', res)
+				console.log('app.vue-强制保留app运行', res)
 				// 启动保活（Android）
 				// // #ifdef APP-PLUS
 				// if (uni.getSystemInfoSync().platform === 'android') {
@@ -218,8 +218,6 @@
 					const currentVersion = systemInfo.appVersion
 					// 2. 读取本地存储的上一版本
 					const lastVersion = uni.getStorageSync('last_app_version') || '3.2.0'
-					console.log("currentVersion", currentVersion)
-					console.log("lastVersion", lastVersion)
 					// 3. 版本变化 → 强制登出
 					if (this.compareVersion(currentVersion, lastVersion) !== 0) {
 						// 清除所有登录态（token、用户信息等）
@@ -584,36 +582,36 @@
 			},
 
 
-			// 第一步：测试模块是否能加载
-			testModule() {
-				// #ifdef APP-PLUS
-				const module = uni.requireNativePlugin('KeepAliveModule');
-				console.log('模块对象:', module ? '模块加载成功' : '模块加载失败');
-				// #endif
-			},
+			// // 第一步：测试模块是否能加载
+			// testModule() {
+			// 	// #ifdef APP-PLUS
+			// 	const module = uni.requireNativePlugin('KeepAliveModule');
+			// 	console.log('模块对象:', module ? '模块加载成功' : '模块加载失败');
+			// 	// #endif
+			// },
 
-			// 第二步：初始化
-			async initPlugin() {
-				try {
-					const res = await KeepAlive.init();
-					console.log('初始化结果:', res);
-				} catch (e) {
-					console.error('初始化失败:', e);
-				}
-			},
+			// // 第二步：初始化
+			// async initPlugin() {
+			// 	try {
+			// 		const res = await KeepAlive.init();
+			// 		console.log('初始化结果:', res);
+			// 	} catch (e) {
+			// 		console.error('初始化失败:', e);
+			// 	}
+			// },
 
-			// 第三步：启动服务
-			async startService() {
-				try {
-					const res = await KeepAlive.startService({
-						title: 'JakobLife',
-						content: this.$t("正在运行")
-					});
-					console.log('正在运行');
-				} catch (e) {
-					console.error('启动失败:', e);
-				}
-			},
+			// // 第三步：启动服务
+			// async startService() {
+			// 	try {
+			// 		const res = await KeepAlive.startService({
+			// 			title: 'JakobLife',
+			// 			content: this.$t("正在运行")
+			// 		});
+			// 		console.log('正在运行');
+			// 	} catch (e) {
+			// 		console.error('启动失败:', e);
+			// 	}
+			// },
 
 
 

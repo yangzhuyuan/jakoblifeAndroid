@@ -21,6 +21,7 @@ const store = new Vuex.Store({
 		serviceId: '',
 		characteristicId: '',
 		acktypes: 0,
+		acktypes6: 0,
 		bianhuadata: 0,
 		TenddeviceSn: '',
 		xueyehuilian: true,
@@ -72,6 +73,9 @@ const store = new Vuex.Store({
 		},
 		setacktypes(state, acktypes) {
 			state.acktypes = acktypes
+		},
+		setacktypes6(state, acktypes6) {
+			state.acktypes6 = acktypes6
 		},
 		setbanhua(state, bianhuadata) {
 			state.bianhuadata = bianhuadata

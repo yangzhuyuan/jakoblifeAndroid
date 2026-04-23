@@ -1,5 +1,10 @@
 export default {
 	'zh-CN': {
+		如何在APP里设置血压自动测量: '如何在APP里设置血压自动测量',
+		如何用手表产生医生可用的小时天血压动态报告: '如何用手表产生医生可用的24小时/7天血压动态报告',
+		配置成功: '配置成功',
+		配置失败: '配置失败',
+		请检查手表设备: '请检查手表设备，是否是5.8.8以上版本.',
 		身体指标: '身体指标',
 		用药信息: '用药信息',
 		监测统计概览: '监测统计概览',
@@ -100,7 +105,7 @@ export default {
 		已达最大数量: '已达最大数量',
 		请先关闭监测模式: '请先关闭监测模式',
 		关闭天监测将启用自定义配置是否继续: '关闭7天监测将启用自定义配置，是否继续？',
-		开启天监测将覆盖当前配置并关闭小时监测是否继续: '1.开启7天监测将覆盖当前配置并关闭24小时监测，是否继续？\n2.开启之后，请在7天内，每天早上8：00-晚上22：00保持手表佩戴;\n3.7天之后可以生成“7天动态监测报告”，可以将其分享给医生.',
+		开启天监测将覆盖当前配置并关闭小时监测是否继续: '1.开启7天监测将覆盖当前配置并关闭24小时监测，是否继续？\n2.开启之后，请在7天内，每天早上8：00-晚上21：05保持手表佩戴;\n3.7天之后可以生成“7天动态监测报告”，可以将其分享给医生.',
 		关闭小时监测将启用自定义配置是否继续: '关闭24小时监测将启用自定义配置，是否继续？',
 		确认关闭: '确认关闭',
 		开启小时监测将覆盖当前配置并关闭天监测是否继续: '1.开启24小时监测将覆盖当前配置并关闭7天监测，是否继续？\n2.开启之后，请在24小时之内保持手表佩戴;\n3.24小时之后可以生成“24小时动态监测报告”，可以将其分享给医生',
@@ -308,6 +313,7 @@ export default {
 		下发升级指令失败: '下发升级指令失败',
 		正在请求升级: '正在请求升级...',
 		手表更新提示: '对于安卓手机，请留在本应用程序页面上，并确保手机屏幕不自动关闭。',
+		手表更新提示1: "如果在升级过程中蓝牙链接出现问题引起升级中断，手表会一直留在升级状态下，请不要紧张，主要退出APP，给手表充好电，再次进行升级，手表会重新升级. ",
 		连接中: '连接中...',
 		请求手表升级: '请求手表升级',
 		未找到设备: '未找到设备，请重试',
@@ -1293,6 +1299,11 @@ export default {
 
 	},
 	'en-US': {
+		如何在APP里设置血压自动测量: 'How to Set Up Automatic Blood Pressure Testing in the App',
+		如何用手表产生医生可用的小时天血压动态报告: 'How to Generate a 24-Hour Blood Pressure Report for Your Doctor with Jakoblife Watch',
+		配置成功: 'Configuration successful',
+		配置失败: 'Configuration failed',
+		请检查手表设备: 'Please check your watch device to ensure it is version 5.8.8 or above.',
 		身体指标: 'Body Metrics',
 		用药信息: 'Medication Information',
 		监测统计概览: 'Statistics Overview',
@@ -1309,7 +1320,7 @@ export default {
 		白天监测间隔: 'Daytime Interval',
 		夜间监测时段: 'Nighttime Monitoring Period',
 		夜间监测间隔: 'Nighttime Interval',
-		分钟次: 'min/time',
+		分钟次: 'min',
 		详细监测数据: 'Detailed Monitoring Data',
 		全部: 'All',
 		白天: 'Daytime',
@@ -1352,13 +1363,6 @@ export default {
 		测量次数: 'Measurement Times',
 		收缩压范围: 'Systolic Pressure Range',
 		次数: 'Times',
-
-
-
-
-
-
-
 		天: 'days',
 		药物种类: 'Drug type',
 		服药时间: 'Medication time',
@@ -1400,7 +1404,7 @@ export default {
 		已达最大数量: 'Maximum limit reached',
 		请先关闭监测模式: 'Please turn off monitoring mode first',
 		关闭天监测将启用自定义配置是否继续: 'Turning off 7-day monitoring will enable custom configuration, continue?',
-		开启天监测将覆盖当前配置并关闭小时监测是否继续: '1. Enabling 7-day monitoring will override the current configuration and disable 24-hour monitoring. Continue?\n2. After enabling, please wear the watch daily from 8:00 AM to 10:00 PM for 7 consecutive days.\n3. After 7 days, a "7-Day Dynamic Monitoring Report" will be generated, which can be shared with your doctor.',
+		开启天监测将覆盖当前配置并关闭小时监测是否继续: '1. Enabling 7-day monitoring will override the current configuration and disable 24-hour monitoring. Continue?\n2. After enabling, please wear the watch daily from 8:00 AM to 21:05 PM for 7 consecutive days.\n3. After 7 days, a "7-Day Dynamic Monitoring Report" will be generated, which can be shared with your doctor.',
 		关闭小时监测将启用自定义配置是否继续: 'Turning off 24-hour monitoring will enable custom configuration, continue?',
 		确认关闭: 'Confirm Disable',
 		开启小时监测将覆盖当前配置并关闭天监测是否继续: '1. Enabling 24-hour monitoring will override the current configuration and disable 7-day monitoring. Continue?\n2. After enabling, please keep the watch on continuously for 24 hours.\n3. After 24 hours, a "24-Hour Dynamic Monitoring Report" will be generated, which can be shared with your doctor.',
@@ -1409,8 +1413,8 @@ export default {
 		每: 'Every',
 		时段: 'Time Slot',
 		当前监测模式: 'Current Monitoring Mode',
-		小时监测已开启自定义配置已禁用24: '24-hour monitoring enabled, custom configuration disabled',
-		天监测已开启自定义配置已禁用7: '7-day monitoring enabled, custom configuration disabled',
+		小时监测已开启自定义配置已禁用24: 'If 24 hour monitoring is enabled, all other monitoring is disabled',
+		天监测已开启自定义配置已禁用7: 'If 7-day monitoring is enabled, all other monitoring is disabled',
 		时间段重合: 'Time periods overlap',
 		项: 'Item',
 		添加: 'Add',
@@ -1421,14 +1425,14 @@ export default {
 		监测报告7: "7-day Continuous Monitoring",
 		定时监测: 'Scheduled Monitoring',
 		发送中: 'Sending...',
-		保存配置: 'Save configuration',
+		保存配置: 'Save Settings',
 		已达最大数量: 'Maximum limit reached',
 		配置验证失败: 'Configuration validation failed',
-		监测: 'Mon.',
+		监测: 'Tests',
 		分钟: 'Minutes',
 		血压定时监测配置: 'Blood Pressure Timer Monitoring Configuration',
 		最大数量: "Maximum Quantity",
-		血压定时测量开关: 'Blood Pressure Timer Measurement Switch',
+		血压定时测量开关: 'Auto Blood Pressure Timer',
 
 		夜间保活中: 'Nighttime survival mode',
 		应用运行中: 'Application running',
@@ -1612,6 +1616,7 @@ export default {
 		下发升级指令失败: 'Failed to issue the upgrade instruction',
 		正在请求升级: 'Requesting an upgrade is in progress...',
 		手表更新提示: 'For Android phones, please stay on this app page and keep your phone screen from turning off.',
+		手表更新提示1: "If there is a problem with the Bluetooth link during the upgrade process, the watch will remain in the upgrade state. Please don't be nervous. The main thing is to exit the APP, charge the watch, and repeat upgrade process from step 1. The watch will be upgraded again.",
 		连接中: 'Connecting...',
 		请求手表升级: 'Request for watch upgrade',
 		未找到设备: 'Device not found. Please try again.',

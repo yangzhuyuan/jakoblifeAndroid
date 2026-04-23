@@ -199,12 +199,20 @@
 			<view class="setting-title">{{ $t('监测设置')}}</view>
 			<view class="setting-content">
 				<view class="setting-item">
-					<text class="setting-label">{{ $t('监测时段')}}</text>
-					<text class="setting-value">00:00 - 23:59</text>
+					<text class="setting-label">{{ $t('监测时段')}}1</text>
+					<text class="setting-value">08:00 - 15:00</text>
 				</view>
 				<view class="setting-item">
-					<text class="setting-label">{{ $t('监测间隔')}}</text>
-					<text class="setting-value">480{{ $t('分钟次')}}</text>
+					<text class="setting-label">{{ $t('监测间隔')}}1</text>
+					<text class="setting-value">360{{ $t('分钟次')}}</text>
+				</view>
+				<view class="setting-item">
+					<text class="setting-label">{{ $t('监测时段')}}2</text>
+					<text class="setting-value">18:00 - 21:00</text>
+				</view>
+				<view class="setting-item">
+					<text class="setting-label">{{ $t('监测间隔')}}2</text>
+					<text class="setting-value">180{{ $t('分钟次')}}</text>
 				</view>
 				<view class="setting-item wide">
 					<text class="setting-label">{{ $t('监测周期')}}</text>
@@ -733,7 +741,7 @@
 			calculateTimeRange() {
 				const now = new Date();
 				const endTime =
-					`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 22:00:00`;
+					`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 21:05:00`;
 				const startDate = new Date(now);
 				startDate.setDate(startDate.getDate() - 6);
 				const startTime =

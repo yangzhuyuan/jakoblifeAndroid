@@ -137,10 +137,13 @@
 				})
 			},
 			NOclick() {
-				const id = lan === 'zh-Hans' ? 1153 : 1154;
+				// const id = lan === 'zh-Hans' ? 1153 : 1154;
+				// uni.navigateTo({
+				// 	url: `../../Bind/Bing_page/helpcenterss?id=${id}`
+				// });
 				uni.navigateTo({
-					url: `../../Bind/Bing_page/helpcenterss?id=${id}`
-				});
+					url: "/pages/tabBar/my/Help_center"
+				})
 			},
 
 			getlist() {

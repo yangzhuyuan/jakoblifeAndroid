@@ -176,16 +176,16 @@
 				that.$forceUpdate()
 				if (that.is24HourMode) {
 					setTimeout(() => {
-						if (!uni.getStorageSync("jiance")) {
-							uni.showToast({
-								title: that.$t("请检查设备连接"),
-								icon: 'none',
-								duration: 2000
-							})
-							that.is24HourMode = false; // 取消操作，恢复开关状态
-							that.$nextTick(() => that.$forceUpdate())
-							return;
-						}
+						// if (!uni.getStorageSync("jiance")) {
+						// 	uni.showToast({
+						// 		title: that.$t("请检查设备连接"),
+						// 		icon: 'none',
+						// 		duration: 2000
+						// 	})
+						// 	that.is24HourMode = false; // 取消操作，恢复开关状态
+						// 	that.$nextTick(() => that.$forceUpdate())
+						// 	return;
+						// }
 						uni.showModal({
 							title: that.$t('确认开启'),
 							content: that.$t('开启小时监测将覆盖当前配置并关闭天监测是否继续'),
@@ -202,33 +202,33 @@
 					}, 300);
 				} else {
 					setTimeout(() => {
-						if (!uni.getStorageSync("jiance")) {
-							uni.showToast({
-								title: that.$t("请检查设备连接"),
-								icon: 'none',
-								duration: 2000
-							})
-							that.is24HourMode = true; // 取消操作，恢复开关状态
-							that.$nextTick(() => that.$forceUpdate())
-							return;
-						}
-						// 尝试关闭24小时模式
-						uni.showModal({
-							title: that.$t('确认关闭'),
-							content: that.$t('关闭小时监测将启用自定义配置是否继续'),
-							success: (res) => {
-								if (res.confirm) {
-									// 确认关闭
-									that.is24HourMode = false;
-									that.currentMode = 'custom';
-									that.resetToDefault();
-									that.saveConfigToStorage();
-								} else {
-									that.is24HourMode = true; // 取消操作，恢复开关状态
-									that.$nextTick(() => that.$forceUpdate())
-								}
-							}
-						});
+						// if (!uni.getStorageSync("jiance")) {
+						// 	uni.showToast({
+						// 		title: that.$t("请检查设备连接"),
+						// 		icon: 'none',
+						// 		duration: 2000
+						// 	})
+						// 	that.is24HourMode = true; // 取消操作，恢复开关状态
+						// 	that.$nextTick(() => that.$forceUpdate())
+						// 	return;
+						// }
+						// // 尝试关闭24小时模式
+						// uni.showModal({
+						// 	title: that.$t('确认关闭'),
+						// 	content: that.$t('关闭小时监测将启用自定义配置是否继续'),
+						// 	success: (res) => {
+						// 		if (res.confirm) {
+						// 确认关闭
+						that.is24HourMode = false;
+						that.currentMode = 'custom';
+						that.resetToDefault();
+						that.saveConfigToStorage();
+						// 		} else {
+						// 			that.is24HourMode = true; // 取消操作，恢复开关状态
+						// 			that.$nextTick(() => that.$forceUpdate())
+						// 		}
+						// 	}
+						// });
 					}, 300);
 				}
 			},
@@ -240,16 +240,16 @@
 				that.$forceUpdate()
 				if (that.is7DayMode) {
 					setTimeout(() => {
-						if (!uni.getStorageSync("jiance")) {
-							uni.showToast({
-								title: that.$t("请检查设备连接"),
-								icon: 'none',
-								duration: 2000
-							})
-							that.is7DayMode = false; // 取消操作，恢复开关状态
-							that.$nextTick(() => that.$forceUpdate())
-							return;
-						}
+						// if (!uni.getStorageSync("jiance")) {
+						// 	uni.showToast({
+						// 		title: that.$t("请检查设备连接"),
+						// 		icon: 'none',
+						// 		duration: 2000
+						// 	})
+						// 	that.is7DayMode = false; // 取消操作，恢复开关状态
+						// 	that.$nextTick(() => that.$forceUpdate())
+						// 	return;
+						// }
 						// 尝试开启7天模式
 						uni.showModal({
 							title: that.$t('确认开启'),
@@ -268,33 +268,33 @@
 					}, 300);
 				} else {
 					setTimeout(() => {
-						if (!uni.getStorageSync("jiance")) {
-							uni.showToast({
-								title: that.$t("请检查设备连接"),
-								icon: 'none',
-								duration: 2000
-							})
-							that.is7DayMode = true; // 取消操作，恢复开关状态
-							that.$nextTick(() => that.$forceUpdate())
-							return;
-						}
-						// 尝试关闭7天模式
-						uni.showModal({
-							title: that.$t('确认关闭'),
-							content: that.$t('关闭天监测将启用自定义配置是否继续'),
-							success: (res) => {
-								if (res.confirm) {
-									// 确认关闭
-									this.is7DayMode = false;
-									this.currentMode = 'custom';
-									this.resetToDefault();
-									this.saveConfigToStorage();
-								} else {
-									that.is7DayMode = true; // 取消操作，恢复开关状态
-									that.$nextTick(() => that.$forceUpdate())
-								}
-							}
-						});
+						// if (!uni.getStorageSync("jiance")) {
+						// 	uni.showToast({
+						// 		title: that.$t("请检查设备连接"),
+						// 		icon: 'none',
+						// 		duration: 2000
+						// 	})
+						// 	that.is7DayMode = true; // 取消操作，恢复开关状态
+						// 	that.$nextTick(() => that.$forceUpdate())
+						// 	return;
+						// }
+						// // 尝试关闭7天模式
+						// uni.showModal({
+						// 	title: that.$t('确认关闭'),
+						// 	content: that.$t('关闭天监测将启用自定义配置是否继续'),
+						// 	success: (res) => {
+						// 		if (res.confirm) {
+						// 确认关闭
+						this.is7DayMode = false;
+						this.currentMode = 'custom';
+						this.resetToDefault();
+						this.saveConfigToStorage();
+						// 		} else {
+						// 			that.is7DayMode = true; // 取消操作，恢复开关状态
+						// 			that.$nextTick(() => that.$forceUpdate())
+						// 		}
+						// 	}
+						// });
 					}, 300);
 				}
 			},
@@ -346,17 +346,29 @@
 					index: 0,
 					enabled: true,
 					startTime: '08:00',
-					endTime: '22:00',
-					interval: 210,
-					intervalIndex: this.getIntervalIndex(210),
+					endTime: '15:00',
+					interval: 360,
+					intervalIndex: this.getIntervalIndex(360),
 					startHour: 8,
 					startMinute: 0,
-					endHour: 22,
+					endHour: 15,
+					endMinute: 0
+				});
+				items.push({
+					index: 1,
+					enabled: true,
+					startTime: '18:00',
+					endTime: '21:00',
+					interval: 180,
+					intervalIndex: this.getIntervalIndex(180),
+					startHour: 18,
+					startMinute: 0,
+					endHour: 21,
 					endMinute: 0
 				});
 
 				this.config.items = items;
-				this.config.maxCount = Math.max(this.config.maxCount, 1);
+				this.config.maxCount = Math.max(this.config.maxCount, 2);
 				this.is7DayMode = true;
 				this.currentMode = '7d';
 				this.saveConfigToStorage();
@@ -519,25 +531,25 @@
 			toggleItem(index, value) {
 				if (this.is24HourMode || this.is7DayMode) return;
 				this.config.items[index].enabled = value;
-				this.$forceUpdate()
-				setTimeout(() => {
-					if (!uni.getStorageSync("jiance")) {
-						uni.showToast({
-							title: this.$t("请检查设备连接"),
-							icon: 'none',
-							duration: 2000
-						})
-						if (this.config.items[index].enabled) {
-							this.config.items[index].enabled = false;
-						} else {
-							this.config.items[index].enabled = true;
-						}
-						this.$forceUpdate();
-						this.$nextTick(() => {
-							this.$forceUpdate();
-						});
-					}
-				}, 300);
+				// this.$forceUpdate()
+				// setTimeout(() => {
+				// 	if (!uni.getStorageSync("jiance")) {
+				// 		uni.showToast({
+				// 			title: this.$t("请检查设备连接"),
+				// 			icon: 'none',
+				// 			duration: 2000
+				// 		})
+				// 		if (this.config.items[index].enabled) {
+				// 			this.config.items[index].enabled = false;
+				// 		} else {
+				// 			this.config.items[index].enabled = true;
+				// 		}
+				// 		this.$forceUpdate();
+				// 		this.$nextTick(() => {
+				// 			this.$forceUpdate();
+				// 		});
+				// 	}
+				// }, 300);
 			},
 
 			updateStartTime(index, e) {
@@ -571,31 +583,94 @@
 
 				// 保存发送前的状态，用于失败时恢复
 				this.saveStateBeforeSend();
+				uni.showLoading({
+					title: this.$t("设置中"),
+					mask: true
+				})
+				this.sending = true;
+				this.OTAdata()
 
-				try {
-					const timers = this.config.items.map(item => ({
-						index: parseInt(item.index, 10),
-						enabled: !!item.enabled,
-						startHour: parseInt(item.startHour, 10),
-						startMinute: parseInt(item.startMinute, 10),
-						endHour: parseInt(item.endHour, 10),
-						endMinute: parseInt(item.endMinute, 10),
-						interval: parseInt(item.interval, 10)
-					}));
-
-					const packet = this.buildBloodPressureTimerPacket({
-						maxTimers: parseInt(this.config.maxCount, 10),
-						timers: timers
-					});
-					this.sendData(packet);
-				} catch (e) {
-					// 发生异常，恢复状态
-					this.restoreStateOnFailure();
-					uni.showToast({
-						title: e.message,
-						icon: 'none'
-					});
+			},
+			toArrayBuffer(data) {
+				const buffer = new ArrayBuffer(data.length / 2);
+				const dataView = new DataView(buffer);
+				for (let i = 0; i < data.length; i += 2) {
+					dataView.setUint8(i / 2, parseInt(data.substr(i, 2), 16));
 				}
+				return buffer;
+			},
+			OTAdata() {
+				let that = this
+				uni.removeStorageSync("arguments00")
+				const buffer2 = that.toArrayBuffer("e0000609200101000100"); // 转换为 ArrayBuffer获取设备信息
+				setTimeout(() => {
+					uni.writeBLECharacteristicValue({
+						deviceId: that.deviceId,
+						serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
+						characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
+						writeType: 'writeNoResponse',
+						value: buffer2,
+						success(res) {
+							console.log("OTA：e0000609200101000100")
+							setTimeout(() => {
+								console.log("uni.getStorageSync", uni.getStorageSync("otaBP"))
+								if (uni.getStorageSync("otaBP") ===
+									"69D616630656352E382E380741423536313043" ||
+									uni.getStorageSync("otaBP") ===
+									"69E5814C0656352E382E390741423536313043" ||
+									uni.getStorageSync("otaBP") ===
+									"69E587830656352E382E380741423536313043") {
+									try {
+										const timers = that.config.items.map(item => ({
+											index: parseInt(item.index, 10),
+											enabled: !!item.enabled,
+											startHour: parseInt(item.startHour, 10),
+											startMinute: parseInt(item.startMinute,
+												10),
+											endHour: parseInt(item.endHour, 10),
+											endMinute: parseInt(item.endMinute, 10),
+											interval: parseInt(item.interval, 10)
+										}));
+										const packet = that.buildBloodPressureTimerPacket({
+											maxTimers: parseInt(that.config.maxCount, 10),
+											timers: timers
+										});
+										that.sendData(packet);
+									} catch (e) {
+										uni.hideLoading()
+										that.sending = false;
+										// 发生异常，恢复状态
+										that.restoreStateOnFailure();
+										uni.showToast({
+											title: e.message,
+											icon: 'none'
+										});
+										uni.removeStorageSync("otaBP")
+									}
+								} else {
+									that.sending = false;
+									uni.hideLoading();
+									uni.showToast({
+										title: that.$t("请检查手表设备"),
+										icon: 'none',
+										duration: 2000
+									})
+									uni.removeStorageSync("otaBP")
+								}
+							}, 3000)
+						},
+						fail(err) {
+							that.sending = false;
+							console.log("OTA失败：e0000609200101000100", err)
+							uni.hideLoading()
+							uni.showToast({
+								title: that.$t("请检查设备连接"),
+								icon: 'none',
+								duration: 2000
+							})
+						},
+					})
+				}, 3000)
 			},
 
 			// 保存发送前的状态
@@ -685,21 +760,25 @@
 						characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
 						value: packet.buffer || packet,
 						success: (succ) => {
+							uni.hideLoading()
 							that.sending = false;
 							uni.showToast({
-								title: that.$t("成功"),
+								title: that.$t("配置成功"),
 								icon: 'none'
 							});
 							that.saveConfigToStorage();
+							uni.removeStorageSync("otaBP")
 						},
 						fail: (err) => {
+							uni.hideLoading()
 							that.sending = false;
 							// 发送失败，恢复原状态
 							that.restoreStateOnFailure();
 							uni.showToast({
-								title: that.$t("失败"),
+								title: that.$t("配置失败"),
 								icon: 'none'
 							});
+							uni.removeStorageSync("otaBP")
 						}
 					});
 					return;
@@ -713,12 +792,14 @@
 				let index = 0;
 				const sendNextPacket = () => {
 					if (index >= packets.length) {
+						uni.hideLoading()
 						that.sending = false;
 						uni.showToast({
-							title: that.$t("成功"),
+							title: that.$t("配置成功"),
 							icon: 'none'
 						});
 						that.saveConfigToStorage();
+						uni.removeStorageSync("otaBP")
 						return;
 					}
 					const currentPacket = packets[index];
@@ -732,13 +813,15 @@
 							setTimeout(sendNextPacket, 100);
 						},
 						fail: (err) => {
+							uni.hideLoading()
 							that.sending = false;
 							// 发送失败，恢复原状态
 							that.restoreStateOnFailure();
 							uni.showToast({
-								title: that.$t("失败"),
+								title: that.$t("配置失败"),
 								icon: 'none'
 							});
+							uni.removeStorageSync("otaBP")
 						}
 					});
 				};

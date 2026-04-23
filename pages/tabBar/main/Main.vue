@@ -133,7 +133,7 @@
 								</view>
 							</view>
 							<view>
-								<image class="imashtylkkk" lazy-load src="/static/image/yundomng.png"
+								<image class="imashtylkkk" lazy-load src="/static/image/yundomng2.png"
 									mode="aspectFit" />
 
 								<!-- <scroll-view class="log" scroll-y>
@@ -1150,6 +1150,12 @@
 	import PpgDataService from "../../api/servicesppg/PpgDataService.js";
 	import PpgWaveform from "../../../components/ACC_PPG/PpgWaveform.vue";
 	import BandReplyParser from "../../api/BandReplyParser.js";
+	import {
+		u16proBLE
+	} from '../../api/protocol/u16pro-ble-manager.js'
+	import {
+		U16ProProtocol
+	} from '../../api/protocol/u16pro-protocol.js'
 	// 导入天气所需要的函数
 	import {
 		getGlobalLocalWeather,
@@ -1184,7 +1190,7 @@
 			PpgWaveform,
 		},
 		computed: {
-			...mapState(['info', 'getpendinglenth', 'acktypes']),
+			...mapState(['info', 'getpendinglenth', 'acktypes', 'acktypes6']),
 			sleepTip() {
 				// 1. 先拼出 key 后缀
 				const idx = this.xueya; // 0-3
@@ -1835,6 +1841,7 @@
 				shoubiaomac: '0',
 				xueyehuilian: true,
 				characteristicsCache: new Set(), // 用于记录已获取特征值的设备ID
+				characteristicsCache6: new Set(), // 用于记录已获取特征值的设备ID
 				timsdpad: null,
 				notifyTriggered: false, // 初始化通知标志
 				devicdsdmac: [],
@@ -1894,6 +1901,7 @@
 				boolserverData: null,
 				isInitDone: false,
 				isProcessed: uni.getStorageSync("isProcessed") || false, // 标志位
+				hasWriten: false,
 			}
 		},
 		mounted() {
@@ -2049,7 +2057,7 @@
 
 		},
 		methods: {
-			...mapMutations(['getInfo', 'setacktypes', 'setbanhua']),
+			...mapMutations(['getInfo', 'setacktypes', 'setbanhua', 'setacktypes6']),
 			//日志
 			log(...a) {
 				this.logs.unshift(`[${new Date().toLocaleTimeString()}] ${a.map(v => JSON.stringify(v)).join(' ')}`);
@@ -2619,7 +2627,9 @@
 					let buffer2 = that.toArrayBuffer("e00006F3060104000101")
 					if (uni.getStorageSync("otadatares") === "6986AF9F0656352E382E350741423536313043" ||
 						uni.getStorageSync("otadatares") === "69C0EB890656352E382E370741423536313043" ||
-						uni.getStorageSync("otadatares") === "69D616630656352E382E380741423536313043"
+						uni.getStorageSync("otadatares") === "69D616630656352E382E380741423536313043" ||
+						uni.getStorageSync("otadatares") === "69E5814C0656352E382E390741423536313043" ||
+						uni.getStorageSync("otadatares") === "69E587830656352E382E380741423536313043"
 					) {
 						buffer2 = that.toArrayBuffer("e0000611030125000101") //5.8.5||5.8.7的版本情绪测量命令
 					} else {
@@ -2870,10 +2880,14 @@
 										break;
 									case 4:
 										that.getBLEDeviceCharacteristics2(device.deviceId,
-											device.services[
-												3].uuid,
+											device.services[3].uuid,
 											row.deviceSn);
 										break;
+										// case 6:
+										// 	that.getBLEDeviceCharacteristics6(device.deviceId,
+										// 		device.services[2].uuid,
+										// 		row.deviceSn);
+										// 	break;
 									default:
 										// 可以添加默认处理或日志
 										break;
@@ -3107,6 +3121,137 @@
 					}
 				})
 			},
+
+			// async getBLEDeviceCharacteristics6(deviceId, serviceId, deviceSn) {
+			// 	const that = this;
+			// 	try {
+			// 		if (that.characteristicsCache6.has(deviceId)) {
+			// 			uni.openBluetoothAdapter({
+			// 				success: () => {
+			// 					uni.onBLEConnectionStateChange(function(change) {
+			// 						if (!change.connected) {
+			// 							console.log('蓝牙设备已断开');
+			// 							if (that.characteristicsCache6.has(
+			// 									deviceId)) {
+			// 								console.log(`清除设备 ${deviceId} 的特征值缓存`);
+			// 								that.characteristicsCache6.delete(
+			// 									deviceId);
+			// 							}
+			// 							that.deviceList = [];
+			// 							that.setacktypes6(0)
+			// 							that.queryDevices()
+			// 							// 在这里处理设备断开后的逻辑，例如尝试重新连接等
+			// 						}
+			// 					});
+			// 					if (!that.hasSynced) { // 确保只执行一次
+			// 						that.hasSynced = true; // 标记已同步
+
+			// 					}
+			// 				},
+			// 				fail: (err) => {
+			// 					console.error('蓝牙适配器初始化失败', err);
+			// 					if (that.characteristicsCache6.has(deviceId)) {
+			// 						console.log(`清除设备 ${deviceId} 的特征值缓存`);
+			// 						that.characteristicsCache6.delete(deviceId);
+			// 					}
+			// 					that.deviceList = [];
+			// 					that.setacktypes6(0)
+			// 					that.queryDevices()
+			// 				}
+			// 			});
+			// 			return;
+			// 		}
+			// 		const res = await that._getBLEDeviceCharacteristics(deviceId, serviceId);
+			// 		that.characteristicsCache6.add(deviceId); // 缓存设备ID，
+			// 		for (let i = 0; i < res.characteristics.length; i++) {
+			// 			const item = res.characteristics[i];
+			// 			if (that.acktypes6 === 0) {
+			// 				// 处理可写入的特征值（只执行一次）
+			// 				if (item.properties.write && !that.hasWriten) {
+			// 					that.hasWriten = true;
+			// 					try {
+			// 						// 连接成功后同步时间
+			// 						if (that.loact === "境内") {
+			// 							await u16proBLE.setTime(new Date(), 0, deviceId) // 0=中文
+			// 						} else {
+			// 							await u16proBLE.setTime(new Date(), 1, deviceId) // 1=英文
+			// 						}
+			// 						// setTimeout(async () => {
+			// 						// 	await u16proBLE.readBattery(deviceId);
+			// 						// }, 1000);
+			// 					} catch (err) {
+			// 						console.error('同步失败:', err);
+			// 					}
+			// 				}
+			// 				that.setacktypes6(1)
+			// 			}
+
+			// 			// 蓝牙消息通知
+			// 			if (item.properties.notify) {
+			// 				try {
+			// 					await that._notifyBLECharacteristicValueChange({
+			// 						state: true,
+			// 						deviceId: deviceId,
+			// 						serviceId: serviceId,
+			// 						characteristicId: item.uuid
+			// 					});
+			// 					setTimeout(async () => {
+			// 						// await u16proBLE.readHRAutoStatus(deviceId)
+			// 						await u16proBLE._initListener();
+			// 					}, 1000);
+			// 				} catch (notifyerr) {
+			// 					console.error('notify 启用失败:', notifyerr);
+			// 				}
+			// 			}
+			// 		}
+			// 	} catch (res) {
+			// 		console.error('getBLEDeviceCharacteristics 失败:', res);
+			// 		if (Vue.prototype.$globalTimers.heartbeatInterval) {
+			// 			clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
+			// 			Vue.prototype.$globalTimers.heartbeatInterval = null;
+			// 		}
+			// 		that.disconnectAll(deviceId)
+			// 		that.setacktypes6(0)
+			// 		that.deviceList = [];
+			// 		that.getUserInfo()
+			// 		uni.getNetworkType({
+			// 			success: function(getNetworkTyperes) {
+			// 				if (getNetworkTyperes.networkType === 'none') {
+			// 					console.log('无网络连接');
+			// 					that.aaaa(uni.getStorageSync("lixianlist"))
+			// 				}
+			// 			},
+			// 			fail: function(err) {
+			// 				console.error('获取网络类型失败：', err);
+			// 			}
+			// 		});
+			// 	}
+
+			// },
+
+			// // 封装 Promise 版本的 API
+			// _getBLEDeviceCharacteristics(deviceId, serviceId) {
+			// 	return new Promise((resolve, reject) => {
+			// 		uni.getBLEDeviceCharacteristics({
+			// 			deviceId: deviceId,
+			// 			serviceId: serviceId,
+			// 			success: resolve,
+			// 			fail: reject
+			// 		});
+			// 	});
+			// },
+
+			// _notifyBLECharacteristicValueChange(options) {
+			// 	return new Promise((resolve, reject) => {
+			// 		uni.notifyBLECharacteristicValueChange({
+			// 			...options,
+			// 			success: resolve,
+			// 			fail: reject
+			// 		});
+			// 	});
+			// },
+
+
 			getBLEDeviceCharacteristics3(deviceId, serviceId, deviceSn) {
 				let that = this
 				// 检查是否已经获取过该设备的特征值
@@ -3136,8 +3281,7 @@
 										serviceId: serviceId,
 										characteristicId: that.writeuuid,
 										writeType: 'writeNoResponse',
-										value: that.toArrayBuffer(
-											'e00006eb010101000101'),
+										value: that.toArrayBuffer('e00006eb010101000101'),
 										success() {
 											that.blewatch_id = "1"
 											that.blewatch_id2 = "0"
@@ -3145,12 +3289,9 @@
 												"发送同步当天所有数据命令：e00006eb010101000101"
 											)
 											uni.getNetworkType({
-												success: function(
-													res) {
-													if (res
-														.networkType ===
-														'none'
-													) {} else {
+												success: function(res) {
+													if (res.networkType ===
+														'none') {} else {
 														setTimeout(
 															() => {
 																that.getLocalWeather(
@@ -4666,9 +4807,9 @@
 										80);
 								}
 							} else {
-								console.log(dataList.slice(18, dataList.length)
-									.toUpperCase())
+								console.log(dataList.slice(18, dataList.length).toUpperCase())
 								uni.setStorageSync("otadatares", dataList.slice(18, dataList.length).toUpperCase())
+								uni.setStorageSync("otaBP", dataList.slice(18, dataList.length).toUpperCase())
 								if (that.sleep_alertid === 1) {
 									that.resetDataState()
 									return
@@ -4688,6 +4829,7 @@
 								.formatData(that.dataBuffer).length);
 							console.log("手环信息更新", bytes)
 							uni.setStorageSync("otadatares", bytes.toUpperCase())
+							uni.setStorageSync("otaBP", bytes.toUpperCase())
 							if (that.sleep_alertid === 1) {
 								that.resetDataState()
 								return
@@ -4891,12 +5033,12 @@
 							// 执行解析
 							const bpResultdata = Healthparser.parseProtocolData(
 								protocolData);
-							console.log('2=== 心率协议解析结果 ===', that.hrResult);
+							console.log('1=== 心率协议解析结果 ===', that.hrResult);
 							that.bpResult = []
 							for (let i = 0; i < bpResultdata.data.records.length - 1; i++) {
 								that.bpResult.push(bpResultdata.data.records[i])
 							}
-							console.log("1=== 血压协议解析结果 ===", that.bpResult)
+							console.log("2=== 血压协议解析结果 ===", that.bpResult)
 							const heartTime = Covmamlueand.slice(0, 4);
 							const {
 								year,
@@ -7450,7 +7592,7 @@
 				uni.setStorageSync("xueyadatatype", "0")
 				uni.setStorageSync("xueyadata", data)
 				this.$post(this.$url_APP_IP + this.$url_jakoblife_fat_scale, data, {
-					'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
+					'content-type': 'application/json;charset=UTF-8'
 				}).then(resaa => {
 					if (resaa.code === 200) {
 						uni.removeStorageSync("xueyadatatype")
@@ -9699,6 +9841,7 @@
 							});
 							return
 						} else {
+							console.log('uniqueCode', uniqueCode)
 							uni.removeStorageSync("otadatares")
 							if (uni.getStorageSync("arguments00") !== 1) return
 							const ackConfigByteset = new Uint8Array(9);
