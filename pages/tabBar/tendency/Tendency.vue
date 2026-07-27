@@ -875,7 +875,7 @@
 			}
 			isInChinaByIP().then(isInChina => {
 				const location = isInChina ? "境内" : "境外";
-				this.newweightKG = uni.getStorageSync("danwei2") === 1 ? "lb" : "KG";
+				this.newweightKG = uni.getStorageSync("danwei2") === 1 ? this.$t("英镑") : this.$t("千克");
 				this.loact = location;
 				this.messs()
 				this.tendtimer = setInterval(res => {
@@ -1663,13 +1663,12 @@
 					endTime: endTime,
 					aggregateType: this.aggregateType
 				}
-				console.log("get_trend_data", data)
+				// console.log("【get_trend_data】", data)
 				this.$post(this.$url_APP_IP + this.$url_get_trend_data, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					console.log("get_trend_datares", res)
-
+					// console.log("【get_trend_datares】", res)
 					if (res.code == 200) {
 						// 清空数据
 						this.chartData.categories = []
@@ -1969,12 +1968,12 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				console.log("血压计统计每日平均值计算总最大最小值data", data)
+				// console.log("【血压计统计每日平均值计算总最大最小值data】", data)
 				this.$post(this.$url_APP_IP + this.$url_query_month_avg, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					console.log("血压计统计每日平均值计算总最大最小值res", res)
+					// console.log("【血压计统计每日平均值计算总最大最小值res】", res)
 					if (res.code == 200) {
 						// this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.high.min + "-" + res.data
 						// 	.high.max : (Number(res.data.high.min) * 0.133).toFixed(1) + "-" + (Number(res.data
@@ -2010,12 +2009,12 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				console.log("query_minmax", data)
+				console.log("【query_minmax】", data)
 				this.$post(this.$url_APP_IP + this.$url_query_minmax, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					console.log("query_minmaxres", res)
+					console.log("【query_minmaxres】", res)
 					if (res.code == 200) {
 						//最近
 						this.lately_Blood_pressure = this.bgaaa(res.data.last.lowPressure, res.data.last
@@ -2126,12 +2125,15 @@
 				}).then(res => {
 					if (res.code == 200) {
 						this.level_weight = res.data.level
-						this.max_weight = this.newweightKG === "KG" ? res.data.max : WeightConverter.kgToLb(res
-							.data.max)
-						this.min_weight = this.newweightKG === "KG" ? res.data.min : WeightConverter.kgToLb(res
-							.data.min)
-						this.avg_weight = this.newweightKG === "KG" ? res.data.avg : WeightConverter.kgToLb(res
-							.data.avg)
+						this.max_weight = (this.newweightKG === "KG" || this.newweightKG === "千克") ? res.data.max :
+							WeightConverter.kgToLb(res
+								.data.max)
+						this.min_weight = (this.newweightKG === "KG" || this.newweightKG === "千克") ? res.data.min :
+							WeightConverter.kgToLb(res
+								.data.min)
+						this.avg_weight = (this.newweightKG === "KG" || this.newweightKG === "千克") ? res.data.avg :
+							WeightConverter.kgToLb(res
+								.data.avg)
 					} else if (res.code == 500) {
 						this.level_weight = "--"
 						this.max_weight = "--"

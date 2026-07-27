@@ -198,6 +198,7 @@
 			//获取蓝牙设备设置图标
 			getDeviceImage(deviceName) {
 				if (deviceName === 'BPW1') return '/static/page_icon/shoubiao.png';
+				if (deviceName.includes('U19M')) return '/static/page_icon/shoubiao.png';
 				if (deviceName === 'EL2') return '/static/page_icon/lanya.png';
 				return '/static/page_icon/lanya.png';
 			},
@@ -209,10 +210,21 @@
 			},
 			//确认按钮
 			turesss() {
-				this.$refs.popup1.close();
-				uni.reLaunch({
-					url: "../../Bind/Bing_page/Bind_success?modelId=" + this.modelId
-				})
+				uni.closeBLEConnection({
+					deviceId: this.MACdeviceID,
+					success: (success) => {
+						console.log("断开连接成功", success);
+					},
+					fail: (err) => {
+						console.error("断开连接失败", err);
+					},
+				});
+				setTimeout(() => {
+					this.$refs.popup1.close();
+					uni.reLaunch({
+						url: "../../Bind/Bing_page/Bind_success?modelId=" + this.modelId
+					})
+				}, 500)
 			},
 			// 优化后的刷新方法
 			async batch_del() {
@@ -361,7 +373,7 @@
 			handleAndroidBluetoothConnection(item, isConnected) {
 				this.$refs.popup.open("bottom");
 				const TestUniPlugin = uni.requireNativePlugin("DCTestUniPlugin-TestModule");
-				let codetime = 10;
+				let codetime = 15;
 				let timer = null;
 				let done = false; // ① 只执行一次的锁
 				// 倒计时
@@ -376,8 +388,8 @@
 						clearInterval(timer);
 					}
 				}, 1000);
-				// 单次扫描
 				TestUniPlugin.startScan("", (callback) => {
+					console.log("startScan callback", callback);
 					if (done) return; // ② 已处理过就直接返回
 					const hit = isConnected ?
 						item.deviceId === callback.data.mac :
@@ -482,9 +494,9 @@
 			},
 			handleWeightData(data) {
 				if (data.weightUnit === 0) {
-					uni.setStorageSync("newweight", "KG");
+					uni.setStorageSync("newweight", this.$("千克1"));
 				} else {
-					uni.setStorageSync("newweight", "lb");
+					uni.setStorageSync("newweight", this.$("英镑"));
 				}
 				if (data.weight !== "0.00") {
 					this.jakoblife_fat_scale1(this.MACdeviceID, data, "");
@@ -493,9 +505,9 @@
 			handleIOSWeightData(data) {
 				this.arrrylist.push(data);
 				if (data.weightUnit === 0) {
-					uni.setStorageSync("newweight", "KG");
+					uni.setStorageSync("newweight", this.$("千克1"));
 				} else {
-					uni.setStorageSync("newweight", "lb");
+					uni.setStorageSync("newweight", this.$("英镑"));
 				}
 				if (data.weight !== "0.00") {
 					this.jakoblife_fat_scale1(this.MACdeviceID, data, this.arrrylist.length);
@@ -615,9 +627,9 @@
 							this.deviceMap.set(item.deviceId, item);
 							hasNewDevice = true;
 							// 新设备立即置顶（不等待节流）
-							if (this.isFirstLoad) {
-								this.bluetoothList.unshift(item);
-							}
+							// if (this.isFirstLoad) {
+							// 	this.bluetoothList.unshift(item);
+							// }
 						}
 					});
 					// 节流更新（非首次加载时）
@@ -644,7 +656,7 @@
 				};
 				const header = this.getRequestHeader();
 				this.$post(this.$url_APP_IP + this.$url_bind_device, data, header).then(res => {
-					// console.log(res)
+					console.log(res)
 					if (res.code === 200) {
 						uni.setStorageSync("appQX", "1")
 						uni.setStorageSync("deviceSn", this.sn);
@@ -778,9 +790,9 @@
 					deviceId: deviceId,
 					success: (res) => {
 						switch (res.services.length) {
-							// case 6:
-							// 	that.getBLEDeviceCharacteristics6(deviceId, res.services[2].uuid)
-							// 	break
+							case 6:
+								that.getBLEDeviceCharacteristics6(deviceId, res.services[2].uuid)
+								break
 							case 3:
 								if (res.services[1].uuid === "81EEA001-E735-49EC-8A11-7E32CAE1E14E") {
 									that.getBLEDeviceCharacteristics3(deviceId, res.services[1].uuid)
@@ -847,69 +859,27 @@
 					}
 				})
 			},
-			// async getBLEDeviceCharacteristics6(deviceId, serviceId) {
-			// 	const that = this;
-			// 	try {
-			// 		const res = await this._getBLEDeviceCharacteristics(deviceId, serviceId);
-			// 		// 只执行一次时间同步和电量读取
-			// 		let hasWriten = false;
-			// 		for (let i = 0; i < res.characteristics.length; i++) {
-			// 			const item = res.characteristics[i];
-			// 			// 处理可写入的特征值（只执行一次）
-			// 			if (item.properties.write && !hasWriten) {
-			// 				hasWriten = true;
-			// 				try {
-			// 					// 连接成功后同步时间
-			// 					await that.syncTime(deviceId);
-			// 					await u16proBLE.readBattery(deviceId);
-			// 				} catch (err) {
-			// 					console.error('同步失败:', err);
-			// 				}
-			// 			}
+			getBLEDeviceCharacteristics6(deviceId, serviceId) {
+				const that = this;
+				uni.getBLEDeviceCharacteristics({
+					deviceId: deviceId,
+					serviceId: serviceId,
+					success: (res) => {
+						for (let i = 0; res.characteristics.length > i; i++) {
+							let item = res.characteristics[i]
+							if (item.properties.write) {
+								// 连接成功后同步时间
+								that.syncTime(deviceId);
+								that.setacktypes6(0)
+							}
+						}
+					},
+					fail(res) {
+						console.error('获取蓝牙设备某个服务中所有特征值失败222', res)
+					}
+				})
+			},
 
-			// 			// 蓝牙消息通知
-			// 			if (item.properties.notify) {
-			// 				try {
-			// 					await this._notifyBLECharacteristicValueChange({
-			// 						state: true,
-			// 						deviceId: deviceId,
-			// 						serviceId: serviceId,
-			// 						characteristicId: item.uuid
-			// 					});
-			// 					// await u16proBLE._initListener();
-			// 					console.log('notify 启用成功:', item.uuid);
-			// 				} catch (notifyerr) {
-			// 					console.error('notify 启用失败:', notifyerr);
-			// 				}
-			// 			}
-			// 		}
-			// 		that.setacktypes6(0)
-			// 	} catch (res) {
-			// 		console.error('getBLEDeviceCharacteristics 失败:', res);
-			// 	}
-			// },
-
-			// // 封装 Promise 版本的 API
-			// _getBLEDeviceCharacteristics(deviceId, serviceId) {
-			// 	return new Promise((resolve, reject) => {
-			// 		uni.getBLEDeviceCharacteristics({
-			// 			deviceId: deviceId,
-			// 			serviceId: serviceId,
-			// 			success: resolve,
-			// 			fail: reject
-			// 		});
-			// 	});
-			// },
-
-			// _notifyBLECharacteristicValueChange(options) {
-			// 	return new Promise((resolve, reject) => {
-			// 		uni.notifyBLECharacteristicValueChange({
-			// 			...options,
-			// 			success: resolve,
-			// 			fail: reject
-			// 		});
-			// 	});
-			// },
 
 			//获取蓝牙外围设备的特征值
 			getBLEDeviceCharacteristics2(deviceId, serviceId) {

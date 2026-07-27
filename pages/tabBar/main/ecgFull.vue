@@ -20,7 +20,7 @@
 				ctx: null,
 				dataList: [], // 用于绘制（已放大）
 				rawList: [], // 原始数据
-				currentScale: 10, // mm/mV
+				currentScale: 500, // mm/mV
 				speed: 25, // mm/s (乐普标准速度)
 				margin: {
 					top: 15,
@@ -32,12 +32,26 @@
 				createTime: '',
 				dpr: 1,
 				sampleRate: 250,
-				pixelsPerMm: 5, // 乐普标准：1mm = 5px
-				secondsPerRow: 5, // 每5秒一组波形数据
+				pixelsPerMm: 1, // 乐普标准：1mm = 5px
+				secondsPerRow: 3, // 每行显示3秒波形
+				baselineWindowSize: 64,
+				baselineInitSamples: 8,
+				signalGridRange: 500,
+				deviceToMvScale: 1,
+				millivoltsPerSmallGrid: 1,
+				leadOnThreshold: 0.001,
+				baselineJumpThreshold: 400,
+				rawFlatLineThresholdMv: 0.05,
+				outlierThresholdMv: 500,
 				rowHeight: 180, // px (乐普标准高度)
+				rowSpacing: 45, // 波形行之间的间隔
 				scrollTop: 0,
 				totalRows: 0,
 				amplifiedGroups: [], // 记录哪些组被放大
+				consecutiveSameMinRun: 100, // 连续相同值达到该数量才做 ±1 交替偏移
+				waveColor: '#050505',
+				waveLineWidth: 1, //波形宽度
+				centerLineColor: '#10BB13',
 				visibleStartRow: 0,
 				visibleEndRow: 0,
 				maxVisibleRows: 8 // 最多同时绘制的行数
@@ -61,6 +75,7 @@
 			if (channel) {
 				channel.once('sendData', arr => {
 					if (arr && arr.length) this.processData(arr);
+					console.log(arr)
 				});
 				channel.once('startTime', str => {
 					this.currentDate = str;
@@ -69,6 +84,7 @@
 					this.createTime = str;
 				});
 			}
+
 			setTimeout(() => {
 				if (!this.dataList.length) {
 					const cache = uni.getStorageSync('sendData');
@@ -84,53 +100,221 @@
 		},
 		methods: {
 			processData(arr) {
+				if (!arr || !arr.length) return;
 				this.rawList = arr;
+				// unpackInt16ECG 输出已是 mV，与 ecg-wave 相同流程做基线去除
+				const mvData = this.processEcgDataArray(arr);
 				const pointsPerGroup = this.secondsPerRow * this.sampleRate;
-				const groups = Math.ceil(arr.length / pointsPerGroup);
+				const groups = Math.ceil(mvData.length / pointsPerGroup);
 				const processed = [];
 				this.amplifiedGroups = [];
-
+				this.rowTimeOffsets = [];
+				let displayRowIndex = 0;
 				for (let i = 0; i < groups; i++) {
 					const start = i * pointsPerGroup;
-					const end = Math.min(start + pointsPerGroup, arr.length);
-					const group = arr.slice(start, end);
-
-					// 1. 过滤超过±0.02的异常数据
+					const end = Math.min(start + pointsPerGroup, mvData.length);
+					const group = mvData.slice(start, end);
 					const filteredGroup = this.filterOutliers(group);
+					const rawGroup = arr.slice(start, end);
 
-					// 2. 将每组数据严格控制在三个大格子内
-					const normalizedGroup = this.normalizeGroupTo3Grid(filteredGroup, i + 1);
+					if (this.isFlatLineWaveform(filteredGroup, rawGroup)) {
+						continue;
+					}
 
+					displayRowIndex++;
+					const adjustedGroup = this.offsetConsecutiveSameValues(filteredGroup);
+					const normalizedGroup = this.normalizeGroupTo3Grid(adjustedGroup, displayRowIndex);
 					processed.push(...normalizedGroup);
+					this.rowTimeOffsets.push(i * this.secondsPerRow);
 				}
 				this.dataList = processed;
 				this.dpr = 1;
 				this.$nextTick(() => this.initCanvas());
 			},
 
+			createSignalState() {
+				return {
+					baselineWindow: [],
+					lastRaw: null
+				};
+			},
+
+			resetBaselineWindow(state, rawValue) {
+				state.baselineWindow = [rawValue];
+				state.lastRaw = rawValue;
+			},
+
+			shouldResetBaseline(rawValue, state) {
+				if (state.lastRaw !== null &&
+					Math.abs(rawValue - state.lastRaw) > this.baselineJumpThreshold) {
+					return true;
+				}
+				if (state.baselineWindow.length >= this.baselineInitSamples) {
+					const baseline = this.calcBaselineFromWindow(state.baselineWindow);
+					if (Math.abs(rawValue - baseline) > this.baselineJumpThreshold * 2) {
+						return true;
+					}
+				}
+				return false;
+			},
+
+			isInvalidRawSample(value) {
+				return !Number.isFinite(value) || Math.abs(value) < this.leadOnThreshold;
+			},
+
+			getMaxDisplayMv() {
+				return this.signalGridRange * this.millivoltsPerSmallGrid;
+			},
+
+			clampDisplayMv(mv) {
+				const maxMv = this.getMaxDisplayMv();
+				return Math.max(-maxMv, Math.min(maxMv, mv));
+			},
+
+			calcBaselineFromWindow(window) {
+				let sum = 0;
+				for (let i = 0; i < window.length; i++) {
+					sum += window[i];
+				}
+				return sum / window.length;
+			},
+
+			transformEcgSampleWithState(rawValue, state) {
+				if (this.isInvalidRawSample(rawValue)) {
+					return null;
+				}
+				if (this.shouldResetBaseline(rawValue, state)) {
+					this.resetBaselineWindow(state, rawValue);
+					return null;
+				}
+				state.baselineWindow.push(rawValue);
+				state.lastRaw = rawValue;
+				if (state.baselineWindow.length > this.baselineWindowSize) {
+					state.baselineWindow.shift();
+				}
+				if (state.baselineWindow.length < this.baselineInitSamples) {
+					return null;
+				}
+				const baseline = this.calcBaselineFromWindow(state.baselineWindow);
+				let ac = rawValue - baseline;
+				ac = Math.max(-this.signalGridRange, Math.min(this.signalGridRange, ac));
+				const mv = ac * this.deviceToMvScale;
+				return this.clampDisplayMv(mv);
+			},
+
+			processEcgDataArray(arr) {
+				if (!arr || arr.length === 0) return [];
+				const state = this.createSignalState();
+				const processed = [];
+				for (let i = 0; i < arr.length; i++) {
+					const value = this.transformEcgSampleWithState(arr[i], state);
+					processed.push(value === null ? 0 : value);
+				}
+				return processed;
+			},
+
+			getGroupPeakToPeak(arr) {
+				if (!arr || !arr.length) return 0;
+				let min = Infinity;
+				let max = -Infinity;
+				for (let i = 0; i < arr.length; i++) {
+					const v = arr[i];
+					if (v == null || !Number.isFinite(v)) continue;
+					if (v < min) min = v;
+					if (v > max) max = v;
+				}
+				return min === Infinity ? 0 : max - min;
+			},
+
+			getMaxConsecutiveSameCount(arr) {
+				if (!arr || arr.length < 2) return arr ? arr.length : 0;
+				let maxRun = 1;
+				let run = 1;
+				for (let i = 1; i < arr.length; i++) {
+					if (arr[i] === arr[i - 1]) {
+						run++;
+						if (run > maxRun) maxRun = run;
+					} else {
+						run = 1;
+					}
+				}
+				return maxRun;
+			},
+
+			// 连续相同值达到10个以上时，隔一个在 [-1, 1] 内随机偏移，其余数据不变
+			offsetConsecutiveSameValues(arr) {
+				if (!arr || !arr.length) return [];
+				const minRun = this.consecutiveSameMinRun;
+				const result = arr.slice();
+				let i = 0;
+				while (i < result.length) {
+					let j = i + 1;
+					while (j < result.length && result[j] === result[i]) j++;
+					if (j - i >= minRun) {
+						const baseVal = result[i];
+						for (let k = i + 1; k < j; k++) {
+							if ((k - i) % 2 === 1) {
+								result[k] = baseVal + (Math.random() * 2 - 1);
+							}
+						}
+					}
+					i = j;
+				}
+				return result;
+			},
+
+			isFlatLineWaveform(mvGroup, rawGroup) {
+				const pointsPerRow = this.secondsPerRow * this.sampleRate;
+				const longRunThreshold = Math.floor(pointsPerRow * 0.8);
+				if (this.getMaxConsecutiveSameCount(mvGroup) >= longRunThreshold) {
+					return true;
+				}
+				if (this.getMaxConsecutiveSameCount(rawGroup) >= longRunThreshold) {
+					return true;
+				}
+				if (this.getGroupPeakToPeak(mvGroup) >= this.rawFlatLineThresholdMv) {
+					return false;
+				}
+				return this.getGroupPeakToPeak(rawGroup) < this.rawFlatLineThresholdMv;
+			},
+
 			// 将每组数据严格控制在三个大格子内（±1.0 mV - 乐普标准）
 			normalizeGroupTo3Grid(arr, groupIndex) {
 				if (!arr || !arr.length) return [];
 
-				const min = Math.min(...arr);
-				const max = Math.max(...arr);
+				const valid = arr.filter(v => v != null && Number.isFinite(v));
+				if (!valid.length) return arr.map(() => null);
+
+				const min = Math.min(...valid);
+				const max = Math.max(...valid);
 				const pp = max - min;
 				const mid = (max + min) / 2;
 
 				const targetHalfRange = 1.0; // 乐普标准：三个大格子对应±1.0 mV
 				const currentHalfRange = pp / 2;
 
+				const mapValue = v => {
+					if (v == null || !Number.isFinite(v)) return null;
+					return (v - mid) / Math.max(currentHalfRange, 1e-6) * targetHalfRange;
+				};
+
 				if (pp < 0.0005) {
 					const amp = targetHalfRange / Math.max(pp, 0.0001);
-					const amplified = arr.map(v => (v - mid) * amp);
+					const amplified = arr.map(v => {
+						if (v == null || !Number.isFinite(v)) return null;
+						return (v - mid) * amp;
+					});
 
-					const amplifiedMin = Math.min(...amplified);
-					const amplifiedMax = Math.max(...amplified);
+					const amplifiedValid = amplified.filter(v => v != null && Number.isFinite(v));
+					if (!amplifiedValid.length) return amplified;
+
+					const amplifiedMin = Math.min(...amplifiedValid);
+					const amplifiedMax = Math.max(...amplifiedValid);
 					const amplifiedPp = amplifiedMax - amplifiedMin;
 
 					if (amplifiedPp > 2) {
 						const scaleFactor = 2 / amplifiedPp;
-						return amplified.map(v => v * scaleFactor);
+						return amplified.map(v => v == null ? null : v * scaleFactor);
 					}
 
 					this.amplifiedGroups.push(groupIndex);
@@ -139,35 +323,35 @@
 
 				if (currentHalfRange > targetHalfRange) {
 					const scaleFactor = targetHalfRange / currentHalfRange;
-					return arr.map(v => (v - mid) * scaleFactor);
-				} else {
-					return arr.map(v => (v - mid) / currentHalfRange * targetHalfRange);
+					return arr.map(v => {
+						if (v == null || !Number.isFinite(v)) return null;
+						return (v - mid) * scaleFactor;
+					});
 				}
+
+				return arr.map(mapValue);
 			},
 
-			// 过滤异常数据
+			// 过滤超出 ±500 mV 显示范围的尖峰
 			filterOutliers(arr) {
 				if (!arr || !arr.length) return [];
 
-				const threshold = 0.02;
-				let filteredCount = 0;
-
+				const threshold = this.outlierThresholdMv;
 				const result = [...arr];
 				for (let i = 0; i < arr.length; i++) {
-					if (Math.abs(arr[i]) > threshold) {
-						filteredCount++;
-						let validValues = [];
-						if (i > 0 && Math.abs(arr[i - 1]) <= threshold) validValues.push(arr[i - 1]);
-						if (i < arr.length - 1 && Math.abs(arr[i + 1]) <= threshold) validValues.push(arr[i + 1]);
+					if (!Number.isFinite(arr[i]) || Math.abs(arr[i]) <= threshold) continue;
 
-						if (validValues.length > 0) {
-							result[i] = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
-						} else {
-							result[i] = 0;
-						}
+					const validValues = [];
+					if (i > 0 && Number.isFinite(arr[i - 1]) && Math.abs(arr[i - 1]) <= threshold) {
+						validValues.push(arr[i - 1]);
 					}
+					if (i < arr.length - 1 && Number.isFinite(arr[i + 1]) && Math.abs(arr[i + 1]) <= threshold) {
+						validValues.push(arr[i + 1]);
+					}
+					result[i] = validValues.length ?
+						validValues.reduce((sum, val) => sum + val, 0) / validValues.length :
+						0;
 				}
-
 				return result;
 			},
 
@@ -190,17 +374,20 @@
 				}).exec();
 			},
 
+			getRowTotalHeight() {
+				return this.rowHeight + this.rowSpacing;
+			},
+
 			calculateCanvasHeight() {
 				const pointsPerRow = this.secondsPerRow * this.sampleRate;
 				this.totalRows = Math.ceil(this.dataList.length / pointsPerRow);
-				const rowSpacing = 25;
-				this.pxHeight = (this.rowHeight + rowSpacing) * this.totalRows;
+				this.pxHeight = this.getRowTotalHeight() * this.totalRows;
 			},
 
 			// 滚动事件处理
 			onScroll(event) {
 				const scrollTop = event.detail.scrollTop;
-				const rowHeight = this.rowHeight + 25;
+				const rowHeight = this.getRowTotalHeight();
 				const startRow = Math.max(0, Math.floor(scrollTop / rowHeight) - 1);
 				const endRow = Math.min(this.totalRows, startRow + this.maxVisibleRows + 2);
 
@@ -248,8 +435,8 @@
 				const bottomBound = area.y + area.h;
 
 				// 只绘制可见区域的网格
-				const visibleTop = Math.max(area.y, this.visibleStartRow * (this.rowHeight + 25));
-				const visibleBottom = Math.min(bottomBound, this.visibleEndRow * (this.rowHeight + 25));
+				const visibleTop = Math.max(area.y, this.visibleStartRow * this.getRowTotalHeight());
+				const visibleBottom = Math.min(bottomBound, this.visibleEndRow * this.getRowTotalHeight());
 
 				// 小格子 - 浅红色
 				this.ctx.strokeStyle = '#ffcccc';
@@ -284,15 +471,28 @@
 				}
 			},
 
-			// 绘制可见区域的波形 - 统一粗细
+			applyWaveStrokeStyle() {
+				this.ctx.strokeStyle = this.waveColor;
+				this.ctx.lineWidth = this.waveLineWidth;
+				this.ctx.lineCap = 'round';
+				this.ctx.lineJoin = 'round';
+			},
+
+			drawRowCenterLine(area, centerY) {
+				this.ctx.strokeStyle = this.centerLineColor;
+				this.ctx.lineWidth = 0.8;
+				this.ctx.beginPath();
+				this.ctx.moveTo(area.x, centerY);
+				this.ctx.lineTo(area.x + area.w, centerY);
+				this.ctx.stroke();
+			},
+
+			// 绘制可见区域的波形
 			drawVisibleWaveform(area) {
 				const gain = 50; // 乐普标准增益
 				const pointsPerRow = this.secondsPerRow * this.sampleRate;
-				const rowTotalHeight = this.rowHeight + 25;
+				const rowTotalHeight = this.getRowTotalHeight();
 
-				// 统一波形颜色和粗细
-				this.ctx.strokeStyle = '#000000'; // 黑色波形
-				this.ctx.lineWidth = 1; // 统一粗细
 				this.ctx.fillStyle = '#333333';
 				this.ctx.font = `14px Arial`;
 				this.ctx.textAlign = 'left';
@@ -305,8 +505,16 @@
 
 					const rowTop = area.y + row * rowTotalHeight;
 					const centerY = rowTop + this.rowHeight / 2;
-					const sec = row * this.secondsPerRow;
-					const startDate = new Date(this.createTime.replace(' ', 'T'));
+					const rowBottom = rowTop + this.rowHeight;
+					const yMin = rowTop + 22;
+					const yMax = rowBottom - 2;
+					const sec = this.rowTimeOffsets[row] != null ?
+						this.rowTimeOffsets[row] :
+						row * this.secondsPerRow;
+					const timeBase = this.createTime ?
+						new Date(this.createTime.replace(' ', 'T')) :
+						new Date();
+					const startDate = Number.isNaN(timeBase.getTime()) ? new Date() : timeBase;
 					const t = startDate.getTime() + sec * 1000;
 					const dt = new Date(t);
 					const h = String(dt.getHours()).padStart(2, '0');
@@ -328,22 +536,31 @@
 					if (this.amplifiedGroups.includes(row + 1)) {
 						this.ctx.fillStyle = '#ff0000';
 						this.ctx.font = `bold 11px Arial`;
-						this.ctx.fillText('*信号增强*', area.x + 130, rowTop + 18);
+						this.ctx.fillText('*需信号增强*', area.x + 130, rowTop + 18);
 						this.ctx.fillStyle = '#333333';
 					}
 
-					// 绘制波形 - 所有波形使用统一粗细
+					this.drawRowCenterLine(area, centerY);
+
+					// 绘制波形
+					this.applyWaveStrokeStyle();
 					this.ctx.beginPath();
+					let hasPoint = false;
 					for (let i = 0; i < rowData.length; i++) {
+						const val = rowData[i];
+						if (!Number.isFinite(val)) continue;
 						const x = area.x + (i / pointsPerRow) * area.w;
-						const y = centerY - rowData[i] * gain;
-						if (i === 0) {
+						const y = Math.max(yMin, Math.min(yMax, centerY - val * gain));
+						if (!hasPoint) {
 							this.ctx.moveTo(x, y);
+							hasPoint = true;
 						} else {
 							this.ctx.lineTo(x, y);
 						}
 					}
-					this.ctx.stroke();
+					if (hasPoint) {
+						this.ctx.stroke();
+					}
 
 					// 绘制速度标尺 - 调整位置避免超出
 					if (row === this.visibleStartRow) {
@@ -353,10 +570,10 @@
 						this.ctx.beginPath();
 						this.ctx.moveTo(scaleX, rowTop + 10);
 						this.ctx.lineTo(scaleX + 50, rowTop + 10);
-						this.ctx.stroke();
-						this.ctx.fillStyle = '#000000';
-						this.ctx.font = '11px Arial';
-						this.ctx.fillText('25mm/s', scaleX + 5, rowTop + 25);
+						// this.ctx.stroke();
+						// this.ctx.fillStyle = '#000000';
+						// this.ctx.font = '11px Arial';
+						// this.ctx.fillText('25mm/s', scaleX + 5, rowTop + 25);
 					}
 				}
 			}

@@ -158,9 +158,8 @@
 				failedBlocks: [],
 				skip4KChecks: false,
 				currentPartition: null,
-				deviceIdss: uni.getStorageSync("landeviceId"),
-				serviceIdss: uni.getStorageSync("lanserviceId"),
-				characteristicIdss: uni.getStorageSync("landcharacteristicId"),
+				deviceIdss: uni.getStorageSync("deviceIdwatch"),
+				serviceIdss: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
 			};
 		},
 

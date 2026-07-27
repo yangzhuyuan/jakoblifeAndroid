@@ -100,11 +100,17 @@
 <script>
 	// 本地存储键名
 	const STORAGE_KEY = 'blood_pressure_timer_config';
+	/** 设备验证成功后 otaBP 的合法取值 */
+	const OTA_BP_VERIFY_OK_IDS = new Set([
+		'69D616630656352E382E380741423536313043',
+		'69E5814C0656352E382E390741423536313043',
+		'69E587830656352E382E380741423536313043'
+	]);
 	export default {
 		data() {
 			return {
 				sending: false,
-				deviceId: uni.getStorageSync("landeviceId"),
+				deviceId: uni.getStorageSync("deviceIdwatch"),
 				config: {
 					maxCount: 3,
 					items: []
@@ -614,12 +620,8 @@
 							console.log("OTA：e0000609200101000100")
 							setTimeout(() => {
 								console.log("uni.getStorageSync", uni.getStorageSync("otaBP"))
-								if (uni.getStorageSync("otaBP") ===
-									"69D616630656352E382E380741423536313043" ||
-									uni.getStorageSync("otaBP") ===
-									"69E5814C0656352E382E390741423536313043" ||
-									uni.getStorageSync("otaBP") ===
-									"69E587830656352E382E380741423536313043") {
+								const otaBP = uni.getStorageSync("otaBP");
+								if (OTA_BP_VERIFY_OK_IDS.has(otaBP)) {
 									try {
 										const timers = that.config.items.map(item => ({
 											index: parseInt(item.index, 10),

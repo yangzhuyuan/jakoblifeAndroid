@@ -60,7 +60,6 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(queryDevices => {
-					console.log("hhhh ", queryDevices)
 					if (queryDevices.code === 200) {
 						for (let i = 0; queryDevices.rows.length > i; i++) {
 							if (queryDevices.rows[i].mac !== "" || queryDevices.rows[i].mac !== null) {

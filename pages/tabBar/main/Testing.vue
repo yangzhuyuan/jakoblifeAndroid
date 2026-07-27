@@ -47,9 +47,8 @@
 				setwatchtime: uni.getStorageSync("setwatchtime") !== "" ? uni.getStorageSync("setwatchtime") : this.$t(
 					'请选择'),
 				switchRaise: uni.getStorageSync("switchRaise") || false,
-				deviceId: uni.getStorageSync("landeviceId"),
-				serviceId: uni.getStorageSync("lanserviceId"),
-				characteristicId: uni.getStorageSync("landcharacteristicId"),
+				deviceId: uni.getStorageSync("deviceIdwatch"),
+				serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
 			}
 		},
 

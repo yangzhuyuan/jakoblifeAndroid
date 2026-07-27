@@ -12,8 +12,23 @@
 		ISgetUserInfoUS,
 		ISgetUserInfoChina,
 	} from './pages/api/isInChinaByIP.js'; //获取定位
+	import {
+		refreshActiveAppBaseUrl
+	} from '@/pages/api/appBaseHosts.js';
 
-	// import keepAliveManager from "@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js";
+	import keepAliveManager from "@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js";
+	import {
+		resumeQxBleScheduleIfEnabled,
+		onQxBleAppBackground,
+		onQxBleAppForeground,
+		setQxBleAppForegroundState,
+		ensureQxBleKeepAliveForBackground,
+		replanQxBleScheduleOnTimezoneChange
+	} from '@/pages/api/qxBleAlignedSchedule.js';
+	import {
+		startTimezoneWatch,
+		syncTimezoneSignature
+	} from '@/pages/api/unitls/timezone.js';
 	const systemInfo = uni.getSystemInfoSync()
 	export default {
 		data() {
@@ -25,13 +40,18 @@
 				lastTime: 0,
 				stepCount: 0,
 				notifyTriggered: false, // 初始化通知标志
+				notifySending: false, // 推送请求进行中，防止重复调用
 				intervalId: null, // 用于存储定时器的 ID
 				locationChecked: false, // 标记位
 				isMandatory: false, // 是否为强制更新
+				updateprog: false, // 是否需要更新
+
 			}
 		},
+		//当uni-app 初始化完成时触发（全局只触发一次），参数为应用启动参数，同 uni.getLaunchOptionsSync 的返回值
 		onLaunch: function() {
 			let that = this
+			uni.removeStorageSync('deviceBindingInProgress')
 			// 根据手机系统设置app语言
 			const lan = uni.getLocale();
 			let locale = "zh-CN"; // 默认语言设置为中文
@@ -50,50 +70,85 @@
 			}
 			that._i18n.locale = locale;
 			//关闭启动图
+			// #ifdef APP-PLUS
 			setTimeout(() => {
 				plus.navigator.closeSplashscreen()
 			}, 1000)
+			// #endif
+			const activeUrl = refreshActiveAppBaseUrl(Vue)
+			// console.log('【API根地址(已同步appBaseHosts)】', activeUrl)
+			syncTimezoneSignature()
+			startTimezoneWatch(() => {
+				replanQxBleScheduleOnTimezoneChange()
+			})
 		},
 
 		onHide() {
+			setQxBleAppForegroundState(false)
 			this.stopInterval();
 			this.startInterval();
 			uni.removeStorageSync("dingwei")
-			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
-			plugin.acquireWakeLock({}, res => { //强制保留app运行
-				console.log('app.vue-强制保留app运行', res)
-				// 启动保活（Android）
-				// // #ifdef APP-PLUS
-				// if (uni.getSystemInfoSync().platform === 'android') {
-				// 	keepAliveManager.init();
-				// }
-				// // #endif
-			})
-			// this.testModule()
-			// this.initPlugin()
-			// this.startService()
+			// #ifdef APP-PLUS
+			if (uni.getSystemInfoSync().platform === 'android') {
+				// this.maybeInitKeepAliveForTimers()
+
+				if (keepAliveManager.shouldKeepAliveForAppTimers()) {
+					this.maybeInitKeepAliveForTimers()
+					keepAliveManager.ensureRunningForAppTimers();
+				}
+
+				const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
+				plugin.acquireWakeLock({}, res => {
+					// console.log('【App.vue】休眠/后台保留运行', res)' '
+				})
+				// keepAliveManager.ensureRunningForAppTimers();
+				keepAliveManager.onAppHide();
+				onQxBleAppBackground();
+			}
+			// #endif
 		},
 
 		mounted() {
 			this.notifyTriggered = false; // 确保初始值为 false
 		},
 
-		onShow: async function() { // ✅ 添加 async
+		onShow() {
 			let that = this
+			setQxBleAppForegroundState(true)
 			// 配置域名
-			await that.getBaseUrl();
+			that.getBaseUrl();
 			// #ifdef APP-PLUS
+			if (uni.getSystemInfoSync().platform === 'android') {
+				keepAliveManager.resumeForegroundIfSuspended();
+				// ensureQxBleKeepAliveForBackground();
+				if (keepAliveManager.shouldKeepAliveForAppTimers()) {
+					ensureQxBleKeepAliveForBackground();
+					setTimeout(() => {
+						that.maybeInitKeepAliveForTimers()
+					}, 1500)
+				}
+				onQxBleAppForeground();
+				// setTimeout(() => {
+				// 	that.maybeInitKeepAliveForTimers()
+				// }, 1500)
+			}
 			that.openLocationServiceAndroid();
+			keepAliveManager.onAppShow();
+			setTimeout(() => {
+				that.tryResumeQxBleSchedule()
+			}, 2600)
 			// #endif
-			if (uni.getStorageSync("dingwei") === 1) {
-				let timesder = setInterval(res => {
-					if (uni.getStorageSync("token")) {
-						clearInterval(timesder)
+			let timesder = setInterval(() => {
+				if (uni.getStorageSync("token")) {
+					clearInterval(timesder)
+					if (uni.getStorageSync("dingwei") === 1) {
 						checkNotificationPermissions();
 					}
-				}, 2000)
-			}
+				}
+			}, 2000)
+			// #ifdef APP-PLUS
 			plus.runtime.setBadgeNumber(0);
+			// #endif
 			that.stopInterval();
 			that.startInterval();
 			that.setTabBarItems();
@@ -110,30 +165,144 @@
 
 		methods: {
 			...mapMutations(['setUniverifyErrorMsg', 'setUniverifyLogin', 'setlanyaId']),
-			// ============ 异步获取基础 URL ============
-			async getBaseUrl() {
+			/** 登录后恢复情绪定时测量（不依赖 dingwei 定位标记） */
+			tryResumeQxBleSchedule() {
+				if (!uni.getStorageSync('token')) return
+				resumeQxBleScheduleIfEnabled().catch((e) => {
+					console.warn('resumeQxBleScheduleIfEnabled', e)
+				})
+			},
+			/** Android 保活初始化（Monitoring 相关开关任一开启时） */
+			maybeInitKeepAliveForTimers() {
+				// #ifdef APP-PLUS
+				if (uni.getSystemInfoSync().platform !== 'android') return
+				keepAliveManager.init()
+				if (!this._keepAliveTimerLifecycleBound) {
+					this._keepAliveTimerLifecycleBound = true
+					setTimeout(() => {
+						keepAliveManager.startLocationKeepAliveSilently({
+							interval: 30000
+						})
+					}, 12000)
+				}
+				// #endif
+			},
+
+
+			// 测试定位功能
+			async testLocation() {
+				console.log('开始测试定位...');
+
+				// 显示加载中
+				// uni.showLoading({
+				// 	title: '测试定位中...'
+				// });
+
+				try {
+					// 调用测试方法
+					const result = await keepAliveManager.testLocation();
+					console.log('测试结果:', result);
+
+					uni.hideLoading();
+
+					// 显示测试结果
+					let content = `权限状态: ${result.permission.granted ? '已授予 ✅' : '未授予 ❌'}\n`;
+					content += `定位保活: ${result.status.enabled ? '已启动 ✅' : '未启动 ❌'}\n`;
+					content += `有位置信息: ${result.status.hasLocation ? '是 ✅' : '否 ❌'}\n`;
+					if (result.lastLocation.success && result.lastLocation.location) {
+						content +=
+							`最后位置: ${result.lastLocation.location.latitude}, ${result.lastLocation.location.longitude}\n`;
+					}
+					content += `启动结果: ${result.startResult.success ? '成功 ✅' : '失败 ❌'}`;
+
+					// uni.showModal({
+					// 	title: '定位测试结果',
+					// 	content: content,
+					// 	confirmText: '知道了'
+					// });
+				} catch (error) {
+					uni.hideLoading();
+					console.error('测试失败:', error);
+					uni.showToast({
+						title: '测试失败: ' + (error.message || '未知错误'),
+						icon: 'none'
+					});
+				}
+			},
+
+			// 手动启动定位保活（带失败提示）
+			async startLocationKeepAlive() {
+				await keepAliveManager.manualStartLocationKeepAlive({
+					silent: false
+				});
+			},
+
+			// 手动获取位置
+			async getLocation() {
+				// uni.showLoading({
+				// 	title: '获取位置中...'
+				// });
+				try {
+					const result = await keepAliveManager.getCurrentLocation(8000);
+					uni.hideLoading();
+
+					// uni.showModal({
+					// 	title: '当前位置',
+					// 	content: `纬度: ${result.location.latitude}\n经度: ${result.location.longitude}\n精度: ${result.location.accuracy}m`,
+					// 	confirmText: '确定'
+					// });
+				} catch (error) {
+					uni.hideLoading();
+					uni.showToast({
+						title: error.message || '获取位置失败',
+						icon: 'none'
+					});
+				}
+			},
+
+			// 查看保活状态
+			showStatus() {
+				const status = keepAliveManager.getStatus();
+				const locationStatus = keepAliveManager.getLocationKeepAliveStatus();
+
+				let content = `保活运行: ${status.isRunning ? '是 ✅' : '否 ❌'}\n`;
+				content += `定位保活: ${locationStatus.enabled ? '已启动 ✅' : '未启动 ❌'}\n`;
+				content += `定位权限: ${locationStatus.permissionGranted ? '已授予 ✅' : '未授予 ❌'}\n`;
+				content += `有位置: ${locationStatus.hasLocation ? '是 ✅' : '否 ❌'}\n`;
+				content += `白名单: ${status.whiteListStatus.isInWhiteList ? '已加入 ✅' : '未加入 ❌'}\n`;
+				content += `通知权限: ${status.notificationEnabled ? '已开启 ✅' : '未开启 ❌'}`;
+
+				if (locationStatus.lastLocation) {
+					content +=
+						`\n\n最后位置:\n经度: ${locationStatus.lastLocation.longitude}\n纬度: ${locationStatus.lastLocation.latitude}`;
+				}
+
+				uni.showModal({
+					title: '保活状态',
+					content: content,
+					confirmText: '刷新',
+					success: (res) => {
+						if (res.confirm) {
+							this.showStatus();
+						}
+					}
+				});
+			},
+
+
+
+			/**
+			 * 获取基础URL地址
+			 * 优先使用本地存储的URL，否则使用默认国内地址
+			 */
+			getBaseUrl() {
+				// 执行版本检查和登出验证
 				this.checkVersionAndLogout()
-				// const ISUserInfoChina = await ISgetUserInfoChina(this.$APP_IP1);
-				// const isUserInfoUS = await ISgetUserInfoUS(this.$APP_IP2);
-				// console.log('ISUserInfoChina', ISUserInfoChina);
-				// console.log('isUserInfoUS', isUserInfoUS);
-				// if (!isUserInfoUS && !ISUserInfoChina) {
-				// 	const isInChina = await isInChinaByIP();
-				// 	console.log('IP定位结果:', isInChina ? '中国' : '国外');
-				// 	if (isInChina) {
-				Vue.prototype.$url_APP_IP = this.$APP_IP1;
-				// 	} else {
-				// 		Vue.prototype.$url_APP_IP = this.$APP_IP2;
-				// 	}
-				// } else if (isUserInfoUS && !ISUserInfoChina) {
-				// 	Vue.prototype.$url_APP_IP = this.$APP_IP2;
-				// } else if (!isUserInfoUS && ISUserInfoChina) {
-				// 	Vue.prototype.$url_APP_IP = this.$APP_IP1;
-				// } else if (isUserInfoUS && ISUserInfoChina) {
-				// 	Vue.prototype.$url_APP_IP = this.$APP_IP2;
-				// }
-				console.log("国内baseUrl", this.$url_APP_IP);
-				this.check_new_version("com.work.jakob", "0") //强制更新
+				refreshActiveAppBaseUrl(Vue)
+				// 如果正在更新中，直接返回，避免重复检查
+				if (this.updateprog) return
+				// 检查新版本（强制更新）
+				this.check_new_version("com.work.jakob", "0")
 			},
 
 			// #ifdef APP-PLUS
@@ -173,10 +342,13 @@
 			// 发送推送消息
 			sendPushMessage(pushClientId) {
 				const now = new Date(); // 获取当前时间
+				const year = now.getFullYear();
+				const month = String(now.getMonth() + 1).padStart(2, '0');
+				const day = String(now.getDate()).padStart(2, '0');
 				const houres = now.getHours() < 10 ? "0" + now.getHours() : now.getHours()
 				const Minutes = now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes()
 				const Seconds = now.getSeconds() < 10 ? "0" + now.getSeconds() : now.getSeconds()
-				const timestamp = now.toLocaleDateString() + " " + houres + ":" + Minutes + ":" + Seconds;
+				const timestamp = year + "/" + month + "/" + day + " " + houres + ":" + Minutes + ":" + Seconds;
 				console.log("pushClientId", pushClientId)
 				uniCloud.callFunction({
 						name: "testUniPush", // 云函数名称
@@ -189,10 +361,10 @@
 						}
 					})
 					.then((dataRes) => {
-						this.notifyTriggered = false
+						console.log("推送发送成功:", dataRes);
 					})
 					.catch((err) => {
-						this.notifyTriggered = false
+						console.log("推送发送成功:", err);
 						uni.showToast({
 							title: err.errMsg,
 							icon: "none"
@@ -222,6 +394,7 @@
 					if (this.compareVersion(currentVersion, lastVersion) !== 0) {
 						// 清除所有登录态（token、用户信息等）
 						uni.removeStorageSync("token")
+						uni.removeStorageSync("URL_APP_IP")
 						// 保存新版本号
 						uni.setStorageSync('last_app_version', currentVersion)
 					}
@@ -237,11 +410,11 @@
 					type,
 					versionName: systemInfo.appVersion
 				}
-				console.log("检查新版本传参" + that.$url_APP_IP, data)
+				// console.log("检查新版本传参" + that.$url_APP_IP, data)
 				that.$post(`${that.$url_APP_IP}/prod-api/system/version/check_new_version`, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((res) => {
-					console.log("版本检查结果", res)
+					// console.log("版本检查结果", res)
 					if (res.code === 4003) {
 						//已经是最新版本
 						return;
@@ -382,6 +555,9 @@
 							icon: 'none',
 							duration: 2000
 						});
+						this.updateprog = false;
+					} else {
+						this.updateprog = true;
 					}
 				});
 			},
@@ -582,36 +758,6 @@
 			},
 
 
-			// // 第一步：测试模块是否能加载
-			// testModule() {
-			// 	// #ifdef APP-PLUS
-			// 	const module = uni.requireNativePlugin('KeepAliveModule');
-			// 	console.log('模块对象:', module ? '模块加载成功' : '模块加载失败');
-			// 	// #endif
-			// },
-
-			// // 第二步：初始化
-			// async initPlugin() {
-			// 	try {
-			// 		const res = await KeepAlive.init();
-			// 		console.log('初始化结果:', res);
-			// 	} catch (e) {
-			// 		console.error('初始化失败:', e);
-			// 	}
-			// },
-
-			// // 第三步：启动服务
-			// async startService() {
-			// 	try {
-			// 		const res = await KeepAlive.startService({
-			// 			title: 'JakobLife',
-			// 			content: this.$t("正在运行")
-			// 		});
-			// 		console.log('正在运行');
-			// 	} catch (e) {
-			// 		console.error('启动失败:', e);
-			// 	}
-			// },
 
 
 
@@ -640,6 +786,7 @@
 						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
 					},
 					success(pending) {
+						// console.log("receiver_list", pending.data)
 						if (pending.data.code === 200 && pending.data.data && pending.data.data
 							.length > 0) {
 							let pendingDevices = pending.data.data;
@@ -1047,20 +1194,27 @@
 					item[alarmKey] = "";
 				}
 			},
-			// 封装检查和通知的逻辑
+			// 封装检查和通知的逻辑（同一轮告警只推送一次）
 			checkAndNotify() {
-				let that = this
-				if (that.notifyTriggered) {
-					uni.getPushClientId({
-						success(res) {
-							that.sendPushMessage(res.cid);
-							that.notifyTriggered = false;
-						},
-						fail(err) {
-							that.notifyTriggered = false;
-						}
-					});
+				const that = this
+				if (!that.notifyTriggered || that.notifySending || uni.getStorageSync('isProcessed')) {
+					return
 				}
+				that.notifySending = true
+				that.notifyTriggered = false
+				uni.getPushClientId({
+					success(res) {
+						uni.setStorageSync('isProcessed', true)
+						that.sendPushMessage(res.cid)
+						setTimeout(() => {
+							uni.removeStorageSync('isProcessed')
+						}, 5000)
+						that.notifySending = false
+					},
+					fail() {
+						that.notifySending = false
+					}
+				})
 			},
 			// 获取当前星期几
 			week(e) {

@@ -462,14 +462,18 @@
 			"style": {
 				"navigationBarTitleText": "编辑数据卡片",
 				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
+				"navigationBarTextStyle": "black",
+				"animationType": "zoom-fade-out",
+				"animationDuration": 200
 			}
 		}, {
 			"path": "pages/tabBar/main/card1",
 			"style": {
 				"navigationBarTitleText": "编辑数据卡片",
 				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
+				"navigationBarTextStyle": "black",
+				"animationType": "zoom-fade-out",
+				"animationDuration": 200
 			}
 		},
 		{
@@ -862,6 +866,80 @@
 			"path": "pages/tabBar/main/globalweather/day_monitoring_report_7",
 			"style": {
 				"navigationBarTitleText": "7天动态监测报告",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/Pulsediagnosis",
+			"style": {
+				"navigationBarTitleText": "脉诊健康管理",
+				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": false,
+				"backgroundColor": "#667eea"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/Monitoring",
+			"style": {
+				"navigationBarTitleText": "定时监测",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/quick_index",
+			"style": {
+				"navigationBarTitleText": "定时测量",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/globalweather/custom_index",
+			"style": {
+				"navigationBarTitleText": "定时测量",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/sleep_report/Reports_Alerts_new",
+			"style": {
+				"navigationBarTitleText": "定时测量",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/ecgFull",
+			"style": {
+				"navigationBarTitleText": "ECG",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/report_all_type/report_all_type",
+			"style": {
+				"navigationBarTitleText": "报告",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/report_all_type/Smooth_BP_Data",
+			"style": {
+				"navigationBarTitleText": "无感血压数据",
+				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/ECGdemo/ECGdemo",
+			"style": {
+				"navigationBarTitleText": "ECG",
 				"navigationBarBackgroundColor": "#F5F5F5",
 				"navigationBarTextStyle": "black"
 			}

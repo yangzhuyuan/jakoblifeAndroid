@@ -9,7 +9,7 @@
 		<view style="display: flex; flex-direction: row;">
 			<view class="linear_1">
 				<image class="img_bg" src="../../static/icons/18.png" />
-				<input type="text" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+				<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="6"
 					v-model="yanzhengma" />
 			</view>
 			<button class="linear_btn" style="background: #3298F7; color: white;"
@@ -70,7 +70,11 @@
 				yzm: '',
 			}
 		},
-
+		onBackPress(options) {
+			if (options.from === 'backbutton') {
+				uni.removeStorageSync("URL_APP_IP")
+			}
+		},
 		onLoad(res) {
 			//标题名称
 			uni.setNavigationBarTitle({
@@ -231,7 +235,7 @@
 								})
 								return
 							} else {
-								that.codetime = 60
+								that.codetime = 120
 								that.msg = that.$t('s后可重发')
 								let timer = setInterval(() => {
 									that.codetime-- + that.msg;

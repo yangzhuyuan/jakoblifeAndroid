@@ -29,12 +29,12 @@
 					{
 						title: '身高',
 						key: 'danwei1',
-						array: ['inch', 'cm']
+						array: [this.$t("英寸"), this.$t("厘米")]
 					},
 					{
 						title: '体重',
 						key: 'danwei2',
-						array: ['kg', 'lb']
+						array: [this.$t("千克"), this.$t("英镑")]
 					}
 				],
 				unitMap: {}, // 保存单位值
@@ -71,7 +71,7 @@
 					Authorization: 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/json'
 				}).then(res => {
-					// console.log("获取单位配置", res)
+					console.log("获取单位配置", res)
 					if (res.code === 200 && res.rows.length > 0 && res.rows[0].data) {
 						const parsed = this.robustParseData(res.rows[0].data);
 						if (!parsed.length) return;
@@ -97,11 +97,30 @@
 							const value = unitData[keyMap[key]];
 							const row = this.rows.find(r => r.key === key);
 							if (!row) return;
-							const idx = row.array.indexOf(value);
+
+							console.log(key, value);
+							console.log(row.array);
+
+							// 单位中英文映射
+							const unitAlias = {
+								'cm': '厘米',
+								'inch': '英寸',
+								'kg': '千克',
+								'lb': '英镑'
+							};
+
+							// 尝试查找原始值，如果找不到且存在别名，则用别名查找
+							let idx = row.array.indexOf(value);
+							if (idx === -1 && unitAlias[value]) {
+								idx = row.array.indexOf(unitAlias[value]);
+							}
+
+							console.log(idx);
+
 							const safe = idx !== -1 ? idx : 0;
 							this.$set(this.unitMap, key, value);
 							this.$set(this.indexMap, key, safe);
-							uni.setStorageSync(key, safe); // 直接存索引
+							uni.setStorageSync(key, safe);
 						});
 					}
 				});
@@ -123,7 +142,7 @@
 					dataType: 'Unitdata',
 					data: this.formatDatacard([postData])
 				}
-				// console.log("editData", editData)
+				console.log("editData", editData)
 				this.$post(this.$url_APP_IP + '/prod-api/device/data/editData', editData, {
 					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/json'

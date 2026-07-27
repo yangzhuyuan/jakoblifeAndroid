@@ -1,10 +1,11 @@
 <template>
-	<view style=" background: #EFEFF4;height: 100vh;">
+	<view style="background: #EFEFF4; height: 100vh;">
 		<view class="title_bg">
 			<view>{{$t('您好')}},</view>
 			<view>{{$t('欢迎来到JakobLife')}}</view>
 		</view>
-		<view style="display: flex; align-items: left;flex-direction: column;">
+		<view style="display: flex; align-items: left; flex-direction: column;">
+			<!-- 密码登录模块 -->
 			<view v-if="mm_yzm">
 				<view class="linear">
 					<image class="img_style" src="../../static/icons/15.png" />
@@ -13,41 +14,44 @@
 				</view>
 				<view class="linear">
 					<image class="img_style" src="../../static/icons/16.png" />
-					<input type="text" :password=isPassword :placeholder="$t('请输入密码')"
-						style="width: 55vw; margin-left: 10px;margin-right: 10px;" v-model="passwrod" />
+					<input type="text" :password="isPassword" :placeholder="$t('请输入密码')"
+						style="width: 55vw; margin-left: 10px; margin-right: 10px;" v-model="passwrod" />
 					<image class="img_style" :src="isPassword ? urlicon1 : urlicon2" @tap="img_mima" />
 				</view>
-				<view style="margin-top: 20px; display: flex;flex-direction:row;justify-content: space-between;">
+				<view style="margin-top: 20px; display: flex; flex-direction: row; justify-content: space-between;">
 					<view class="text_bg" @tap="Forget">{{$t('忘记密码')}}</view>
 					<view class="text_bg_1" @click="duanxiuan">{{$t('验证码登录')}}</view>
 				</view>
 			</view>
+
+			<!-- 验证码登录模块 -->
 			<view v-else>
 				<view class="linear">
 					<image class="img_style" src="../../static/icons/15.png" />
 					<!-- 	<aure-country-picker :modelValue="dialCode" @update:modelValue="val => dialCode = val"
 						v-model="dialCode" :defaultCountryCode="defaultCode" :title="$t('选择国家地区')"
 						:cancelText="$t('取消')" height="70%" :searchPlaceholder="$t('搜索国家或地区')" /> -->
-					<input type="text" :placeholder="$t('请输入绑定的手机号或绑定的邮箱')" style="width: 50vw;margin-left: 10px;"
+					<input type="text" :placeholder="$t('请输入绑定的手机号或绑定的邮箱')" style="width: 50vw; margin-left: 10px;"
 						v-model="unername" />
 				</view>
-				<view style="display: flex; flex-direction: row;align-items: center;">
+				<view style="display: flex; flex-direction: row; align-items: center;">
 					<view class="linear_1">
 						<image class="img_style" src="../../static/icons/18.png" />
-						<input type="text" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+						<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="6"
 							v-model="yanzhengma" />
 					</view>
-					<button class="linear_btn" @tap="huoqu">{{yanzheng?$t('获取验证码'): codetime+msg}}</button>
+					<button class="linear_btn" @tap="huoqu">{{yanzheng ? $t('获取验证码') : codetime + msg}}</button>
 				</view>
-				<view style="margin-top: 20px; display: flex;flex-direction:row; justify-content: space-between;">
+				<view style="margin-top: 20px; display: flex; flex-direction: row; justify-content: space-between;">
 					<view class="text_bg"></view>
 					<view class="text_bg_2" @click="MMDL()">{{$t('密码登录')}}</view>
 				</view>
 			</view>
+
+			<!-- 服务协议勾选 -->
 			<view class="linear_ck">
 				<checkbox class="round" color="#ffffff" activeBorderColor="#D2D2D2" activeBackgroundColor="#3298F7"
-					:checked="cb" @click="checked">
-				</checkbox>
+					:checked="cb" @click="checked" />
 				<view class="yinisstyle">
 					<view class="yinisstyle_1">{{$t('已阅读并同意')}}</view>
 					<view class="yinisstyle_2" @tap="Service_Agreement">
@@ -55,56 +59,58 @@
 					</view>
 				</view>
 			</view>
-			<button class="button_back" plain="true" :style="getback(unername,passwrod,yanzhengma,cb)"
+
+			<!-- 登录按钮 -->
+			<button class="button_back" plain="true" :style="getback(unername, passwrod, yanzhengma, cb)"
 				@tap="login_submit1">{{$t('登录')}}</button>
+
+			<!-- 注册入口 -->
 			<view class="zhucestyle">
-				<view class="zhucestyle_1">{{$t('还没有JakobLife账号')}}
-				</view>
-				<view class="zhucestyle_2" @click="login_land()">
-					{{$t('新用户去注册')}}
-				</view>
+				<view class="zhucestyle_1">{{$t('还没有JakobLife账号')}}</view>
+				<view class="zhucestyle_2" @click="login_land()">{{$t('新用户去注册')}}</view>
 			</view>
+
+			<!-- 其他登录方式 -->
 			<view class="otherstyle">
 				<view class="otherstyle_1">
 					<view class="otherstyle_2"></view>
 					<view style="font-size: 12px; color: grey;">{{$t("其它登录方式")}}</view>
 					<view class="otherstyle_3"></view>
 				</view>
-				<view v-show="otherloginssd" style="display:flex;justify-content: center;margin-top: 40px;">
+				<view v-show="otherloginssd" style="display: flex; justify-content: center; margin-top: 40px;">
 					<image v-show="otherloginssd" @click="other_sbuitm('weixin')" class="img_dsf1"
 						src="../../static/weixin.png" />
 					<image v-show="otherloginssd" @click="other_sbuitm('qq')" class="img_dsf"
 						src="../../static/qq.png" />
-					<!-- <image v-show="!xinghao" @click="other_sbuitm('apple')" class="img_dsf"
-						src="../../static/pingguodenglu.png" />
-					<image v-show="!otherloginssd" @click="other_sbuitm('google')" class="img_dsf"
-						src="../../static/guge.png" /> -->
+					<!-- <image v-show="!xinghao" @click="other_sbuitm('apple')" class="img_dsf" src="../../static/pingguodenglu.png" />
+					<image v-show="!otherloginssd" @click="other_sbuitm('google')" class="img_dsf" src="../../static/guge.png" /> -->
 				</view>
 			</view>
 		</view>
+
+		<!-- 图形验证码弹窗 -->
 		<view class="container_bg" v-show="tanchuang">
 			<view class="modalss">
 				<view class="tanchuangstyle">
-					<view class="tanchuangstyle_1">{{$t('请填写图形验证码')}}
-					</view>
+					<view class="tanchuangstyle_1">{{$t('请填写图形验证码')}}</view>
 					<view class="modal-content_bg">
 						<input class="edit_bg" type="number" :placeholder="$t('请输入图形验证码')" v-model="yzm" />
 						<view style="margin-top: 8px;">
-							<image :src="yangzhengma_img" style="width: 105px; height: 44px;"></image>
-							<view style="text-align: center; color: dodgerblue;margin-top: 5px;" @click="clickCode">
+							<image :src="yangzhengma_img" style="width: 105px; height: 44px;" />
+							<view style="text-align: center; color: dodgerblue; margin-top: 5px;" @click="clickCode">
 								{{$t('看不清')}}
 							</view>
 						</view>
 					</view>
-					<view style=" display: flex; flex-direction: row; border-top: 1px solid gainsboro;">
-						<view class="text_yzm" @click="closeModal_cancle">{{$t('取消')}}
-						</view>
+					<view style="display: flex; flex-direction: row; border-top: 1px solid gainsboro;">
+						<view class="text_yzm" @click="closeModal_cancle">{{$t('取消')}}</view>
 						<view style="background: gainsboro; width: 1px;"></view>
 						<view class="text_yzm_1" @click="closeModal">{{$t('确定')}}</view>
 					</view>
 				</view>
 			</view>
 		</view>
+
 		<GlobalPopup ref="globalPopup" />
 	</view>
 </template>
@@ -124,10 +130,17 @@
 	import {
 		isInChinaByIP1
 	} from '../api/isInChinaByIP1.js';
+	import Vue from 'vue';
+	import {
+		refreshActiveAppBaseUrl,
+		setActiveAppRegion
+	} from '@/pages/api/appBaseHosts.js';
+
 	export default {
 		computed: {
 			...mapState(['uuid'])
 		},
+
 		data() {
 			return {
 				dialCode: '', // 自动回显
@@ -151,6 +164,7 @@
 				otherloginssd: true
 			}
 		},
+
 		//禁止手机物理按键返回上一层
 		onBackPress(options) {
 			if (options.from === 'backbutton') {
@@ -158,6 +172,7 @@
 			}
 			return false
 		},
+
 		onLoad() {
 			// 监听全局事件
 			uni.$on('SHOW_GLOBAL_POPUP', opts => {
@@ -168,13 +183,16 @@
 				this.$popup(opts)
 			})
 		},
+
 		onUnload() {
 			// 页面销毁时记得解绑
 			uni.$off('APP_WANT_POPUP')
 			uni.$off('SHOW_GLOBAL_POPUP')
 		},
+
 		onShow() {
 			let that = this;
+			refreshActiveAppBaseUrl(Vue)
 			uni.removeStorageSync("token")
 			isInChinaByIP().then(isInChina => {
 				if (isInChina) {
@@ -240,12 +258,12 @@
 					}
 				}
 			});
-
 		},
-
 
 		methods: {
 			...mapMutations(['getImgID', 'other_sign_access_token', 'other_sign_openid', 'other_sign_other_types']),
+
+			// 获取按钮样式
 			getback(name, mm, yzm, cb) {
 				if (this.mm_yzm == true) {
 					return {
@@ -253,28 +271,32 @@
 					}
 				} else {
 					return {
-						background: name === "" || yzm == "" || cb == false ? "#DBDBDB" : "#3298F7"
+						background: name === "" || yzm === "" || cb == false ? "#DBDBDB" : "#3298F7"
 					}
 				}
 			},
+
 			//服务协议
 			Service_Agreement() {
 				uni.navigateTo({
 					url: "../service/Service_Agreement?CB=" + this.cb
 				})
 			},
+
 			//忘记密码
 			Forget() {
 				uni.navigateTo({
 					url: '/pages/login/Forget_password'
 				})
 			},
+
 			//注册
 			login_land() {
 				uni.navigateTo({
 					url: "/pages/login/true_register"
 				})
 			},
+
 			//点击切换验证码图片
 			clickCode() {
 				this.captchaImage()
@@ -407,7 +429,7 @@
 							})
 							return
 						} else {
-							this.codetime = 60
+							this.codetime = 120
 							this.msg = this.$t('s后可重发')
 							let timer = setInterval(() => {
 								this.codetime-- + this.msg;
@@ -428,6 +450,7 @@
 					uni.hideLoading();
 				})
 			},
+
 			//发送邮箱登录验证码
 			send_login_code1() {
 				const data = {
@@ -446,7 +469,7 @@
 							})
 							return
 						} else {
-							this.codetime = 60
+							this.codetime = 120
 							this.msg = this.$t('s后可重发')
 							let timer = setInterval(() => {
 								this.codetime-- + this.msg;
@@ -467,11 +490,13 @@
 					uni.hideLoading();
 				})
 			},
+
 			//判断是否是邮箱
 			validateEmail(email) {
 				const reg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 				return reg.test(email);
 			},
+
 			//登录
 			async login_submit1() {
 				let that = this;
@@ -603,6 +628,7 @@
 					}
 				}
 			},
+
 			async migrationtrigger(userids, IStokenChina2, username, type, password) {
 				const that = this;
 				const data = {
@@ -623,25 +649,24 @@
 						console.log("迁移触发成功");
 						try {
 							// 获取美国区用户信息
-							const isUserInfoUS = await ISgetUserInfoUS2(username, type, password, that
-								.$APP_IP2);
+							const isUserInfoUS = await ISgetUserInfoUS2(username, type, password, that.$APP_IP2);
 							console.log("isUserInfoUS", isUserInfoUS);
 							const IStokenUS2 = uni.getStorageSync("IStokenUS2");
 							console.log("IStokenUS2", IStokenUS2);
 							// 切换到 US 环境
 							uni.setStorageSync("token", IStokenUS2);
-							Vue.prototype.$url_APP_IP = that.$APP_IP2;
+							setActiveAppRegion('us', Vue);
 						} catch (userInfoError) {
 							console.error("获取美国区用户信息失败:", userInfoError);
 							// 获取失败时回退到中国区
 							uni.setStorageSync("token", IStokenChina2);
-							Vue.prototype.$url_APP_IP = that.$APP_IP1;
+							setActiveAppRegion('cn', Vue);
 						}
 					} else {
 						console.log("迁移触发失败，code:", migrationtriggerres.code);
 						// 保持中国区
 						uni.setStorageSync("token", IStokenChina2);
-						Vue.prototype.$url_APP_IP = that.$APP_IP1;
+						setActiveAppRegion('cn', Vue);
 					}
 				} catch (error) {
 					console.error("迁移触发请求失败:", error);
@@ -650,25 +675,24 @@
 						setTimeout(async () => {
 							try {
 								// 获取美国区用户信息
-								const isUserInfoUS = await ISgetUserInfoUS2(username, type,
-									password, that
+								const isUserInfoUS = await ISgetUserInfoUS2(username, type, password, that
 									.$APP_IP2);
 								console.log("isUserInfoUS", isUserInfoUS);
 								const IStokenUS2 = uni.getStorageSync("IStokenUS2");
 								console.log("IStokenUS2", IStokenUS2);
 								// 切换到 US 环境
 								uni.setStorageSync("token", IStokenUS2);
-								Vue.prototype.$url_APP_IP = that.$APP_IP2;
+								setActiveAppRegion('us', Vue);
 							} catch (error) {
 								console.error("切换到US环境失败:", error);
 								uni.setStorageSync("token", IStokenChina2);
-								Vue.prototype.$url_APP_IP = that.$APP_IP1;
+								setActiveAppRegion('cn', Vue);
 							}
 						}, 60000 * 15); // 15分钟后执行
 					}
 					// 网络错误时保持中国区
 					uni.setStorageSync("token", IStokenChina2);
-					Vue.prototype.$url_APP_IP = that.$APP_IP1;
+					setActiveAppRegion('cn', Vue);
 				}
 			},
 
@@ -683,13 +707,14 @@
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					uni.hideLoading();
-					console.log("登录", res)
 					switch (res.code) {
 						case 200:
 							uni.showToast({
 								title: this.$t("成功"),
 								icon: 'none'
 							})
+							uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
+							console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
 							uni.setStorageSync("token", res.token)
 							uni.setStorageSync("unername", this.unername)
 							setTimeout(function() {
@@ -740,6 +765,8 @@
 					uni.hideLoading()
 					switch (res.code) {
 						case 200:
+							uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
+							console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
 							uni.setStorageSync("token", res.token)
 							uni.setStorageSync("unername", this.unername)
 							uni.showToast({
@@ -787,6 +814,8 @@
 				}).then(res => {
 					uni.hideLoading()
 					if (res.code == 200) {
+						uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
+						console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
 						uni.setStorageSync("token", res.token)
 						uni.setStorageSync("unername", this.unername)
 						uni.showToast({
@@ -842,10 +871,12 @@
 			duanxiuan() {
 				this.mm_yzm = false
 			},
+
 			//点击切断到密码登录
 			MMDL() {
 				this.mm_yzm = true
 			},
+
 			//一键登录
 			fastLoginFn() {
 				console.log("手机号一键登录")
@@ -912,8 +943,7 @@
 						uniCloud.callFunction({
 								name: "getPhoneNumber", // 云函数名称
 								data: {
-									access_token: res.authResult
-										.access_token, // 客户端一键登录接口返回的access_token
+									access_token: res.authResult.access_token, // 客户端一键登录接口返回的access_token
 									openid: res.authResult.openid // 客户端一键登录接口返回的openid
 								}
 							})
@@ -945,6 +975,7 @@
 					}
 				})
 			},
+
 			//第三方登录
 			other_sbuitm(type) {
 				let that = this
@@ -960,14 +991,13 @@
 							uni.login({
 								provider: 'weixin',
 								success: function(res) {
-									that.check_auth(res.authResult.access_token, res.authResult
-										.openid,
+									console.log("微信登录成功", res)
+									that.check_auth(res.authResult.access_token, res.authResult.openid,
 										"weixin")
 								},
 								fail: function(err) {
-									console.log("weixin", err)
 									uni.showToast({
-										title: err,
+										title: that.$t("失败"),
 										icon: 'none'
 									})
 								}
@@ -977,17 +1007,16 @@
 							uni.login({
 								provider: 'qq',
 								success: function(loginRes) {
-									that.check_auth(loginRes.authResult.access_token, loginRes
-										.authResult
-										.openid,
-										"qq")
+									console.log("qq登录", loginRes)
+									that.check_auth(loginRes.authResult.access_token, loginRes.authResult
+										.openid, "qq")
 								},
 								fail: function(err) {
 									uni.showToast({
-										title: err,
+										title: that.$t("失败"),
 										icon: 'none'
 									})
-								}
+								},
 							});
 							break
 						case "apple":
@@ -995,15 +1024,12 @@
 								provider: 'apple',
 								success: function(loginRes) {
 									console.log(loginRes.authResult);
-									that.check_auth(loginRes.authResult.access_token, loginRes
-										.authResult
-										.openid,
-										"apple")
-
+									that.check_auth(loginRes.authResult.access_token, loginRes.authResult
+										.openid, "apple")
 								},
 								fail: function(err) {
 									uni.showToast({
-										title: err,
+										title: that.$t("失败"),
 										icon: 'none'
 									})
 								}
@@ -1020,8 +1046,7 @@
 										provider: 'google',
 										success: function(info) {
 											console.log("google", info)
-											that.check_auth(access_token, info.userInfo
-												.openid,
+											that.check_auth(access_token, info.userInfo.openid,
 												"google")
 											// 获取用户信息成功, info.authResult保存用户信息
 										}
@@ -1035,6 +1060,7 @@
 					}
 				}
 			},
+
 			// apple和安卓的google注册登录
 			third_loginregister(access_token, openid, type) {
 				let data = {
@@ -1057,6 +1083,7 @@
 					// }
 				})
 			},
+
 			//校验第三方账号是否已注册
 			check_auth(access_token, openid, othersss_types) {
 				this.$post(this.$url_APP_IP + this.$url_check_auth, {
@@ -1064,13 +1091,18 @@
 				}, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
+					console.log("check_auth", res)
 					if (res.code === 200) {
+						uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
+						console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
 						uni.setStorageSync("token", res.data)
 						// uni.setStorageSync("othersss_types", othersss_types)
 						uni.switchTab({
 							url: '/pages/tabBar/main/Main'
 						})
 					} else if (res.code === 500) {
+						uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
+						console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
 						// uni.setStorageSync("othersss_types", othersss_types)
 						this.other_sign_access_token(access_token)
 						this.other_sign_openid(openid)
@@ -1124,6 +1156,7 @@
 					}
 				})
 			},
+
 			//微信使用accessToken和openId登录
 			getweixincode(access_token, openid) {
 				const data = {
@@ -1167,6 +1200,7 @@
 					}
 				})
 			},
+
 			//qq使用accessToken和openId登录
 			getqqcode(access_token, openid) {
 				const data = {
@@ -1281,7 +1315,6 @@
 		font-size: 13px;
 		color: #3298F7;
 		margin-left: 40px;
-
 	}
 
 	.text_bg_1 {
@@ -1310,7 +1343,6 @@
 		display: flex;
 		align-items: center;
 	}
-
 
 	.yinisstyle {
 		display: flex;
@@ -1343,7 +1375,6 @@
 		border: none !important;
 	}
 
-
 	.zhucestyle {
 		width: auto;
 		margin-left: 40px;
@@ -1366,7 +1397,6 @@
 		text-align: center;
 		font-size: 13px;
 	}
-
 
 	.otherstyle {
 		width: auto;
@@ -1433,7 +1463,6 @@
 		align-items: center;
 	}
 
-
 	.tanchuangstyle {
 		width: auto;
 		background: white;
@@ -1470,7 +1499,6 @@
 		flex-direction: row;
 		border-radius: 8px;
 	}
-
 
 	.text_yzm {
 		display: flex;

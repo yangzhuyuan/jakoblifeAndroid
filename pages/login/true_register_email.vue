@@ -7,7 +7,7 @@
 		<view style="display: flex; flex-direction: row;">
 			<view class="linear_1">
 				<image class="img_bg" src="../../static/icons/18.png" />
-				<input type="text" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+				<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="6"
 					v-model="yanzhengma" />
 			</view>
 			<button class="linear_btn" style="background: #3298F7; color: white;"
@@ -66,6 +66,11 @@
 				yzm: '',
 			}
 		},
+		onBackPress(options) {
+			if (options.from === 'backbutton') {
+				uni.removeStorageSync("URL_APP_IP")
+			}
+		},
 		onShow() {
 			uni.setNavigationBarTitle({
 				title: this.$t("绑定邮箱")
@@ -93,6 +98,14 @@
 					// this.tanchuang = true
 					// this.yzm = ''
 					// this.captchaImage();
+
+
+					uni.showLoading({
+						title: this.$t('发送中'),
+						mask: true
+					})
+
+
 					this.send_register_code()
 				}
 			},
@@ -195,94 +208,81 @@
 			//发送邮箱绑定验证码
 			send_register_code() {
 				let that = this
-				uni.request({
-					url: that.$url_APP_IP + "/prod-api/app/send_register_code",
-					method: 'POST',
-					data: {
-						email: that.email
-					},
-					header: {
-						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
-					},
-					success(res) {
-						console.log("发送邮箱绑定验证码:", res)
-						if (res.data.code == 200) {
-							that.yanzheng = 0
-							if (that.codetime > 0) {
-								uni.showToast({
-									title: that.$t('不能重复获取'),
-									icon: "none"
-								})
-								return
-							} else {
-								that.codetime = 60
-								that.msg = that.$t('s后可重发')
-								let timer = setInterval(() => {
-									that.codetime-- + that.msg;
-									if (that.codetime < 1) {
-										clearInterval(timer);
-										that.msg = ''
-										that.codetime = that.$t('重新获取')
-									}
-								}, 1000)
-							}
-						} else {
+				let data = {
+					email: that.email
+				}
+				that.$post(that.$url_APP_IP + "/prod-api/app/send_register_code", data, {
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((res) => {
+					console.log("发送邮箱绑定验证码:", res)
+					uni.hideLoading()
+					if (res.code == 200) {
+						that.yanzheng = 0
+						if (that.codetime > 0) {
 							uni.showToast({
-								title: that.$t("该邮箱已被绑定"),
-								icon: 'none'
+								title: that.$t('不能重复获取'),
+								icon: "none"
 							})
+							return
+						} else {
+							that.codetime = 120
+							that.msg = that.$t('s后可重发')
+							let timer = setInterval(() => {
+								that.codetime-- + that.msg;
+								if (that.codetime < 1) {
+									clearInterval(timer);
+									that.msg = ''
+									that.codetime = that.$t('重新获取')
+								}
+							}, 1000)
 						}
-					},
-					fail(res) {
-						console.log("失败", res)
+					} else {
+						uni.showToast({
+							title: that.$t("该邮箱已被绑定"),
+							icon: 'none'
+						})
 					}
+				}).catch((err) => {
+					uni.hideLoading()
+					console.log("失败", err)
 				})
 			},
 			//第三方登录后用户绑定手机号
 			bind_email() {
 				let that = this
-				uni.request({
-					url: that.$url_APP_IP + "/prod-api/app/user/profile/bind_email",
-					method: 'PUT',
-					data: {
-						code: that.yanzhengma,
-						email: that.email
-					},
-					header: {
-						'Authorization': 'Bearer ' + that.tokens,
-						'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
-					},
-					success(res) {
-						console.log("第三方登录后用户绑定手机号:", res)
-						if (res.statusCode == 200) {
-							if (res.data.code == 200) {
-								uni.showToast({
-									title: that.$t("成功"),
-									icon: 'none'
-								})
-								setTimeout(function() {
-									uni.navigateTo({
-										url: '../../pages/login/Register_success'
-									})
-								}, 300)
-							} else if (res.data.code === 500) {
-								uni.showToast({
-									title: res.data.msg,
-									icon: 'none'
-								})
-							} else {
-								uni.showToast({
-									title: that.$t("该邮箱已被绑定"),
-									icon: 'none'
-								})
-							}
-						}
-					},
-					fail(res) {
-						console.log("失败", res)
+				let data = {
+					code: that.yanzhengma,
+					email: that.email
+				}
+				that.$put(that.$url_APP_IP + "/prod-api/app/user/profile/bind_email", data, {
+					'Authorization': 'Bearer ' + that.tokens,
+					'content-type': 'application/json;charset=UTF-8'
+				}).then((res) => {
+					console.log("第三方登录后用户绑定手机号:", res)
+					if (res.code == 200) {
+						uni.showToast({
+							title: that.$t("成功"),
+							icon: 'none'
+						})
+						setTimeout(function() {
+							uni.navigateTo({
+								url: '../../pages/login/Register_success'
+							})
+						}, 300)
+					} else if (res.code === 500) {
+						uni.showToast({
+							title: res.msg,
+							icon: 'none'
+						})
+					} else {
+						uni.showToast({
+							title: that.$t("该邮箱已被绑定"),
+							icon: 'none'
+						})
 					}
+				}).catch((err) => {
+					console.log("失败", err)
 				})
-
 			},
 		}
 	}

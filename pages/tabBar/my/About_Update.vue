@@ -1,11 +1,52 @@
 <template>
-	<view style="padding: 20px; background: #F7F7F7; color: black;height: 100vh;background: #EFEFF4;">
-		<view style="display: flex;align-items: center; flex-direction: column; margin-top: 40px;">
-			<image src="../../../static/icons/96x96.png" style="width: 80px; height: 80px;"></image>
-			<text style="margin-top: 20px;font-size: 18px; font-weight: bold;">JakobLife</text>
-			<text style="margin-top: 10px;font-size: 12px; color: gray;">{{version}}</text>
-			<text style="font-size: 12px; color: gray;" @click="beiandianji()">{{Record_number}}</text>
+	<view style="padding: 20px 20px 500px 20px; background: #F7F7F7; color: black;height: 100vh;background: #EFEFF4;">
+		<view class="app-manage-tips">
+			<view style="display: flex;align-items: center; flex-direction: column; margin-top: 15px;">
+				<image src="../../../static/icons/96x96.png" mode="aspectFit"
+					style="width: 80px; height: 80px;border: 1px gainsboro solid;object-fit: contain;border-radius: 10px;">
+				</image>
+				<text style="margin-top: 20px;font-size: 18px; font-weight: bold;">JakobLife</text>
+				<text style="margin-top: 10px;font-size: 12px; color: gray;">{{version}}</text>
+				<text style="font-size: 12px; color: gray;" @click="beiandianji()">{{Record_number}}</text>
+				<text v-if="$url_APP_IP==='https://jakoblife-qa.jakob-techs.com'"
+					style="font-size: 12px; color: gray;">{{$t("测试服")}}</text>
+			</view>
+			<view v-if="showAppManageTips">
+				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
+				<view class="watch-upgrade-permission-tip">{{ $t('手表升级权限操作注意') }}</view>
+				<view class="app-link-row" @click="openExamplePopup">
+					<text class="link-icon-anim icon-point">👉</text>
+					<text class="app-setting-link-text">{{$t('查看操作示例图')}}</text>
+				</view>
+				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
+				<view class="tip-text">{{$t('定时测量方案一')}}：{{ manualGuideText }}</view>
+				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
+				<view class="tip-text">{{$t('定时测量方案二')}}：{{ afterJumpGuideText }}</view>
+				<view class="app-link-list">
+					<view class="app-link-row" @click="openAppAuthorizeSetting">
+						<text class="link-icon-anim icon-gear">⚙️</text>
+						<text class="app-setting-link-text">{{$t('去设置')}}</text>
+					</view>
+				</view>
+				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
+			</view>
 		</view>
+		<uni-popup ref="examplePopup" type="center" :mask-click="true">
+			<view class="example-popup">
+				<view class="example-popup-title">{{$t('定时测量操作示例')}}</view>
+				<scroll-view scroll-y class="example-scroll">
+					<view v-for="(group, groupIndex) in exampleGroups" :key="groupIndex" class="example-group">
+						<view class="example-group-title">{{$t(group.titleKey)}}</view>
+						<view v-for="(item, stepIndex) in group.steps" :key="stepIndex" class="example-item">
+							<image class="example-img" :src="item.src" mode="widthFix"
+								@click="previewExampleImage(groupIndex, stepIndex)" />
+							<view class="example-caption">{{$t(item.captionKey)}}</view>
+						</view>
+					</view>
+				</scroll-view>
+				<button class="example-close-btn" @click="closeExamplePopup">{{$t('知道了')}}</button>
+			</view>
+		</uni-popup>
 		<view class="bg">
 			<!-- 保留原有导航项 -->
 			<view class="bt_BG" @click="Text_content9()">
@@ -83,6 +124,19 @@
 	import {
 		mapMutations
 	} from 'vuex'
+	import {
+		detectQxManufacturerType,
+		getQxManualGuideI18nKey,
+		getQxAfterJumpGuideI18nKey,
+		isQxHuaweiHonorDevice
+	} from '@/pages/api/qxAppManageGuide.js'
+	import {
+		getQxDingshiExampleGroups,
+		flattenQxDingshiExampleSteps
+	} from '@/pages/api/qxDingshiExampleImages.js'
+
+
+
 	const systemInfo = uni.getSystemInfoSync()
 	const JUMP_SIZE = 40 * 1024; // 40K偏移量
 	const HEAD_REQ = 0xD5;
@@ -114,6 +168,7 @@
 			return {
 				version: this.$t('当前版本') + systemInfo.appVersion,
 				Record_number: this.$t('备案号'),
+				manufacturerType: detectQxManufacturerType(),
 				progress: 0, // 进度百分比
 				downloadedSize: 0, // 已下载字节数
 				totalSize: 0, // 总字节数
@@ -206,9 +261,8 @@
 				failedBlocks: [],
 				skip4KChecks: false,
 				currentPartition: null,
-				deviceIdss: uni.getStorageSync("landeviceId"),
-				serviceIdss: uni.getStorageSync("lanserviceId"),
-				characteristicIdss: uni.getStorageSync("landcharacteristicId"),
+				deviceIdss: uni.getStorageSync("deviceIdwatch"),
+				serviceIdss: "81EEA001-E735-49EC-8A11-7E32CAE1E14E", //BPW1蓝牙设备服务值
 				updateIdChangedtimer: null,
 				processedIds: new Set(), // 使用Set存储已处理的ID
 				wactchtimerid: "",
@@ -226,6 +280,7 @@
 		},
 		onShow() {
 			let that = this
+			this.manufacturerType = detectQxManufacturerType()
 			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 			// 禁止熄屏
 			plugin.keepScreenOn(true)
@@ -273,8 +328,10 @@
 		},
 		beforeDestroy() {
 			console.log("beforeDestroy")
-			this.disconnect();
-			this.stopScan();
+			if (this.otaState === "GETTING_INFO" || this.otaState === "UPGRADING") {
+				this.disconnect();
+				this.stopScan();
+			}
 		},
 		onUnload() {
 			console.log("onUnload")
@@ -286,13 +343,15 @@
 			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 			// 禁止熄屏
 			plugin.keepScreenOn(false)
-			setTimeout(() => {
-				uni.closeBLEConnection({
-					deviceId: this.deviceIdss,
-					complete(complete) {}
-				});
-			}, 5000)
-			this.disconnect()
+			if (this.otaState === "GETTING_INFO" || this.otaState === "UPGRADING") {
+				setTimeout(() => {
+					uni.closeBLEConnection({
+						deviceId: this.deviceIdss,
+						complete(complete) {}
+					});
+				}, 5000)
+				this.disconnect()
+			}
 		},
 		computed: {
 			// 格式化已下载大小
@@ -302,6 +361,21 @@
 			// 格式化总大小
 			formattedTotalSize() {
 				return this.formatBytes(this.totalSize);
+			},
+			showAppManageTips() {
+				return isQxHuaweiHonorDevice()
+			},
+			manualGuideText() {
+				return this.$t(getQxManualGuideI18nKey(this.manufacturerType))
+			},
+			afterJumpGuideText() {
+				return this.$t(getQxAfterJumpGuideI18nKey(this.manufacturerType))
+			},
+			exampleGroups() {
+				return getQxDingshiExampleGroups()
+			},
+			flatExampleSteps() {
+				return flattenQxDingshiExampleSteps(this.exampleGroups)
 			}
 		},
 		onLoad() {
@@ -343,6 +417,64 @@
 				uni.navigateTo({
 					url: "/pages/tabBar/my/Webview"
 				})
+			},
+			openExamplePopup() {
+				this.$refs.examplePopup.open()
+			},
+			closeExamplePopup() {
+				this.$refs.examplePopup.close()
+			},
+			previewExampleImage(groupIndex, stepIndex) {
+				let current = 0
+				for (let i = 0; i < groupIndex; i++) {
+					current += (this.exampleGroups[i].steps || []).length
+				}
+				current += stepIndex
+				const urls = this.flatExampleSteps.map((item) => item.src)
+				uni.previewImage({
+					urls,
+					current
+				})
+			},
+			openAppAuthorizeSetting() {
+				uni.openAppAuthorizeSetting({
+					success(res) {
+						console.log('跳转成功', res)
+					},
+					fail(err) {
+						console.log('跳转失败', err)
+					}
+				})
+			},
+			showBleConnectTimeoutModal() {
+				uni.showModal({
+					title: this.$t('连接超时'),
+					content: this.$t('手表升级连接超时提示'),
+					confirmText: this.$t('去检查'),
+					cancelText: this.$t('取消'),
+					success: (res) => {
+						if (res.confirm) {
+							this.openBluetoothSettings();
+						}
+					}
+				});
+			},
+			openBluetoothSettings() {
+				// #ifdef APP-PLUS
+				if (plus.os.name === 'Android') {
+					const main = plus.android.runtimeMainActivity();
+					const Intent = plus.android.importClass('android.content.Intent');
+					const Settings = plus.android.importClass('android.provider.Settings');
+					const intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+					main.startActivity(intent);
+				} else {
+					plus.runtime.launchApplication({
+						action: 'APP-Prefs:root=BLE'
+					}, (e) => {
+						console.log('[About_Update] 打开蓝牙设置失败:', e);
+					});
+				}
+				// #endif
 			},
 			// 保留原有的导航方法
 			Text_content2() {
@@ -726,7 +858,8 @@
 						uni.hideLoading();
 						that.stopScan();
 						uni.showModal({
-							content: that.$t("未找到设备"),
+							title: that.$t('未找到设备'),
+							content: that.$t("手表升级连接超时提示"),
 							confirmText: that.$t('确定'),
 							showCancel: false,
 							success(modal) {
@@ -854,13 +987,9 @@
 								this.connect(deviceId, retryCount);
 							}, 1000); // 1秒后重试
 						} else {
-							// 达到最大重试次数，显示失败提示
 							uni.hideLoading();
-							uni.showToast({
-								title: this.$t("连接超时"),
-								icon: 'none'
-							});
 							console.log(`连接失败，已重试${maxRetries}次`);
+							this.showBleConnectTimeoutModal();
 						}
 					},
 				});
@@ -2441,6 +2570,7 @@
 		border-radius: 10px;
 		padding-bottom: 10px;
 		margin-bottom: 50px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	.bt_BG {
@@ -2536,5 +2666,148 @@
 		gap: 20rpx;
 		font-size: 28rpx;
 		color: #333;
+	}
+
+	.app-manage-tips {
+		margin-bottom: 50px;
+		display: flex;
+		flex-direction: column;
+		background: white;
+		border-radius: 10px;
+		padding: 10px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.watch-upgrade-permission-tip {
+		font-size: 14px;
+		line-height: 1.6;
+		color: #e53935;
+		margin: 12px 5px 8px;
+	}
+
+	.tip-text {
+		margin-top: 10px;
+		font-size: 14px;
+		line-height: 1.6;
+		color: red;
+	}
+
+	.app-link-list {
+		display: flex;
+		flex-direction: column;
+		margin-top: 10px;
+	}
+
+	.app-link-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		margin-top: 8px;
+	}
+
+	.app-setting-link-text {
+		color: #007aff;
+		font-size: 14px;
+		margin-left: 10px;
+	}
+
+	.link-icon-anim {
+		display: inline-block;
+		font-size: 18px;
+		line-height: 1;
+		margin-right: 8rpx;
+	}
+
+	.icon-point {
+		animation: link-point-bounce 1.2s ease-in-out infinite;
+	}
+
+	.icon-gear {
+		animation: link-gear-spin 2.5s linear infinite;
+	}
+
+	@keyframes link-point-bounce {
+
+		0%,
+		100% {
+			transform: translateX(0) scale(1);
+		}
+
+		50% {
+			transform: translateX(12rpx) scale(1.08);
+		}
+	}
+
+	@keyframes link-gear-spin {
+		from {
+			transform: rotate(0deg);
+		}
+
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.example-popup {
+		width: 88vw;
+		max-height: 80vh;
+		background: #fff;
+		border-radius: 16px;
+		padding: 16px;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.example-popup-title {
+		font-size: 16px;
+		font-weight: 600;
+		text-align: center;
+		margin-bottom: 12px;
+		color: #333;
+	}
+
+	.example-scroll {
+		max-height: 62vh;
+	}
+
+	.example-group {
+		margin-bottom: 8px;
+	}
+
+	.example-group-title {
+		font-size: 14px;
+		font-weight: 600;
+		color: #3298F7;
+		margin: 12px 0 8px;
+	}
+
+	.example-item {
+		margin-bottom: 16px;
+	}
+
+	.example-img {
+		width: 100%;
+		border-radius: 8px;
+	}
+
+	.example-caption {
+		margin-top: 8px;
+		font-size: 13px;
+		line-height: 1.5;
+		color: #666;
+	}
+
+	.example-close-btn {
+		margin-top: 8px;
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		height: 44px;
+		line-height: 44px;
+		background: #3298F7;
+		color: #fff;
+		font-size: 15px;
+		border-radius: 22px;
 	}
 </style>

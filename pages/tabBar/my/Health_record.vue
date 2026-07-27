@@ -96,9 +96,9 @@
 				width: '',
 				date: this.$t('请选择'),
 				phone: '',
-				Height_array: ["inch", 'cm'],
+				Height_array: [this.$t("英寸"), this.$t("厘米")],
 				Height_index: uni.getStorageSync("danwei1") !== "" ? uni.getStorageSync("danwei1") : 0,
-				Width_array: ["kg", "lb"],
+				Width_array: [this.$t("千克"), this.$t("英镑")],
 				Width_index: uni.getStorageSync("danwei2") !== "" ? uni.getStorageSync("danwei2") : 0,
 			}
 		},
@@ -274,8 +274,8 @@
 				const postData = {
 					bloodUnit: uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" :
 						"kPa",
-					heightUnit: Height_index === 0 || Height_index === "" ? "inch" : 'cm',
-					weightUnit: Width_index === 0 || Width_index === "" ? "kg" : "lb",
+					heightUnit: Height_index === 0 || Height_index === "" ? this.$t("英寸") : this.$t("厘米"),
+					weightUnit: Width_index === 0 || Width_index === "" ? this.$t("千克") : this.$t("英镑"),
 					switchHER: uni.getStorageSync("yaliswitchHER") || true,
 				}
 				const editData = {

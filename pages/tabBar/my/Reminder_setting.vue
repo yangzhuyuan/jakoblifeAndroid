@@ -29,72 +29,64 @@
 
 		onShow() {
 			let that = this
-			uni.getStorageInfo({
-				success(res) {
-					if (res.keys.includes("tixing")) {
-						let tiixnglist = uni.getStorageSync("tixing")
-						that.list = []
-						for (let i = 0; tiixnglist.length > i; i++) {
-							if (tiixnglist[i].times.includes("AM")) {
-								tiixnglist[i].times = tiixnglist[i].times.replace("AM", "")
-							} else if (tiixnglist[i].times.includes("PM")) {
-								if (tiixnglist[i].times.substring(0, 2) == "01") {
-									tiixnglist[i].times = "13" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "02") {
-									tiixnglist[i].times = "14" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "03") {
-									tiixnglist[i].times = "15" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "04") {
-									tiixnglist[i].times = "16" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "05") {
-									tiixnglist[i].times = "17" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "06") {
-									tiixnglist[i].times = "18" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "07") {
-									tiixnglist[i].times = "19" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "08") {
-									tiixnglist[i].times = "20" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "09") {
-									tiixnglist[i].times = "21" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "10") {
-									tiixnglist[i].times = "22" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "11") {
-									tiixnglist[i].times = "23" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								} else if (tiixnglist[i].times.substring(0, 2) == "12") {
-									tiixnglist[i].times = "00" + tiixnglist[i].times.substring(2, tiixnglist[i]
-										.times.length).replace("PM", "")
-								}
-							}
-							that.list.push(tiixnglist[i])
-						}
-						uni.setStorageSync("tixing", that.list)
-						uni.setStorageSync("tixing1", that.list)
-						console.log("dajhsdahd", that.list)
-					} else {
-						that.list = []
-						uni.setStorageSync("tixing1", that.list)
-						console.log("tixing不存在")
-					}
-				}
-			})
-		},
-
-		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('提醒设置')
+				title: that.$t('提醒设置')
 			})
-
+			if (uni.getStorageSync("tixing")) {
+				let tiixnglist = uni.getStorageSync("tixing")
+				that.list = []
+				for (let i = 0; tiixnglist.length > i; i++) {
+					if (tiixnglist[i].times.includes("AM")) {
+						tiixnglist[i].times = tiixnglist[i].times.replace("AM", "")
+					} else if (tiixnglist[i].times.includes("PM")) {
+						if (tiixnglist[i].times.substring(0, 2) == "01") {
+							tiixnglist[i].times = "13" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "02") {
+							tiixnglist[i].times = "14" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "03") {
+							tiixnglist[i].times = "15" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "04") {
+							tiixnglist[i].times = "16" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "05") {
+							tiixnglist[i].times = "17" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "06") {
+							tiixnglist[i].times = "18" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "07") {
+							tiixnglist[i].times = "19" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "08") {
+							tiixnglist[i].times = "20" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "09") {
+							tiixnglist[i].times = "21" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "10") {
+							tiixnglist[i].times = "22" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "11") {
+							tiixnglist[i].times = "23" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						} else if (tiixnglist[i].times.substring(0, 2) == "12") {
+							tiixnglist[i].times = "00" + tiixnglist[i].times.substring(2, tiixnglist[i]
+								.times.length).replace("PM", "")
+						}
+					}
+					that.list.push(tiixnglist[i])
+				}
+				uni.setStorageSync("tixing", that.list)
+				uni.setStorageSync("tixing1", that.list)
+				console.log("dajhsdahd", that.list)
+			} else {
+				that.list = []
+				uni.setStorageSync("tixing1", that.list)
+				console.log("tixing不存在")
+			}
 		},
 
 		onNavigationBarButtonTap() {

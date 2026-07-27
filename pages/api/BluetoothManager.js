@@ -23,7 +23,7 @@ export default class BluetoothManager {
 	}
 
 
-	async connectDevice(deviceId) {
+	async connectDevice(deviceId, deviceModelId) {
 		// 如果设备已连接，直接返回
 		if (this.connectedDevices[deviceId]) {
 			return this.connectedDevices[deviceId];
@@ -48,9 +48,10 @@ export default class BluetoothManager {
 					break;
 				case 3:
 					if (bluetooth.services[1].uuid === "81EEA001-E735-49EC-8A11-7E32CAE1E14E") {
-						await bluetooth.getCharacteristics3(bluetooth.services[1].uuid);
+						await bluetooth.getCharacteristics3("81EEA001-E735-49EC-8A11-7E32CAE1E14E");
 					}
-					if (bluetooth.services[2].uuid === "0000FFF2-0000-1000-8000-00805F9B34FB") {
+					if (bluetooth.services[2].uuid === "0000FFF2-0000-1000-8000-00805F9B34FB" || bluetooth.services[
+							2].uuid === "0000FF00-0000-1000-8000-00805F9B34FB") {
 						uni.setBLEMTU({
 							deviceId: deviceId,
 							mtu: 512
@@ -61,9 +62,6 @@ export default class BluetoothManager {
 				case 4:
 					await bluetooth.getCharacteristics1(bluetooth.services[3].uuid);
 					break;
-					// case 6:
-					// 	await bluetooth.getCharacteristics6(bluetooth.services[2].uuid);
-					// 	break;
 			}
 			this.connectedDevices[deviceId] = bluetooth;
 			return this.connectedDevices[deviceId];
@@ -98,9 +96,6 @@ export default class BluetoothManager {
 			case 4:
 				await bluetooth.getCharacteristics1(bluetooth.services[3].uuid);
 				break;
-				// case 6:
-				// 	await bluetooth.getCharacteristics6(bluetooth.services[2].uuid);
-				// 	break;
 		}
 		this.connectedDevices[deviceId] = bluetooth;
 	}
@@ -109,7 +104,7 @@ export default class BluetoothManager {
 	// 断开单个设备连接
 	async disconnectDevice(deviceId) {
 		if (!this.connectedDevices[deviceId]) {
-			console.log(`设备 ${deviceId} 未连接`);
+			console.log(`【设备 ${deviceId} 未连接】`);
 			return;
 		}
 		try {

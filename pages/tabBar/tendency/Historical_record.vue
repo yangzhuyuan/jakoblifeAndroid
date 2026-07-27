@@ -53,6 +53,11 @@
 				<body-fat-list v-else-if="currentItemType === ITEM_TYPES.BODY_FAT" :data="swipeList"
 					:view-type="currentView" @delete-record="handleDeleteRecord" @toggle-expand="handleToggleExpand"
 					@show-bmi-info="showBmiInfo" />
+
+				<!-- 血氧数据 -->
+				<blood-oxygen-list v-else-if="currentItemType === ITEM_TYPES.BLOOD_OXYGEN" :data="swipeList"
+					:view-type="currentView" @delete-record="handleDeleteRecord" @toggle-expand="handleToggleExpand"
+					@show-bmi-info="showOxygenInfo" />
 			</template>
 
 			<!-- 无数据状态 -->
@@ -67,6 +72,7 @@
 		<!-- 弹窗组件 -->
 		<blood-pressure-popup ref="bloodPressurePopup" />
 		<bmi-popup ref="bmiPopup" />
+		<blood-oxygen-popup ref="bloodOxygenPopup" />
 		<export-popup ref="exportPopup" @export="handleExport" />
 	</view>
 </template>
@@ -75,15 +81,19 @@
 	import BloodPressureList from '../tendency/historecal/BloodPressureList.vue';
 	import BloodPressurePopup from '../tendency/historecal/BloodPressurePopup.vue';
 	import BodyFatList from '../tendency/historecal/BodyFatList.vue';
+	import BloodOxygenList from '../tendency/historecal/BloodOxygenList.vue';
 	import BmiPopup from '../tendency/historecal/BmiPopup.vue';
+	import BloodOxygenPopup from '../tendency/historecal/BloodOxygenPopup.vue';
 	import ExportPopup from '../tendency/historecal/ExportPopup.vue';
 
 	export default {
 		components: {
 			BloodPressureList,
 			BodyFatList,
+			BloodOxygenList,
 			BloodPressurePopup,
 			BmiPopup,
+			BloodOxygenPopup,
 			ExportPopup
 		},
 
@@ -220,7 +230,6 @@
 				console.log("当前项目类型:", this.currentItemType);
 
 				const noDataItems = [
-					this.ITEM_TYPES.BLOOD_OXYGEN,
 					this.ITEM_TYPES.ECG,
 					this.ITEM_TYPES.BLOOD_SUGAR
 				];
@@ -275,6 +284,9 @@
 						case this.ITEM_TYPES.BLOOD_PRESSURE:
 							await this.queryBloodPressureData(this.deviceSn, start, end);
 							break;
+						case this.ITEM_TYPES.BLOOD_OXYGEN:
+							await this.queryOxygenData(this.deviceSn, start, end);
+							break;
 						case this.ITEM_TYPES.BODY_FAT:
 							await this.queryBodyFatData(this.deviceSn, start, end);
 							break;
@@ -291,7 +303,7 @@
 					this.swipeList = [];
 				} finally {
 					this.loading = false;
-					console.log("最终数据:", this.swipeList);
+					console.log("【最终数据】:", this.swipeList);
 				}
 			},
 
@@ -349,19 +361,43 @@
 					startTime,
 					endTime,
 				};
-				console.log("原始血压数据传参:" + this.$url_APP_IP, data);
-				console.log("原始血压数据传参:" + this.$url_APP_IP, uni.getStorageSync("token"));
+				console.log("【原始血压数据传参】" + this.$url_APP_IP, data);
 				const res = await this.$post(this.$url_APP_IP + this.$url_query_log_v2, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				});
-				console.log("原始血压数据:", res);
+				console.log("【原始血压数据】:", res);
 				if (res.code === 200) {
 					this.processBloodPressureData(res.data || []);
 				} else {
 					throw new Error(res.msg || '血压数据查询失败');
 				}
 			},
+			// 血氧数据查询
+			async queryOxygenData(deviceSn, startTime, endTime) {
+				const data = {
+					deviceSn,
+					dataType: "pressure",
+					slaveList: [{
+						slaveSn: "0",
+						register: "oxygen"
+					}],
+					startTime,
+					endTime,
+				};
+				console.log("【原始血氧数据传参】" + this.$url_APP_IP, data);
+				const res = await this.$post(this.$url_APP_IP + this.$url_query_log_v2, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json;charset=UTF-8'
+				});
+				console.log("【原始血氧数据】:", res);
+				if (res.code === 200) {
+					this.processBloodOxygenData(res.data || []);
+				} else {
+					throw new Error(res.msg || '血氧数据查询失败');
+				}
+			},
+
 			// 体脂数据查询
 			async queryBodyFatData(deviceSn, startTime, endTime) {
 				const data = {
@@ -386,7 +422,7 @@
 
 			// 处理血压数据
 			processBloodPressureData(data) {
-				console.log("原始血压数据:", data);
+				console.log("【原始血压数据】", data);
 				if (!data || data.length === 0) {
 					this.swipeList = [];
 					return;
@@ -401,6 +437,54 @@
 						)
 					}
 				}));
+			},
+
+			getOxygenValue(data) {
+				if (!data) return null;
+				const value = data.oxygen ?? data.Oxygen ?? data.spo2 ?? data.SpO2 ?? data.oxygenAvg;
+				return value == null || value === '' ? null : value;
+			},
+
+			normalizeOxygenSummary(summary, details) {
+				const avg = this.getOxygenValue(summary);
+				if (avg != null) {
+					return { ...summary, oxygenAvg: avg };
+				}
+				if (!details || !details.length) {
+					return summary;
+				}
+				const values = details.map(detail => Number(this.getOxygenValue(detail)))
+					.filter(value => !Number.isNaN(value));
+				if (!values.length) {
+					return summary;
+				}
+				const oxygenAvg = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+				return { ...summary, oxygenAvg };
+			},
+
+			// 处理血氧数据
+			processBloodOxygenData(data) {
+				console.log("【原始血氧数据】", data);
+				if (!data || data.length === 0) {
+					this.swipeList = [];
+					return;
+				}
+				this.swipeList = data.map(item => {
+					const details = (item.object?.details || []).map(detail =>
+						this.calculateBloodOxygenLevel(detail, true)
+					);
+					const summary = this.calculateBloodOxygenLevel(
+						this.normalizeOxygenSummary(item.object?.summary || {}, details)
+					);
+					return {
+						...item,
+						object: {
+							...item.object,
+							summary,
+							details
+						}
+					};
+				});
 			},
 
 			// 处理体脂数据
@@ -464,6 +548,48 @@
 					...data,
 					level,
 					xueyalist,
+					expanded: false
+				};
+			},
+
+			// 计算血氧等级
+			calculateBloodOxygenLevel(data, isDetail = false) {
+				if (!data) return isDetail ? {
+					level2: this.$t("未知"),
+					oxygenlist1: 3
+				} : {
+					level: this.$t("未知"),
+					oxygenlist: 3
+				};
+
+				const oxygen = isDetail ? this.getOxygenValue(data) : (data.oxygenAvg ?? this.getOxygenValue(data));
+				const val = parseInt(oxygen);
+				let level, oxygenlist;
+
+				if (Number.isNaN(val)) {
+					level = this.$t("未知");
+					oxygenlist = 3;
+				} else if (val <= 95) {
+					level = this.$t('偏低');
+					oxygenlist = 0;
+				} else if (val < 98) {
+					level = this.$t('正常');
+					oxygenlist = 1;
+				} else {
+					level = this.$t('偏高');
+					oxygenlist = 2;
+				}
+
+				return isDetail ? {
+					...data,
+					oxygen,
+					level2: level,
+					oxygenlist1: oxygenlist
+				} : {
+					...data,
+					oxygenAvg: oxygen,
+					level,
+					oxygenlist,
 					expanded: false
 				};
 			},
@@ -574,6 +700,8 @@
 					} else {
 						if (this.currentItemType === "血压" || this.currentItemType === "blood_pressure") {
 							this.query_log_v2s(this.deviceSn, exportConfig.startDate, exportConfig.endDate)
+						} else if (this.currentItemType === this.ITEM_TYPES.BLOOD_OXYGEN) {
+							this.query_log_v23s(this.deviceSn, exportConfig.startDate, exportConfig.endDate)
 						} else if (this.currentItemType == "体脂" || this.currentItemType == "body_fat") {
 							this.query_log_v22s(this.deviceSn, exportConfig.startDate, exportConfig.endDate)
 						}
@@ -712,6 +840,81 @@
 							that.appExportFile(template)
 							// #endif
 							// 下载模板
+							// #ifdef MP-WEIXIN
+							that.wxExportFile(template)
+							// #endif
+						} else {
+							uni.showToast({
+								title: res.data.msg,
+								icon: 'none'
+							})
+						}
+					}
+				})
+			},
+			//历史记录V2 - 血氧
+			query_log_v23s(deviceSn, startTime, endTime) {
+				let that = this
+				uni.request({
+					url: that.$url_APP_IP + that.$url_query_log_v2,
+					method: 'POST',
+					data: {
+						deviceSn: deviceSn,
+						dataType: "pressure",
+						slaveList: [{
+							slaveSn: "0",
+							register: "oxygen"
+						}],
+						startTime: startTime,
+						endTime: endTime,
+					},
+					header: {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json'
+					},
+					success(res) {
+						if (res.data.code == 200) {
+							that.swipeList1111 = []
+							res.data.data.forEach((item, index) => {
+								res.data.data[index].object.details.forEach((item1, index1) => {
+									const detail = res.data.data[index].object.details[index1]
+									detail.dateTime = res.data.data[index].dateTime
+									detail.modelName = res.data.data[index].modelName
+									detail.deviceSn = res.data.data[index].deviceSn
+									detail.oxygenAvg = res.data.data[index].object.summary.oxygenAvg
+									detail.time1 = detail.time
+									detail.oxygen1 = detail.oxygen
+									that.$delete(detail, "time")
+									that.swipeList1111.push(detail)
+								})
+							})
+							const jsonData = that.swipeList1111
+							let worksheet = 'sht1'
+							const lan = uni.getLocale();
+							let str =
+								'<tr><td style="text-align: center">Date</td><td style="text-align: center">Model number</td><td style="text-align: center">Equipment sn</td><td style="text-align: center">Average SpO2/%</td><td style="text-align: center">Time</td><td style="text-align: center">SpO2/%</td></tr>'
+							if (lan == 'zh-Hans' || lan == 'zh-Hant') {
+								str =
+									'<tr><td style="text-align: center">日期</td><td style="text-align: center">型号</td><td style="text-align: center">设备sn</td><td style="text-align: center">平均血氧/%</td><td style="text-align: center">时间</td><td style="text-align: center">血氧/%</td></tr>'
+							}
+							for (let i = 0; i < jsonData.length; i++) {
+								str += '<tr>'
+								for (let item in jsonData[i]) {
+									str += `<td>${jsonData[i][item] + '\t'}</td>`
+								}
+								str += '</tr>'
+							}
+							let template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" 
+																		    xmlns:x="urn:schemas-microsoft-com:office:excel" 
+																		    xmlns="http://www.w3.org/TR/REC-html40">
+																		    <head><!--[if gte mso 9]><xml encoding="UTF-8"><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+																		    <x:Name>${worksheet}</x:Name>
+																		    <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>
+																		    </x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+																		    </head><body><table>${str}</table></body></html>`
+							// #ifdef APP-PLUS
+							that.appExportFile(template)
+							// #endif
 							// #ifdef MP-WEIXIN
 							that.wxExportFile(template)
 							// #endif
@@ -958,6 +1161,10 @@
 
 			showBmiInfo() {
 				this.$refs.bmiPopup.open();
+			},
+
+			showOxygenInfo() {
+				this.$refs.bloodOxygenPopup.open();
 			}
 		}
 	}

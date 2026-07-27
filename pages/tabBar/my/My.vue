@@ -62,52 +62,65 @@
 				username: this.$t('未登录'),
 				switchsdss: uni.getStorageSync("myswics") || false,
 				// 菜单项数组
-				menuItems: [{
-						title: '设置',
-						url: '/pages/tabBar/my/Unit_setting'
-					},
-					{
-						title: '设备管理',
-						url: '/pages/tabBar/my/Equipment_management1'
-					},
-					{
-						title: '警报',
-						url: '/pages/tabBar/my/Alarms'
-					},
-					{
-						title: '生成健康报告',
-						url: '/pages/tabBar/tendency/supplement'
-					},
-					// {
-					// 	title: '手表设置',
-					// 	url: "/pages/tabBar/main/WatctOTA/WatctOTA"
-					// },
-					// {
-					// 	title: '自动血压监测设置',
-					// 	url: '/pages/tabBar/my/Watch_measurement'
-					// },
-					// {
-					// 	title: '提醒设置',
-					// 	url: '/pages/tabBar/my/Reminder_setting'
-					// },
-					{
-						title: '帮助中心',
-						url: '/pages/tabBar/my/Help_center'
-					},
-					{
-						title: '安全中心',
-						url: '/pages/tabBar/my/Safety_center'
-					},
-					{
-						title: '关于更新',
-						url: '/pages/tabBar/my/About_Update'
-					},
-					{
-						title: '反馈',
-						url: '/pages/tabBar/my/fankui'
-					}
-				]
+				menuItems: []
 			}
+		},
+		created() {
+			const lan = uni.getLocale();
+			const isChinese = lan === 'zh-Hans' || lan === 'zh-Hant';
+			this.menuItems = [{
+					title: '设置',
+					url: '/pages/tabBar/my/Unit_setting'
+				},
+				{
+					title: '设备管理',
+					url: '/pages/tabBar/my/Equipment_management1'
+				},
+				{
+					title: '警报',
+					url: '/pages/tabBar/my/Alarms'
+				},
+				{
+					title: '生成健康报告',
+					url: '/pages/tabBar/tendency/supplement'
+				},
+				// {
+				// 	title: 'ECG',
+				// 	url: '/pages/tabBar/main/ECGdemo/ECGdemo'
+				// },
+				...(isChinese ? [{
+					title: '脉诊健康管理',
+					url: '/pages/tabBar/main/Pulsediagnosis'
+				}] : []),
+				// {
+				// 	title: '手表设置',
+				// 	url: "/pages/tabBar/main/WatctOTA/WatctOTA"
+				// },
+				// {
+				// 	title: '自动血压监测设置',
+				// 	url: '/pages/tabBar/my/Watch_measurement'
+				// },
+				// {
+				// 	title: '提醒设置',
+				// 	url: '/pages/tabBar/my/Reminder_setting'
+				// },
+				{
+					title: '帮助中心',
+					url: '/pages/tabBar/my/Help_center'
+				},
+				{
+					title: '安全中心',
+					url: '/pages/tabBar/my/Safety_center'
+				},
+				{
+					title: '关于更新',
+					url: '/pages/tabBar/my/About_Update'
+				},
+				{
+					title: '反馈',
+					url: '/pages/tabBar/my/fankui'
+				}
+			]
 		},
 		onHide() {
 			if (this.timsdpad) {

@@ -7,7 +7,7 @@
 		<view style="display: flex; flex-direction: row;">
 			<view class="linear_1">
 				<image class="img_bg" src="../../static/icons/18.png" />
-				<input type="text" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="8"
+				<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="6"
 					v-model="yanzhengma" />
 			</view>
 			<button class="linear_btn" style="background: #3298F7; color: white;"
@@ -105,6 +105,10 @@
 					// this.tanchuang = true
 					// this.yzm = ''
 					// this.captchaImage();
+					uni.showLoading({
+						title: this.$t('发送中'),
+						mask: true
+					})
 					this.send_register_code()
 				}
 			},
@@ -217,6 +221,7 @@
 						'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 					},
 					success(res) {
+						uni.hideLoading()
 						console.log("发送邮箱绑定验证码:", res)
 						if (res.statusCode == 200) {
 							console.log(res)
@@ -229,7 +234,7 @@
 									})
 									return
 								} else {
-									that.codetime = 60
+									that.codetime = 120
 									that.msg = that.$t('s后可重发')
 									let timer = setInterval(() => {
 										that.codetime-- + that.msg;
@@ -249,6 +254,7 @@
 						}
 					},
 					fail(res) {
+						uni.hideLoading()
 						console.log("失败", res)
 					}
 				})

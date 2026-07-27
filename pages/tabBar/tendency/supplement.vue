@@ -125,9 +125,15 @@
 </template>
 
 <script>
+	import {
+		getLocalTimeAllJSON,
+		resolveChinaReportDateFromLocal
+	} from '@/pages/api/unitls/timezone.js'
+
 	export default {
 		data() {
 			return {
+				// 界面展示：手机本地日期
 				profDate: this.getCurrentTime(),
 				time: uni.getStorageSync("bindTimeChange") !== '' ? uni.getStorageSync("bindTimeChange") : this.$t(
 					'请选择'),
@@ -164,18 +170,13 @@
 				return this.$t(translateKey);
 			},
 			getCurrentTime() {
-				const now = new Date(); // 获取当前时间
-				// 获取年、月、日
-				const year = now.getFullYear();
-				const month = String(now.getMonth() + 1).padStart(2, "0"); // 月份从 0 开始，需要加 1
-				const day = String(now.getDate()).padStart(2, "0");
-				// 获取小时、分钟、秒
-				const hours = String(now.getHours()).padStart(2, "0");
-				const minutes = String(now.getMinutes()).padStart(2, "0");
-				const seconds = String(now.getSeconds()).padStart(2, "0");
-				return `${year}-${month}-${day}`
+				// 报告日期展示用手机本地日历日
+				return getLocalTimeAllJSON().YMD
 			},
-
+			/** 跳转下一页时的报告日：本地展示 → 中国时区（含凌晨 1 点门槛） */
+			getProfDateForNextPage() {
+				return resolveChinaReportDateFromLocal(this.profDate)
+			},
 
 			back() {
 				uni.navigateBack()
@@ -193,6 +194,7 @@
 				};
 			},
 			bindDateChange(e) {
+				// picker 仍按本地日期写入，展示不变
 				this.profDate = e.detail.value
 			},
 			bindTimeChange(e) {
@@ -314,8 +316,9 @@
 					})
 					return
 				} else {
+					const profDateForNext = this.getProfDateForNextPage()
 					uni.navigateTo({
-						url: '../../tabBar/tendency/Report?profDate=' + this.profDate + "&time=" + this.time +
+						url: '../../tabBar/tendency/Report?profDate=' + profDateForNext + "&time=" + this.time +
 							"&time1=" +
 							this.time1 + "&select=" + this.select + "&index=" + this.index + "&select2=" + this
 							.select2 + "&select4=" + this.select4 + "&index1=" + this.index1

@@ -20,11 +20,8 @@
 		},
 		onShow() {
 			const lan = uni.getLocale()
-			if (lan == 'zh-Hans') {
-				this.loginimg = "/static/icons/14.png"
-			} else {
-				this.loginimg = "/static/icons/loginssss.png"
-			}
+			this.loginimg = (lan === 'zh-Hans' || lan === "zh-Hant") ? '/static/icons/14.png' :
+				'/static/icons/loginssss.png'
 			uni.getStorageInfo({
 				success(res) {
 					if (res.keys.includes("token")) {

@@ -51,9 +51,9 @@
 					'请选择'),
 				array1: [this.$t('分钟30'), this.$t('分钟60'), this.$t('分钟90'), this.$t('分钟120'), this.$t('分钟240')],
 				index1: uni.getStorageSync("Interval_time") !== "" ? uni.getStorageSync("Interval_time") : 0,
-				deviceId: uni.getStorageSync("landeviceId"),
-				serviceId: uni.getStorageSync("lanserviceId"),
-				characteristicId: uni.getStorageSync("landcharacteristicId"),
+				deviceId: uni.getStorageSync("deviceIdwatch"),
+				serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
+				characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
 			}
 		},
 

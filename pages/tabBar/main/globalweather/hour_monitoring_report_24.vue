@@ -28,15 +28,15 @@
 				<view class="info-grid">
 					<view class="info-item">
 						<text class="label">{{$t('身高')}}</text>
-						<text class="value">{{userInfo.height}}cm</text>
+						<text class="value">{{userInfo.height}}{{userInfo.heightunit}}</text>
 					</view>
 					<view class="info-item">
 						<text class="label">{{$t('体重')}}</text>
-						<text class="value">{{userInfo.weight}}kg</text>
+						<text class="value">{{userInfo.weight}}{{userInfo.weightunit}}</text>
 					</view>
 					<view class="info-item">
 						<text class="label">{{$t('腰围')}}</text>
-						<text class="value">{{userInfo.waist}}cm</text>
+						<text class="value">{{userInfo.waist}}{{userInfo.heightunit}}</text>
 					</view>
 					<view class="info-item">
 						<text class="label">BMI</text>
@@ -72,11 +72,26 @@
 				</view>
 			</view>
 
+			<!-- 睡眠数据组 -->
+			<view class="info-group">
+				<view class="group-title">{{$t('睡眠数据')}}</view>
+				<view class="info-grid">
+					<view class="info-item wide" v-if="hasSleepData">
+						<text class="label">{{$t('睡眠时间')}}</text>
+						<text class="value">{{userInfo.sleepTime}}</text>
+					</view>
+					<view class="info-item wide" v-else>
+						<text class="value sleep-tip">{{$t('此用户未佩戴手表测量睡眠数据')}}</text>
+					</view>
+				</view>
+			</view>
+
 			<!-- 监测时间 -->
 			<view class="monitor-time">
 				<text class="time-icon">🕐</text>
 				<text>{{$t('监测时间')}}：{{monitorInfo.startTime}} {{$t('至')}} {{monitorInfo.endTime}}</text>
 			</view>
+
 		</view>
 
 		<!-- 统计概览 -->
@@ -211,7 +226,7 @@
 							<text class="row-item type">
 								<text :class="['period-tag', item.period]">{{item.periodText}}</text>
 							</text>
-							<text class="row-item value">{{item.systolic}}/{{item.diastolic}}</text>
+							<text class="row-item value">{{formatRecordValue(item)}}</text>
 							<text class="row-item status">
 								<text :class="['status-tag', item.status]">{{item.statusText}}</text>
 							</text>
@@ -307,15 +322,15 @@
 								<view class="print-info-grid">
 									<view class="print-info-item" v-if="userInfo.height">
 										<text class="print-info-label">{{$t('身高')}}</text>
-										<text class="print-info-value">{{userInfo.height}}cm</text>
+										<text class="print-info-value">{{formatBodyHeight(userInfo.height)}}</text>
 									</view>
 									<view class="print-info-item" v-if="userInfo.weight">
 										<text class="print-info-label">{{$t('体重')}}</text>
-										<text class="print-info-value">{{userInfo.weight}}kg</text>
+										<text class="print-info-value">{{formatBodyWeight(userInfo.weight)}}</text>
 									</view>
 									<view class="print-info-item" v-if="userInfo.waist">
 										<text class="print-info-label">{{$t('腰围')}}</text>
-										<text class="print-info-value">{{userInfo.waist}}cm</text>
+										<text class="print-info-value">{{formatBodyHeight(userInfo.waist)}}</text>
 									</view>
 									<view class="print-info-item" v-if="request.bmi && request.bmi !== 'NA'">
 										<text class="print-info-label">BMI</text>
@@ -352,6 +367,20 @@
 										v-if="userInfo.takingMedicine ===true && userInfo.diagnosisDate">
 										<text class="print-medicine-label">{{$t('确诊时间')}}</text>
 										<text class="print-medicine-value">{{userInfo.diagnosisDate}}</text>
+									</view>
+								</view>
+							</view>
+
+							<!-- 睡眠数据 -->
+							<view class="print-section">
+								<view class="print-section-title">{{$t('睡眠数据')}}</view>
+								<view class="print-medicine-grid">
+									<view class="print-medicine-item wide" v-if="hasSleepData">
+										<text class="print-medicine-label">{{$t('睡眠时间')}}</text>
+										<text class="print-medicine-value">{{userInfo.sleepTime}}</text>
+									</view>
+									<view class="print-medicine-item wide" v-else>
+										<text class="print-medicine-value">{{$t('此用户未佩戴手表测量睡眠数据')}}</text>
 									</view>
 								</view>
 							</view>
@@ -445,15 +474,13 @@
 									<view class="print-table-header">
 										<text class="print-th">{{$t('时间')}}</text>
 										<text class="print-th">{{$t('时段')}}</text>
-										<text class="print-th">{{$t('收缩压')}}</text>
-										<text class="print-th">{{$t('舒张压')}}</text>
+										<text class="print-th">{{$t('血压值')}}</text>
 										<text class="print-th">{{$t('状态')}}</text>
 									</view>
 									<view v-for="(item, index) in printDataList" :key="index" class="print-table-row">
 										<text class="print-td">{{item.time}}</text>
 										<text class="print-td">{{item.periodText}}</text>
-										<text class="print-td">{{item.systolic}}</text>
-										<text class="print-td">{{item.diastolic}}</text>
+										<text class="print-td">{{formatRecordValue(item)}}</text>
 										<text class="print-td"
 											:class="'status-' + item.status">{{item.statusText}}</text>
 									</view>
@@ -486,7 +513,9 @@
 	import html2canvas from 'html2canvas';
 	import jsPDF from 'jspdf';
 	// #endif
-
+	import {
+		getChinaTimeAllJSON
+	} from '@/pages/api/unitls/timezone.js'
 	import {
 		imageToPdf,
 		savePdfToFile
@@ -505,7 +534,10 @@
 					takingMedicine: false,
 					medicineType: '',
 					medicineTime: '',
-					diagnosisDate: ''
+					diagnosisDate: '',
+					heightunit: '',
+					weightunit: '',
+					sleepTime: ''
 				},
 				request: {
 					bmi: "NA",
@@ -544,10 +576,10 @@
 				monitorData: [],
 				dayCount: 0,
 				nightCount: 0,
-				pacitime: '',
-				filterVarList: "JLvFLGvJL01v1D",
-				period: "1D",
-				finlretVarList1: 'BPvSBPvCNTv1DvCNTv0002,BPvSBPvCNTv1DvCNTv0003,BPvSBPvCNTv1DvCNTv0004,BPvSBPvCNTv1DvCNTv0001,JLvRULEv1DvDATACHECKv0001,JLvRULEv1DvDATACHECKv0002,JLvRULEv1DvDATACHECKv0003,BPvSBPvAVGv1DvAVGv0002,BPvDBPvAVGv1DvAVGv0002,BPvHRvAVGv1DvAVGv0002,BPvSBPvAVGv1DvAVGv0003,BPvDBPvAVGv1DvAVGv0003,BPvHRvAVGv1DvAVGv0003,BPvSBPvAVGv1DvAVGv0004,BPvDBPvAVGv1DvAVGv0004,BPvHRvAVGv1DvAVGv0004,BPvSBPvAVGv1DvAVGv0001,BPvDBPvAVGv1DvAVGv0001,BPvHRvAVGv1DvAVGv0001,JLvRULEv1DvBPCHECKv0004,JLvRULEv1DvBPCHECKv0005,JLvRULEv1DvBPCHECKv0007,JLvRULEv1DvBPCHECKv0008,JLvRULEv1DvBPCHECKv0010,JLvRULEv1DvBPCHECKv0011,JLvRULEv1DvBPCHECKv0001,JLvRULEv1DvBPCHECKv0002,BPvSBPvSTDv1DvSTDv0002,BPvDBPvSTDv1DvSTDv0002,BPvHRvSTDv1DvSTDv0002,BPvSBPvSTDv1DvSTDv0003,BPvDBPvSTDv1DvSTDv0003,BPvHRvSTDv1DvSTDv0003,BPvSBPvSTDv1DvSTDv0004,BPvDBPvSTDv1DvSTDv0004,BPvHRvSTDv1DvSTDv0004,BPvSBPvSTDv1DvSTDv0001,BPvDBPvSTDv1DvSTDv0001,BPvHRvSTDv1DvSTDv0001,BPvSBPvMAXv1DvMAXv0002,BPvDBPvMAXv1DvMAXv0002,BPvHRvMAXv1DvMAXv0002,BPvSBPvMAXv1DvMAXv0003,BPvDBPvMAXv1DvMAXv0003,BPvHRvMAXv1DvMAXv0003,BPvSBPvMAXv1DvMAXv0004,BPvDBPvMAXv1DvMAXv0004,BPvHRvMAXv1DvMAXv0004,BPvSBPvMAXv1DvMAXv0001,BPvDBPvMAXv1DvMAXv0001,BPvHRvMAXv1DvMAXv0001,BPvSBPvMEDv1DvMEDv0002,BPvDBPvMEDv1DvMEDv0002,BPvHRvMEDv1DvMEDv0002,BPvSBPvMEDv1DvMEDv0003,BPvDBPvMEDv1DvMEDv0003,BPvHRvMEDv1DvMEDv0003,BPvSBPvMEDv1DvMEDv0004,BPvDBPvMEDv1DvMEDv0004,BPvHRvMEDv1DvMEDv0004,BPvSBPvMEDv1DvMEDv0001,BPvDBPvMEDv1DvMEDv0001,BPvHRvMEDv1DvMEDv0001,BPvSBPvMINv1DvMINv0002,BPvDBPvMINv1DvMINv0002,BPvHRvMINv1DvMINv0002,BPvSBPvMINv1DvMINv0003,BPvDBPvMINv1DvMINv0003,BPvHRvMINv1DvMINv0003,BPvSBPvMINv1DvMINv0004,BPvDBPvMINv1DvMINv0004,BPvHRvMINv1DvMINv0004,BPvSBPvMINv1DvMINv0001,BPvDBPvMINv1DvMINv0001,BPvHRvMINv1DvMINv0001,BPvSBPvLOADv1DvRATIOv0002,BPvDBPvLOADv1DvRATIOv0002,BPvSBPvLOADv1DvRATIOv0003,BPvDBPvLOADv1DvRATIOv0003,BPvSBPvLOADv1DvRATIOv0004,BPvDBPvLOADv1DvRATIOv0004,BPvSBPvLOADv1DvRATIOv0001,BPvDBPvLOADv1DvRATIOv0001,JLvRULEv1DvBPCHECKv0022,JLvRULEv1DvBPCHECKv0027,JLvRULEv1DvBPCHECKv0023,JLvRULEv1DvBPCHECKv0028,JLvRULEv1DvBPCHECKv0024,JLvRULEv1DvBPCHECKv0029,JLvRULEv1DvBPCHECKv0021,JLvRULEv1DvBPCHECKv0026,BPvSBPvNBRv1DvRATIOv0001,BPvDBPvNBRv1DvRATIOv0001,JLvRULEv1DvBPCHECKv0013,JLvRULEv1DvBPCHECKv0014,JLvRULEv1DvBPCHECKv0015,JLvRULEv1DvBPCHECKv0016,JLvRULEv1DvBPCHECKv0017,JLvRULEv1DvBPCHECKv0018, JLvRULEv1DvBPCHECKv0019, JLvRULEv1DvBPCHECKv0020,BPvSBPvMBSv1DvMINUSv0001,BPvDBPvMBSv1DvMINUSv0001,JLvRULEv1DvBPCHECKv0031,BPvSBPvCVv1DvRATIO2v0002,BPvDBPvCVv1DvRATIO2v0002,BPvHRvCVv1DvRATIO2v0002,BPvSBPvCVv1DvRATIO2v0003,BPvDBPvCVv1DvRATIO2v0003,BPvHRvCVv1DvRATIO2v0003,BPvSBPvCVv1DvRATIO2v0004,BPvDBPvCVv1DvRATIO2v0004,BPvHRvCVv1DvRATIO2v0004,BPvSBPvCVv1DvRATIO2v0001,BPvDBPvCVv1DvRATIO2v0001,BPvHRvCVv1DvRATIO2v0001,BPvAASIv1D,JLvRULEv1DvBPCHECKv0032',
+				pacitime: getChinaTimeAllJSON().YMD + ' 07:00:00',
+				filterVarList: "JLvFLGvJL01v2D",
+				period: "2D",
+				finlretVarList1: 'BPvSBPvCNTv2DvCNTv0002,BPvSBPvCNTv2DvCNTv0003,BPvSBPvCNTv2DvCNTv0004,BPvSBPvCNTv2DvCNTv0001,JLvRULEv2DvDATACHECKv0001,JLvRULEv2DvDATACHECKv0002,JLvRULEv2DvDATACHECKv0003,BPvSBPvAVGv2DvAVGv0002,BPvDBPvAVGv2DvAVGv0002,BPvHRvAVGv2DvAVGv0002,BPvSBPvAVGv2DvAVGv0003,BPvDBPvAVGv2DvAVGv0003,BPvHRvAVGv2DvAVGv0003,BPvSBPvAVGv2DvAVGv0004,BPvDBPvAVGv2DvAVGv0004,BPvHRvAVGv2DvAVGv0004,BPvSBPvAVGv2DvAVGv0001,BPvDBPvAVGv2DvAVGv0001,BPvHRvAVGv2DvAVGv0001,JLvRULEv2DvBPCHECKv0004,JLvRULEv2DvBPCHECKv0005,JLvRULEv2DvBPCHECKv0007,JLvRULEv2DvBPCHECKv0008,JLvRULEv2DvBPCHECKv0010,JLvRULEv2DvBPCHECKv0011,JLvRULEv2DvBPCHECKv0001,JLvRULEv2DvBPCHECKv0002,BPvSBPvSTDv2DvSTDv0002,BPvDBPvSTDv2DvSTDv0002,BPvHRvSTDv2DvSTDv0002,BPvSBPvSTDv2DvSTDv0003,BPvDBPvSTDv2DvSTDv0003,BPvHRvSTDv2DvSTDv0003,BPvSBPvSTDv2DvSTDv0004,BPvDBPvSTDv2DvSTDv0004,BPvHRvSTDv2DvSTDv0004,BPvSBPvSTDv2DvSTDv0001,BPvDBPvSTDv2DvSTDv0001,BPvHRvSTDv2DvSTDv0001,BPvSBPvMAXv2DvMAXv0002,BPvDBPvMAXv2DvMAXv0002,BPvHRvMAXv2DvMAXv0002,BPvSBPvMAXv2DvMAXv0003,BPvDBPvMAXv2DvMAXv0003,BPvHRvMAXv2DvMAXv0003,BPvSBPvMAXv2DvMAXv0004,BPvDBPvMAXv2DvMAXv0004,BPvHRvMAXv2DvMAXv0004,BPvSBPvMAXv2DvMAXv0001,BPvDBPvMAXv2DvMAXv0001,BPvHRvMAXv2DvMAXv0001,BPvSBPvMEDv2DvMEDv0002,BPvDBPvMEDv2DvMEDv0002,BPvHRvMEDv2DvMEDv0002,BPvSBPvMEDv2DvMEDv0003,BPvDBPvMEDv2DvMEDv0003,BPvHRvMEDv2DvMEDv0003,BPvSBPvMEDv2DvMEDv0004,BPvDBPvMEDv2DvMEDv0004,BPvHRvMEDv2DvMEDv0004,BPvSBPvMEDv2DvMEDv0001,BPvDBPvMEDv2DvMEDv0001,BPvHRvMEDv2DvMEDv0001,BPvSBPvMINv2DvMINv0002,BPvDBPvMINv2DvMINv0002,BPvHRvMINv2DvMINv0002,BPvSBPvMINv2DvMINv0003,BPvDBPvMINv2DvMINv0003,BPvHRvMINv2DvMINv0003,BPvSBPvMINv2DvMINv0004,BPvDBPvMINv2DvMINv0004,BPvHRvMINv2DvMINv0004,BPvSBPvMINv2DvMINv0001,BPvDBPvMINv2DvMINv0001,BPvHRvMINv2DvMINv0001,BPvSBPvLOADv2DvRATIOv0002,BPvDBPvLOADv2DvRATIOv0002,BPvSBPvLOADv2DvRATIOv0003,BPvDBPvLOADv2DvRATIOv0003,BPvSBPvLOADv2DvRATIOv0004,BPvDBPvLOADv2DvRATIOv0004,BPvSBPvLOADv2DvRATIOv0001,BPvDBPvLOADv2DvRATIOv0001,JLvRULEv2DvBPCHECKv0022,JLvRULEv2DvBPCHECKv0027,JLvRULEv2DvBPCHECKv0023,JLvRULEv2DvBPCHECKv0028,JLvRULEv2DvBPCHECKv0024,JLvRULEv2DvBPCHECKv0029,JLvRULEv2DvBPCHECKv0021,JLvRULEv2DvBPCHECKv0026,BPvSBPvNBRv2DvRATIOv0001,BPvDBPvNBRv2DvRATIOv0001,JLvRULEv2DvBPCHECKv0013,JLvRULEv2DvBPCHECKv0014,JLvRULEv2DvBPCHECKv0015,JLvRULEv2DvBPCHECKv0016,JLvRULEv2DvBPCHECKv0017,JLvRULEv2DvBPCHECKv0018, JLvRULEv2DvBPCHECKv0019, JLvRULEv2DvBPCHECKv0020,BPvSBPvMBSv2DvMINUSv0001,BPvDBPvMBSv2DvMINUSv0001,JLvRULEv2DvBPCHECKv0031,BPvSBPvCVv2DvRATIO2v0002,BPvDBPvCVv2DvRATIO2v0002,BPvHRvCVv2DvRATIO2v0002,BPvSBPvCVv2DvRATIO2v0003,BPvDBPvCVv2DvRATIO2v0003,BPvHRvCVv2DvRATIO2v0003,BPvSBPvCVv2DvRATIO2v0004,BPvDBPvCVv2DvRATIO2v0004,BPvHRvCVv2DvRATIO2v0004,BPvSBPvCVv2DvRATIO2v0001,BPvDBPvCVv2DvRATIO2v0001,BPvHRvCVv2DvRATIO2v0001,BPvAASIv2D,JLvRULEv2DvBPCHECKv0032',
 				dayRatio: 0,
 				nightRatio: 0,
 				Blood: uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" : "kPa",
@@ -568,6 +600,12 @@
 			}
 		},
 		computed: {
+			hasSleepData() {
+				const sleepTime = this.userInfo && this.userInfo.sleepTime
+				if (!sleepTime) return false
+				const invalidValues = ['-/-', '--/--', '0H0M', '0h0m']
+				return !invalidValues.includes(String(sleepTime).trim())
+			},
 			filteredData() {
 				return this.currentTab === 'all' ?
 					this.monitorData :
@@ -580,10 +618,18 @@
 					if (!groups[date]) groups[date] = [];
 					groups[date].push(item);
 				});
+				const itemTimeMs = (item) => {
+					const ts = Number(item && item.timestamp);
+					if (ts && !Number.isNaN(ts)) return ts;
+					const raw = String((item && (item.fullTime || item.time)) || '').replace(/-/g, '/');
+					const parsed = new Date(raw).getTime();
+					return Number.isNaN(parsed) ? 0 : parsed;
+				};
 				return Object.keys(groups)
 					.sort((a, b) => new Date(b) - new Date(a))
 					.reduce((acc, key) => {
-						acc[key] = groups[key];
+						// 日期已倒序；同日内按测量时间正序，避免明细时间乱序
+						acc[key] = groups[key].slice().sort((a, b) => itemTimeMs(a) - itemTimeMs(b));
 						return acc;
 					}, {});
 			}
@@ -610,7 +656,8 @@
 			})
 			that.calculateTimeRange();
 			that.updateCurrentDateTime();
-			that.queryDevices();
+			that.get_finalRetVarList();
+			that.get_retVarList();
 		},
 		methods: {
 			// ==================== 工具方法 ====================
@@ -646,15 +693,21 @@
 				return timesssaa
 			},
 			calculateTimeRange() {
-				let endTime = this.getCurrentTime() + ' 06:00:00';
-				const initialDate = new Date(endTime);
-				let startTime = "";
-				const minusOneDay = new Date(initialDate);
-				minusOneDay.setDate(minusOneDay.getDate());
-				startTime = minusOneDay.toISOString().replace('T', ' ').substring(0, 10) + " 06:00:00";
+				const pad = (n) => String(n).padStart(2, '0');
+				const now = new Date();
+				const y = now.getFullYear();
+				const m = pad(now.getMonth() + 1);
+				const d = pad(now.getDate());
+				// 24 小时动态血压：前一日 06:00 → 当日 06:00（含夜间 21:30–06:00）
+				const endTime = `${y}-${m}-${d} 07:00:00`;
+				const startDate = new Date(`${y}/${m}/${d} 07:00:00`);
+				startDate.setDate(startDate.getDate() - 1);
+				const sy = startDate.getFullYear();
+				const sm = pad(startDate.getMonth() + 1);
+				const sd = pad(startDate.getDate());
+				const startTime = `${sy}-${sm}-${sd} 07:00:00`;
 				this.monitorInfo.startTime = startTime;
 				this.monitorInfo.endTime = endTime;
-				this.pacitime = this.getCurrentTime() + ' 06:00:00';
 			},
 			getBmiClass(bmi) {
 				if (!bmi || bmi === 'NA') return '';
@@ -665,8 +718,28 @@
 				if (val < 28) return 'overweight';
 				return 'obese';
 			},
+			getBodyHeightUnit() {
+				return this.userInfo.heightunit || this.$t('厘米');
+			},
+			getBodyWeightUnit() {
+				return this.userInfo.weightunit || this.$t('千克');
+			},
+			formatBodyHeight(value) {
+				if (value == null || value === '') return '';
+				return `${value}${this.getBodyHeightUnit()}`;
+			},
+			formatBodyWeight(value) {
+				if (value == null || value === '') return '';
+				return `${value}${this.getBodyWeightUnit()}`;
+			},
 
 			getStatus(sys, dia) {
+
+				if (!sys || !dia) return {
+					code: '',
+					text: "/"
+				};
+
 				if (sys >= 140 || dia >= 90) return {
 					code: 'high',
 					text: this.$t('偏高')
@@ -683,6 +756,31 @@
 					code: 'normal',
 					text: this.$t('正常')
 				};
+			},
+			isValidPressureValue(value) {
+				if (value == null || value === '' || value === '-' || value === '--') return false;
+				const num = Number(value);
+				return !Number.isNaN(num) && num > 0;
+			},
+			hasValidBloodPressure(highPressure, lowPressure) {
+				return this.isValidPressureValue(highPressure) && this.isValidPressureValue(lowPressure);
+			},
+			hasValidHeartRate(heartrate) {
+				if (heartrate == null || heartrate === '' || heartrate === '-' || heartrate === '--') return false;
+				const num = Number(heartrate);
+				return !Number.isNaN(num) && num > 0;
+			},
+			formatRecordValue(item) {
+				if (item.heartRateOnly) {
+					return String(item.heartRate ?? '-');
+				}
+				return `${item.systolic}/${item.diastolic}`;
+			},
+			formatPrintSystolic(item) {
+				return item.heartRateOnly ? String(item.heartRate ?? '-') : String(item.systolic);
+			},
+			formatPrintDiastolic(item) {
+				return item.heartRateOnly ? '-' : String(item.diastolic);
 			},
 			getPeriod(timeStr) {
 				const hour = parseInt(timeStr.split(':')[0]);
@@ -714,36 +812,56 @@
 			},
 
 			// ==================== 数据处理 ====================
-			processBloodPressureData(apiData) {
+			processRetVarList(retVarListStr) {
 				const processedData = [];
-				if (!apiData || !apiData.data || apiData.data.length === 0) {
-					return processedData;
-				}
-				const record = apiData.data[0];
-				const date = record.dateTime;
-				const details = record.object && record.object.details ? record.object.details : [];
-				if (details && details.length > 0) {
-					details.forEach(item => {
-						const timeStr = item.time;
-						const periodInfo = this.getPeriod(timeStr);
-						const status = this.getStatus(item.highPressure, item.lowPressure);
-						const systolic = this.convertPressure(item.highPressure);
-						const diastolic = this.convertPressure(item.lowPressure);
-						processedData.push({
-							fullTime: `${date} ${timeStr}`,
-							time: `${date} ${timeStr.substring(0, 5)}`,
-							period: periodInfo.period,
-							periodText: periodInfo.periodText,
-							systolic,
-							diastolic,
-							heartRate: item.heartrate,
-							timestamp: item.timestamp,
-							status: status.code,
-							statusText: status.text
-						});
+				if (!retVarListStr) return processedData;
+				const isInvalid = (value) => {
+					const v = String(value == null ? '' : value).trim();
+					return !v || v >= '999999990.00' || v === 'NA';
+				};
+				const seen = new Set();
+				const rows = retVarListStr.split(';').filter(Boolean);
+				for (const row of rows) {
+					const parts = row.split(',').map(item => item.trim());
+					if (parts.length < 4) continue;
+					const fullTime = parts[0];
+					if (seen.has(fullTime)) continue;
+					const hasBp = !isInvalid(parts[1]) && !isInvalid(parts[2]);
+					const hasHr = !isInvalid(parts[3]);
+					if (!hasBp && !hasHr) continue;
+					const timeSegments = fullTime.split(' ');
+					const date = timeSegments[0] || fullTime;
+					const timeStr = timeSegments[1] || '';
+					if (!hasBp && hasHr) continue;
+					seen.add(fullTime);
+					const periodInfo = this.getPeriod(timeStr);
+					const timestamp = new Date(fullTime.replace(/-/g, '/')).getTime();
+					const status = this.getStatus(parts[1], parts[2]);
+					processedData.push({
+						fullTime: `${date} ${timeStr}`,
+						time: `${date} ${timeStr.substring(0, 5)}`,
+						period: periodInfo.period,
+						periodText: periodInfo.periodText,
+						systolic: this.convertPressure(parts[1]),
+						diastolic: this.convertPressure(parts[2]),
+						heartRate: parts[3],
+						heartRateOnly: false,
+						timestamp,
+						status: status.code,
+						statusText: status.text
 					});
 				}
-				return processedData.sort((a, b) => parseInt(a.timestamp) - parseInt(b.timestamp));
+				return processedData.sort((a, b) => a.timestamp - b.timestamp);
+			},
+			filterByMonitorTimeRange(data) {
+				if (!data || !data.length) return [];
+				const startTs = new Date(this.monitorInfo.startTime.replace(/-/g, '/')).getTime();
+				const endTs = new Date(this.monitorInfo.endTime.replace(/-/g, '/')).getTime();
+				if (Number.isNaN(startTs) || Number.isNaN(endTs)) return data;
+				return data.filter(item => {
+					const ts = item.timestamp ?? new Date(String(item.fullTime).replace(/-/g, '/')).getTime();
+					return !Number.isNaN(ts) && ts >= startTs && ts <= endTs;
+				});
 			},
 			updateStatistics(data) {
 				if (!data || data.length === 0) {
@@ -766,6 +884,9 @@
 
 				const dayData = data.filter(d => d.period === 'day');
 				const nightData = data.filter(d => d.period === 'night');
+				const bpData = data.filter(d => !d.heartRateOnly);
+				const bpDayData = bpData.filter(d => d.period === 'day');
+				const bpNightData = bpData.filter(d => d.period === 'night');
 				this.dayCount = dayData.length;
 				this.nightCount = nightData.length;
 				this.stats.totalCount = data.length;
@@ -786,13 +907,13 @@
 
 				// 只有在API没有返回数据时，才用列表数据计算平均值
 				if (this.stats.avg24h.systolic === '-' || this.stats.avg24h.systolic === 'NA') {
-					this.stats.avg24h = avg(data);
+					this.stats.avg24h = avg(bpData);
 				}
 				if (this.stats.dayAvg.systolic === '-' || this.stats.dayAvg.systolic === 'NA') {
-					this.stats.dayAvg = avg(dayData);
+					this.stats.dayAvg = avg(bpDayData);
 				}
 				if (this.stats.nightAvg.systolic === '-' || this.stats.nightAvg.systolic === 'NA') {
-					this.stats.nightAvg = avg(nightData);
+					this.stats.nightAvg = avg(bpNightData);
 				}
 
 				// 计算昼夜比值
@@ -804,12 +925,24 @@
 				}
 
 				// ==================== 新增：计算最高血压和最低血压 ====================
-				this.calculateExtremes(data);
+				this.calculateExtremes(bpData);
 			},
 
 			// 新增方法：计算血压极值
 			calculateExtremes(data) {
-				if (!data || data.length === 0) return;
+				if (!data || data.length === 0) {
+					this.stats.max = {
+						systolic: '-',
+						diastolic: '-',
+						time: ''
+					};
+					this.stats.min = {
+						systolic: '-',
+						diastolic: '-',
+						time: ''
+					};
+					return;
+				}
 
 				let maxItem = data[0];
 				let minItem = data[0];
@@ -847,61 +980,12 @@
 					diastolic: minItem.diastolic,
 					time: minItem.fullTime || minItem.time
 				};
-
-				console.log("极值记录 - 最高:", this.stats.max);
-				console.log("极值记录 - 最低:", this.stats.min);
 			},
-
 			// ==================== API 请求 ====================
-			queryDevices() {
-				let that = this;
-				uni.request({
-					url: that.$url_APP_IP + that.$url_queryDevices,
-					method: 'POST',
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json;charset=UTF-8'
-					},
-					success(res) {
-						if (res.data.code == 200) {
-							if (res.data.rows == "") {
-								uni.showToast({
-									title: that.$t("此账号还未绑定血压计设备"),
-									icon: 'none'
-								});
-								return;
-							} else {
-								const allElementsNot3000 = res.data.rows.every((item) => item.deviceModelId !==
-									"30000");
-								if (!allElementsNot3000) {
-									for (let i = 0; res.data.rows.length > i; i++) {
-										if (res.data.rows[i].deviceModelId === "30000") {
-											let deviceSnlist = [];
-											deviceSnlist.push(res.data.rows[i].deviceSn);
-											that.get_finalRetVarList(res.data.rows[i].deviceSn);
-											that.query_log_v2(deviceSnlist);
-										}
-									}
-								}
-							}
-						} else if (res.data.code === 401) {
-							uni.showToast({
-								title: that.$t("登录账号已过期"),
-								icon: 'none'
-							});
-						} else {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							});
-						}
-					}
-				});
-			},
-			get_finalRetVarList(deviceSn) {
+			get_finalRetVarList() {
 				let that = this;
 				let data = {
-					deviceSn: deviceSn,
+					userId: uni.getStorageSync("userid"),
 					profDate: that.pacitime,
 					period: that.period,
 					retVarList: that.finlretVarList1.toLowerCase()
@@ -916,7 +1000,7 @@
 						if (get_finalRetVarList.data.retVarList !== "") {
 							let resultArray = get_finalRetVarList.data.retVarList.split(";");
 							const checkAndAssign = (value) => {
-								return value === "999999998.00" || value === "999999999.00" ? "NA" : value;
+								return value >= "999999990.00" ? "NA" : value;
 							};
 							for (let i = 0; i < resultArray.length; i++) {
 								let resultArray1 = resultArray[i].split(",");
@@ -935,38 +1019,35 @@
 					}
 				});
 			},
-			query_log_v2(deviceSn) {
-				let that = this;
+
+
+			get_retVarList() {
+				let that = this
 				let data = {
-					deviceSn: deviceSn,
-					dataType: "pressure",
-					slaveList: [{
-							slaveSn: "0",
-							register: "highPressure"
-						},
-						{
-							slaveSn: "0",
-							register: "lowPressure"
-						},
-						{
-							slaveSn: "0",
-							register: "heartrate"
-						}
-					],
-					startTime: that.monitorInfo.startTime,
-					endTime: that.monitorInfo.endTime,
-				};
-				that.$post(that.$url_APP_IP + that.$url_query_log_v2, data, {
+					userId: uni.getStorageSync("userid"),
+					profDate: getChinaTimeAllJSON().YMD + ' 07:00:00',
+					filterVarList: that.filterVarList,
+					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
+				}
+				console.log("get_retVarLisdata参数：", data)
+				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_retVarList", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-					'content-type': 'application/json'
-				}).then((res) => {
-					if (res.code == 200) {
-						if (res.data && res.data !== "") {
-							const processedData = that.processBloodPressureData(res);
-							that.monitorData = processedData;
-							that.updateStatistics(processedData);
+					'content-type': 'application/x-www-form-urlencoded'
+				}).then((get_retVarList) => {
+					console.log("get_retVarLis：", get_retVarList)
+					if (get_retVarList.code === 200 && get_retVarList.data && get_retVarList.data.retVarList) {
+						const processedData = that.filterByMonitorTimeRange(
+							that.processRetVarList(get_retVarList.data.retVarList)
+						);
+						that.monitorData = processedData;
+						that.updateStatistics(processedData);
+						if (!processedData.length) {
+							console.warn('[hour24] get_retVarList 无明细', that.monitorInfo.startTime,
+								that.monitorInfo.endTime, get_retVarList);
 						}
 					}
+				}).catch((err) => {
+					console.warn('[hour24] get_retVarList', err);
 				});
 			},
 
@@ -1181,15 +1262,15 @@
 						ctx.font = '28px sans-serif';
 
 						if (this.userInfo.height) {
-							ctx.fillText(`${this.$t('身高')}：${this.userInfo.height}cm`, 40, y);
+							ctx.fillText(`${this.$t('身高')}：${this.formatBodyHeight(this.userInfo.height)}`, 40, y);
 							y += 50;
 						}
 						if (this.userInfo.weight) {
-							ctx.fillText(`${this.$t('体重')}：${this.userInfo.weight}kg`, 40, y);
+							ctx.fillText(`${this.$t('体重')}：${this.formatBodyWeight(this.userInfo.weight)}`, 40, y);
 							y += 50;
 						}
 						if (this.userInfo.waist) {
-							ctx.fillText(`${this.$t('腰围')}：${this.userInfo.waist}cm`, 40, y);
+							ctx.fillText(`${this.$t('腰围')}：${this.formatBodyHeight(this.userInfo.waist)}`, 40, y);
 							y += 50;
 						}
 						if (this.request.bmi && this.request.bmi !== 'NA') {
@@ -1232,6 +1313,20 @@
 						}
 						y += 20;
 					}
+
+					// 睡眠数据
+					ctx.fillStyle = '#3498db';
+					ctx.font = 'bold 32px sans-serif';
+					ctx.fillText(`【${this.$t('睡眠数据')}】`, 40, y);
+					y += 60;
+					ctx.fillStyle = '#333';
+					ctx.font = '28px sans-serif';
+					if (this.hasSleepData) {
+						ctx.fillText(`${this.$t('睡眠时间')}：${this.userInfo.sleepTime}`, 40, y);
+					} else {
+						ctx.fillText(this.$t('此用户未佩戴手表测量睡眠数据'), 40, y);
+					}
+					y += 70;
 
 					// 统计概览
 					ctx.fillStyle = '#667eea';
@@ -1316,12 +1411,13 @@
 								'high': '#e74c3c',
 								'low': '#3498db',
 								'warning': '#f39c12',
-								'normal': '#2ecc71'
+								'normal': '#2ecc71',
+								'heartrate': '#9c27b0'
 							} [item.status] || '#333';
 
 							ctx.fillStyle = statusColor;
 							ctx.fillText(
-								`${item.time}  ${item.periodText}  ${item.systolic}/${item.diastolic}  ${item.statusText}`,
+								`${item.time}  ${item.periodText}  ${this.formatRecordValue(item)}  ${item.statusText}`,
 								40, y);
 							y += 45;
 						});
@@ -1385,6 +1481,9 @@
 					}
 					height += 20;
 				}
+
+				// 睡眠数据
+				height += 130;
 
 				height += 350;
 				height += 70 + 160 + 40;
@@ -2012,7 +2111,7 @@
 											
 											.print-table-header, .print-table-row {
 												display: grid;
-												grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
+												grid-template-columns: 2fr 1fr 1.5fr 1.5fr;
 												border-bottom: 1px solid #e0e0e0;
 											}
 											
@@ -2030,6 +2129,7 @@
 											.print-td.status-low { color: #3498db; }
 											.print-td.status-warning { color: #f39c12; }
 											.print-td.status-normal { color: #2ecc71; }
+											.print-td.status-heartrate { color: #9c27b0; }
 											
 											.print-footer-section {
 												margin-top: 30px;
@@ -2228,9 +2328,12 @@
 						let infoX = 40;
 						let infoCount = 0;
 						const infoItems = [];
-						if (this.userInfo.height) infoItems.push(`${this.$t('身高')}：${this.userInfo.height}cm`);
-						if (this.userInfo.weight) infoItems.push(`${this.$t('体重')}：${this.userInfo.weight}kg`);
-						if (this.userInfo.waist) infoItems.push(`${this.$t('腰围')}：${this.userInfo.waist}cm`);
+						if (this.userInfo.height) infoItems.push(
+							`${this.$t('身高')}：${this.formatBodyHeight(this.userInfo.height)}`);
+						if (this.userInfo.weight) infoItems.push(
+							`${this.$t('体重')}：${this.formatBodyWeight(this.userInfo.weight)}`);
+						if (this.userInfo.waist) infoItems.push(
+							`${this.$t('腰围')}：${this.formatBodyHeight(this.userInfo.waist)}`);
 						if (this.request.bmi && this.request.bmi !== 'NA') infoItems.push(
 							`BMI：${this.request.bmi}`);
 
@@ -2274,6 +2377,20 @@
 						}
 						y += 15;
 					}
+
+					// 睡眠数据
+					ctx.setFillStyle('#3498db');
+					ctx.setFontSize(14);
+					ctx.fillText(`【${this.$t('睡眠数据')}】`, 40, y);
+					y += 25;
+					ctx.setFillStyle('#333333');
+					ctx.setFontSize(11);
+					if (this.hasSleepData) {
+						ctx.fillText(`${this.$t('睡眠时间')}：${this.userInfo.sleepTime}`, 40, y);
+					} else {
+						ctx.fillText(this.$t('此用户未佩戴手表测量睡眠数据'), 40, y);
+					}
+					y += 30;
 
 					// 统计概览标题
 					ctx.setFillStyle('#667eea');
@@ -2438,10 +2555,8 @@
 
 						ctx.setFillStyle('#333333');
 						ctx.setFontSize(9);
-						const detailHeaders = [this.$t('时间'), this.$t('时段'), this.$t('收缩压'), this.$t('舒张压'), this
-							.$t('状态')
-						];
-						const detailColWidths = [100, 60, 70, 70, 80];
+						const detailHeaders = [this.$t('时间'), this.$t('时段'), this.$t('血压值'), this.$t('状态')];
+						const detailColWidths = [100, 60, 120, 100];
 						let detailX = 45;
 
 						detailHeaders.forEach((header, i) => {
@@ -2466,7 +2581,8 @@
 								'high': '#e74c3c',
 								'low': '#3498db',
 								'warning': '#f39c12',
-								'normal': '#2ecc71'
+								'normal': '#2ecc71',
+								'heartrate': '#9c27b0'
 							};
 
 							ctx.setFillStyle(statusColors[item.status] || '#333333');
@@ -2476,8 +2592,7 @@
 							const cells = [
 								item.time.split(' ')[1] || item.time,
 								item.periodText,
-								String(item.systolic),
-								String(item.diastolic),
+								this.formatRecordValue(item),
 								item.statusText
 							];
 
@@ -2546,6 +2661,9 @@
 					}
 					height += 15;
 				}
+
+				// 睡眠数据
+				height += 55;
 
 				height += 30 + (3 * 45);
 				height += 30 + 80 + 30;
@@ -2645,6 +2763,13 @@
 						font-size: 28rpx;
 						font-weight: bold;
 
+						&.sleep-tip {
+							font-size: 24rpx;
+							font-weight: normal;
+							color: #f39c12;
+							line-height: 1.5;
+						}
+
 						&.normal {
 							color: #2ecc71;
 						}
@@ -2685,6 +2810,8 @@
 				opacity: 0.9;
 			}
 		}
+
+
 	}
 
 	/* 统计概览 */
@@ -3117,6 +3244,11 @@
 							&.low {
 								background: #e3f2fd;
 								color: #2196f3;
+							}
+
+							&.heartrate {
+								background: #f3e5f5;
+								color: #9c27b0;
 							}
 						}
 					}
@@ -3690,7 +3822,7 @@
 					.print-table-header,
 					.print-table-row {
 						display: grid;
-						grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
+						grid-template-columns: 2fr 1fr 1.5fr 1.5fr;
 						border-bottom: 1px solid #e0e0e0;
 					}
 
@@ -3720,6 +3852,10 @@
 
 						&.status-normal {
 							color: #2ecc71;
+						}
+
+						&.status-heartrate {
+							color: #9c27b0;
 						}
 					}
 				}

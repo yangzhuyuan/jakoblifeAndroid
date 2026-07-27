@@ -6,6 +6,8 @@ export function ecgGen(type = 'normal') {
 		return generateTachycardiaData();
 	} else if (type === 'bradycardia') {
 		return generateBradycardiaData();
+	} else if (type === 'premature') {
+		return generatePrematureBeatData();
 	} else {
 		return generateNormalData();
 	}

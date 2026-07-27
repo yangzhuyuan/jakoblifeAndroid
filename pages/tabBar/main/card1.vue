@@ -10,7 +10,7 @@
 					</view>
 					<view class="data_item_bgsss">
 						<view class="icon_bgsss">
-							<image :src="item.image" class="img_stylesss" mode="aspectFit" />
+							<image lazy-load :src="item.image" class="img_stylesss" mode="aspectFit" />
 							<text class="icon_text_bgsss">{{item.title}}</text>
 						</view>
 						<view
@@ -77,7 +77,7 @@
 			<button class="button_bg_color" @click="turess()">{{$t('确认')}}</button>
 		</view>
 		<!-- 血氧 -->
-		<view>
+		<view v-if="showBloodOxygenPopup">
 			<uni-popup ref="popup2" :mask-click="false">
 				<view
 					style="background: #FFFFFF; border-radius: 24px; width: 90vw; padding-bottom: 20px;  margin: 0 10vw 0 10vw;">
@@ -130,22 +130,14 @@
 			return {
 				pulse: "-",
 				pulsetime: '-/-',
-				list: [
-					// {
-					// 	bmi_show: false,
-					// 	image: "../../../static/icons/1.png",
-					// 	Step_number: "-",
-					// 	title: this.$t('步数'),
-					// 	type_LX: this.$t('计步'),
-					// 	Step_count: "-",
-					// 	checkbox: false,
-					// }, 
-					{
+				showBloodOxygenPopup: false,
+				list: [],
+				defaultCards: [{
 						bmi_show: false,
 						image: "../../../static/icons/2.png",
 						Step_number: "-",
 						title: this.$t('身高'),
-						type_LX: "cm",
+						type_LX: this.$t("厘米"),
 						Step_count: "-",
 						checkbox: false,
 					},
@@ -164,52 +156,45 @@
 						image: "../../../static/icons/5.png",
 						Step_number: "-",
 						title: this.$t('心率'),
-						type_LX: "BMP",
+						type_LX: "BPM",
 						Step_count: "-",
 						checkbox: false,
-					},
-					// {
-					// 	bmi_show: false,
-					// 	image: "../../../static/page_icon/9.png",
-					// 	Step_number: "-",
-					// 	title: this.$t("体温"),
-					// 	type_LX: "℃",
-					// 	Step_count: "-",
-					// 	checkbox: false,
-					// },
-					// {
-					// 	bmi_show: false,
-					// 	image: "../../../static/page_icon/9.png",
-					// 	Step_number: "-",
-					// 	title: this.$t("压力"),
-					// 	type_LX: "--",
-					// 	Step_count: "-",
-					// 	checkbox: false,
-					// }
+					}
 				],
 			}
+		},
+		onLoad() {
+			this.initAvailableList()
 		},
 		onShow() {
 			uni.setNavigationBarTitle({
 				title: this.$t("编辑数据卡片")
 			})
-			// 获取存储的卡片列表
-			const kapianlist = uni.getStorageSync('kapianlist');
-			if (kapianlist && kapianlist.length > 0) {
-				// 遍历存储的卡片列表
-				kapianlist.forEach(item => {
-					// 找到匹配的卡片并移除
-					const index = this.list.findIndex(listItem => listItem.title === item.title);
-					if (index !== -1) {
-						this.list.splice(index, 1);
-					}
-				});
-			}
-			this.list_recipe();
+			this.initAvailableList()
+			setTimeout(() => {
+				this.list_recipe();
+			}, 0)
 		},
 
 
 		methods: {
+			initAvailableList() {
+				const kapianlist = uni.getStorageSync('kapianlist') || []
+				const addedTitles = new Set(kapianlist.map(item => item.title))
+				this.list = this.defaultCards
+					.filter(item => !addedTitles.has(item.title))
+					.map(item => ({
+						...item,
+						checkbox: false
+					}))
+			},
+			syncPrevPageList(newarr) {
+				const pages = getCurrentPages()
+				const prevPage = pages[pages.length - 2]
+				if (prevPage && prevPage.$vm) {
+					prevPage.$vm.list = newarr
+				}
+			},
 			//点击选择卡片
 			dianji(id, checkid) {
 				if (checkid == true) {
@@ -228,18 +213,21 @@
 				let newarr = list2.concat(list1);
 				// 更新本地存储
 				uni.setStorageSync("kapianlist", newarr);
-				// console.log(newarr)
+				this.syncPrevPageList(newarr)
 				this.cardeditData(newarr)
-				// 返回上一页
 				uni.navigateBack();
 			},
 			//血氧弹窗点击按钮
 			BMI_tap(title) {
-				this.$refs.popup2.open("center")
+				this.showBloodOxygenPopup = true
+				this.$nextTick(() => {
+					this.$refs.popup2.open("center")
+				})
 			},
 			//关闭血氧弹窗按钮
 			knowe2() {
 				this.$refs.popup2.close()
+				this.showBloodOxygenPopup = false
 			},
 
 			cardeditData(list) {
@@ -271,21 +259,7 @@
 					if (res.code == 200) {
 						const slaveSn2Data = res.data.filter(item => item.slaveSn === "2");
 						const slaveSn3Data = res.data.filter(item => item.slaveSn === "3");
-						// 获取各项数据
-						const getLatestData = (data1, data2, type) => {
-							const time1 = this.findValue(data1, "register", type)?.updateTime || 0;
-							const time2 = this.findValue(data2, "register", type)?.updateTime || 0;
-							const val1 = this.getRegisterVal(data1, 'register', type);
-							const val2 = this.getRegisterVal(data2, 'register', type);
-							return time1 > time2 ? {
-								value: val1,
-								time: time1
-							} : {
-								value: val2,
-								time: time2
-							};
-						}
-						const pulseData = getLatestData(slaveSn2Data, slaveSn3Data, "heartrate");
+						const pulseData = this.pickLatestRegisterEntry(slaveSn2Data, slaveSn3Data, "heartrate");
 						this.$set(this, 'pulse', pulseData.value);
 						this.$set(this, 'pulsetime', this.formatDate(pulseData.time));
 						for (let i = 0; i < this.list.length; i++) {
@@ -309,7 +283,35 @@
 			},
 			getRegisterVal(data, type, key) {
 				const value = this.findValue(data, type, key);
-				return value.registerVal !== null ? value.registerVal : "-/-";
+				if (!value || value.registerVal === null || value.registerVal === '') {
+					return "-/-";
+				}
+				return value.registerVal;
+			},
+			hasRegisterValue(entry) {
+				return entry && entry.registerVal !== null && entry.registerVal !== '';
+			},
+			pickLatestRegisterEntry(data1, data2, register) {
+				const entry1 = this.findValue(data1, 'register', register);
+				const entry2 = this.findValue(data2, 'register', register);
+				const hasVal1 = this.hasRegisterValue(entry1);
+				const hasVal2 = this.hasRegisterValue(entry2);
+				const time1 = entry1?.updateTime || 0;
+				const time2 = entry2?.updateTime || 0;
+				let picked = null;
+				if (hasVal1 && hasVal2) {
+					picked = time1 >= time2 ? entry1 : entry2;
+				} else if (hasVal1) {
+					picked = entry1;
+				} else if (hasVal2) {
+					picked = entry2;
+				} else {
+					picked = time1 >= time2 ? entry1 : entry2;
+				}
+				return {
+					value: this.hasRegisterValue(picked) ? picked.registerVal : '-/-',
+					time: picked?.updateTime || 0
+				};
 			},
 			// 处理步数卡片
 			processSteps(item) {
@@ -340,7 +342,7 @@
 				let that = this
 				const heightItem = that.findValue(that.list, 'title', that.$t('身高'));
 				const height = that.findValue(item, 'register', 'height')?.registerVal;
-				const unit = uni.getStorageSync("danwei1") === 0 ? "inch" : "cm";
+				const unit = uni.getStorageSync("danwei1") === 0 ? that.$t("英寸") : that.$t("厘米");
 				heightItem.type_LX = unit;
 				heightItem.Step_number = height !== null ? height : '-/-';
 				heightItem.Step_count = that.formatDate(that.findValue(item, 'register', 'height')?.updateTime);

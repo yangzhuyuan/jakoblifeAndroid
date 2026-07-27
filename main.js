@@ -33,7 +33,10 @@ Vue.prototype.$post = postRequest;
 Vue.prototype.$put = putRequest;
 // 全局定时任务管理器
 Vue.prototype.$globalTimers = {
-	heartbeatInterval: null
+	heartbeatInterval: null,
+	BPW6intervalTimer: null,
+	isUnbinding: null,
+	deviceBindingActive: false,
 };
 // 全局注册组件
 Vue.component('GlobalPopup', GlobalPopup)
@@ -59,7 +62,8 @@ Vue.prototype.$popupProgress = function(p) {
 // const APP_IP_CN = "https://jakoblife-qa.jakob-techs.com"; //中国测试服务器
 //正式域名
 const APP_IP_CN = 'https://jakoblife.jakob-techs.com' //中国正式服务器
-const APP_IP_US = 'https://jakoblife.us.jakob-techs.com' //美国正式服务器
+const APP_IP_US = APP_IP_CN //美区服务器（与中国正式同域）
+// const APP_IP_US = 'https://jakoblife.us.jakob-techs.com' //美国正式服务器
 Vue.prototype.$APP_IP1 = APP_IP_CN
 Vue.prototype.$APP_IP2 = APP_IP_US
 //获取用户信息
@@ -150,6 +154,12 @@ Vue.prototype.$url_batch_del_data_log = "/prod-api/device_app/batch_del_data_log
 Vue.prototype.$url_jakoblife_fat_scale = "/prod-api/jakoblife/fat_scale"
 //获取待处理分享请求列表
 Vue.prototype.$url_pending = "/prod-api/share/data/pending"
+//获取当天情绪数据图表数据
+Vue.prototype.$get_result_list_by_patient_id = "/prod-api/device/ppgresults/get_result_list_by_patient_id"
+
+
+
+
 Vue.prototype.$backgroundAudioData = {
 	playing: false,
 	playTime: 0,

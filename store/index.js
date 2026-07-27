@@ -25,7 +25,8 @@ const store = new Vuex.Store({
 		bianhuadata: 0,
 		TenddeviceSn: '',
 		xueyehuilian: true,
-		BloodPressureLevel: 0
+		BloodPressureLevel: 0,
+		BLE_CHANGE: false,
 
 	},
 	mutations: {
@@ -88,8 +89,10 @@ const store = new Vuex.Store({
 		},
 		setBloodPressureLevel(state, BloodPressureLevel) {
 			state.BloodPressureLevel = BloodPressureLevel
+		},
+		setBLE_CHANGEw(state, BLE_CHANGE) {
+			state.BLE_CHANGE = BLE_CHANGE
 		}
-
 	}
 })
 

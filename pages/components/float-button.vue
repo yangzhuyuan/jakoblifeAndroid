@@ -1,12 +1,9 @@
 <template>
 	<view class="float-button" :class="{ 'float-button-hide': !visible }" :style="buttonStyle">
-
 		<!-- 遮罩层，点击关闭菜单 -->
 		<view v-if="menuOpen" class="menu-mask" @tap.stop="closeMenu" @touchmove.prevent="() => false"></view>
-
 		<!-- 整体容器 -->
 		<view class="button-container" :class="{ 'container-open': menuOpen }">
-
 			<!-- 子菜单 -->
 			<view v-if="pattern.menuItems && pattern.menuItems.length > 0" class="sub-menu"
 				:class="{ 'sub-menu-open': menuOpen }">
@@ -20,7 +17,6 @@
 					</view>
 				</view>
 			</view>
-
 			<!-- 主按钮 -->
 			<view class="main-button" :style="mainButtonStyle" @tap="handleMainClick">
 				<image class="button-icon" src="/static/page_icon/aipbg.jpg" mode="aspectFit" />

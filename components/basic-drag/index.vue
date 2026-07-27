@@ -144,11 +144,64 @@
 			},
 
 			initList(list = []) {
-				this.formattedList = list.map((item, index) => ({
-					...item,
-					...this.getPosition(index),
-					key: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
-				}));
+				const prevByKey = new Map();
+				(this.formattedList || []).forEach((item) => {
+					if (item && item.key != null) {
+						prevByKey.set(String(item.key), item);
+					}
+				});
+				this.formattedList = (list || []).map((item, index) => {
+					const id = item && this.itemKey != null ? item[this.itemKey] : null;
+					const stableKey = id != null && id !== '' ? String(id) : `idx_${index}`;
+					const position = this.getPosition(index);
+					const prev = prevByKey.get(stableKey);
+					if (prev) {
+						// 复用同一项，保留 key，避免 movable-view 重建导致图片闪烁
+						Object.keys(item || {}).forEach((k) => {
+							if (k === 'x' || k === 'y' || k === 'key') {
+								return;
+							}
+							prev[k] = item[k];
+						});
+						prev.x = position.x;
+						prev.y = position.y;
+						prev.key = stableKey;
+						return prev;
+					}
+					return {
+						...item,
+						...position,
+						key: stableKey
+					};
+				});
+			},
+
+			syncListFields(list = []) {
+				const byKey = new Map();
+				(this.formattedList || []).forEach((item) => {
+					if (item && item.key != null) {
+						byKey.set(String(item.key), item);
+					}
+				});
+				for (let i = 0; i < list.length; i++) {
+					const item = list[i];
+					const id = item && this.itemKey != null ? item[this.itemKey] : null;
+					const stableKey = id != null && id !== '' ? String(id) : `idx_${i}`;
+					const prev = byKey.get(stableKey);
+					if (!prev) {
+						this.initList(list);
+						return;
+					}
+					const fields = ['Step_number', 'Step_count', 'BMI_ys', 'BMI_TF', 'bmi_show', 'type_LX',
+						'title', 'image'
+					];
+					for (let f = 0; f < fields.length; f++) {
+						const key = fields[f];
+						if (item[key] !== undefined && prev[key] !== item[key]) {
+							this.$set(prev, key, item[key]);
+						}
+					}
+				}
 			},
 
 			toggleDrag() {
@@ -277,7 +330,16 @@
 		watch: {
 			value: {
 				handler(newVal) {
-					this.initList(newVal);
+					const list = newVal || [];
+					const orderKey = list.map((item) => (item && this.itemKey != null ? item[this.itemKey] : ''))
+						.join('\u0001');
+					if (orderKey !== this._listOrderKey || list.length !== this.formattedList.length) {
+						this._listOrderKey = orderKey;
+						this.initList(list);
+						return;
+					}
+					// 仅同步展示字段，避免 deep watch 每次整表重建导致卡顿/无法点击
+					this.syncListFields(list);
 				},
 				immediate: true,
 				deep: true

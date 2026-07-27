@@ -9,9 +9,8 @@
 	export default {
 		data() {
 			return {
-				deviceId: uni.getStorageSync("landeviceId"),
-				serviceId: uni.getStorageSync("lanserviceId"),
-				characteristicId: uni.getStorageSync("landcharacteristicId"),
+				deviceId: uni.getStorageSync("deviceIdwatch"),
+				serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E", //BPW1蓝牙设备服务值
 			}
 		},
 		onShow() {

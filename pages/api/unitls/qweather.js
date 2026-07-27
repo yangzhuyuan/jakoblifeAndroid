@@ -373,13 +373,12 @@ export async function getGlobalLocalWeather() {
 		// 	return;
 		// }
 		// 使用 ip-api.com（无需Key，免费）
-
-		// 使用高德IP定位API
 		uni.request({
 			url: 'http://ip-api.com/json/?lang=zh-CN',
+			timeout: 10000,
 			success: async (res) => {
 				try {
-					console.log('IP定位结果：', res.data);
+					// console.log('【IP定位结果】', res.data);
 					if (res.data.status === 'success') {
 						const {
 							lat,

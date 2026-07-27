@@ -114,6 +114,18 @@
 			</view>
 		</view>
 
+		<!-- 睡眠时间 -->
+		<view class="section">
+			<view class="section-title">{{$t('睡眠数据')}}</view>
+			<view class="form-item" v-if="hasSleepData">
+				<text class="label">{{$t('睡眠时间')}}：</text>
+				<text class="duration-text">{{ form.sleepTime }}</text>
+			</view>
+			<view class="sleep-empty-tip" v-else>
+				<text>{{$t('此用户未佩戴手表测量睡眠数据')}}</text>
+			</view>
+		</view>
+
 		<!-- 提交按钮 -->
 		<view class="button-group">
 			<button class="btn-submit" @click="submitForm">{{$t('提交并保存')}}</button>
@@ -148,9 +160,10 @@
 					diagnosisDate: '',
 					heightunit: '',
 					weightunit: '',
+					sleepTime: '',
 				},
-				heightunit: uni.getStorageSync("danwei1") === 0 ? "inch" : "cm",
-				weightunit: uni.getStorageSync("danwei2") === 1 ? "lb" : "kg",
+				heightunit: uni.getStorageSync("danwei1") === 0 ? this.$t("英寸") : this.$t("厘米"),
+				weightunit: uni.getStorageSync("danwei2") === 1 ? this.$t("英镑") : this.$t("千克"),
 				bmi: 0,
 				whtr: 0,
 				bmiStatus: '',
@@ -172,6 +185,8 @@
 			uni.setNavigationBarTitle({
 				title: that.$t("个人信息")
 			})
+			that.refreshDisplayUnits()
+			that.loadSleepData()
 			that.$get(that.$url_APP_IP + that.$url_getInfo, {}, {
 				'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 				'content-type': 'application/json;charset=UTF-8' //自定义请求头信息
@@ -182,56 +197,14 @@
 							.$t('女'))
 					}
 					if (!that.form.height) {
-						that.form.height = that.heightunit === "inch" ? WeightConverter.cmToInch(getInfo.data
-							.height) : getInfo.data.height
-					} else {
-						switch (that.form.heightunit) {
-							case "inch":
-								if (that.heightunit === "cm") {
-									console.log("that.heightunit", that.heightunit)
-									that.form.height = WeightConverter.inchToCm(that.form.height)
-								}
-								break
-							case "cm":
-								if (that.heightunit === "inch") {
-									that.form.height = WeightConverter.cmToInch(that.form.height)
-								}
-								break
-						}
+						that.form.height = that.isImperialHeight() ?
+							WeightConverter.cmToInch(getInfo.data.height) : getInfo.data.height
 					}
 					if (!that.form.weight) {
-						that.form.weight = that.weightunit === "kg" ? getInfo.data.weight : WeightConverter
-							.kgToLb(getInfo.data.weight)
-					} else {
-						switch (that.form.weightunit) {
-							case "kg":
-								if (that.weightunit === "lb") {
-									console.log("that.weightunit", that.weightunit)
-									that.form.weight = WeightConverter.kgToLb(that.form.weight)
-								}
-								break
-							case "lb":
-								if (that.weightunit === "kg") {
-									that.form.weight = WeightConverter.lbToKg(that.form.weight)
-								}
-								break
-						}
+						that.form.weight = that.isImperialWeight() ?
+							WeightConverter.kgToLb(getInfo.data.weight) : getInfo.data.weight
 					}
-					if (that.form.waist) {
-						switch (that.form.heightunit) {
-							case "inch":
-								if (that.heightunit === "cm") {
-									console.log("that.heightunit", that.heightunit)
-									that.form.waist = WeightConverter.inchToCm(that.form.waist)
-								}
-								break
-							case "cm":
-								if (that.heightunit === "inch") {
-									that.form.waist = WeightConverter.cmToInch(that.form.waist)
-								}
-								break
-						}
-					}
+					that.syncBodyValuesToCurrentUnits()
 					if (!that.form.age) {
 						const birth = new Date(getInfo.data.birthTime);
 						const today = new Date();
@@ -252,6 +225,12 @@
 			})
 		},
 		computed: {
+			hasSleepData() {
+				const sleepTime = this.form.sleepTime
+				if (!sleepTime) return false
+				const invalidValues = ['-/-', '--/--', '0H0M', '0h0m']
+				return !invalidValues.includes(String(sleepTime).trim())
+			},
 			getBmiClass() {
 				if (this.bmi < 18.5) return 'underweight'
 				if (this.bmi < 24) return 'normal'
@@ -302,6 +281,7 @@
 				if (this.form.diagnosisDate) {
 					content += `（${this.diagnosisDuration}）`
 				}
+				content += `\n${this.$t('睡眠时间')}：${this.hasSleepData ? this.form.sleepTime : this.$t('此用户未佩戴手表测量睡眠数据')}`
 
 				return content
 			}
@@ -315,6 +295,116 @@
 					return this.$t("女")
 				}
 			},
+			findRegisterValue(arr, key, value) {
+				if (!Array.isArray(arr)) return null
+				for (let i = 0; i < arr.length; i++) {
+					if (arr[i][key] == value) {
+						return arr[i]
+					}
+				}
+				return null
+			},
+			loadSleepData() {
+				const data = {
+					userId: uni.getStorageSync("userid")
+				}
+				this.$post(this.$url_APP_IP + this.$url_list_recipe, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/x-www-form-urlencoded;'
+				}).then(res => {
+					if (res.code == 200) {
+						const sleepEntry = this.findRegisterValue(res.data, 'register', 'sleep')
+						const sleepVal = sleepEntry && sleepEntry.registerVal != null ? String(sleepEntry.registerVal).trim() : ''
+						const invalidValues = ['', '-/-', '--/--', '0H0M', '0h0m']
+						if (!sleepVal || invalidValues.includes(sleepVal)) {
+							this.form.sleepTime = ''
+						} else {
+							this.form.sleepTime = sleepVal
+						}
+					} else {
+						this.form.sleepTime = ''
+					}
+				}).catch(() => {
+					this.form.sleepTime = ''
+				})
+			},
+			isImperialHeight() {
+				return uni.getStorageSync("danwei1") === 0
+			},
+			isImperialWeight() {
+				return uni.getStorageSync("danwei2") === 1
+			},
+			isImperialHeightLabel(unitLabel) {
+				if (unitLabel === 0 || unitLabel === '0') return true
+				if (unitLabel === 1 || unitLabel === '1') return false
+				const metricLabels = ['cm', '厘米', this.$t('厘米')]
+				return !metricLabels.includes(unitLabel)
+			},
+			isImperialWeightLabel(unitLabel) {
+				if (unitLabel === 1 || unitLabel === '1') return true
+				if (unitLabel === 0 || unitLabel === '0') return false
+				const metricLabels = ['kg', '千克', this.$t('千克')]
+				return !metricLabels.includes(unitLabel)
+			},
+			refreshDisplayUnits() {
+				this.heightunit = this.isImperialHeight() ? this.$t("英寸") : this.$t("厘米")
+				this.weightunit = this.isImperialWeight() ? this.$t("英镑") : this.$t("千克")
+			},
+			convertBodyValueToCurrentUnit(field) {
+				const value = parseFloat(this.form[field])
+				if (!value || value <= 0) return false
+
+				if (field === 'weight') {
+					const savedIsImperial = this.isImperialWeightLabel(this.form.weightunit)
+					const currentIsImperial = this.isImperialWeight()
+					if (savedIsImperial === currentIsImperial) return false
+					this.form[field] = savedIsImperial ?
+						WeightConverter.lbToKg(value) :
+						WeightConverter.kgToLb(value)
+					this.form.weightunit = this.weightunit
+					return true
+				}
+
+				const savedIsImperial = this.isImperialHeightLabel(this.form.heightunit)
+				const currentIsImperial = this.isImperialHeight()
+				if (savedIsImperial === currentIsImperial) return false
+				this.form[field] = savedIsImperial ?
+					WeightConverter.inchToCm(value) :
+					WeightConverter.cmToInch(value)
+				if (field === 'height') {
+					this.form.heightunit = this.heightunit
+				}
+				return true
+			},
+			syncBodyValuesToCurrentUnits() {
+				this.refreshDisplayUnits()
+				this.convertBodyValueToCurrentUnit('height')
+				this.convertBodyValueToCurrentUnit('weight')
+				this.convertBodyValueToCurrentUnit('waist')
+				this.form.heightunit = this.heightunit
+				this.form.weightunit = this.weightunit
+			},
+			toMetricBodyValues() {
+				let height = parseFloat(this.form.height)
+				let weight = parseFloat(this.form.weight)
+				let waist = parseFloat(this.form.waist)
+
+				if (this.isImperialHeight() && height > 0) {
+					height = WeightConverter.inchToCm(height)
+				}
+				if (this.isImperialWeight() && weight > 0) {
+					weight = WeightConverter.lbToKg(weight)
+				}
+				if (this.isImperialHeight() && waist > 0) {
+					waist = WeightConverter.inchToCm(waist)
+				}
+
+				return {
+					height,
+					weight,
+					waist
+				}
+			},
 
 			// 从本地存储加载数据
 			loadFromStorage() {
@@ -323,6 +413,7 @@
 					if (savedData) {
 						// 合并保存的数据到form
 						this.form = Object.assign({}, this.form, savedData)
+						this.syncBodyValuesToCurrentUnits()
 
 						// 如果有身高体重数据，自动计算指标
 						if (this.form.height && this.form.weight) {
@@ -374,31 +465,13 @@
 				this.form.diagnosisDate = e.detail.value
 			},
 
-			// 单位转换：inch转cm
-			inchToCm(inch) {
-				return inch * 2.54
-			},
-			// 单位转换：lb转kg
-			lbToKg(lb) {
-				return lb * 0.453592
-			},
-
 			calculateMetrics() {
-				let height = parseFloat(this.form.height)
-				let weight = parseFloat(this.form.weight)
-				let waist = parseFloat(this.form.waist)
-
-				// 如果单位是英制，转换为公制计算
-				if (this.heightunit === 'inch' && height > 0) {
-					height = this.inchToCm(height)
-					// this.form.height =WeightConverter.cmToInch(height)
-				}
-				if (this.weightunit === 'lb' && weight > 0) {
-					weight = this.lbToKg(weight)
-				}
-				if (this.heightunit === 'inch' && waist > 0) {
-					waist = this.inchToCm(waist)
-				}
+				this.refreshDisplayUnits()
+				const {
+					height,
+					weight,
+					waist
+				} = this.toMetricBodyValues()
 
 				if (height > 0 && weight > 0) {
 					// BMI = 体重(kg) / 身高(m)²
@@ -417,6 +490,8 @@
 					}
 
 					this.showMetrics = true
+				} else {
+					this.showMetrics = false
 				}
 
 				if (waist > 0 && height > 0) {
@@ -455,8 +530,9 @@
 					})
 					return
 				}
-				this.form.heightunit = uni.getStorageSync("danwei1") === 0 ? "inch" : "cm"
-				this.form.weightunit = uni.getStorageSync("danwei2") === 1 ? "lb" : "kg"
+				this.refreshDisplayUnits()
+				this.form.heightunit = this.heightunit
+				this.form.weightunit = this.weightunit
 				// 保存到本地存储
 				const saveSuccess = this.saveToStorage()
 
@@ -515,11 +591,13 @@
 								diagnosisDate: '',
 								heightunit: "",
 								weightunit: "",
+								sleepTime: '',
 							}
 							this.bmi = 0
 							this.whtr = 0
 							this.showMetrics = false
 							this.showPreview = false
+							this.loadSleepData()
 							uni.showToast({
 								title: this.$t('已重置'),
 								icon: 'none'
@@ -670,6 +748,16 @@
 		font-size: 30rpx;
 		color: #007AFF;
 		font-weight: bold;
+	}
+
+	.sleep-empty-tip {
+		background-color: #fff7e6;
+		border: 2rpx solid #ffd591;
+		border-radius: 12rpx;
+		padding: 24rpx;
+		font-size: 28rpx;
+		color: #d48806;
+		line-height: 1.6;
 	}
 
 	.metrics-box {

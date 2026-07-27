@@ -10,7 +10,7 @@
 					</view>
 					<view class="data_item_bgsss">
 						<view class="icon_bgsss">
-							<image :src="item.image" class="img_stylesss" mode="aspectFit" />
+							<image lazy-load :src="item.image" class="img_stylesss" mode="aspectFit" />
 							<text class="icon_text_bgsss">{{item.title}}</text>
 						</view>
 						<view
@@ -77,7 +77,7 @@
 				@click="turess()">{{$t('确认')}}</button>
 		</view>
 		<!-- BMI普通弹窗 -->
-		<view>
+		<view v-if="showBmiPopup">
 			<uni-popup ref="popup1" :mask-click="false">
 				<view
 					style="background: #FFFFFF; border-radius: 24px; width: 90vw; padding-bottom: 20px;  margin: 0 10vw 0 10vw;">
@@ -139,27 +139,9 @@
 	export default {
 		data() {
 			return {
-				list: [
-					// {
-					// 	bmi_show: false,
-					// 	image: "../../../static/icons/1.png",
-					// 	Step_number: "-",
-					// 	title: this.$t('步数'),
-					// 	type_LX: this.$t('计步'),
-					// 	Step_count: "-",
-					// 	checkbox: false,
-
-					// }, 
-					// {
-					// 	bmi_show: false,
-					// 	image: "../../../static/icons/2.png",
-					// 	Step_number: "-",
-					// 	title: this.$t('身高'),
-					// 	type_LX: "cm",
-					// 	Step_count: "-",
-					// 	checkbox: false,
-					// },
-					{
+				showBmiPopup: false,
+				list: [],
+				defaultCards: [{
 						BMI_TF: 0,
 						BMI_ys: "-",
 						bmi_show: true,
@@ -175,7 +157,7 @@
 						image: "../../../static/page_icon/3.png",
 						Step_number: "-",
 						title: this.$t("骨含量"),
-						type_LX: "kg",
+						type_LX: this.$t("千克"),
 						Step_count: "-",
 						checkbox: false,
 					},
@@ -254,29 +236,41 @@
 				],
 			}
 		},
+		onLoad() {
+			this.initAvailableList()
+		},
 		onShow() {
 			uni.setNavigationBarTitle({
 				title: this.$t("编辑数据卡片")
 			})
-			// 获取存储的卡片列表
-			const kapianlist = uni.getStorageSync('kapianlist2');
-			if (kapianlist && kapianlist.length > 0) {
-				// 遍历存储的卡片列表
-				kapianlist.forEach(item => {
-					// 找到匹配的卡片并移除
-					const index = this.list.findIndex(listItem => listItem.title === item.title);
-					if (index !== -1) {
-						this.list.splice(index, 1);
-					}
-				});
-			}
-			// // 调用相关方法
-			this.list_recipe();
-			this.queryDevices()
+			this.initAvailableList()
+			setTimeout(() => {
+				this.list_recipe();
+			}, 0)
+			setTimeout(() => {
+				this.queryDevices()
+			}, 300)
 		},
 
 
 		methods: {
+			initAvailableList() {
+				const kapianlist = uni.getStorageSync('kapianlist2') || []
+				const addedTitles = new Set(kapianlist.map(item => item.title))
+				this.list = this.defaultCards
+					.filter(item => !addedTitles.has(item.title))
+					.map(item => ({
+						...item,
+						checkbox: false
+					}))
+			},
+			syncPrevPageList(newarr) {
+				const pages = getCurrentPages()
+				const prevPage = pages[pages.length - 2]
+				if (prevPage && prevPage.$vm) {
+					prevPage.$vm.list2 = newarr
+				}
+			},
 			dianji(id, checkid) {
 				if (checkid == true) {
 					this.list[id].checkbox = false
@@ -294,8 +288,8 @@
 				let newarr = list2.concat(list1);
 				// 更新本地存储
 				uni.setStorageSync("kapianlist2", newarr);
+				this.syncPrevPageList(newarr)
 				this.cardeditData(newarr)
-				// 返回上一页
 				uni.navigateBack();
 			},
 			cardeditData(list) {
@@ -319,10 +313,14 @@
 			},
 
 			BMI_tap(title) {
-				this.$refs.popup1.open("center")
+				this.showBmiPopup = true
+				this.$nextTick(() => {
+					this.$refs.popup1.open("center")
+				})
 			},
 			knowe1() {
 				this.$refs.popup1.close()
+				this.showBmiPopup = false
 			},
 			// 查询用户的绑定设备
 			queryDevices() {
@@ -508,7 +506,7 @@
 				let that = this
 				const heightItem = that.findValue(that.list, 'title', that.$t('身高'));
 				const height = that.findValue(item, 'register', 'height')?.registerVal;
-				const unit = uni.getStorageSync("danwei1") === 0 ? "inch" : "cm";
+				const unit = uni.getStorageSync("danwei1") === 0 ? that.$t("英寸") : that.$t("厘米");
 				heightItem.type_LX = unit;
 				heightItem.Step_number = height !== null ? height : '-/-';
 				heightItem.Step_count = that.formatDate(that.findValue(item, 'register', 'height')?.updateTime);

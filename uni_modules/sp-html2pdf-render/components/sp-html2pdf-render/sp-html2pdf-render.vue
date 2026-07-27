@@ -52,18 +52,60 @@
 				// canvas渲染图片完成
 				this.$emit('renderOver', e)
 			},
+			renderFail(err) {
+				uni.hideLoading()
+				uni.removeStorageSync('pdfreport')
+				console.error('sp-html2pdf-render fail:', err)
+				uni.showToast({
+					title: this.$t ? this.$t('生成失败') : '生成失败',
+					icon: 'none'
+				})
+				this.$emit('renderFail', err)
+			},
 			savePDF(e) {
-				// pdf生成完成
-				// if (this.showLoading) uni.showLoading({
-				// 	title: '导出中'
-				// })
+				// pdf生成完成（base64）
 				this.$emit('beforeSavePDF', e)
-				// 判断是否开启自动打开文件
-				// if (!this.autoOpen) {
-				// 	if (this.showLoading) uni.hideLoading()
-				// 	return
-				// }
 				this.openPDF(e)
+			},
+			/** App 端 renderjs 已落盘时，只传路径 */
+			openSavedPDF(path) {
+				this.$emit('beforeSavePDF', path)
+				const openByUni = () => {
+					uni.openDocument({
+						filePath: path,
+						showMenu: true,
+						success: () => {
+							uni.hideLoading()
+							this.$emit('successSavePDF', path)
+						},
+						fail: (err) => {
+							console.error('openDocument error', err)
+							// App 兜底用 runtime.openFile
+							// #ifdef APP-PLUS
+							try {
+								plus.runtime.openFile(path, {}, () => {
+									uni.hideLoading()
+									this.$emit('successSavePDF', path)
+								}, (e) => {
+									console.error('openFile error', e)
+									uni.hideLoading()
+									uni.showToast({
+										title: '打开失败',
+										icon: 'none'
+									})
+								})
+								return
+							} catch (e) {}
+							// #endif
+							uni.hideLoading()
+							uni.showToast({
+								title: '打开失败',
+								icon: 'none'
+							})
+						}
+					})
+				}
+				openByUni()
 			},
 			/**
 			 * 手动打开pdf文档
@@ -84,14 +126,17 @@
 							},
 							fail: (err) => {
 								console.error('openDocument error', err)
+								uni.hideLoading()
 							}
 						})
 					})
 					.catch((error) => {
 						console.error('base64ToPath error', error)
-					})
-					.finally(() => {
-						// if (this.showLoading) uni.hideLoading()
+						uni.hideLoading()
+						uni.showToast({
+							title: '保存失败',
+							icon: 'none'
+						})
 					})
 			},
 			// 渲染事件
@@ -128,54 +173,244 @@
 			}
 		},
 		methods: {
+			/**
+			 * App 本地 file:// 图片会污染 canvas，导致 toDataURL 抛 SecurityError。
+			 * 导出前将 DOM 内非 base64 图片转成 dataURL。
+			 */
+			imgToDataUrl(img) {
+				return new Promise((resolve) => {
+					const src = img.currentSrc || img.src || img.getAttribute('src') || ''
+					if (!src || src.indexOf('data:') === 0) {
+						resolve()
+						return
+					}
+					const applySrc = (dataUrl) => {
+						if (!dataUrl) {
+							resolve()
+							return
+						}
+						const onDone = () => resolve()
+						img.onload = onDone
+						img.onerror = onDone
+						img.setAttribute('src', dataUrl)
+						img.src = dataUrl
+						if (img.complete) onDone()
+					}
+					const readByPlus = (path) => {
+						if (typeof plus !== 'object' || !plus.io) {
+							resolve()
+							return
+						}
+						plus.io.resolveLocalFileSystemURL(path, (entry) => {
+							entry.file((file) => {
+								const reader = new plus.io.FileReader()
+								reader.onloadend = (e) => applySrc(e.target && e.target.result)
+								reader.onerror = () => resolve()
+								reader.readAsDataURL(file)
+							}, () => resolve())
+						}, () => resolve())
+					}
+					if (typeof plus === 'object' && plus.io && (src.indexOf('file://') === 0 || src.indexOf('_www') === 0)) {
+						readByPlus(src)
+						return
+					}
+					// H5 / 相对路径：XHR 读 blob 再转 base64，避免 canvas 污染
+					try {
+						const xhr = new XMLHttpRequest()
+						xhr.open('GET', src, true)
+						xhr.responseType = 'blob'
+						xhr.onload = function() {
+							if (this.status === 200 || this.status === 0) {
+								const reader = new FileReader()
+								reader.onloadend = () => applySrc(reader.result)
+								reader.onerror = () => resolve()
+								reader.readAsDataURL(this.response)
+							} else if (typeof plus === 'object') {
+								readByPlus(src)
+							} else {
+								resolve()
+							}
+						}
+						xhr.onerror = () => {
+							if (typeof plus === 'object') {
+								readByPlus(src)
+							} else {
+								resolve()
+							}
+						}
+						xhr.send()
+					} catch (e) {
+						if (typeof plus === 'object') {
+							readByPlus(src)
+						} else {
+							resolve()
+						}
+					}
+				})
+			},
+			async ensureImagesBase64(rootEl) {
+				const imgs = rootEl.querySelectorAll('img')
+				await Promise.all(Array.from(imgs).map((img) => this.imgToDataUrl(img)))
+			},
+			collectChartCanvases(rootEl) {
+				const map = new Map()
+				const add = (c) => {
+					if (!c || typeof c.getContext !== 'function') return
+					if (!c.width || !c.height) return
+					map.set(c, c)
+				}
+				rootEl.querySelectorAll('canvas').forEach(add)
+				// uni-app App 上 qiun 常把真实绘图 canvas 挂在组件壳子的 children[0]
+				rootEl.querySelectorAll('[canvas-id], [canvasId], uni-canvas').forEach((host) => {
+					if (host.tagName && host.tagName.toLowerCase() === 'canvas') add(host)
+					if (host.children && host.children[0]) add(host.children[0])
+					host.querySelectorAll && host.querySelectorAll('canvas').forEach(add)
+				})
+				const chartHost = document.getElementById('dtyulanChart')
+				if (chartHost) {
+					add(chartHost)
+					if (chartHost.children && chartHost.children[0]) add(chartHost.children[0])
+					chartHost.querySelectorAll && chartHost.querySelectorAll('canvas').forEach(add)
+				}
+				return Array.from(map.values())
+			},
+			async ensureCanvasesAsImages(rootEl) {
+				// qiun/uCharts 画在 canvas 上，html2canvas 克隆时常丢像素：先在原 DOM 换成 img，截完再还原
+				const canvases = this.collectChartCanvases(rootEl)
+				const restores = []
+				for (const c of canvases) {
+					try {
+						if (!c.width || !c.height) continue
+						const dataUrl = c.toDataURL('image/png')
+						if (!dataUrl || dataUrl.length < 100) continue
+						const img = document.createElement('img')
+						img.src = dataUrl
+						const cssText = c.getAttribute('style') || ''
+						if (cssText) img.style.cssText = cssText
+						const w = c.offsetWidth || parseInt(c.style.width, 10) || c.width
+						const h = c.offsetHeight || parseInt(c.style.height, 10) || c.height
+						img.style.width = `${w}px`
+						img.style.height = `${h}px`
+						img.style.display = 'block'
+						img.style.maxWidth = '100%'
+						const parent = c.parentNode
+						if (!parent) continue
+						parent.replaceChild(img, c)
+						restores.push(() => {
+							try {
+								if (img.parentNode === parent) parent.replaceChild(c, img)
+							} catch (e) {}
+						})
+					} catch (e) {
+						console.log('==== canvas snapshot fail :', e)
+					}
+				}
+				console.log('==== canvas replaced :', restores.length, '/', canvases.length)
+				if (restores.length) {
+					await new Promise((r) => setTimeout(r, 80))
+				}
+				return () => {
+					restores.forEach((fn) => fn())
+				}
+			},
+			/**
+			 * 收集不应被分页切断的区域（相对 root 顶部，CSS 像素）
+			 */
+			collectCutGuides(rootEl) {
+				const rootRect = rootEl.getBoundingClientRect()
+				const guides = []
+				const add = (node) => {
+					if (!node || !node.getBoundingClientRect) return
+					const r = node.getBoundingClientRect()
+					const start = r.top - rootRect.top
+					const end = r.bottom - rootRect.top
+					if (end <= start) return
+					guides.push({
+						start,
+						end
+					})
+				}
+				rootEl.querySelectorAll('.pdf-keep-together, .charts-box, .listitemall, .pdf-table-head').forEach(add)
+				return guides
+			},
+			/**
+			 * 若预定裁切线落在禁止切断区域内，则上移到该区域顶部之前
+			 */
+			adjustSliceHeight(position, pageCanvasHeight, leftHeight, cutGuides) {
+				let sliceHeight = Math.min(leftHeight, pageCanvasHeight)
+				if (leftHeight <= pageCanvasHeight || !cutGuides || !cutGuides.length) {
+					return Math.max(1, Math.floor(sliceHeight))
+				}
+				const cutY = position + sliceHeight
+				let adjustedCut = cutY
+				for (let i = 0; i < cutGuides.length; i++) {
+					const g = cutGuides[i]
+					// 块本身超过一页，无法避免切断
+					if (g.end - g.start >= pageCanvasHeight * 0.92) continue
+					if (cutY > g.start + 1 && cutY < g.end - 1) {
+						if (g.start > position + 8) {
+							adjustedCut = Math.min(adjustedCut, g.start)
+						}
+					}
+				}
+				sliceHeight = adjustedCut - position
+				// 裁切过短会导致几乎空白页，此时仍按原高度切，避免死循环
+				if (!(sliceHeight > 0) || sliceHeight < pageCanvasHeight * 0.18) {
+					sliceHeight = Math.min(leftHeight, pageCanvasHeight)
+				}
+				return Math.max(1, Math.floor(sliceHeight))
+			},
 			async renderDom() {
 				// app无法通过传参获取domId,也无法直接获取到script中data或props数据
 				// 必须通过特定的监听方式,与script通信,获取其data
+				let restoreCanvases = null
 				try {
 					const el = document.getElementById(this.domIdValue);
 					if (!el) {
 						console.error('dom盒子未加载成功，请先确保dom渲染完成，再检查你的domId是否有误');
+						this.$ownerInstance.callMethod('renderFail', 'dom not found')
 						return
 					}
+					// 先转 base64，再截图，避免 file:// 污染 canvas
+					await this.ensureImagesBase64(el)
+					restoreCanvases = await this.ensureCanvasesAsImages(el)
+					const cutGuidesCss = this.collectCutGuides(el)
 					/**
 					 * 配置说明
 					 * 1. allowTaint:true和useCORS:true都是解决跨域问题的方式(不一定完全能解决跨域)，不同的是使用allowTaint会对canvas造成污染，导致无法使用canvas.toDataURL方法
 					 * 2. 想要完美解决跨域，还得需要后端服务器设置access-control-allow-origin: *，允许资源跨域访问，前端设置useCORS:true
 					 * 2. scale通过放大倍率来调整画质清晰度，但是只调整这一个参数可能不是最优解
+					 * App 长报告用 scale:1.5，避免超大 canvas 在 toDataURL/jsPDF 阶段内存卡死
 					 */
+					const isApp = typeof plus === 'object'
+					const scale = isApp ? 1.5 : 2
 					const canvas = await html2canvas(el, {
 						width: el.offsetWidth,
 						height: el.offsetHeight,
 						x: 0,
 						y: 0,
-						logging: true,
+						logging: false,
 						useCORS: true,
-						// allowTaint: true,
-						// async: false,
-						scale: 2, // 2倍，增强清晰度
-						// foreignObjectRendering: true, // 兼容性问题，慎用
+						allowTaint: false,
+						scale,
+						backgroundColor: '#ffffff',
 					});
-					const base64 = canvas.toDataURL('image/png', 1);
-					this.$ownerInstance.callMethod('renderOver', base64);
-					// 创建PDF
-
-					// 页头页脚
-					let divNode = document.createElement("div")
-					divNode.style.width = '100%' // 设置div的宽度为100%
-					divNode.style.height = '20px' // 设置div的高度为20px，用于页头页脚的高度
-					document.body.appendChild(divNode)
-					const divCanvas = await html2canvas(divNode, {
-						width: divNode.offsetWidth,
-						height: divNode.offsetHeight,
-						x: 0,
-						y: 0,
-						scale: 0.5, // 2倍，增强清晰度
-						backgroundColor: '#ffffff', // 背景色，防止出现透明部分导致pdf背景色异常
-					});
-
-					this.createPDF(canvas, divCanvas)
+					if (typeof restoreCanvases === 'function') restoreCanvases()
+					restoreCanvases = null
+					const ratio = canvas.width / Math.max(el.offsetWidth, 1)
+					const cutGuides = cutGuidesCss.map((g) => ({
+						start: g.start * ratio,
+						end: g.end * ratio
+					}))
+					console.log('==== cut guides :', cutGuides.length)
+					// 不再导出整图 PNG（长报告可达上百 MB，callMethod 会卡住）
+					this.$ownerInstance.callMethod('renderOver', '')
+					console.log('==== html2canvas done, size:', canvas.width, canvas.height)
+					await this.createPDF(canvas, cutGuides)
 				} catch (err) {
+					if (typeof restoreCanvases === 'function') restoreCanvases()
 					console.log('==== err :', err);
+					this.$ownerInstance.callMethod('renderFail', String(err && err.message ? err.message : err))
 				}
 			},
 			// 监听方式,与script通信,获取其data
@@ -188,89 +423,151 @@
 					this.renderDom()
 				}
 			},
-			createPDF(canvas, divCanvas) {
-				const a4width = 592.28; // A4纸宽度
-				const a4height = 841.89; // A4纸高度
-				const divheight = 20; // 页头页脚高度
+			/**
+			 * 按页切片写入 PDF，避免整图 toDataURL + 每页重复嵌入导致 App 假死
+			 */
+			createPageSlice(sourceCanvas, sy, sliceHeight) {
+				sy = Math.max(0, Math.floor(sy))
+				sliceHeight = Math.max(1, Math.floor(sliceHeight))
+				if (sy >= sourceCanvas.height) {
+					sy = Math.max(0, sourceCanvas.height - 1)
+					sliceHeight = 1
+				}
+				if (sy + sliceHeight > sourceCanvas.height) {
+					sliceHeight = Math.max(1, sourceCanvas.height - sy)
+				}
+				const pageCanvas = document.createElement('canvas')
+				pageCanvas.width = sourceCanvas.width
+				pageCanvas.height = sliceHeight
+				const ctx = pageCanvas.getContext('2d')
+				ctx.fillStyle = '#ffffff'
+				ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+				ctx.drawImage(
+					sourceCanvas,
+					0, sy, sourceCanvas.width, sliceHeight,
+					0, 0, sourceCanvas.width, sliceHeight
+				)
+				const dataUrl = pageCanvas.toDataURL('image/jpeg', 0.72)
+				pageCanvas.width = 0
+				pageCanvas.height = 0
+				return dataUrl
+			},
+			async createPDF(canvas, cutGuides) {
+				try {
+					const a4width = 592.28
+					const a4height = 841.89
+					const margin = 16
+					const contentWidth = canvas.width
+					const contentHeight = canvas.height
+					const imgWidth = a4width - margin * 2
+					const maxDrawHeight = a4height - margin * 2
+					const pageCanvasHeight = Math.floor((contentWidth / imgWidth) * maxDrawHeight)
+					const pdf = new JsPDF('', 'pt', 'a4')
+					let leftHeight = contentHeight
+					let position = 0
+					let pageIndex = 0
+					const guides = cutGuides || []
+					const maxPages = Math.ceil(contentHeight / Math.max(pageCanvasHeight, 1)) + 5
 
-				// 生成PDF
-				let contentWidth = canvas.width
-				let contentHeight = canvas.height
-				// 一页pdf显示html页面生成的canvas高度;
-				let pageHeight = (contentWidth / a4width) * a4height - divheight * 2
-				// 未生成pdf的html页面高度
-				let leftHeight = contentHeight
-				// 页面偏移
-				let position = 0
-				// a4纸的尺寸[a4width,a4height]，html页面生成的canvas在pdf中图片的宽高
-				let imgWidth = a4width
-				let imgHeight = (a4width / contentWidth) * contentHeight
-				let pageData = canvas.toDataURL('image/png', 1.0)
-				let divData = divCanvas.toDataURL('image/png', 1.0)
-				let pdf = new JsPDF('', 'pt', 'a4')
-				// 有两个高度需要区分，一个是html页面的实际高度，和生成pdf的页面高度(a4height)
-				// 当内容未超过pdf一页显示的范围，无需分页
-				if (leftHeight < pageHeight) {
-					// 在pdf.addImage(pageData, 'JPEG', 左，上，宽度，高度)设置在pdf中显示；
-					pdf.addImage(pageData, 'JPEG', 0, 0, imgWidth, imgHeight)
-				} else {
-					// 分页
-					while (leftHeight > 0) {
-						pdf.addImage(pageData, 'JPEG', 0, position, imgWidth, imgHeight)
-						// 页头页尾占位
-						pdf.addImage(divData, 'JPEG', 0, 0, imgWidth, divheight)
-						pdf.addImage(divData, 'JPEG', 0, a4height - divheight, imgWidth, divheight)
-						leftHeight -= pageHeight
-						position -= a4height - divheight * 2
-						// 避免添加空白页
-						if (leftHeight > 0) {
+					console.log('==== createPDF start, pages ~', Math.ceil(contentHeight / pageCanvasHeight))
+
+					while (leftHeight > 0 && pageIndex < maxPages) {
+						let sliceHeight = this.adjustSliceHeight(position, pageCanvasHeight, leftHeight, guides)
+						sliceHeight = Math.min(sliceHeight, leftHeight, contentHeight - position)
+						if (!(sliceHeight > 0)) break
+						const pageData = this.createPageSlice(canvas, position, sliceHeight)
+						let drawHeight = (imgWidth / contentWidth) * sliceHeight
+						if (drawHeight > maxDrawHeight) drawHeight = maxDrawHeight
+						if (pageIndex > 0) {
 							pdf.addPage()
 						}
+						pdf.addImage(pageData, 'JPEG', margin, margin, imgWidth, drawHeight)
+						leftHeight -= sliceHeight
+						position += sliceHeight
+						pageIndex++
+						console.log('==== pdf page', pageIndex, 'slice', Math.round(sliceHeight), 'left', Math.round(leftHeight))
+						await new Promise((r) => setTimeout(r, 30))
 					}
-				}
-				// #ifdef H5
-				//调用依赖获取读写手机储存权限的代码
-				// pdf.save('PDF文件名')
-				let base64Str = pdf.output('dataurlstring');
-				this.$ownerInstance.callMethod('savePDF', base64Str)
-				// #endif
 
-				// #ifdef APP
-				if (plus.os.name == 'Android') {
-					// plus.android.requestPermissions(['android.permission.WRITE_EXTERNAL_STORAGE'], (e) => {
-					// 	if (e.deniedAlways.length > 0) { //权限被永久拒绝
-					// 		// 弹出提示框解释为何需要读写手机储存权限，引导用户打开设置页面开启
-					// 		//   uni.showModal({
-					// 		//     title: '存储权限',
-					// 		//     content: '您拒绝了存储权限，请去设置-应用开启存储权限。',
-					// 		//     success: function(res) {
-					// 		//       if (res.confirm) {
-					// 		//         // console.log('用户点击确定');
-					// 		//       } else if (res.cancel) {
-					// 		//         // console.log('用户点击取消');
-					// 		//       }
-					// 		//     }
-					// 		//   });
-					// 		let base64Str = pdf.output('dataurlstring');
-					// 		this.$ownerInstance.callMethod('savePDF', base64Str)
-					// 	}
-
-					// 	if (e.deniedPresent.length > 0) { //权限被临时拒绝
-					// 		// 弹出提示框解释为何需要读写手机储存权限，可再次调用plus.android.requestPermissions申请权限
-					// 		plus.android.requestPermissions(['android.permission.WRITE_EXTERNAL_STORAGE'])
-					// 	}
-					// 	if (e.granted.length > 0) { //权限被允许
-					// 		//调用依赖获取读写手机储存权限的代码
-					let base64Str = pdf.output('dataurlstring');
-					this.$ownerInstance.callMethod('savePDF', base64Str)
-					// 	}
-					// }, function(e) {});
-				} else {
-					// ios无须读写手机存储权限
-					let base64Str = pdf.output('dataurlstring');
-					this.$ownerInstance.callMethod('savePDF', base64Str)
+					console.log('==== pdf output start, pages', pageIndex)
+					if (typeof plus === 'object' && plus.io) {
+						const path = await this.savePdfFileOnApp(pdf)
+						console.log('==== pdf saved path', path)
+						this.$ownerInstance.callMethod('openSavedPDF', path)
+					} else {
+						const base64Str = pdf.output('dataurlstring')
+						console.log('==== pdf output done, len', base64Str && base64Str.length)
+						this.$ownerInstance.callMethod('savePDF', base64Str)
+					}
+				} catch (err) {
+					console.log('==== createPDF err :', err)
+					this.$ownerInstance.callMethod('renderFail', String(err && err.message ? err.message : err))
 				}
-				// #endif
+			},
+			savePdfFileOnApp(pdf) {
+				return new Promise((resolve, reject) => {
+					let dataUri = ''
+					try {
+						dataUri = pdf.output('datauristring')
+					} catch (e) {
+						reject(e)
+						return
+					}
+					const comma = dataUri.indexOf(',')
+					const base64Data = comma >= 0 ? dataUri.substring(comma + 1) : dataUri
+					if (!base64Data) {
+						reject(new Error('empty pdf base64'))
+						return
+					}
+					const fileName = 'report_' + Date.now() + '.pdf'
+					const basePath = '_doc'
+					const dirPath = 'uniapp_temp'
+					const filePath = basePath + '/' + dirPath + '/' + fileName
+					const chunkSize = 256 * 1024
+					plus.io.resolveLocalFileSystemURL(basePath, (entry) => {
+						entry.getDirectory(dirPath, {
+							create: true,
+							exclusive: false
+						}, (dirEntry) => {
+							dirEntry.getFile(fileName, {
+								create: true,
+								exclusive: false
+							}, (fileEntry) => {
+								fileEntry.createWriter((writer) => {
+									let offset = 0
+									let phase = 'truncate'
+									writer.onerror = (e) => reject(e)
+									writer.onwriteend = () => {
+										if (phase === 'truncate') {
+											phase = 'write'
+											offset = 0
+											writer.seek(0)
+											const first = base64Data.substring(0, chunkSize)
+											offset = first.length
+											writer.writeAsBinary(first)
+											return
+										}
+										if (offset < base64Data.length) {
+											const chunk = base64Data.substring(offset, offset + chunkSize)
+											offset += chunk.length
+											writer.writeAsBinary(chunk)
+											return
+										}
+										console.log('==== pdf write done, bytes~', base64Data.length)
+										resolve(filePath)
+									}
+									try {
+										writer.truncate(0)
+									} catch (e) {
+										phase = 'write'
+										writer.seek(0)
+										writer.writeAsBinary(base64Data)
+									}
+								}, reject)
+							}, reject)
+						}, reject)
+					}, reject)
+				})
 			}
 		}
 	}

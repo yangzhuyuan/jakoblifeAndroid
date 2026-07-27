@@ -190,9 +190,9 @@
  						chexk1: this.chexk1,
  						switch: true
  					}
- 					let bb = uni.getStorageSync("tixing1")
+ 					let bb = uni.getStorageSync("tixing1") || []
  					bb.push(aaa)
- 					console.log(bb)
+ 					console.log("batch_del", bb)
  					uni.setStorageSync("tixing", bb)
  					uni.showToast({
  						title: this.$t('保存成功'),

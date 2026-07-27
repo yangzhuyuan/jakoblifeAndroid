@@ -39,7 +39,8 @@
 			let that = this
 			const lan = uni.getLocale()
 			// 根据语言设置登录图片
-			that.loginimg = lan === 'zh-Hans' ? '/static/icons/14.png' : '/static/icons/loginssss.png';
+			that.loginimg = (lan === 'zh-Hans' || lan === "zh-Hant") ? '/static/icons/14.png' :
+				'/static/icons/loginssss.png';
 			if (that.agreed === true) {
 				that.checkToken()
 			}

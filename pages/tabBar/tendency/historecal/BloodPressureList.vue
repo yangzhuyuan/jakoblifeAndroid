@@ -272,7 +272,7 @@
 			},
 
 			formatPressureValue(v) {
-				return this.bloodUnit === "mmHg" ? v : (v * 0.133).toFixed(1);
+				return this.bloodUnit === "mmHg" ? v || "-/-" : (v * 0.133).toFixed(1) || "-/-";
 			},
 
 			getPressureColor(l) {

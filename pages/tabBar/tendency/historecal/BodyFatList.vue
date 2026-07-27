@@ -41,7 +41,7 @@
 										<view class="data-item">
 											<text class="data-label">{{$t('体重')}}/{{newweightKG}}</text>
 											<text
-												class="data-value">{{newweightKG==="KG"? item.object.summary.weightAvg :WeightConverter.kgToLb(item.object.summary.weightAvg)}}</text>
+												class="data-value">{{(newweightKG==="KG"||newweightKG==="千克")? item.object.summary.weightAvg :WeightConverter.kgToLb(item.object.summary.weightAvg)}}</text>
 										</view>
 
 										<view class="data-item">
@@ -109,7 +109,7 @@
 												<view class="data-item">
 													<text class="data-label">{{$t('体重')}}/{{newweightKG}}</text>
 													<text
-														class="data-value">{{newweightKG==="KG"? detail.weight :WeightConverter.kgToLb(detail.weight)}}</text>
+														class="data-value">{{(newweightKG==="KG"||newweightKG==="千克")? detail.weight :WeightConverter.kgToLb(detail.weight)}}</text>
 												</view>
 
 												<view class="data-item">
@@ -176,7 +176,7 @@
 										<view class="list-data-item">
 											<text class="list-data-label">{{$t('体重')}}/{{newweightKG}}</text>
 											<text
-												class="list-data-value">{{newweightKG==="KG"? item.object.summary.weightAvg:WeightConverter.kgToLb(item.object.summary.weightAvg)}}</text>
+												class="list-data-value">{{(newweightKG==="KG"||newweightKG==="千克")? item.object.summary.weightAvg:WeightConverter.kgToLb(item.object.summary.weightAvg)}}</text>
 										</view>
 
 										<view class="list-data-item">
@@ -206,7 +206,7 @@
 						class="table-row">
 						<text class="table-cell time-cell">{{ detail.time }}</text>
 						<text
-							class="table-cell">{{newweightKG==="KG"? detail.weight :WeightConverter.kgToLb(detail.weight )}}</text>
+							class="table-cell">{{(newweightKG==="KG"||newweightKG==="千克")? detail.weight :WeightConverter.kgToLb(detail.weight )}}</text>
 						<text class="table-cell">{{ detail.bmi }}</text>
 						<text class="table-cell">{{ item.dateTime }}</text>
 					</view>
@@ -240,7 +240,7 @@
 				isSwiping: false,
 				lastSwipeId: null,
 				startX: 0,
-				newweightKG: uni.getStorageSync("danwei2") === 1 ? "lb" : "KG",
+				newweightKG: uni.getStorageSync("danwei2") === 1 ? this.$t("英镑") : this.$t("千克"),
 				WeightConverter: WeightConverter,
 			}
 		},

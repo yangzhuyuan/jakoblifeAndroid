@@ -139,6 +139,7 @@
 				deviceId: '',
 				serviceId: '',
 				uuid: '',
+				notifyuuid: '',
 				modelId: '',
 			}
 		},
@@ -437,6 +438,9 @@
 								that.serviceId = serviceId
 								that.uuid = item.uuid
 							}
+							if (item.properties.notify) {
+								that.notifyuuid = item.uuid
+							}
 							that.$refs.popup1.open("bottom")
 							that.$refs.popup.close()
 						}
@@ -453,7 +457,8 @@
 				uni.navigateTo({
 					url: '../../Bind/Bing_xueya/Bing_xueya_2?deviceId=' + that.deviceId +
 						"&serviceId=" + that.serviceId + "&uuid=" + that.uuid + "&sn=" + that.sn +
-						"&SELECT_TYPE=" + that.SELECT_TYPE + "&modelId=" + that.modelId
+						"&SELECT_TYPE=" + that.SELECT_TYPE + "&modelId=" + that.modelId + "&notifyuuid=" + that
+						.notifyuuid
 				})
 			},
 			android() {

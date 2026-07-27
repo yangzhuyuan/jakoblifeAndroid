@@ -16,15 +16,19 @@
 		<view v-if="img_scan" class="Message">
 			{{ modelname === 'BPW1' ? $t('扫描手表里边的二维码') : $t('扫描设备背面的二维码') }}
 		</view>
-
 		<!-- 操作按钮 -->
 		<button class="button_style2" style="" @click="ButtonTap">{{ $t('输入设备码') }}</button>
-
 		<!-- 设备示意图 -->
 		<view class="device-images">
 			<template v-if="modelname === 'BPW1'">
 				<image class="imgss_sc" mode="aspectFit" src="/static/image/sc_shoubiao2.jpg" />
 				<image class="imgss_sc" mode="aspectFit" src="/static/image/sc_shoubiao1.jpg" />
+			</template>
+			<template v-else-if="modelname === 'BPW6'">
+				<image class="imgss_sc" mode="aspectFit"
+					:src="(language === 'zh-Hans' || language == 'zh-Hant')?'/static/image/U19M_zh_1.jpg':'/static/image/U19M_en_1.jpg'" />
+				<image class="imgss_sc" mode="aspectFit"
+					:src="(language === 'zh-Hans' || language == 'zh-Hant')?'/static/image/U19M_zh_2.jpg':'/static/image/U19M_en_2.jpg'" />
 			</template>
 			<image v-else-if="isScaleDevice" class="imgss_sc" mode="aspectFit" src="/static/image/sc_tz.jpg" />
 			<image v-else class="imgss_sc" mode="aspectFit" src="/static/image/sc_xy.jpg" />
@@ -57,7 +61,8 @@
 				<view class="popup-body">
 					<view class="popupstusdsditem">{{ $t('配对成功') }}</view>
 					<view class="popupstusdsditem_1">{{ $t('蓝牙已连接成功') }}</view>
-					<view>{{ $t('标准蓝牙提示') }}</view>
+					<view v-if="modelname === 'BPW6'">{{ $t('标准蓝牙提示BPW6') }}</view>
+					<view v-else>{{ $t('标准蓝牙提示') }}</view>
 				</view>
 				<button class="butonstsd" @click="turesss">{{ $t('确定') }}</button>
 			</view>
@@ -70,29 +75,33 @@
 		mapMutations
 	} from 'vuex'
 	import appScan from '@/uni_modules/simbalkj-scan/components/simbalkj-scan/appScan.vue'
+	import {
+		u16proBLE
+	} from '@/pages/api/protocol/u16pro-ble-manager.js'
 
 	// 常量定义
 	const PLATFORM = uni.getSystemInfoSync().platform
 	const CURRENT_LANG = uni.getLocale()
+	const BPW6_SERVICE = '6E40FFF0-B5A3-F393-E0A9-E50E24DCCA9E'
 
 	// 设备图片映射
 	const DEVICE_IMAGES = {
 		zh: {
 			30000: '/static/image/BPW1.png',
-			30001: '/static/image/BPW1.png',
-			20000: '/static/image/tizhi1.jpg',
-			20001: '/static/image/tizhi1.jpg',
-			10000: '/static/image/xueya1.png',
-			10001: '/static/image/xueya1.png',
-			10002: '/static/image/xueya1.png',
-			10003: '/static/image/xueya1.png',
-			10004: '/static/image/xueya1.png',
-			10005: '/static/image/xueya1.png',
-			10006: '/static/image/xueya1.png'
+			30001: '/static/image/BPW6.jpg',
+			20000: '/static/image/jls260.png',
+			20001: '/static/image/jls260.png',
+			10000: '/static/image/617.png',
+			10001: '/static/image/BP68.png',
+			10002: '/static/image/BP67.png',
+			10003: '/static/image/68G.png',
+			10004: '/static/image/BP67.png',
+			10005: '/static/image/68G.png',
+			10006: '/static/image/68G.png'
 		},
 		default: {
 			30000: '/static/image/shoubiao1.png',
-			30001: '/static/image/shoubiao1.png',
+			30001: '/static/image/BPW6.jpg',
 			20000: '/static/image/tizhi1.jpg',
 			20001: '/static/image/tizhi1.jpg',
 			10000: '/static/image/xueya1.png',
@@ -152,11 +161,15 @@
 				// BPW1专用
 				BPW1deviceId: '',
 				BPW1model: '30000',
+				// BPW6专用
+				BPW6deviceId: '',
+				BPW6model: '30001',
 
 				// 蓝牙相关
 				writeuuid: '',
 				scanTimer: null,
-				retryCount: 0
+				retryCount: 0,
+				language: uni.getLocale(),
 			}
 		},
 
@@ -185,6 +198,7 @@
 		},
 
 		onShow() {
+			this.setDeviceBindingActive(true)
 			// 关键修复：如果正在等待用户从设置返回，检查权限并继续
 			if (this.pendingLocationCheck) {
 				this.pendingLocationCheck = false
@@ -204,6 +218,12 @@
 			setTimeout(() => this.initBluetooth(), 1000)
 		},
 
+		onHide() {
+			if (!this.pendingLocationCheck) {
+				this.setDeviceBindingActive(false)
+			}
+		},
+
 		onUnload() {
 			this.cleanup()
 		},
@@ -216,7 +236,15 @@
 		},
 
 		methods: {
-			...mapMutations(['setacktypes']),
+			...mapMutations(['setacktypes', 'setacktypes6']),
+
+			setDeviceBindingActive(active) {
+				const gt = this.$globalTimers
+				if (gt) {
+					gt.deviceBindingActive = active
+				}
+				uni.$emit(active ? 'DEVICE_BIND_PAGE_ACTIVE' : 'DEVICE_BIND_PAGE_INACTIVE')
+			},
 
 			// ==================== 蓝牙初始化 ====================
 
@@ -556,16 +584,19 @@
 			 * 处理扫码结果
 			 */
 			getCode(barCode) {
-
-				console.log("barCode", barCode)
-
-
-				if (this.modelname === 'BPW1') {
-					this.handleBPW1Code(barCode)
-				} else {
-					this.context_msg = barCode
-					this.img_scan = false
-					this.getDeviceInfo()
+				console.log("barCode", barCode, this.modelname)
+				switch (this.modelname) {
+					case 'BPW1':
+						this.handleBPW1Code(barCode)
+						break;
+					case 'BPW6':
+						this.handleBPW6Code(barCode)
+						break
+					default:
+						this.context_msg = barCode
+						this.img_scan = false
+						this.getDeviceInfo()
+						break;
 				}
 			},
 
@@ -574,19 +605,35 @@
 			 */
 			handleBPW1Code(barCode) {
 				const match = barCode.match(/para=([^&]+)/)
-
 				if (match?.[1]) {
 					this.BPW1deviceId = match[1]
 					const cleanMac = match[1].replace(/:/g, '')
 					const prefix = cleanMac.slice(0, 4)
-
-					this.context_msg = prefix === '4142' ?
-						`300000${cleanMac}` :
-						match[1]
+					this.context_msg = prefix === '4142' ? `300000${cleanMac}` : match[1]
 				} else {
+					let output = this.formatMacCustom(barCode);
+					console.log("output", output); // 输出: 41:42:2E:E1:C6:6D
+					this.BPW1deviceId = output;
 					this.context_msg = barCode
 				}
+				console.log("context_msg", this.context_msg)
+				this.img_scan = false
+				this.getDeviceInfo()
+			},
 
+			handleBPW6Code(barCode) {
+				if (barCode && !barCode.includes("300001")) {
+					this.BPW6deviceId = barCode
+					const cleanMac = barCode.replace(/:/g, '')
+					const prefix = cleanMac.slice(0, 4)
+					this.context_msg = `300001${cleanMac}`
+				} else {
+					let output = this.formatMacCustom(barCode);
+					console.log("output", output); // 输出: 41:42:2E:E1:C6:6D
+					this.BPW6deviceId = output;
+					this.context_msg = barCode
+				}
+				console.log("context_msg", this.context_msg)
 				this.img_scan = false
 				this.getDeviceInfo()
 			},
@@ -600,7 +647,6 @@
 				const data = {
 					deviceSn: this.context_msg
 				}
-
 				this.$post(this.$url_APP_IP + this.$url_get_device_info, data, {
 						'Authorization': `Bearer ${uni.getStorageSync('token')}`,
 						'content-type': 'application/x-www-form-urlencoded'
@@ -616,18 +662,23 @@
 					this.showDeviceMismatch()
 					return
 				}
-
 				// BPW1特殊验证
 				if (res.data.model === 'BPW1' && res.data.mac) {
 					const inputSn = this.context_msg.slice(6, 16)
 					const serverSn = res.data.deviceSn.slice(6, 16)
-
 					if (inputSn !== serverSn) {
 						this.showDeviceMismatch()
 						return
 					}
 				}
-
+				if (res.data.model === 'BPW6' && res.data.mac) {
+					const inputSn = this.context_msg.slice(6, 16)
+					const serverSn = res.data.deviceSn.slice(6, 16)
+					if (inputSn !== serverSn) {
+						this.showDeviceMismatch()
+						return
+					}
+				}
 				// 设置设备信息（保持img_scan = false）
 				this.setDeviceInfo(res.data)
 			},
@@ -637,13 +688,15 @@
 			 */
 			setDeviceInfo(data) {
 				this.img_scan = false // 确保显示设备信息界面
-				this.xinghao = `${this.$t('型号')}${data.model}`
+				this.xinghao = `${this.$t('型号')}${data.model==="BPW6"?"U19M":data.model}`
 				this.context_msg = `SN:${data.deviceSn}`
 				this.context_msg1 = data.deviceSn
 				this.modelId = data.modelId
+				if (data.model === 'BPW6' && data.mac && !this.BPW6deviceId) {
+					this.BPW6deviceId = data.mac
+				}
 				this.updateScanImage(data.picturePath)
 			},
-
 			/**
 			 * 显示设备不匹配提示
 			 */
@@ -677,7 +730,6 @@
 					})
 					return
 				}
-
 				this.queryUserDevices()
 			},
 
@@ -714,16 +766,13 @@
 					})
 					return
 				}
-
 				// 无设备直接跳转
 				if (!res.rows?.length) {
 					this.navigateToBind(this.modelId)
 					return
 				}
-
 				// 检查是否已绑定
 				const exists = res.rows.some(item => item.deviceSn === this.context_msg1)
-
 				if (exists) {
 					uni.setStorageSync('deviceSn', this.context_msg1)
 					uni.showToast({
@@ -744,6 +793,7 @@
 			 * 跳转到绑定页面
 			 */
 			navigateToBind(modelId) {
+				console.log("navigateToBind", modelId)
 				const routes = {
 					0: () => this.bindDeviceDirectly(this.context_msg1, '', modelId),
 					1: () => this.handleBLEBind(modelId),
@@ -751,7 +801,6 @@
 						url: `../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=${this.SELECT_TYPE}&sn=${this.context_msg1}&modelname=${this.modelname}&modelId=${modelId}`
 					})
 				}
-
 				routes[this.modelConnectType]?.()
 			},
 
@@ -789,9 +838,14 @@
 			 * 处理蓝牙绑定
 			 */
 			handleBLEBind(modelId) {
+				console.log("handleBLEBind", this.context_msg1, this.BPW1deviceId, this.BPW6deviceId, modelId, this
+					.modelname)
 				if (this.modelname === 'BPW1') {
 					this.BPW1model = modelId
 					this.bindBPW1Device(this.context_msg1, this.BPW1deviceId, modelId)
+				} else if (this.modelname === 'BPW6') {
+					this.BPW6model = modelId
+					this.bindBPW6Device(this.context_msg1, this.BPW6deviceId, modelId)
 				} else {
 					uni.navigateTo({
 						url: `../../Bind/Bing_xueya/Bing_xueya_LY?SELECT_TYPE=${this.SELECT_TYPE}&sn=${this.context_msg1}&modelname=${this.modelname}&modelId=${modelId}`
@@ -809,7 +863,6 @@
 					deviceSn: sn,
 					mac: mac.trim()
 				}
-
 				this.$post(this.$url_APP_IP + this.$url_bind_device, data, {
 						'Authorization': `Bearer ${uni.getStorageSync('token')}`,
 						'content-type': 'application/x-www-form-urlencoded;'
@@ -817,6 +870,14 @@
 					.catch(() => uni.reLaunch({
 						url: '../Bing_page/Bind_fail'
 					}))
+			},
+			formatMacCustom(hexStr) {
+				// 去掉前6个字符 '300000'，然后取后面的MAC地址
+				let mac = hexStr.slice(6); // 得到 '41422EE1C66D'
+				// 每两位一组，用冒号连接
+				let result = mac.match(/.{2}/g).join(':');
+				// 转换为大写（如果需要）
+				return result.toUpperCase();
 			},
 
 			/**
@@ -847,6 +908,240 @@
 				})
 
 				this.startBPW1Connection(mac, sn)
+			},
+
+			// ==================== BPW6蓝牙绑定 ====================
+
+			/**
+			 * 绑定BPW6设备
+			 */
+			bindBPW6Device(sn, mac, modelId) {
+				const normalizedMac = this.formatMacAddress(mac || '')
+				const data = {
+					deviceSn: sn,
+					mac: (normalizedMac || mac || '').trim()
+				}
+				this.$post(this.$url_APP_IP + this.$url_bind_device, data, {
+						'Authorization': `Bearer ${uni.getStorageSync('token')}`,
+						'content-type': 'application/x-www-form-urlencoded;'
+					}).then(res => this.handleBPW6BindResponse(res, sn, normalizedMac || mac))
+					.catch(() => uni.reLaunch({
+						url: '../Bing_page/Bind_fail'
+					}))
+			},
+
+			/**
+			 * 处理BPW6绑定响应
+			 */
+			handleBPW6BindResponse(res, sn, mac) {
+				if (res.code === 401) {
+					uni.showToast({
+						title: this.$t('此设备已被其他账号绑定'),
+						icon: 'none'
+					})
+					return
+				}
+
+				if (res.code !== 200) {
+					uni.reLaunch({
+						url: '../Bing_page/Bind_fail'
+					})
+					return
+				}
+
+				uni.setStorageSync('appQX', '1')
+				uni.setStorageSync('deviceSn', sn)
+
+				uni.showLoading({
+					title: this.$t('连接中'),
+					mask: true
+				})
+
+				this.startBPW6Connection(mac, sn)
+			},
+
+			/**
+			 * 开始BPW6蓝牙连接
+			 */
+			startBPW6Connection(mac, sn) {
+				uni.openBluetoothAdapter({
+					success: () => {
+						uni.startBluetoothDevicesDiscovery({
+							allowDuplicatesKey: true,
+							success: () => this.onBPW6DeviceFound(mac, sn),
+							fail: (e) => {
+								console.error('BPW6蓝牙扫描失败', e)
+								uni.showModal({
+									content: this.$t('蓝牙连接失败'),
+									showCancel: false,
+									success: (res) => {
+										if (res.confirm) {
+											this.unbindDevice(sn)
+											this.img_scan = true
+											uni.hideLoading()
+										}
+									}
+								})
+							}
+						})
+					},
+					fail: (err) => {
+						uni.hideLoading()
+						if (err.errCode === 10001) {
+							uni.showModal({
+								content: this.$t('当前蓝牙未开启是否去设置打开'),
+								showCancel: false,
+								success: (res) => res.confirm && this.openBluetoothSettings()
+							})
+						}
+					}
+				})
+
+				this.setacktypes6(0)
+			},
+
+			/**
+			 * 监听BPW6设备
+			 */
+			onBPW6DeviceFound(targetMac, sn) {
+				console.log(targetMac, sn)
+				let scanCount = 0
+				let found = false
+
+				this.scanTimer = setInterval(() => {
+					scanCount++
+					if (scanCount >= BLE_CONSTANTS.SCAN_TIMEOUT && !found) {
+						this.stopScan()
+						uni.showToast({
+							title: this.$t('连接超时'),
+							icon: 'none'
+						})
+						this.img_scan = true
+						this.unbindDevice(sn)
+						uni.hideLoading()
+					}
+				}, 1000)
+
+				uni.onBluetoothDeviceFound((res) => {
+					for (const device of res.devices) {
+						if ((device.name.includes("U19M") || device.name.includes("U19H")) && device.deviceId ===
+							targetMac) {
+							found = true
+							this.stopScan()
+							setTimeout(() => this.createBPW6BLEConnection(device.deviceId, sn), 5000)
+							break
+						}
+					}
+				})
+			},
+
+			/**
+			 * 创建BPW6 BLE连接（带重试）
+			 */
+			createBPW6BLEConnection(deviceId, sn) {
+				console.log(deviceId, sn)
+				this.retryCount = 0
+				const tryConnect = () => {
+					this.retryCount++
+					uni.createBLEConnection({
+						deviceId: deviceId.trim(),
+						success: () => this.handleBPW6ConnectionSuccess(deviceId, sn),
+						fail: (err) => this.handleBPW6ConnectionFail(err, deviceId, sn, tryConnect)
+					})
+				}
+
+				tryConnect()
+			},
+
+			handleBPW6ConnectionSuccess(deviceId, sn) {
+				uni.hideLoading()
+				uni.setStorageSync('BPW6devicemac', deviceId)
+				uni.setStorageSync('BPW6deviceSn', sn)
+				uni.setStorageSync('BPW6deviceId', deviceId)
+				this.$refs.popup1?.open('center')
+				this.setacktypes6(0)
+				// setTimeout(() => {
+				// 	this.getBPW6BLEDeviceServices(deviceId, sn)
+				// }, 2000)
+			},
+
+			handleBPW6ConnectionFail(err, deviceId, sn, retryFn) {
+				console.error(`BPW6连接失败(${this.retryCount}/${BLE_CONSTANTS.MAX_RETRY}):`, err)
+				this.cleanupBPW6Connection(deviceId, sn)
+
+				if (this.retryCount < BLE_CONSTANTS.MAX_RETRY) {
+					setTimeout(retryFn, BLE_CONSTANTS.RETRY_DELAY)
+					return
+				}
+
+				uni.showToast({
+					title: this.$t('连接超时'),
+					icon: 'none'
+				})
+				this.img_scan = true
+				this.unbindDevice(sn)
+				uni.hideLoading()
+			},
+
+			cleanupBPW6Connection(deviceId, sn) {
+				this.unbindDevice(sn)
+				uni.closeBLEConnection({
+					deviceId
+				})
+				uni.hideLoading()
+				uni.closeBluetoothAdapter()
+				uni.openBluetoothAdapter()
+			},
+
+			getBPW6BLEDeviceServices(deviceId, sn) {
+				uni.getBLEDeviceServices({
+					deviceId,
+					success: (res) => {
+						const services = res.services || []
+						const bpw6Service = services.find((item) =>
+							String(item.uuid).toUpperCase() === BPW6_SERVICE
+						) || services[2]
+						if (bpw6Service && bpw6Service.uuid) {
+							this.getBPW6BLEDeviceCharacteristics(deviceId, bpw6Service.uuid, sn)
+						}
+					},
+					fail: (err) => {
+						console.error('BPW6获取服务失败', err)
+					}
+				})
+			},
+
+			getBPW6BLEDeviceCharacteristics(deviceId, serviceId, sn) {
+				uni.getBLEDeviceCharacteristics({
+					deviceId,
+					serviceId,
+					success: async (res) => {
+						for (const item of res.characteristics) {
+							if (item.properties.notify) {
+								uni.notifyBLECharacteristicValueChange({
+									state: true,
+									deviceId,
+									serviceId,
+									characteristicId: item.uuid
+								})
+							}
+							if (item.properties.write) {
+								try {
+									await u16proBLE.setTime(new Date(), 0, deviceId)
+								} catch (syncErr) {
+									console.error('BPW6时间同步失败', syncErr)
+								}
+								uni.setStorageSync('BPW6devicemac', deviceId)
+								uni.setStorageSync('BPW6deviceSn', sn)
+								uni.setStorageSync('BPW6deviceId', deviceId)
+							}
+						}
+						this.setacktypes6(0)
+					},
+					fail: (err) => {
+						console.error('BPW6获取特征值失败', err)
+					}
+				})
 			},
 
 			/**
@@ -938,7 +1233,6 @@
 				this.retryCount = 0
 				const tryConnect = () => {
 					this.retryCount++
-
 					uni.createBLEConnection({
 						deviceId: deviceId.trim(),
 						success: () => this.handleConnectionSuccess(deviceId, sn),
@@ -955,7 +1249,6 @@
 			handleConnectionSuccess(deviceId, sn) {
 				uni.hideLoading()
 				this.$refs.popup1?.open('center')
-
 				setTimeout(() => {
 					this.getBLEDeviceServices(deviceId, sn)
 				}, 2000)
@@ -1039,6 +1332,7 @@
 						for (const char of res.characteristics) {
 							if (char.properties.write) {
 								this.writeuuid = char.uuid
+								// this.sendFactoryCommand(deviceId, serviceId, char.uuid, sn)
 								this.sendInitialCommand(deviceId, serviceId, char.uuid)
 								this.sendBindCommand(deviceId, serviceId, char.uuid, sn)
 								this.sendTimeCommand(deviceId, serviceId, char.uuid)
@@ -1047,6 +1341,14 @@
 						this.setacktypes(0)
 					}
 				})
+			},
+
+			/**
+			 * 恢复出厂设置命令
+			 */
+			sendFactoryCommand(deviceId, serviceId, charId) {
+				const buffer = this.hexToArrayBuffer('e00006f4020109000101')
+				this.writeBLEValue(deviceId, serviceId, charId, buffer, 'writeNoResponse')
 			},
 
 			/**
@@ -1207,6 +1509,13 @@
 			turesss() {
 				uni.hideLoading()
 				this.$refs.popup1?.close()
+				if (this.modelname === 'BPW6') {
+					this.setacktypes6(0)
+					uni.reLaunch({
+						url: `../../Bind/Bing_page/Bind_success?modelId=${this.BPW6model}`
+					})
+					return
+				}
 				this.setacktypes(0)
 				uni.reLaunch({
 					url: `../../Bind/Bing_page/Bind_success?modelId=${this.BPW1model}`
@@ -1217,6 +1526,7 @@
 			 * 清理资源
 			 */
 			cleanup() {
+				this.setDeviceBindingActive(false)
 				clearInterval(this.scanTimer)
 				uni.stopBluetoothDevicesDiscovery()
 				uni.closeBLEConnection()

@@ -7,7 +7,7 @@
 			<view class="list-item" :class="index == active ? 'active' : ''" v-for="(item, index) in list" :key="index">
 				<view class="list_item_bg" @click="check_click(index, item.modelConnectType, item.name)">
 					<image class="imagsest" mode="aspectFit" :src="item.modelPicturePath" />
-					<view class="namstysle">{{item.name}}</view>
+					<view class="namstysle">{{(item.name==="BPW6"?"U19M":item.name)}}</view>
 				</view>
 			</view>
 		</view>
@@ -42,20 +42,37 @@
 		mapMutations
 	} from 'vuex';
 	const lan = uni.getLocale();
-	// 定义图片路径映射表
-	const modelIdToImagePath = {
-		30000: "/static/image/shoubiao1.png", // 手表
-		30001: "/static/image/shoubiao1.png", // 手表
-		20000: "/static/image/tizhi1.jpg", // 体脂秤
-		20001: "/static/image/tizhi1.jpg", // 体脂秤
-		10000: "/static/image/xueya1.png", // 血压计
-		10001: "/static/image/xueya1.png", // 血压计
-		10002: "/static/image/xueya1.png", // 血压计
-		10003: "/static/image/xueya1.png", // 血压计
-		10004: "/static/image/xueya1.png", // 血压计
-		10005: "/static/image/xueya1.png", // 血压计
-		10006: "/static/image/xueya1.png", // 血压计
-	};
+	// 设备图片映射
+	const DEVICE_IMAGES = {
+		zh: {
+			30000: '/static/image/BPW1.png',
+			30001: '/static/image/BPW6.jpg',
+			20000: '/static/image/jls260.png',
+			20001: '/static/image/jls260.png',
+			10000: '/static/image/617.png',
+			10001: '/static/image/BP68.png',
+			10002: '/static/image/BP67.png',
+			10003: '/static/image/68G.png',
+			10004: '/static/image/BP67.png',
+			10005: '/static/image/68G.png',
+			10006: '/static/image/xueya1.png'
+		},
+		default: {
+			30000: '/static/image/shoubiao1.png',
+			30001: '/static/image/BPW6.jpg',
+			20000: '/static/image/tizhi1.jpg',
+			20001: '/static/image/tizhi1.jpg',
+			10000: '/static/image/xueya1.png',
+			10001: '/static/image/xueya1.png',
+			10002: '/static/image/xueya1.png',
+			10003: '/static/image/xueya1.png',
+			10004: '/static/image/xueya1.png',
+			10005: '/static/image/xueya1.png',
+			10006: '/static/image/xueya1.png'
+		}
+	}
+
+
 	export default {
 		computed: {
 			...mapState(['tokens'])
@@ -102,14 +119,10 @@
 
 			// 封装图片路径处理逻辑
 			updateModelPicturePath(row, lan) {
-				if (row.modelPicturePath) {
-					if (lan === 'zh-Hans') {
-						return this.$url_APP_IP + row.modelPicturePath;
-					} else {
-						return modelIdToImagePath[row.modelId];
-					}
+				if (lan === 'zh-Hans' || lan === 'zh-Hant') {
+					return DEVICE_IMAGES.zh[row.modelId]
 				} else {
-					return modelIdToImagePath[row.modelId];
+					return DEVICE_IMAGES.default[row.modelId]
 				}
 			},
 			check_click(index, modelConnectType, name) {
@@ -167,8 +180,8 @@
 							row.modelPicturePath = this.updateModelPicturePath(row, lan);
 						});
 						this.list.push(...res.rows);
-						const filteredNames = lan === 'zh-Hans' ? ["BPW6"] : ["BPW6"];
-						this.list = this.list.filter(item => !filteredNames.includes(item.name));
+						// const filteredNames = lan === 'zh-Hans' ? ["BPW6"] : ["BPW6"];
+						// this.list = this.list.filter(item => !filteredNames.includes(item.name));
 					} else if (res.code == 401) {
 						uni.showToast({
 							title: this.$t('登录账号已过期'),

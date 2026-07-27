@@ -1,48 +1,46 @@
 <template>
 	<view style="padding-top: 20px;padding-bottom: 80px;">
-		<view class="bt_BG">
-			<view class="text">{{$t('开始时间')}}</view>
-			<view class="uni-list-cell-db"
-				style="width: 60vw; display: flex;justify-content: flex-end; flex-direction: row;margin-left: 15px;">
-				<picker fields="month" mode="time" :value="time1" @change="bindTimeChange_1">
-					<view style="display: flex; flex-direction: row;align-items: center;">
-						<view class="date_bg" :style="getStatusColor(time1)">{{time1}}</view>
-						<uni-icons type="bottom" size="20" style="margin-left: 15px; margin-right: 20px;"></uni-icons>
-					</view>
-				</picker>
-			</view>
-		</view>
-		<view class="bt_BG">
-			<view class="text">{{$t('结束时间')}}</view>
-			<view class="uni-list-cell-db"
-				style="width: 60vw; display: flex;justify-content: flex-end; flex-direction: row;margin-left: 15px;">
-				<picker fields="month" mode="time" :value="time2" @change="bindTimeChange_2">
-					<view style="display: flex; flex-direction: row;align-items: center;">
-						<view class="date_bg" :style="getStatusColor(time2)">{{time2}}</view>
-						<uni-icons type="bottom" size="20" style="margin-left: 15px; margin-right: 20px;"></uni-icons>
-					</view>
-				</picker>
-			</view>
-		</view>
-		<view class="bt_BG">
-			<view class="text">{{$t('间隔时间')}}</view>
-			<view class="uni-list-cell-db"
-				style="width: 60vw; display: flex;justify-content: flex-end; flex-direction: row;margin-left: 15px;">
-				<picker :value="index1" @change="Interval_time" :range="array1">
-					<view style="display: flex; flex-direction: row;align-items: center;">
-						<view class="date_bg">{{array1[index1]}}</view>
-						<uni-icons type="bottom" size="20" style="margin-left: 15px; margin-right: 20px;"></uni-icons>
-					</view>
-				</picker>
-			</view>
-		</view>
 
-		<view class="context_btn2">
-			<view class="context_title1">{{$t('定时测量')}}</view>
-			<switch :checked="switchHER" @change="switch1ChangeHER" color="#4CD964" />
+		<view class="bt_BG">
+			<view class="context_btn2">
+				<view class="context_title1">{{$t('定时测量')}}
+					<view v-if="sending" class="sending-status">
+						<text class="sending-text">{{$t("配置中")}}</text>
+						<text class="sending-icon-animate">⏳</text>
+					</view>
+				</view>
+				<switch style="display: flex;flex: 1;justify-content: flex-end;" :checked="switchHER"
+					@change="switch1ChangeHER" color="#4CD964" />
+			</view>
+			<view class="timer-item">
+				<view class="context_btn1">
+					<view class="text">{{$t('开始时间')}}：</view>
+					<view class="uni-list-cell-db picker-wrap">
+						<picker fields="month" mode="time" :value="time1" @change="bindTimeChange_1">
+							<view class="date_bg" :style="getStatusColor(time1)">{{time1}}</view>
+						</picker>
+					</view>
+				</view>
+				<view class="context_btn1">
+					<view class="text">{{$t('结束时间')}}：</view>
+					<view class="uni-list-cell-db picker-wrap">
+						<picker fields="month" mode="time" :value="time2" @change="bindTimeChange_2">
+							<view class="date_bg" :style="getStatusColor(time2)">{{time2}}</view>
+						</picker>
+					</view>
+				</view>
+				<view class="context_btn1">
+					<view class="text">{{$t('间隔时间')}}：</view>
+					<view class="uni-list-cell-db picker-wrap">
+						<picker :value="index1" @change="Interval_time" :range="array1">
+							<view class="date_bg">{{array1[index1]}}</view>
+						</picker>
+					</view>
+				</view>
+			</view>
 		</view>
-		<button class="buttonstyle" @click="clickset()">{{$t("保存")}}</button>
-		<view style="margin: 20px;color: red;">{{$t("注意如果选择每5分钟测一次")}}</view>
+		<button class="buttonstyle" @click="clickset()">{{sending?$t("配置中"):$t("保存")}}</button>
+		<view style="margin: 20px;color: red;">{{$t("注意如果选择每10分钟测一次")}}</view>
 		<!-- <view class="context_btn2">
 			<view class="context_title1">{{$t('抬手亮屏')}}</view>
 			<switch @change="switch1Change" style="transform:scale(0.8);" :checked="switchRaise" color="#3298F7" />
@@ -91,9 +89,17 @@
 </template>
 
 <script>
+	/** BLE 写入前延迟，与设备侧处理节奏一致 */
+	const BLE_WRITE_DELAY_MS = 3000
+	/** 间隔选项（分钟），与 array1 / index1 顺序一致 */
+	const INTERVAL_MINUTES = [10, 30, 60, 120]
+	/** sendLargeData1 血压定时间隔（分钟），与 index1 0–4 对应 */
+	const BLOOD_PRESSURE_SCHEDULE_MINUTES = [30, 60, 90, 120, 240]
+
 	export default {
 		data() {
 			return {
+				sending: false,
 				array: [this.$t("中文"), this.$t("英文")],
 				Languagesindex: uni.getStorageSync("Languagesindex") !== "" ? uni.getStorageSync("Languagesindex") : 0,
 				setwatchtime: uni.getStorageSync("setwatchtime") !== "" ? uni.getStorageSync("setwatchtime") : this.$t(
@@ -103,18 +109,18 @@
 				time1: uni.getStorageSync("starttime") !== '' ? uni.getStorageSync("starttime") : this.getCurrentTime(),
 				time2: uni.getStorageSync("endtime") !== '' ? uni.getStorageSync("endtime") : this
 					.getCurrentTimePlusHour(),
-				array1: [this.$t('分钟5'), this.$t('分钟60'), this.$t('分钟120'), this.$t('分钟240')],
+				array1: [this.$t('分钟10'), this.$t('分钟30'), this.$t('分钟60'), this.$t('分钟120')],
 				index1: uni.getStorageSync("Interval_time") !== "" ? uni.getStorageSync("Interval_time") : 0,
-				deviceId: uni.getStorageSync("landeviceId"),
-				serviceId: uni.getStorageSync("lanserviceId"),
-				characteristicId: uni.getStorageSync("landcharacteristicId"),
+				deviceId: uni.getStorageSync("deviceIdwatch"), //BPW1蓝牙mac
+				serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E", //BPW1蓝牙设备服务值
+				characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E", //BPW1蓝牙设备服务写入特征值
+
 			}
 		},
 
 		onShow() {
-			let that = this;
 			uni.setNavigationBarTitle({
-				title: that.$t('定时测量')
+				title: this.$t('定时测量')
 			})
 		},
 		methods: {
@@ -212,7 +218,7 @@
 											console.error("2语言：", err)
 										},
 									})
-								}, 3000)
+								}, BLE_WRITE_DELAY_MS)
 							}
 						}
 					},
@@ -307,7 +313,7 @@
 											console.error("2时间制：", err)
 										},
 									})
-								}, 3000)
+								}, BLE_WRITE_DELAY_MS)
 							}
 						}
 					},
@@ -391,10 +397,11 @@
 							for (let i = 0; res.characteristics.length > i; i++) {
 								let item = res.characteristics[i]
 								if (item.properties.write) {
-									uni.showLoading({
-										title: that.$t("设置中"),
-										mask: true
-									})
+									that.sending = true
+									// uni.showLoading({
+									// 	title: that.$t("设置中"),
+									// 	mask: true
+									// })
 									that.sendwatch2(item.uuid, 1)
 								}
 							}
@@ -496,7 +503,7 @@
 											console.error("2抬头：", err)
 										},
 									})
-								}, 3000)
+								}, BLE_WRITE_DELAY_MS)
 							}
 						}
 					},
@@ -565,7 +572,7 @@
 											console.error("2低氧：", err)
 										},
 									})
-								}, 3000)
+								}, BLE_WRITE_DELAY_MS)
 							}
 						}
 					},
@@ -619,10 +626,11 @@
 						for (let i = 0; res.characteristics.length > i; i++) {
 							let item = res.characteristics[i]
 							if (item.properties.write) {
-								uni.showLoading({
-									title: that.$t("设置中"),
-									mask: true
-								})
+								// uni.showLoading({
+								// 	title: that.$t("设置中"),
+								// 	mask: true
+								// })
+								that.sending = true
 								that.sendwatch2(item.uuid, type)
 							}
 						}
@@ -653,10 +661,11 @@
 			//获取蓝牙外围设备的特征值
 			getBLEDeviceCharacteristics1(type) {
 				let that = this
-				uni.showLoading({
-					title: that.$t("设置中"),
-					mask: true
-				})
+				// uni.showLoading({
+				// 	title: that.$t("设置中"),
+				// 	mask: true
+				// })
+				that.sending = true
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceId,
 					serviceId: that.serviceId,
@@ -669,6 +678,7 @@
 						}
 					},
 					fail(res) {
+						that.sending = false
 						uni.hideLoading()
 						uni.showToast({
 							title: that.$t("连接中稍后再试"),
@@ -693,10 +703,11 @@
 
 			getBLEDeviceCharacteristics2(type) {
 				let that = this
-				uni.showLoading({
-					title: that.$t("设置中"),
-					mask: true
-				})
+				// uni.showLoading({
+				// 	title: that.$t("设置中"),
+				// 	mask: true
+				// })
+				that.sending = true
 				uni.getBLEDeviceCharacteristics({
 					deviceId: that.deviceId,
 					serviceId: that.serviceId,
@@ -709,6 +720,7 @@
 						}
 					},
 					fail(res) {
+						that.sending = false
 						uni.hideLoading()
 						uni.showToast({
 							title: that.$t("连接中稍后再试"),
@@ -772,21 +784,31 @@
 							console.error("2开始心率/血氧测量：", err)
 						},
 					})
-				}, 3000)
+				}, BLE_WRITE_DELAY_MS)
+			},
+
+			/** 定时测量协议：插入校验和后转 ArrayBuffer（与原先字节序一致） */
+			ackPayloadToBuffer(ackConfigByteset) {
+				let sum = 0
+				for (let i = 0; i < ackConfigByteset.length; i++) {
+					sum += ackConfigByteset[i]
+				}
+				sum = sum % 256
+				const modifiedCommand2 = new Uint8Array(ackConfigByteset.length + 1)
+				modifiedCommand2.set(ackConfigByteset.subarray(0, 3), 0)
+				modifiedCommand2[3] = sum
+				modifiedCommand2.set(ackConfigByteset.subarray(3), 4)
+				const hexCommand2 = Array.from(modifiedCommand2).map(byte => byte
+					.toString(16).padStart(2, '0')).join('')
+				return {
+					hex: hexCommand2,
+					buffer: this.toArrayBuffer(hexCommand2)
+				}
 			},
 
 			sendwatch(writeuuid, type) {
 				let that = this
-				let jiangetime = 5
-				if (that.index1 === 0) {
-					jiangetime = 5
-				} else if (that.index1 === 1) {
-					jiangetime = 60
-				} else if (that.index1 === 2) {
-					jiangetime = 120
-				} else if (that.index1 === 3) {
-					jiangetime = 240
-				}
+				const jiangetime = INTERVAL_MINUTES[that.index1] ?? 10
 				const ackConfigByteset = new Uint8Array(16);
 				ackConfigByteset[0] = 0xE0;
 				ackConfigByteset[1] = 0x00;
@@ -804,21 +826,10 @@
 				ackConfigByteset[13] = `${'0x'}${that.decimalToHex(that.timeToMinutes(that.time1), 4).slice(2,4)}`;
 				ackConfigByteset[14] = `${'0x'}${that.decimalToHex(that.timeToMinutes(that.time2), 4).slice(0,2)}`;
 				ackConfigByteset[15] = `${'0x'}${that.decimalToHex(that.timeToMinutes(that.time2), 4).slice(2,4)}`;
-				let ackConfigBytesum2 = 0;
-				for (let i = 0; i < ackConfigByteset
-					.length; i++) { // 遍历 command 数组的前 command.length - 1 个元素
-					ackConfigBytesum2 += ackConfigByteset[i]; // 累加每个元素的值
-				}
-				ackConfigBytesum2 = ackConfigBytesum2 % 256; // 取模 256，得到低 8 位的和
-				// 创建新的数组，将校验和插入到第四个字节中
-				const modifiedCommand2 = new Uint8Array(ackConfigByteset.length +
-					1); // 第四个字节的插入，数组长度加1
-				modifiedCommand2.set(ackConfigByteset.subarray(0, 3), 0);
-				modifiedCommand2[3] = ackConfigBytesum2;
-				modifiedCommand2.set(ackConfigByteset.subarray(3), 4);
-				const hexCommand2 = Array.from(modifiedCommand2).map(byte => byte
-					.toString(16).padStart(2, '0')).join('');
-				const buffer2 = that.toArrayBuffer(hexCommand2); // 转换为 ArrayBuffer获取设备信息
+				const {
+					hex: hexCommand2,
+					buffer: buffer2
+				} = that.ackPayloadToBuffer(ackConfigByteset)
 				console.log(hexCommand2)
 				console.log(that.deviceId)
 				console.log(that.serviceId)
@@ -831,6 +842,7 @@
 						writeType: 'writeNoResponse',
 						value: buffer2,
 						success(res) {
+							that.sending = false
 							uni.hideLoading()
 							if (type === 1) {
 								console.log("1开始心率定时测量：" + hexCommand2, res)
@@ -846,6 +858,7 @@
 							})
 						},
 						fail(err) {
+							that.sending = false
 							that.switchHER = false
 							uni.setStorageSync("switchHER", false)
 							uni.hideLoading()
@@ -862,20 +875,11 @@
 							console.error("开始心率/血氧定时测量：", err)
 						},
 					})
-				}, 3000)
+				}, BLE_WRITE_DELAY_MS)
 			},
 			sendwatch2(writeuuid, type) {
 				let that = this
-				let jiangetime = 5
-				if (that.index1 === 0) {
-					jiangetime = 5
-				} else if (that.index1 === 1) {
-					jiangetime = 60
-				} else if (that.index1 === 2) {
-					jiangetime = 120
-				} else if (that.index1 === 3) {
-					jiangetime = 240
-				}
+				const jiangetime = INTERVAL_MINUTES[that.index1] ?? 10
 				const ackConfigByteset = new Uint8Array(16);
 				ackConfigByteset[0] = 0xE0;
 				ackConfigByteset[1] = 0x00;
@@ -893,21 +897,10 @@
 				ackConfigByteset[13] = `${'0x'}${that.decimalToHex(that.timeToMinutes(that.time1), 4).slice(2,4)}`;
 				ackConfigByteset[14] = `${'0x'}${that.decimalToHex(that.timeToMinutes(that.time2), 4).slice(0,2)}`;
 				ackConfigByteset[15] = `${'0x'}${that.decimalToHex(that.timeToMinutes(that.time2), 4).slice(2,4)}`;
-				let ackConfigBytesum2 = 0;
-				for (let i = 0; i < ackConfigByteset
-					.length; i++) { // 遍历 command 数组的前 command.length - 1 个元素
-					ackConfigBytesum2 += ackConfigByteset[i]; // 累加每个元素的值
-				}
-				ackConfigBytesum2 = ackConfigBytesum2 % 256; // 取模 256，得到低 8 位的和
-				// 创建新的数组，将校验和插入到第四个字节中
-				const modifiedCommand2 = new Uint8Array(ackConfigByteset.length +
-					1); // 第四个字节的插入，数组长度加1
-				modifiedCommand2.set(ackConfigByteset.subarray(0, 3), 0);
-				modifiedCommand2[3] = ackConfigBytesum2;
-				modifiedCommand2.set(ackConfigByteset.subarray(3), 4);
-				const hexCommand2 = Array.from(modifiedCommand2).map(byte => byte
-					.toString(16).padStart(2, '0')).join('');
-				const buffer2 = that.toArrayBuffer(hexCommand2); // 转换为 ArrayBuffer获取设备信息
+				const {
+					hex: hexCommand2,
+					buffer: buffer2
+				} = that.ackPayloadToBuffer(ackConfigByteset)
 				console.log(hexCommand2)
 				console.log(that.deviceId)
 				console.log(that.serviceId)
@@ -920,6 +913,7 @@
 						writeType: 'writeNoResponse',
 						value: buffer2,
 						success(res) {
+							that.sending = false
 							uni.hideLoading()
 							if (type === 1) {
 								console.log("关闭心率自动测量：" + hexCommand2, res)
@@ -935,6 +929,7 @@
 							})
 						},
 						fail(err) {
+							that.sending = false
 							that.switchHER = true
 							uni.setStorageSync("switchHER", true)
 							uni.hideLoading()
@@ -951,7 +946,7 @@
 							console.error("关闭血氧自动测量：：", err)
 						},
 					})
-				}, 3000)
+				}, BLE_WRITE_DELAY_MS)
 			},
 			timeToMinutes(timeStr) {
 				const [hours, minutes] = timeStr.split(':');
@@ -959,18 +954,7 @@
 			},
 
 			sendLargeData1() {
-				let jiangetime = 30
-				if (this.index1 === 0) {
-					jiangetime = 30
-				} else if (this.index1 === 1) {
-					jiangetime = 60
-				} else if (this.index1 === 2) {
-					jiangetime = 90
-				} else if (this.index1 === 3) {
-					jiangetime = 120
-				} else if (this.index1 === 4) {
-					jiangetime = 240
-				}
+				const jiangetime = BLOOD_PRESSURE_SCHEDULE_MINUTES[this.index1] ?? 30
 
 				let starttimes1 = this.time1.slice(0, 2)
 				let starttimes2 = this.time1.slice(3, 5)
@@ -1133,44 +1117,118 @@
 		font-weight: bold;
 	}
 
-	.context_btn2 {
+	.context_btn1 {
+		width: 100%;
 		display: flex;
 		flex-direction: row;
-		background: white;
 		align-items: center;
+		justify-content: flex-start;
 		height: 56px;
-		margin: 30px 20px;
 		padding: 0 20px;
-		border-radius: 10px;
-		box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.15);
+
+	}
+
+	.picker-wrap {
+		display: flex;
+		justify-content: center;
+		border: 1rpx solid #ddd;
+		border-radius: 12rpx;
+		padding: 12rpx 24rpx;
+		min-width: 180rpx;
+		align-items: center;
+		background: white;
+	}
+
+	.context_btn2 {
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		height: 56px;
+		padding: 0 20px;
 
 	}
 
 	.context_title1 {
-		width: 90%;
+		display: flex;
+		flex: 1;
 		font-size: 16px;
 		color: black;
 	}
 
+	.timer-item {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		margin-left: 10px;
+		margin-right: 10px;
+		border: 1rpx solid #eee;
+		border-radius: 16rpx;
+		padding-top: 10px;
+		padding-bottom: 10px;
+		background-color: #fafafa;
+	}
+
+	.sending-status {
+		display: flex;
+		align-items: center;
+		margin-left: 16rpx;
+		padding: 4rpx 16rpx;
+		background: linear-gradient(135deg, #fff3e0 0%, #ffe6cc 100%);
+		border-radius: 24rpx;
+	}
+
+	.sending-text {
+		color: #ff6600;
+		font-size: 24rpx;
+		font-weight: 500;
+		margin-right: 8rpx;
+	}
+
+	.sending-icon-animate {
+		color: #ff6600;
+		font-size: 28rpx;
+		display: inline-block;
+		animation: rotate 1s linear infinite;
+	}
+
+	@keyframes rotate {
+		from {
+			transform: rotate(0deg);
+		}
+
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
 	.bt_BG {
 		width: auto;
-		height: 54px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		flex-direction: row;
+		flex-direction: column;
 		margin-left: 20px;
 		margin-right: 20px;
 		margin-top: 20px;
+		padding: 20px;
 		background: white;
-		border-radius: 50px;
+		border-radius: 20px;
 	}
 
 	.text {
-		width: 40vw;
 		font-size: 16px;
-		margin-left: 20px;
 		font-weight: 400;
+	}
+
+	.date_bg {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		font-size: 16px;
 	}
 
 	.buttonstyle {
