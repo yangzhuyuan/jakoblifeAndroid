@@ -30,13 +30,19 @@ export const CMD = {
 	FACTORY_RESET: 0xFF, //4.17 恢复出厂设置命令
 	RESTART: 0x08, //4.4重启手环
 
-	// PPG测量（0xBC自定义蓝牙服务）
-	PPG_START_WITH_DURATION: 0x49, // 开启PPG测量(带时长)
-	PPG_START: 0x4A, // 开启PPG测量
-	PPG_STOP: 0x4B, // 停止PPG测量
-	PPG_GET_SIZE: 0x4C, // 请求PPG数据大小
-	PPG_GET_DATA: 0x4D, // 请求PPG数据
-	PPG_MEASUREMENT_COMPLETE: 0x58, // PPG测量完成通知
+	// ===== 0xBC 长包（血压原始 / RRI / PPG），协议已实现，业务层暂未启用读写入口 =====
+	BP_RAW_GET_SIZE: 0x2E, // 4.1 请求血压原始数据大小（PA）
+	BP_RAW_GET_DATA: 0x2F, // 4.2 按offset请求血压原始数据
+	RRI_GET: 0x48, // 4.3 请求/返回RRI（须开心血管预警；单位10ms）
+
+	// PPG测量（0xBC，协议4.4~4.8）
+	// 备注版实测：发0x49可能回0x4A；测完常见0x58，其后可粘连/跟随0x4B；部分固件仅回0x4B
+	PPG_START_WITH_DURATION: 0x49, // 4.4 开启PPG测量(带时长10~60s)
+	PPG_START: 0x4A, // 4.5 开启PPG测量
+	PPG_STOP: 0x4B, // 4.6 停止PPG测量（部分固件测完也主动上报）
+	PPG_GET_SIZE: 0x4C, // 4.7 请求PPG数据大小
+	PPG_GET_DATA: 0x4D, // 4.8 按offset请求PPG数据（<=128bytes/包）
+	PPG_MEASUREMENT_COMPLETE: 0x58, // 时长测量完成通知（备注版串口有，非表内正式CMD名）
 }
 
 export const BC_BLE_UUID = {
@@ -50,11 +56,21 @@ export const BC_PACKET = {
 	EMPTY_DATA_CRC: 0xFFFF,
 	SUCCESS_DATA: 0x01,
 	FAIL_DATA: 0x00,
-	PPG_STATUS_BUSY: 0x02, // 设备侧已开始/进行中（串口实测）
+	PPG_STATUS_BUSY: 0x02, // 设备侧已开始/进行中（备注版：BC 4A → 3E 81 02）
+	// PPG：32位ADC码、无单位、200Hz；采集时长可定义，范围10~60秒
 	PPG_DURATION_MIN: 10,
 	PPG_DURATION_MAX: 60,
+	PPG_SAMPLE_RATE_HZ: 200,
+	PPG_ADC_BYTES: 4,
 	PPG_CHUNK_SIZE: 128,
+	// 备注版：收齐上一包后再请求下一包；间隔建议100~150ms（过快易拖慢手表）
 	PPG_READ_INTERVAL_MS: 120,
+	BP_RAW_CHUNK_SIZE: 128,
+	BP_RAW_READ_INTERVAL_MS: 120,
+	// RRI：单位10毫秒；单组最多123点；设备存最近24组；请求N组可多包返回
+	RRI_UNIT_MS: 10,
+	RRI_MAX_PER_GROUP: 123,
+	RRI_MAX_GROUPS: 24,
 	BC_NOTIFY_STALE_MS: 20000,
 }
 

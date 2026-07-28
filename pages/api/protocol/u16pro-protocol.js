@@ -73,6 +73,21 @@ export class U16ProProtocol {
 	}
 
 	/**
+	 * 小端序转有符号Int32（PPG 32位ADC码）
+	 */
+	static littleEndianToInt32(bytes, offset) {
+		const u = this.littleEndianToUint32(bytes, offset)
+		return u > 0x7FFFFFFF ? u - 0x100000000 : u
+	}
+
+	/**
+	 * 小端序转Uint16（血压原始 PA 样本）
+	 */
+	static littleEndianToUint16(bytes, offset) {
+		return (bytes[offset] + (bytes[offset + 1] << 8)) & 0xFFFF
+	}
+
+	/**
 	 * BCD编码（用于时间设置）
 	 */
 	static toBCD(value) {
@@ -501,7 +516,7 @@ export class U16ProProtocol {
 		return this.buildPacket(CMD.FACTORY_RESET, [0x66, 0x66])
 	}
 
-	// ==================== 0xBC协议包（PPG，自定义蓝牙服务） ====================
+	// ==================== 0xBC协议包（血压原始 / RRI / PPG） ====================
 
 	/**
 	 * CRC16/MODBUS 校验（数据区）
@@ -544,14 +559,47 @@ export class U16ProProtocol {
 		]
 	}
 
+	/** 钳制 PPG 采集秒数到协议范围 10~60 */
+	static clampPpgDurationSeconds(seconds) {
+		const n = Number(seconds)
+		const fallback = BC_PACKET.PPG_DURATION_MAX
+		if (!Number.isFinite(n)) {
+			return fallback
+		}
+		return Math.max(
+			BC_PACKET.PPG_DURATION_MIN,
+			Math.min(BC_PACKET.PPG_DURATION_MAX, Math.round(n))
+		)
+	}
+
+	/**
+	 * 4.1 APP获取血压原始数据大小（0x2E）
+	 * 业务暂未调用，仅协议层预留
+	 */
+	static buildBpRawGetSize() {
+		return this.buildBcPacket(CMD.BP_RAW_GET_SIZE)
+	}
+
+	/**
+	 * 4.2 APP按偏移获取血压原始数据（0x2F，<=128bytes/包）
+	 */
+	static buildBpRawGetData(offset = 0) {
+		return this.buildBcPacket(CMD.BP_RAW_GET_DATA, this.uint32ToLittleEndian(offset >>> 0))
+	}
+
+	/**
+	 * 4.3 请求RRI数据（0x48，须开心血管预警；N=1~24组）
+	 */
+	static buildRriGet(groupCount = 1) {
+		const n = Math.max(1, Math.min(BC_PACKET.RRI_MAX_GROUPS, Number(groupCount) || 1))
+		return this.buildBcPacket(CMD.RRI_GET, [n & 0xFF])
+	}
+
 	/**
 	 * 4.4 APP发起PPG测量并设置测量时长（10~60秒）
 	 */
 	static buildPPGStartWithDuration(seconds) {
-		const duration = Math.max(
-			BC_PACKET.PPG_DURATION_MIN,
-			Math.min(BC_PACKET.PPG_DURATION_MAX, seconds)
-		)
+		const duration = this.clampPpgDurationSeconds(seconds)
 		return this.buildBcPacket(CMD.PPG_START_WITH_DURATION, [duration])
 	}
 
@@ -566,10 +614,7 @@ export class U16ProProtocol {
 	 * 4.5 APP发起PPG测量（带时长，串口实测部分固件走 0x4A+EE）
 	 */
 	static buildPPGStartWithDurationOn4A(seconds) {
-		const duration = Math.max(
-			BC_PACKET.PPG_DURATION_MIN,
-			Math.min(BC_PACKET.PPG_DURATION_MAX, seconds)
-		)
+		const duration = this.clampPpgDurationSeconds(seconds)
 		return this.buildBcPacket(CMD.PPG_START, [duration])
 	}
 
@@ -649,6 +694,28 @@ export class U16ProProtocol {
 		}
 
 		switch (cmd) {
+			case CMD.BP_RAW_GET_SIZE:
+				result.parsed = this.parseBcSizePayload(data, 'bp_raw_size')
+				break
+			case CMD.BP_RAW_GET_DATA:
+				// 备注版偶发：发0x2E却用0x2F回4字节大小；空包表示无更多数据
+				if (dataLen === 0) {
+					result.parsed = {
+						empty: true,
+						offset: 0,
+						chunkSize: 0,
+						rawData: [],
+						type: 'bp_raw_chunk'
+					}
+				} else if (dataLen === 4) {
+					result.parsed = this.parseBcSizePayload(data, 'bp_raw_size')
+				} else {
+					result.parsed = this.parseBcOffsetChunk(data, 'bp_raw_chunk', 'rawData')
+				}
+				break
+			case CMD.RRI_GET:
+				result.parsed = this.parseRriPayload(data)
+				break
 			case CMD.PPG_START_WITH_DURATION:
 			case CMD.PPG_START:
 			case CMD.PPG_STOP:
@@ -697,21 +764,47 @@ export class U16ProProtocol {
 	}
 
 	/**
+	 * 解析 4字节小端 size（PPG / 血压原始共用）
+	 */
+	static parseBcSizePayload(data, type = 'bc_size') {
+		if (data.length < 4) {
+			return {
+				error: 'BC数据大小格式错误',
+				type
+			}
+		}
+		return {
+			size: this.littleEndianToUint32(data, 0),
+			type
+		}
+	}
+
+	/**
+	 * 解析 offset(4)+len(1)+payload 分块（PPG / 血压原始共用）
+	 */
+	static parseBcOffsetChunk(data, type, payloadKey = 'rawData') {
+		if (data.length < 5) {
+			return {
+				error: 'BC数据块格式错误',
+				type
+			}
+		}
+		const offset = this.littleEndianToUint32(data, 0)
+		const chunkSize = data[4]
+		const payload = data.slice(5, 5 + chunkSize)
+		return {
+			offset,
+			chunkSize,
+			[payloadKey]: [...payload],
+			type
+		}
+	}
+
+	/**
 	 * 解析 PPG 数据大小应答（4字节小端）
 	 */
 	static parsePPGSize(data) {
-		if (data.length < 4) {
-			return {
-				error: 'PPG数据大小格式错误',
-				type: 'ppg_size'
-			}
-		}
-
-		const size = this.littleEndianToUint32(data, 0)
-		return {
-			size,
-			type: 'ppg_size'
-		}
+		return this.parseBcSizePayload(data, 'ppg_size')
 	}
 
 	/**
@@ -719,22 +812,67 @@ export class U16ProProtocol {
 	 * Data区：偏移(4) + 数据大小(1) + PPG数据(n)
 	 */
 	static parsePPGChunk(data) {
-		if (data.length < 5) {
-			return {
-				error: 'PPG数据块格式错误',
-				type: 'ppg_chunk'
-			}
+		return this.parseBcOffsetChunk(data, 'ppg_chunk', 'ppgData')
+	}
+
+	/**
+	 * 将 PPG 原始字节解析为 32 位 ADC 码序列（有符号小端，无单位，200Hz）
+	 * 不改变现有上传用的原始字节缓冲，仅作协议层解释
+	 */
+	static parsePpgAdcSamples(bytes) {
+		const list = Array.isArray(bytes) ? bytes : []
+		const sampleBytes = BC_PACKET.PPG_ADC_BYTES
+		const samples = []
+		const usable = list.length - (list.length % sampleBytes)
+		for (let i = 0; i < usable; i += sampleBytes) {
+			samples.push(this.littleEndianToInt32(list, i))
 		}
-
-		const offset = this.littleEndianToUint32(data, 0)
-		const chunkSize = data[4]
-		const ppgData = data.slice(5, 5 + chunkSize)
-
+		const sampleRateHz = BC_PACKET.PPG_SAMPLE_RATE_HZ
 		return {
-			offset,
-			chunkSize,
-			ppgData: [...ppgData],
-			type: 'ppg_chunk'
+			samples,
+			sampleCount: samples.length,
+			sampleRateHz,
+			sampleBytes,
+			unit: null, // 无单位：32位ADC码
+			durationSec: sampleRateHz > 0 ? samples.length / sampleRateHz : 0,
+			remainderBytes: list.length - usable,
+			type: 'ppg_adc'
+		}
+	}
+
+	/**
+	 * 血压原始压力样本（备注版示例多为 16bit 小端 PA）
+	 * 业务暂未使用
+	 */
+	static parseBpRawPressureSamples(bytes) {
+		const list = Array.isArray(bytes) ? bytes : []
+		const samples = []
+		const usable = list.length - (list.length % 2)
+		for (let i = 0; i < usable; i += 2) {
+			samples.push(this.littleEndianToUint16(list, i))
+		}
+		return {
+			samples,
+			sampleCount: samples.length,
+			sampleBytes: 2,
+			unit: 'PA',
+			remainderBytes: list.length - usable,
+			type: 'bp_raw_pa'
+		}
+	}
+
+	/**
+	 * 解析 RRI 应答：每字节一个间期，单位 10ms，单组 n<=123
+	 */
+	static parseRriPayload(data) {
+		const raw = Array.isArray(data) ? [...data] : []
+		const intervalsMs = raw.map(b => (b & 0xFF) * BC_PACKET.RRI_UNIT_MS)
+		return {
+			raw,
+			intervalsMs,
+			count: raw.length,
+			unitMs: BC_PACKET.RRI_UNIT_MS,
+			type: 'rri_data'
 		}
 	}
 

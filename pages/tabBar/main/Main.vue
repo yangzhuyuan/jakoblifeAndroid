@@ -1443,6 +1443,8 @@
 				bpw6PendingPpgAfterBp: false,
 				bpw6PendingPpgTimer: null,
 				bpw6PpgStartInProgress: false,
+				/** 连接后主链路初始化截止时间（校时/电量/自动测量开关/历史同步窗口），立即 PPG 需等过此点 */
+				bpw6PostConnectSetupUntil: 0,
 				bpw6HrBuffer: [],
 				/** BPW6 血氧：本会话已上报的 槽位→值（手机本地时间上报，不能靠接口时间比新旧去重） */
 				bpw6UploadedSpO2SlotValue: null,
@@ -2640,8 +2642,10 @@
 				}
 				that.bpw6BleCharacteristicsTimer = setTimeout(() => {
 					that.bpw6BleCharacteristicsTimer = null;
-					if (u16proBLE.isPpgOperationInProgress && u16proBLE.isPpgOperationInProgress()) {
-						console.log('【BPW6】PPG进行中，推迟 getBLEDeviceCharacteristics6')
+					// 立即测量启动/测量中勿反复 getCharacteristics/重连，否则主链路抢占导致 PPG status=0
+					if ((u16proBLE.isPpgOperationInProgress && u16proBLE.isPpgOperationInProgress()) ||
+						that.bpw6PpgStartInProgress || that.bpw6EmotionPpgActive) {
+						// console.log('【BPW6】PPG进行中，推迟 getBLEDeviceCharacteristics6')
 						that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 3000)
 						return
 					}
@@ -2738,6 +2742,9 @@
 							clearInterval(that.BPW6intervalTimer)
 							that.BPW6intervalTimer = null
 						}
+						// 即将拉特征值并做连接后初始化，提前占住窗口，避免用户抢先点 PPG
+						that.bpw6PostConnectSetupUntil = Math.max(that.bpw6PostConnectSetupUntil || 0, Date
+							.now() + 14000)
 						that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 2000);
 					},
 					fail: (err) => {
@@ -2753,6 +2760,19 @@
 							try {
 								notifyQxBleWatchConnectionState(true, deviceId);
 							} catch (e) {}
+							// already connect：PPG 启动/测量中勿立刻拉主特征值（会抢占→status=0）
+							// 但仍要延后调度，否则首次绑定可能永远不做连接后初始化
+							if (that.shouldDeferBleReconnectForPpg()) {
+								console.log('【BPW6】PPG进行中，already connect 延后 getCharacteristics')
+								that.bpw6PostConnectSetupUntil = Math.max(
+									that.bpw6PostConnectSetupUntil || 0,
+									Date.now() + 8000
+								)
+								that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 5000)
+								return
+							}
+							that.bpw6PostConnectSetupUntil = Math.max(that.bpw6PostConnectSetupUntil || 0,
+								Date.now() + 14000)
 							that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 2000);
 						} else if (err.errCode === 10012) {
 							if (that.BPW6intervalTimer) {
@@ -3679,6 +3699,23 @@
 			isBpw6EmotionImmediateUi() {
 				return this.bpw6EmotionPpgActive === true
 			},
+			/** 是否 BPW6「血压后 PPG」静默会话（无任何 loading/toast，结束只恢复按钮） */
+			isBpw6AfterBpPpgSession() {
+				// 立即测量优先：残留血压后标记不得劫持立即测量/兼容机云端 UI
+				if (this.bpw6EmotionPpgActive || this.immediateEmotionMeasure) {
+					return false
+				}
+				if (this.bpw6PendingPpgAfterBp) {
+					return true
+				}
+				try {
+					const afterBp = uni.getStorageSync('bpw6_after_bp_ppg')
+					if (afterBp === 1 || afterBp === '1') {
+						return true
+					}
+				} catch (e) {}
+				return false
+			},
 			/** BPW6 是否已连接（立即测量前校验） */
 			isBpw6EmotionDeviceConnected() {
 				const mac = this.deviceIdwatch6 || uni.getStorageSync('BPW6devicemac')
@@ -3705,6 +3742,7 @@
 			},
 			/** BPW6 立即测量：失败提示并清 loading（后台也标记回前台再清） */
 			notifyBpw6EmotionImmediateFail(toastKey, reason) {
+				this._bpw6PpgCompleteWatchArmed = false
 				try {
 					uni.hideLoading()
 				} catch (e) {}
@@ -3736,6 +3774,11 @@
 					})
 					return
 				}
+				// 取消重连触发的 getCharacteristics，避免与立即 PPG 抢通道
+				this.cancelBpw6BlePendingWork()
+				// 清残留血压后标记，避免静默逻辑误伤立即测量/兼容机云端 UI
+				this.clearBpw6AfterBpPpgBusyMark()
+				this.bpw6PendingPpgAfterBp = false
 				this.immediateEmotionMeasure = true
 				this.sleep_alertid = 1
 				this.bpw6EmotionPpgActive = true
@@ -4595,6 +4638,8 @@
 									try {
 										if (!that.hasWriten) {
 											that.hasWriten = true;
+											// 连接后主链路约 4s 内会连续写校时/电量/开关，外加历史同步；立即 PPG 需等过此窗口
+											that.bpw6PostConnectSetupUntil = Date.now() + 12000
 											// 连接成功后同步时间
 											// if (that.loact === "境内") {
 											u16proBLE.setTime(new Date(), 0, deviceId) // 同步时间0=中文
@@ -4602,16 +4647,30 @@
 											// 	u16proBLE.setTime(new Date(), 1, deviceId) // 同步时间1=英文
 											// }
 											setTimeout(async () => {
+												if (that.shouldDeferBleReconnectForPpg()) return
 												u16proBLE.readBattery(deviceId); //读取手表电量
 											}, 1000);
 											setTimeout(() => {
+												if (that.shouldDeferBleReconnectForPpg()) return
 												u16proBLE.setHRAuto(false, deviceId) //开关心率自动测量
 											}, 2000);
 											setTimeout(() => {
+												if (that.shouldDeferBleReconnectForPpg()) return
 												u16proBLE.setSpO2Auto(false, deviceId) //开关血氧自动测量
 											}, 3000);
 										}
 										setTimeout(async () => {
+											// 立即测量/PPG 启动中：推迟连接后历史同步，避免主链路抢占导致 PPG status=0
+											const deferStart = Date.now()
+											while ((that.bpw6PpgStartInProgress || that
+													.bpw6EmotionPpgActive ||
+													(u16proBLE.isPpgOperationInProgress &&
+														u16proBLE
+														.isPpgOperationInProgress())) &&
+												Date.now() - deferStart < 90000) {
+												// console.log('【BPW6】PPG进行中，推迟连接后历史同步')
+												await new Promise(r => setTimeout(r, 2000))
+											}
 											that.bpw6BpBuffer = []
 											that.bpw6HrBuffer = []
 											that.bpw6SpO2Buffer = []
@@ -4633,15 +4692,6 @@
 												that.bpw6SpO2Syncing = false
 												console.error('【BPW6】血氧历史同步失败', spo2SyncErr)
 											}
-
-											// await u16proBLE.startPPGMeasurement(deviceId)
-											// // 4.16 设置血压动态测量参数
-											// await u16proBLE.setBPDynamicParams({
-											// 	enabled: 1, // 1打开 0关闭
-											// 	startHour: 21, // 21:00 开始
-											// 	dayInterval: 9, // 白天间隔（分钟）
-											// 	nightInterval: 9 // 晚上间隔（分钟）
-											// }, deviceId)
 											// // 4.17 读取血压动态测量参数
 											// await u16proBLE.readBPDynamicParams(deviceId)
 										}, 4000);
@@ -4758,20 +4808,21 @@
 			 */
 			showBpw6PpgLoading(titleKey = '测量中', opts = {}) {
 				// 仅 BPW6「立即测量」弹窗；血压后/定时 PPG 绝不走这里弹窗
-				if (!this.hasLiveBpw6EmotionSession()) {
+				if (!this.hasLiveBpw6EmotionSession() || this.isBpw6AfterBpPpgSession()) {
 					return
 				}
 				const force = !!(opts && opts.force)
 				const key = titleKey || '测量中'
-				// 同文案已在展示：不重复 showLoading（轮询/分块传输会反复触发，造成闪烁）
-				if (!force && this.bpw6PpgLoadingActive && this.bpw6PpgLoadingTitleKey === key) {
+				// 同文案已在展示：即使 force 也不 hide/show，避免「云端计算中」连闪
+				// 回前台 refresh 会先清 flag 再调，仍可强制重弹
+				if (this.bpw6PpgLoadingActive && this.bpw6PpgLoadingTitleKey === key) {
 					return
 				}
 				this.bpw6PpgLoadingActive = true
 				this.bpw6PpgLoadingTitleKey = key
 				this.bpw6NeedClearLoadingOnShow = false
 				try {
-					// force 时先 hide 再 show，避免系统框已关但本地 flag 仍 true 导致不弹
+					// 仅文案切换或明确 force 时先 hide，再 show（同文案已在上方直接 return）
 					if (force) {
 						try {
 							uni.hideLoading()
@@ -4852,7 +4903,7 @@
 			beginBpw6PpgTransferLoading() {
 				const liveImmediate = this.hasLiveBpw6EmotionSession()
 				if (this.bpw6PpgTransferStarted) {
-					// 已在传输：只保会话标记；立即测量才维护 phase/弹窗
+					// 已在传输：只保会话标记；立即测量才维护 phase/弹窗（勿 force，防分块连闪）
 					if (liveImmediate) {
 						this.setBpw6EmotionPpgPhase('transferring')
 						this.markBpw6PpgSessionBusy('BPW6 PPG传输中')
@@ -4866,7 +4917,10 @@
 				if (liveImmediate) {
 					this.setBpw6EmotionPpgPhase('transferring')
 					this.markBpw6PpgSessionBusy('BPW6 PPG传输开始')
-					this.showBpw6PpgLoading('云端数据计算中')
+					// 首次从「测量中」切到云端：允许 force 一次以更新文案
+					this.showBpw6PpgLoading('云端数据计算中', {
+						force: true
+					})
 					return
 				}
 				// 血压后/定时：静默置灰，不写立即测量 phase、不弹窗
@@ -4908,6 +4962,42 @@
 						Date.now() - start < maxMs
 					) {
 						await new Promise(r => setTimeout(r, 200))
+					}
+					resolve()
+				})
+			},
+
+			/**
+			 * 立即测量前等主链路空闲：连接后初始化窗口 + 历史同步，避免抢通道导致 PPG status=0
+			 */
+			waitBpw6MainSyncIdleForPpg(maxMs = 25000) {
+				return new Promise(async (resolve) => {
+					const start = Date.now()
+					const isBusy = () => {
+						const rs = u16proBLE.readingState || {}
+						const setupBusy = !!(this.bpw6PostConnectSetupUntil &&
+							Date.now() < this.bpw6PostConnectSetupUntil)
+						return !!(setupBusy || this.bpw6BpSyncing || this.bpw6HrSyncing || this
+							.bpw6SpO2Syncing ||
+							rs.isReadingBPHistory || rs.isReadingHRHistory || rs.isReadingSpO2History)
+					}
+					if (isBusy()) {
+						console.log('【BPW6】立即测量等待主链路空闲', {
+							setupLeftMs: Math.max(0, (this.bpw6PostConnectSetupUntil || 0) - Date
+								.now()),
+							bp: !!this.bpw6BpSyncing,
+							hr: !!this.bpw6HrSyncing,
+							spo2: !!this.bpw6SpO2Syncing
+						})
+					}
+					while (isBusy() && Date.now() - start < maxMs) {
+						await new Promise(r => setTimeout(r, 250))
+					}
+					if (isBusy()) {
+						console.warn('【BPW6】等待历史同步空闲超时，继续尝试PPG')
+					} else {
+						// 短暂沉降，避免尾包仍在路上
+						await new Promise(r => setTimeout(r, 800))
 					}
 					resolve()
 				})
@@ -4988,21 +5078,27 @@
 				this.bpw6PpgStartInProgress = true
 				let started = false
 				try {
-					if (!skipBpWait) {
+					if (fromEmotionImmediate) {
+						// 首次绑定常见：连接后初始化/历史同步与 PPG 并发 → 设备 status=0
+						await this.waitBpw6MainSyncIdleForPpg(25000)
+						await new Promise(resolve => setTimeout(resolve, 800))
+					} else if (!skipBpWait) {
 						await this.waitBpw6BpHistoryReadDone()
 						await new Promise(resolve => setTimeout(resolve, 3000))
 					} else {
 						await new Promise(resolve => setTimeout(resolve, 300))
 					}
-					// 立即测量：强制准备 BC 通道，降低偶发写失败
+					// 立即测量：有缓存 UUID 则勿反复 force rediscover（会打断主链路/加剧 status=0）
 					try {
+						const bcReady = !!(u16proBLE.bcServiceId && u16proBLE.bcWriteCharId &&
+							u16proBLE.isBcNotifying)
+						const needForce = fromEmotionImmediate && !bcReady
 						await u16proBLE.ensureBcServiceReady(targetDeviceId, {
-							force: fromEmotionImmediate
+							force: needForce
 						})
 					} catch (bcErr) {
 						console.warn('【BPW6】PPG通道准备失败', bcErr)
 						if (fromEmotionImmediate) {
-							// 再试一次强制发现
 							try {
 								await new Promise(r => setTimeout(r, 400))
 								await u16proBLE.ensureBcServiceReady(targetDeviceId, {
@@ -5015,8 +5111,12 @@
 					}
 					// 首次绑定/尚未收到过 BC notify：多等一会再发 PPG，降低设备拒绝(status=0)
 					const neverBc = !u16proBLE._lastBcNotifyTime
-					const prefer4A = neverBc || !!u16proBLE._ppgPrefer4AStart
-					await new Promise(resolve => setTimeout(resolve, neverBc ? 1800 : 300))
+					await new Promise(resolve => setTimeout(resolve, neverBc ? 2800 : 400))
+					if (fromEmotionImmediate && neverBc) {
+						// 再等主链路一轮，避免首次绑定历史同步尾包与 0x4A 打架
+						await this.waitBpw6MainSyncIdleForPpg(15000)
+						await new Promise(resolve => setTimeout(resolve, 600))
+					}
 
 					const maxAttempts = fromEmotionImmediate ? 4 : 3
 					let lastResult = null
@@ -5029,26 +5129,58 @@
 						if (u16proBLE.isPpgOperationInProgress && u16proBLE.isPpgOperationInProgress()) {
 							await new Promise(r => setTimeout(r, 1500))
 						}
+						// 重试前再等主链路空闲（历史同步可能刚插入）
+						if (fromEmotionImmediate && attempt > 1) {
+							await this.waitBpw6MainSyncIdleForPpg(12000)
+							await new Promise(r => setTimeout(r, 800 * attempt))
+						}
 						try {
-							// lastResult = await u16proBLE.startPPGMeasurement(targetDeviceId)
+							// 按机型档案跳过 0x49；两机档案互不覆盖
+							if (u16proBLE.ensurePpgPreferForDevice) {
+								u16proBLE.ensurePpgPreferForDevice(targetDeviceId)
+							}
+							const profile = u16proBLE.getPpgDeviceProfile ?
+								u16proBLE.getPpgDeviceProfile(targetDeviceId) :
+								''
+							const skip49Now = profile === 'standard' || profile === 'compat' ||
+								!!u16proBLE._ppgPrefer4AStart ||
+								(fromEmotionImmediate && attempt > 1 && !!profile)
+							const notifyReady = !!(u16proBLE.isBcNotifying && u16proBLE.bcWriteCharId)
 							lastResult = await u16proBLE.startPPGMeasurementWithDuration(60, targetDeviceId, true, {
-								forceNotify: fromEmotionImmediate && (attempt === 1 || neverBc ||
-									(lastResult && lastResult.success === false)),
-								// 首次绑定/已确认 0x49 无效：直接 0x4A，避免每次空等超时
-								skip49: fromEmotionImmediate && (prefer4A || attempt > 1 ||
-									(lastResult && lastResult.success === false))
+								// 仅通道未就绪时 force；已就绪勿 rediscover（日志里「BC notify 需要启用」会加剧 status=0）
+								forceNotify: fromEmotionImmediate && attempt === 1 && !notifyReady,
+								skip49: skip49Now,
+								// 立即测量：缩短内部空等，失败由本层快速重试；勿动血压后/定时默认长等待
+								immediateMode: fromEmotionImmediate
 							})
 							console.log(`【BPW6】PPG测量启动结果(第${attempt}次)`, lastResult)
 							if (lastResult && lastResult.success) {
 								started = true
+								// 启动成功即标记测量中（勿只靠 notify 回调，否则测完 0x4B 可能判不到 inMeasuring）
+								this.bpw6PpgMeasuring = true
 								if (fromEmotionImmediate) {
-									// 立即测量保持「测量中」，不弹 PPG已开启（避免打断 loading）
-									this.setBpw6EmotionPpgPhase('measuring')
-									this.showBpw6PpgLoading('测量中', {
-										force: true
-									})
+									// 迟到启动成功时，可能已因 0x58 进入传数/云端：绝打回「测量中」
+									if (this.bpw6EmotionPpgPhase === 'transferring' ||
+										this.bpw6PpgTransferStarted || this.bpw6PpgFinishing) {
+										console.log('【BPW6】启动成功但已在传数/云端，保持云端计算中')
+										this.setBpw6EmotionPpgPhase('transferring')
+										this.showBpw6PpgLoading('云端数据计算中')
+									} else {
+										this.setBpw6EmotionPpgPhase('measuring')
+										this.showBpw6PpgLoading('测量中', {
+											force: true
+										})
+									}
+									// 挂起等 0x58：不依赖 notify 转发，保证能进「云端数据计算中」
+									this.armBpw6PpgCompleteWatch(targetDeviceId)
 								}
 								// 血压后/定时：静默，不 toast、不 loading
+								return true
+							}
+							// 重试间隙：0x58 可能已到并进入云端，视为启动成功
+							if (fromEmotionImmediate && (this.bpw6EmotionPpgPhase === 'transferring' ||
+									this.bpw6PpgTransferStarted || this.bpw6PpgFinishing)) {
+								console.log('【BPW6】启动重试中已进入云端/传数，结束启动流程')
 								return true
 							}
 						} catch (ppgErr) {
@@ -5056,17 +5188,22 @@
 							lastResult = null
 						}
 						if (attempt < maxAttempts) {
-							const retryWait = fromEmotionImmediate ? (1500 * attempt) : (2000 * attempt)
-							console.log(`【BPW6】PPG启动失败，${retryWait / 1000}秒后重试`)
-							if (fromEmotionImmediate) {
-								try {
-									await u16proBLE.ensureBcServiceReady(targetDeviceId, {
-										force: true
-									})
-								} catch (e3) {}
+							// 已在云端则不再空转重试启动
+							if (fromEmotionImmediate && (this.bpw6EmotionPpgPhase === 'transferring' ||
+									this.bpw6PpgTransferStarted || this.bpw6PpgFinishing)) {
+								console.log('【BPW6】已进入云端，取消后续启动重试')
+								return true
 							}
+							const retryWait = fromEmotionImmediate ? (2500 * attempt) : (2000 * attempt)
+							console.log(`【BPW6】PPG启动失败，${retryWait / 1000}秒后重试`)
 							await new Promise(r => setTimeout(r, retryWait))
 						}
+					}
+					// 最后仍失败：若 0x58 已拉起传数，仍算成功（勿走 fail 清会话）
+					if (fromEmotionImmediate && (this.bpw6EmotionPpgPhase === 'transferring' ||
+							this.bpw6PpgTransferStarted || this.bpw6PpgFinishing)) {
+						console.log('【BPW6】启动流程结束时已在云端/传数，视为成功')
+						return true
 					}
 					// 非立即测量启动失败：静默（不 toast）
 					// 立即测量：保留 loading，由外层 notifyBpw6EmotionImmediateFail 统一关闭
@@ -5079,46 +5216,174 @@
 
 			handleBPW6PPGCommand(data, deviceId, deviceSn) {
 				console.log('【BPW6】PPG测量命令响应:', data)
+				const cmd = data && data.cmd
+				const phase = this.bpw6EmotionPpgPhase
+				const inTransfer = phase === 'transferring' || this.bpw6PpgTransferStarted ||
+					this.ppgUploadInProgress || this.bpw6PpgFinishing
+				const inMeasuring = phase === 'measuring' || !!this.bpw6PpgMeasuring
+				const emotionImmediate = this.isBpw6EmotionImmediateUi()
+				const ppgStartBusy = !!(this.bpw6PpgStartInProgress ||
+					(u16proBLE.isPpgOperationInProgress && u16proBLE.isPpgOperationInProgress()))
+				const keepCloudUi = () => {
+					// 血压后 PPG：绝不弹云端提示
+					if (this.isBpw6AfterBpPpgSession()) {
+						return
+					}
+					if (emotionImmediate || this.immediateEmotionMeasure || this.bpw6EmotionPpgActive) {
+						this.setBpw6EmotionPpgPhase('transferring')
+						this.bpw6PpgTransferStarted = true
+						this.markBpw6PpgSessionBusy('BPW6停止应答-保持云端计算')
+						// 已在云端文案则不再 force，避免连闪
+						this.showBpw6PpgLoading('云端数据计算中')
+					}
+				}
+				/** 测量已开始后的 0x4B（成功或失败）都按「测量结束」拉数，兼容无 0x58 固件 */
+				const treatStopAsComplete = () => {
+					console.log('【BPW6】0x4B视为测量完成(兼容无0x58)，拉取PPG数据', {
+						success: !!(data && data.success),
+						status: data && data.status,
+						phase,
+						afterBp: this.isBpw6AfterBpPpgSession(),
+						emotionImmediate
+					})
+					// 仅「立即测量」才复活会话并弹「云端数据计算中」；血压后/定时绝不可劫持成立即测量
+					if (emotionImmediate || this.bpw6EmotionPpgActive) {
+						const wasMeasuring = !!this.bpw6PpgMeasuring || phase === 'measuring' ||
+							phase === 'transferring'
+						const startedAt = this.bpw6EmotionPpgStartedAt || 0
+						const recentStart = startedAt > 0 && (Date.now() - startedAt < 10 * 60 * 1000)
+						if (wasMeasuring || this.immediateEmotionMeasure ||
+							this.sleep_alertid === 1 || this.bpw6PpgLoadingActive || recentStart) {
+							this.bpw6EmotionPpgActive = true
+							this.immediateEmotionMeasure = true
+							this.sleep_alertid = 1
+							this.setBpw6EmotionPpgPhase('transferring')
+							this.bpw6PpgTransferStarted = true
+							this.bpw6CloudWaitStartedAt = Date.now()
+							this.markBpw6PpgSessionBusy('BPW6兼容0x4B完成-云端计算')
+							this.showBpw6PpgLoading('云端数据计算中', {
+								force: true
+							})
+						}
+					}
+					this.bpw6PpgMeasuring = false
+					this.handleBPW6PPGComplete(data, deviceId, deviceSn)
+				}
+
 				if (data.success) {
-					if (data.cmd === 0x4B) {
+					// 0x58 完成通知：必须进拉数/云端计算（勿当普通启停命令丢掉）
+					if (cmd === 0x58 || data.completed === true || data.type === 'ppg_measurement_complete') {
+						this.handleBPW6PPGComplete(data, deviceId, deviceSn)
+						return
+					}
+					if (cmd === 0x4B) {
+						// 启动/降级过程中的停止应答绝不当「测完」（否则会拉空数据并结束会话）
+						if (ppgStartBusy) {
+							console.warn('【BPW6】启动流程中忽略0x4B成功应答', data)
+							return
+						}
+						// 仅静默预停止守卫窗内忽略；勿用「启动后8秒」误吞真正测完的 0x4B
+						const silentGuardUntil = u16proBLE._ppgSilentStopGuardUntil || 0
+						if (silentGuardUntil && Date.now() < silentGuardUntil) {
+							console.warn('【BPW6】忽略启动预停止迟到的0x4B(保持测量中)', {
+								guardLeftMs: Math.max(0, silentGuardUntil - Date.now()),
+								phase
+							})
+							return
+						}
 						this.bpw6PpgMeasuring = false
-						// 已进入读数/上传/云端计算：设备停止应答不结束立即测量会话，否则会关掉「云端计算中」
-						if (this.bpw6EmotionPpgPhase === 'transferring' || this.bpw6PpgTransferStarted ||
-							this.ppgUploadInProgress || this.bpw6PpgFinishing) {
-							if (this.bpw6EmotionPpgActive || this.immediateEmotionMeasure) {
-								this.markBpw6PpgSessionBusy('BPW6停止应答-保持云端计算')
-								this.showBpw6PpgLoading('云端数据计算中')
-							}
+						if (inTransfer) {
+							keepCloudUi()
+							return
+						}
+						// 测量中 / 立即测量会话中：无 0x58 时只靠 0x4B 结束
+						if (inMeasuring || this.bpw6EmotionPpgActive || this.immediateEmotionMeasure ||
+							this.sleep_alertid === 1 || this.bpw6PpgLoadingActive) {
+							treatStopAsComplete()
 							return
 						}
 						this.hideBpw6PpgLoading()
 						this.endBpw6QxScheduledMeasureIfNeeded('BPW6 PPG停止命令')
-					} else if (data.cmd === 0x4A || data.cmd === 0x49) {
+					} else if (cmd === 0x4A || cmd === 0x49) {
+						// 已在传数/云端：迟到的启动应答不得把「云端计算中」打回「测量中」
+						if (inTransfer || phase === 'transferring') {
+							console.log('【BPW6】忽略传输中迟到的启动应答，保持云端计算中', {
+								cmd,
+								phase
+							})
+							keepCloudUi()
+							return
+						}
 						this.bpw6PpgMeasuring = true
 						this.bpw6PpgRawBuffer = []
 						this.bpw6PpgDataSize = 0
 						// 三种路径都置灰；传输结束前 storage 会话标记不丢
 						this.markBpw6PpgSessionBusy('BPW6 PPG测量开始')
-						// 立即测量：命令应答后仍处于测量阶段（未开始读数/上传）
-						if (this.isBpw6EmotionImmediateUi() && this.bpw6EmotionPpgPhase !== 'transferring') {
+						// 立即测量才弹「测量中」；血压后/定时仅置灰、无任何提示
+						if (emotionImmediate) {
 							this.setBpw6EmotionPpgPhase('measuring')
+							this.showBpw6PpgLoading('测量中')
 						}
-						this.showBpw6PpgLoading('测量中')
 					}
 				} else {
-					this.bpw6PpgMeasuring = false
 					console.warn('【BPW6】PPG测量命令失败', data)
-					// 启动重试进行中：失败由 startBpw6PpgMeasurementCore 统一处理，勿在此清会话/关 loading
+					// 启动重试进行中：失败由 startBpw6PpgMeasurementCore 统一处理
 					if (this.bpw6PpgStartInProgress) {
+						this.bpw6PpgMeasuring = false
 						return
 					}
-					// 立即测量会话仍在进行、尚未进入传输：也可能是启动阶段迟到的失败应答，勿提前清会话
-					if (this.isBpw6EmotionImmediateUi() && this.bpw6EmotionPpgActive &&
-						this.bpw6EmotionPpgPhase !== 'transferring' && !this.bpw6PpgMeasuring) {
+					// 协议层启动锁中：勿清会话 / 勿把 0x4B 当测完
+					if ((cmd === 0x49 || cmd === 0x4A || cmd === 0x4B) &&
+						u16proBLE.isPpgOperationInProgress && u16proBLE.isPpgOperationInProgress()) {
+						console.warn('【BPW6】PPG启动流程中忽略失败应答', data)
+						return
+					}
+					// 已在传数/云端：停止失败帧只保「云端计算中」，勿清会话
+					if (cmd === 0x4B && inTransfer) {
+						keepCloudUi()
+						return
+					}
+					// 测量已进行中 / 立即测量会话中的 0x4B（部分固件结束帧 success=false）：仍按完成拉数
+					if (cmd === 0x4B && (inMeasuring || this.bpw6EmotionPpgActive ||
+							(emotionImmediate && phase === 'measuring'))) {
+						const silentGuardUntil2 = u16proBLE._ppgSilentStopGuardUntil || 0
+						if (silentGuardUntil2 && Date.now() < silentGuardUntil2) {
+							console.warn('【BPW6】忽略启动预停止迟到的0x4B失败帧(保持测量中)', data)
+							return
+						}
+						treatStopAsComplete()
+						return
+					}
+					// 定时测量后台「不等应答」：0x49/0x4A 失败应答可能迟到，且协议层会降级 0x4A；
+					// 勿因此清会话（立即测量仍走下方失败路径）
+					{
+						const isStartCmd = cmd === 0x49 || cmd === 0x4A
+						let isScheduled = false
+						try {
+							const scheduled = uni.getStorageSync('qx_ble_scheduled_measure')
+							isScheduled = scheduled === 1 || scheduled === '1'
+						} catch (e) {}
+						if (isStartCmd && isScheduled && !emotionImmediate) {
+							console.warn('【BPW6】定时测量忽略启动失败应答(可降级0x4A)', data)
+							return
+						}
+						// 立即测量：启动失败帧一律交由 startBpw6PpgMeasurementCore；
+						// 勿在应答回调里清会话（易与 0x4A 降级/重试竞态，表现为「一点就失败」）
+						if (isStartCmd && emotionImmediate) {
+							console.warn('【BPW6】立即测量忽略启动失败应答(交由启动流程)', data)
+							return
+						}
+					}
+					this.bpw6PpgMeasuring = false
+					// 仅启动后很短窗口内的迟到失败应答交给启动流程；勿把「测完后的停止帧」吞掉导致卡在测量中
+					const startedAt = this.bpw6EmotionPpgStartedAt || 0
+					const inStartWindow = startedAt > 0 && (Date.now() - startedAt < 15000)
+					if (emotionImmediate && this.bpw6EmotionPpgActive &&
+						phase !== 'transferring' && phase !== 'measuring' && inStartWindow) {
 						console.warn('【BPW6】立即测量启动阶段失败应答，交由启动流程处理')
 						return
 					}
-					if (this.isBpw6EmotionImmediateUi()) {
+					if (emotionImmediate) {
 						this.notifyBpw6EmotionImmediateFail('请检查设备连接', 'BPW6 PPG命令失败')
 					} else {
 						this.hideBpw6PpgLoading()
@@ -5127,15 +5392,112 @@
 				}
 			},
 
+			/**
+			 * 立即测量启动成功后挂起等 0x58（仅补「云端计算中」入口，不改启动协议）
+			 */
+			armBpw6PpgCompleteWatch(deviceId) {
+				if (this._bpw6PpgCompleteWatchArmed) {
+					return
+				}
+				const targetDeviceId = deviceId || uni.getStorageSync('BPW6devicemac')
+				const deviceSn = uni.getStorageSync('BPW6deviceSn')
+				if (!targetDeviceId || !u16proBLE.watchPpgMeasurementComplete) {
+					return
+				}
+				this._bpw6PpgCompleteWatchArmed = true
+				console.log('【BPW6】已挂起等待完成通知(0x58/兼容0x4B)→云端计算中')
+				u16proBLE.watchPpgMeasurementComplete(5 * 60 * 1000).then((payload) => {
+					this._bpw6PpgCompleteWatchArmed = false
+					// phase 为空时仍须进完成（兼容机常见）；勿因标记不全一直停在「测量中」
+					const canComplete = !!(this.bpw6EmotionPpgActive || this.immediateEmotionMeasure ||
+						this.bpw6PpgMeasuring || this.bpw6PpgLoadingActive ||
+						this.bpw6EmotionPpgPhase === 'measuring' ||
+						this.bpw6EmotionPpgPhase === 'transferring' ||
+						this.sleep_alertid === 1 ||
+						(this.bpw6EmotionPpgStartedAt > 0 &&
+							Date.now() - this.bpw6EmotionPpgStartedAt < 10 * 60 * 1000))
+					if (!canComplete) {
+						console.warn('【BPW6】watch完成但会话已结束，忽略', payload)
+						return
+					}
+					console.log('【BPW6】watch等到完成帧，进入云端计算/拉数', payload)
+					this.handleBPW6PPGComplete(payload || {
+						success: true,
+						cmd: 0x58,
+						completed: true,
+						type: 'ppg_measurement_complete'
+					}, targetDeviceId, deviceSn)
+				}).catch((err) => {
+					this._bpw6PpgCompleteWatchArmed = false
+					const msg = err && err.message ? err.message : String(err || '')
+					if (msg.indexOf('已由0x4B完成') >= 0) {
+						return
+					}
+					console.warn('【BPW6】等待完成通知结束', msg)
+				})
+			},
+
 			async handleBPW6PPGComplete(data, deviceId, deviceSn) {
+				// 兼容 0x4B 完成时取消仍在等的 0x58 watch（日志 pendingKeys:["88"]）
+				this._bpw6PpgCompleteWatchArmed = false
+				if (u16proBLE.cancelPpgMeasurementCompleteWatch) {
+					u16proBLE.cancelPpgMeasurementCompleteWatch()
+				}
+				const isAfterBp = this.isBpw6AfterBpPpgSession()
+				// 测完弹「云端数据计算中」：立即测量/兼容机保持原放宽条件；仅血压后静默排除
+				const startedAt = this.bpw6EmotionPpgStartedAt || 0
+				const recentImmediate = !isAfterBp && startedAt > 0 &&
+					(Date.now() - startedAt < 10 * 60 * 1000)
+				const phaseBusy = this.bpw6EmotionPpgPhase === 'measuring' ||
+					this.bpw6EmotionPpgPhase === 'transferring'
+				const shouldCloud = !isAfterBp && !!(this.bpw6EmotionPpgActive ||
+					this.immediateEmotionMeasure || this.sleep_alertid === 1 || recentImmediate ||
+					phaseBusy || this.bpw6PpgLoadingActive || this.bpw6PpgTransferStarted ||
+					this.bpw6PpgMeasuring)
+				if (shouldCloud) {
+					this.bpw6EmotionPpgActive = true
+					this.immediateEmotionMeasure = true
+					if (!this.sleep_alertid) {
+						this.sleep_alertid = 1
+					}
+				}
+				const showCloudUi = () => {
+					this.setBpw6EmotionPpgPhase('transferring')
+					this.bpw6PpgTransferStarted = true
+					this.markBpw6PpgSessionBusy('BPW6 PPG进入云端计算')
+					this.showBpw6PpgLoading('云端数据计算中', {
+						force: true
+					})
+				}
+				// 0x58 与兼容路径 0x4B 可能连续触发，避免重复拉数；但必须保住「云端计算中」UI
+				if (this.bpw6PpgFinishing || (u16proBLE.isPpgManagedRead && u16proBLE.isPpgManagedRead())) {
+					console.log('【BPW6】PPG完成拉取进行中，跳过重复触发')
+					if (shouldCloud) {
+						showCloudUi()
+					}
+					return
+				}
 				console.log('【BPW6】PPG测量完成', data)
 				this.bpw6PpgMeasuring = false
 				this.bpw6PpgFinishing = true
+				// 进入云端阶段：清掉启动期补弹「测量中」的定时器，避免盖住云端文案
+				if (this._bpw6ImmediateLoadingKickTimer) {
+					clearTimeout(this._bpw6ImmediateLoadingKickTimer)
+					this._bpw6ImmediateLoadingKickTimer = null
+				}
+				// 先切阶段再 await，避免切页 onShow 仍按 measuring 弹「测量中」
+				if (shouldCloud) {
+					this.bpw6CloudWaitStartedAt = Date.now()
+					showCloudUi()
+				}
 				this.beginBpw6PpgTransferLoading()
 				this.markBpw6PpgSessionBusy('BPW6 PPG测量完成进入传输')
 				try {
 					const result = await u16proBLE.readAllPPGData(deviceId)
 					if (result && result.ppgData && result.ppgData.length) {
+						if (shouldCloud || this.bpw6EmotionPpgActive) {
+							showCloudUi()
+						}
 						this.handleBPW6PPGData({
 							type: 'ppg_data',
 							ppgData: result.ppgData,
@@ -5144,7 +5506,7 @@
 					} else {
 						console.log('【BPW6】PPG数据为空', result)
 						this.bpw6PpgFinishing = false
-						if (this.isBpw6EmotionImmediateUi()) {
+						if (!isAfterBp && (this.isBpw6EmotionImmediateUi() || recentImmediate || shouldCloud)) {
 							this.notifyBpw6EmotionImmediateFail('数据解析失败请重新测量', 'BPW6 PPG数据为空')
 						} else {
 							this.hideBpw6PpgLoading(true)
@@ -5154,7 +5516,7 @@
 				} catch (err) {
 					console.error('【BPW6】PPG数据读取失败', err)
 					this.bpw6PpgFinishing = false
-					if (this.isBpw6EmotionImmediateUi()) {
+					if (!isAfterBp && (this.isBpw6EmotionImmediateUi() || recentImmediate || shouldCloud)) {
 						this.notifyBpw6EmotionImmediateFail('数据解析失败请重新测量', 'BPW6 PPG读取失败')
 					} else {
 						this.hideBpw6PpgLoading(true)
@@ -5173,10 +5535,11 @@
 			},
 
 			handleBPW6PPGChunk(data, deviceId, deviceSn) {
-				this.beginBpw6PpgTransferLoading()
+				// 托管拉数路径：完成回调已切到「云端计算中」，分块勿反复刷 loading
 				if (u16proBLE.isPpgManagedRead && u16proBLE.isPpgManagedRead()) {
 					return
 				}
+				this.beginBpw6PpgTransferLoading()
 				if (data.ppgData && data.ppgData.length) {
 					this.bpw6PpgRawBuffer.push(...data.ppgData)
 				}
@@ -5226,10 +5589,7 @@
 				this.ppgUploadInProgress = true
 				this.markBpw6PpgSessionBusy('BPW6 PPG上传中')
 				const rawSamples = [...this.bpw6PpgRawBuffer]
-				console.log('【BPW6】PPG原始数据:',
-					U16ProProtocol.bytesToHex(rawSamples.slice(0, Math.min(16, rawSamples.length))),
-					rawSamples.length > 16 ? '...' : '',
-					'total:', rawSamples.length)
+				console.log('【BPW6】PPG原始数据长度:', rawSamples.length)
 				const binary = this.packInt16(rawSamples)
 				this.bpw6PpgRawData(binary, deviceSn, deviceId)
 				this.bpw6PpgRawBuffer = []
@@ -5324,10 +5684,46 @@
 
 			BPW6paredata(data, deviceId, deviceSn) {
 				let that = this
+				// 备注版协议：测完常见粘包 BC 58 + BC 4B；有 0x58 时只走完成通知拉数
+				if (Array.isArray(data)) {
+					const hasMeasurementComplete = data.some(
+						item => item && (item.type === 'ppg_measurement_complete' ||
+							item.cmd === 0x58 || item.completed === true)
+					)
+					// 先处理 0x58，再处理其余，避免同包 0x4B 抢先
+					const ordered = hasMeasurementComplete ? [
+						...data.filter(item => item && (item.type === 'ppg_measurement_complete' ||
+							item.cmd === 0x58 || item.completed === true)),
+						...data.filter(item => item && !(item.type === 'ppg_measurement_complete' ||
+							item.cmd === 0x58 || item.completed === true))
+					] : data
+					ordered.forEach(item => {
+						if (!item) {
+							return
+						}
+						if (hasMeasurementComplete &&
+							item.type === 'ppg_command' &&
+							item.cmd === 0x4B) {
+							console.log('【BPW6】跳过同包内 0x4B 通知，已由 0x58 触发拉取')
+							return
+						}
+						that.BPW6paredata(item, deviceId, deviceSn)
+					})
+					return
+				}
 				if (!data || !data.type) {
+					// type 缺失时仍识别 0x58，避免测完丢「云端计算中」
+					if (data && (data.cmd === 0x58 || data.completed === true)) {
+						that.handleBPW6PPGComplete(data, deviceId, deviceSn)
+					}
 					return;
 				}
-				console.log('【BPW6】paredata接收到数据:', data.type || "数据统计中");
+				// 0x58 优先：即使被标成 ppg_command 也走完成拉数
+				if (data.cmd === 0x58 || data.completed === true || data.type === 'ppg_measurement_complete') {
+					that.handleBPW6PPGComplete(data, deviceId, deviceSn)
+					return
+				}
+				// console.log('【BPW6】paredata接收到数据:', data.type || "数据统计中");
 				// console.log("【BPW6】" + deviceId, deviceSn)
 				uni.setStorageSync("BPW6devicemac", deviceId)
 				switch (data.type) {
@@ -5433,7 +5829,7 @@
 							lowPressure: data.diastolic,
 							heartRate: data.pulse
 						});
-						console.log('isNewestRecord:', data);
+						// console.log('isNewestRecord:', data);
 						// 设备按新→旧推送，首页只展示最新一条；须比接口新且有网才刷新
 						if (isNewestRecord) {
 							console.log('isNewestRecord:', data.type);
@@ -8383,7 +8779,7 @@
 					if (res.code == 200) {
 						this.sleep_time = this.getUpdateTime(res.data, 'register', 'sleep')
 						uni.setStorageSync("temperature", this.getRegisterVal(res.data, 'register',
-						'temperature')); //根据体温判断是否显示无感报告的提示，超过100则显示
+							'temperature')); //根据体温判断是否显示无感报告的提示，超过100则显示
 						if (this.currentIndex === 0) {
 							// 血压卡片数据处理
 							this.processBloodPressureData(res.data)
@@ -9734,7 +10130,7 @@
 					}
 					// 查询服务该槽位没有血压 → 必须上报（按槽位多格式匹配）
 					if (that.isBpw6SlotInServerSet(existingTimes, bp.dateTimeKey, bp.timestamp)) {
-						console.log('【BPW6】血压槽位已存在，跳过', key);
+						// console.log('【BPW6】血压槽位已存在，跳过', key);
 						continue;
 					}
 					uploadedKeys.add(key);
@@ -13003,7 +13399,6 @@
 					measurementTs: this.UTCdatatime().timestampSec,
 					measurementTimezone: this.getTimeAllJSON().YMDHMS,
 				}
-				console.log("体重", data)
 				uni.setStorageSync("tizhidata", data)
 				this.$post(this.$url_APP_IP + this.$url_jakoblife_fat_scale, data, {
 					'content-type': 'application/json;charset=UTF-8'

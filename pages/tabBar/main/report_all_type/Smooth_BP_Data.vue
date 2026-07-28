@@ -91,12 +91,13 @@
 		},
 		onShow() {
 			const modeltipsbool = uni.getStorageSync("temperature")
+			console.log("modeltipsbool", modeltipsbool)
 			uni.setNavigationBarTitle({
 				title: this.$t('无感血压报告')
 			})
 			this.calculateTimeRange()
 			this.get_retVarList()
-			if (modeltipsbool && modeltipsbool !== '-/-' && Number(modeltipsbool) >= 100) this.modeltips = false
+			if (modeltipsbool && modeltipsbool !== '-/-' && Number(modeltipsbool) >= 500) this.modeltips = false
 		},
 		methods: {
 			switchTab(tab) {

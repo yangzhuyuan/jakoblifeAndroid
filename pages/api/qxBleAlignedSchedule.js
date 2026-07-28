@@ -334,7 +334,8 @@ function createQxBleConnection(deviceId) {
 			},
 			fail: (err) => {
 				const msg = String((err && err.errMsg) || '')
-				if (msg.indexOf('already') >= 0 || (err && (err.errCode === -1 || err.code === -1))) {
+				if (msg.indexOf('already') >= 0 || (err && (err.errCode === -1 || err.code === -
+						1))) {
 					resolve(true)
 					return
 				}
@@ -925,28 +926,28 @@ function reconcileQxScheduleBusyState() {
 	const hasSleepUiBusy = isMainSleepAlertMeasureBusy()
 	const measureSlot = readMeasureSlotAt()
 
-		// 无 inFlight、无抢占：残留调度/sendwatch/测量中 UI 标记应恢复待命
-		// （页面重载后 inFlight 丢失最常见；勿误清无槽位的手动 sendwatch）
-		if (!qxMeasureInFlight && !isQxSlotClaimActive()) {
-			if (hasSched || (hasSend && measureSlot > 0) ||
-				(hasSleepUiBusy && (hasSched || hasSend || measureSlot > 0))) {
-				const refAt = qxMeasureSessionStartedAt || measureSlot || 0
-				if (refAt <= 0 || now - refAt >= QX_RECONCILE_FLAGS_GRACE_MS) {
-					console.log('[qxBle] 状态纠偏: 清除残留测量中标记', {
-						hasSched,
-						hasSend,
-						hasSleepUiBusy,
-						measureSlot
-					})
-					resetQxScheduleBusyState('纠偏-残留测量中标记', {
-						advanceSlot: false,
-						clearSendwatch: !!(hasSched || (hasSend && measureSlot > 0)),
-						sessionEnd: false
-					})
-					return true
-				}
+	// 无 inFlight、无抢占：残留调度/sendwatch/测量中 UI 标记应恢复待命
+	// （页面重载后 inFlight 丢失最常见；勿误清无槽位的手动 sendwatch）
+	if (!qxMeasureInFlight && !isQxSlotClaimActive()) {
+		if (hasSched || (hasSend && measureSlot > 0) ||
+			(hasSleepUiBusy && (hasSched || hasSend || measureSlot > 0))) {
+			const refAt = qxMeasureSessionStartedAt || measureSlot || 0
+			if (refAt <= 0 || now - refAt >= QX_RECONCILE_FLAGS_GRACE_MS) {
+				console.log('[qxBle] 状态纠偏: 清除残留测量中标记', {
+					hasSched,
+					hasSend,
+					hasSleepUiBusy,
+					measureSlot
+				})
+				resetQxScheduleBusyState('纠偏-残留测量中标记', {
+					advanceSlot: false,
+					clearSendwatch: !!(hasSched || (hasSend && measureSlot > 0)),
+					sessionEnd: false
+				})
+				return true
 			}
 		}
+	}
 
 	if (hasSched && !qxMeasureInFlight && !isQxSlotClaimActive()) {
 		clearQxScheduledMeasureStorage()
@@ -1181,7 +1182,8 @@ function syncQxBleWatchConnectedFromSystem(options = {}) {
 				success: (res) => {
 					qxBleConnectedPollInFlight = false
 					const list = res.devices || []
-					const connected = list.some((d) => isSameQxBleDeviceId(d && d.deviceId, dev))
+					const connected = list.some((d) => isSameQxBleDeviceId(d && d.deviceId,
+						dev))
 					finish(connected, false)
 				},
 				fail: (err) => {
@@ -2147,7 +2149,8 @@ async function runOneBpw6QxMeasurement(deviceId) {
 		} catch (err) {
 			console.warn('[qxBle] BPW6 PPG通道准备失败', err)
 		}
-		const result = await u16proBLE.startPPGMeasurement(targetDeviceId)
+		// const result = await u16proBLE.startPPGMeasurement(targetDeviceId)
+		const result = await u16proBLE.startPPGMeasurementWithDuration(60, targetDeviceId)
 		if (!result || !result.success) {
 			throw new Error('BPW6 PPG启动失败')
 		}
@@ -2169,10 +2172,19 @@ async function runOneBpw6QxMeasurement(deviceId) {
 	await delayMs(3000)
 	await probeBpw6LinkBeforeMeasure(targetDeviceId)
 	await delayMs(3000)
+	// 轻量保 BC notify（不 force rediscover），降低后台 0x49 status=0 拒绝概率
+	try {
+		await u16proBLE.ensureBcServiceReady(targetDeviceId, {
+			force: false
+		})
+	} catch (err) {
+		console.warn('[qxBle] BPW6后台PPG通道准备失败，继续下发', err)
+	}
 
 	let result = null
 	try {
-		await u16proBLE.startPPGMeasurement(targetDeviceId, false)
+		// await u16proBLE.startPPGMeasurement(targetDeviceId, false)
+		await u16proBLE.startPPGMeasurementWithDuration(60, targetDeviceId, false)
 		result = {
 			success: true
 		}
@@ -2181,7 +2193,8 @@ async function runOneBpw6QxMeasurement(deviceId) {
 		console.warn('[qxBle] 后台BPW6 PPG首次下发失败，重试一次', err)
 		await delayMs(800)
 		try {
-			await u16proBLE.startPPGMeasurement(targetDeviceId, false)
+			// await u16proBLE.startPPGMeasurement(targetDeviceId, false)
+			await u16proBLE.startPPGMeasurementWithDuration(60, targetDeviceId, false)
 			result = {
 				success: true
 			}
@@ -2225,7 +2238,8 @@ function runOneBpw1QxMeasurement(deviceId, serviceId, characteristicId) {
 						if (OTA_DATA_RES_WATCH_CMD_IDS.has(otaBP)) {
 							ppgHex = 'e0000611030125000101'
 						}
-						writeBpw1ScheduleCommand(deviceId, serviceId, characteristicId, ppgHex)
+						writeBpw1ScheduleCommand(deviceId, serviceId, characteristicId,
+								ppgHex)
 							.then(() => {
 								uni.setStorageSync('sendwatch', 1)
 								markQxScheduledMeasureStorage()

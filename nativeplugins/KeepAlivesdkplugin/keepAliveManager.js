@@ -75,6 +75,8 @@ class KeepAliveManager {
 			model: ''
 		};
 		this.notificationEnabled = false; // 通知权限状态
+		/** 防止通知权限说明/引导弹窗重入叠弹 */
+		this._notificationPermissionPrompting = false;
 		/** 跳转厂商白名单/系统设置前已暂停前台服务，回到 App 后需恢复 */
 		this._suspendedForWhitelistUi = false;
 		this._alarmListenerBound = false;
@@ -1850,8 +1852,16 @@ class KeepAliveManager {
 
 	/**
 	 * Android 13+：在系统「允许通知」对话框前先说明用途
+	 * 展示即标记已引导，避免 onShow/recheck/异步回调叠弹；手动 request 仍可再次申请
 	 */
 	showAndroidRuntimeNotificationPurposeModal(onContinue) {
+		if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
+			console.log('[KeepAlive] 跳过通知用途说明弹窗（已引导或进行中）');
+			return;
+		}
+		this._notificationPermissionPrompting = true;
+		// 一展示即落盘，防止冷启动/前台回调在用户未点选前再次自动弹窗
+		this._markNotificationUserResponded();
 		const isZh = this.getLocale();
 		const purpose = this.getNotificationPermissionPurposeBlock();
 		const tail = isZh ?
@@ -1863,11 +1873,13 @@ class KeepAliveManager {
 			confirmText: isZh ? '继续' : 'Continue',
 			cancelText: isZh ? '稍后' : 'Later',
 			success: (res) => {
+				this._notificationPermissionPrompting = false;
 				if (res.confirm && typeof onContinue === 'function') {
 					onContinue();
-				} else {
-					this._markNotificationUserResponded();
 				}
+			},
+			fail: () => {
+				this._notificationPermissionPrompting = false;
 			}
 		});
 	}
@@ -2040,7 +2052,7 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 检查 Android 通知权限
+	 * 检查 Android 通知权限（自动引导入口；已引导过则只同步状态不弹窗）
 	 */
 	checkAndroidNotificationPermission() {
 		// #ifdef APP-PLUS
@@ -2051,7 +2063,7 @@ class KeepAliveManager {
 		}
 
 		try {
-			if (this._isNotificationUserResponded()) {
+			if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
 				this._silentRefreshAndroidNotificationState();
 				return;
 			}
@@ -2063,6 +2075,13 @@ class KeepAliveManager {
 			this.createNotificationChannel();
 
 			plus.android.checkPermission('android.permission.POST_NOTIFICATIONS', (permRes) => {
+				// 异步回调期间可能已被其它入口引导过，避免叠弹
+				if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
+					const runtimeGrantedQuiet = permRes && permRes.checkResult === 0;
+					this.notificationEnabled = runtimeGrantedQuiet && areNotificationsEnabled;
+					return;
+				}
+
 				const runtimeGranted = permRes && permRes.checkResult === 0;
 				this.notificationEnabled = runtimeGranted && areNotificationsEnabled;
 				console.log('[KeepAlive] POST_NOTIFICATIONS:', runtimeGranted,
@@ -2097,9 +2116,7 @@ class KeepAliveManager {
 				}
 
 				if (!areNotificationsEnabled) {
-					if (!this._isNotificationUserResponded()) {
-						this.showNotificationPermissionGuide();
-					}
+					this.showNotificationPermissionGuide();
 				} else {
 					console.log('[KeepAlive] 通知权限已开启');
 					this._markNotificationUserResponded();
@@ -2125,7 +2142,7 @@ class KeepAliveManager {
 		this.notificationEnabled = isEnabled;
 		console.log('[KeepAlive] iOS通知权限状态:', isEnabled);
 
-		if (this._isNotificationUserResponded()) {
+		if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
 			return;
 		}
 
@@ -2142,7 +2159,7 @@ class KeepAliveManager {
 	 * 显示通知权限引导
 	 */
 	showNotificationPermissionGuide() {
-		if (this._isNotificationUserResponded()) {
+		if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
 			console.log('[KeepAlive] 用户已处理过通知权限，不再弹窗');
 			return;
 		}
@@ -2150,8 +2167,14 @@ class KeepAliveManager {
 		const hasShownGuide = uni.getStorageSync(storageKey);
 		if (hasShownGuide) {
 			console.log('[KeepAlive] 通知权限引导已显示过，跳过');
+			this._markNotificationUserResponded();
 			return;
 		}
+
+		this._notificationPermissionPrompting = true;
+		// 展示即落盘，避免重复自动引导
+		uni.setStorageSync(storageKey, true);
+		this._markNotificationUserResponded();
 
 		const isZh = this.getLocale();
 
@@ -2175,11 +2198,13 @@ class KeepAliveManager {
 			confirmText: isZh ? '去开启' : 'Go Setting',
 			cancelText: isZh ? '稍后' : 'Later',
 			success: (res) => {
+				this._notificationPermissionPrompting = false;
 				if (res.confirm) {
 					this.requestNotificationPermission();
-				} else {
-					this._markNotificationUserResponded();
 				}
+			},
+			fail: () => {
+				this._notificationPermissionPrompting = false;
 			}
 		});
 	}
@@ -2211,16 +2236,11 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 请求 Android 通知权限
+	 * 请求 Android 通知权限（用户主动触发；不受自动引导标记拦截）
 	 */
 	requestAndroidNotificationPermission() {
 		// #ifdef APP-PLUS
 		const isZh = this.getLocale();
-
-		if (this._isNotificationUserResponded()) {
-			this._silentRefreshAndroidNotificationState();
-			return;
-		}
 
 		if (this.notificationEnabled) {
 			uni.showToast({
@@ -2271,10 +2291,8 @@ class KeepAliveManager {
 					}
 
 					if (!areNotificationsEnabled) {
-						if (!this._isNotificationUserResponded()) {
-							this.goToNotificationSettings();
-							this._markNotificationUserResponded();
-						}
+						this.goToNotificationSettings();
+						this._markNotificationUserResponded();
 					} else {
 						this.notificationEnabled = true;
 						uni.showToast({
@@ -2332,15 +2350,11 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 请求 iOS 通知权限
+	 * 请求 iOS 通知权限（用户主动触发；不受自动引导标记拦截）
 	 */
 	requestIOSNotificationPermission() {
 		// #ifdef APP-PLUS
 		const isZh = this.getLocale();
-
-		if (this._isNotificationUserResponded()) {
-			return;
-		}
 
 		if (this.notificationEnabled) {
 			uni.showToast({
@@ -2519,10 +2533,23 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 重新检查通知权限
+	 * 重新检查通知权限（仅同步状态，不弹窗，避免与自动引导叠弹）
 	 */
 	recheckNotificationPermission() {
-		this.checkNotificationPermission();
+		// #ifdef APP-PLUS
+		if (plus.os.name === 'Android') {
+			this._silentRefreshAndroidNotificationState();
+		} else if (plus.os.name === 'iOS') {
+			try {
+				const UIApplication = plus.ios.importClass('UIApplication');
+				const app = UIApplication.sharedApplication();
+				const currentSettings = app.currentUserNotificationSettings();
+				this.notificationEnabled = currentSettings.types() !== 0;
+			} catch (e) {
+				console.log('[KeepAlive] iOS 静默刷新通知状态失败:', e);
+			}
+		}
+		// #endif
 		console.log('[KeepAlive] 重新检查通知权限结果:', this.notificationEnabled);
 		return this.notificationEnabled;
 	}

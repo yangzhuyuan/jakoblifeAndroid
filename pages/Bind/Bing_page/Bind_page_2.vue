@@ -1024,7 +1024,7 @@
 
 				uni.onBluetoothDeviceFound((res) => {
 					for (const device of res.devices) {
-						if ((device.name.includes("U19M") || device.name.includes("U19H")) && device.deviceId ===
+						if ((device.name.includes("U19M") || device.name.includes("U16H")) && device.deviceId ===
 							targetMac) {
 							found = true
 							this.stopScan()

@@ -123,7 +123,7 @@
 			async PPGlijitime() {
 				await new Promise(resolve => setTimeout(resolve, 300))
 				try {
-					const result = await u16proBLE.startPPGMeasurementWithDuration(30, this.BPW6deviceId)
+					const result = await u16proBLE.startPPGMeasurementWithDuration(60, this.BPW6deviceId)
 					console.log('【BPW6】PPG测量启动结果', result)
 					if (!result || !result.success) {
 						uni.showToast({
