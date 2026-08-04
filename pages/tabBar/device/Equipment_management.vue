@@ -456,7 +456,6 @@
 						}
 						this.showUnbindSuccessToast();
 						this.removeDeviceFromStorageSync(deviceModelId, mac);
-						// this.disconnectAll(mac);
 						if (deviceModelId !== '30001') {
 							setTimeout(() => {
 								this.closeBLEConnection(mac);

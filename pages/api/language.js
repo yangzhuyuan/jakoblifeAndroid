@@ -1,5 +1,6 @@
 export default {
 	'zh-CN': {
+		ECG模板: 'ECG',
 		连续血压监控详细风险报告: '连续血压监控详细风险报告',
 		无感血压报告: '无感血压报告',
 		当天数据云端计算中需明天查询: '当前显示的数据截至{date}。今天的最新数据将在稍后完成计算，并于明天的报告中更新。',
@@ -1464,6 +1465,7 @@ export default {
 
 	},
 	'en-US': {
+		ECG模板: 'ECG',
 		连续血压监控详细风险报告: "Detailed Risk Report for Continuous Blood Pressure Monitoring",
 		无感血压报告: 'inflation free blood pressure report',
 		当天数据云端计算中需明天查询: "The data shown is current through {date}. Today's latest data will be calculated later and included in tomorrow's report.",

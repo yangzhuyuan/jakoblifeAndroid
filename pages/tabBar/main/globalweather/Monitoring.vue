@@ -55,7 +55,6 @@
 			})
 		},
 		onLoad(options) {
-			console.log("onLoad", options)
 			// 只要不包含 BPW1，就禁止「血压定时测量开关」
 			let hasBpw1 = false
 			if (options.hasBpw1 !== undefined && options.hasBpw1 !== null && options.hasBpw1 !== '') {

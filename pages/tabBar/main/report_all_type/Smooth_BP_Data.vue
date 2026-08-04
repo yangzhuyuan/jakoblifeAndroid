@@ -95,20 +95,47 @@
 			uni.setNavigationBarTitle({
 				title: this.$t('无感血压报告')
 			})
+			// this.ppgdatalist()
 			this.calculateTimeRange()
 			this.get_retVarList()
-			if (modeltipsbool && modeltipsbool !== '-/-' && Number(modeltipsbool) >= 500) this.modeltips = false
+			if (modeltipsbool && modeltipsbool !== '-/-' && Number(modeltipsbool) >= 500) {
+				this.modeltips = false
+			}
 		},
 		methods: {
+
+			//根据患者ID查询PPG信号最新分析结果
+			ppgdatalist() {
+				let that = this
+				let ppgdata = {
+					patientId: uni.getStorageSync("userid"),
+				}
+				that.$get(that.$url_APP_IP + "/prod-api/device/ppgresults/get_result_by_patient_id",
+					ppgdata, {
+						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+						'content-type': 'application/json;charset=UTF-8'
+					}).then((ppgdatalist) => {
+					console.log("ppgdatalist", ppgdatalist.data.remark)
+					if (ppgdatalist.code === 200) {
+						if (ppgdatalist.data.remark) {
+							that.modeltips = false
+						} else {
+							that.modeltips = true
+						}
+					} else {
+						that.modeltips = true
+					}
+				})
+			},
+
+
 			switchTab(tab) {
 				this.currentTab = tab
 			},
-
 			calculateTimeRange() {
 				const endTime = getChinaTimeAllJSON().YMD
 				this.pacitime = endTime
 			},
-
 			// 手机本地日期：只保留「昨天」和「前天」（如今天 18 号 → 16、17 号）
 			getTargetDateSet() {
 				const pad = (n) => String(n).padStart(2, '0')
@@ -121,12 +148,12 @@
 				dayBefore.setDate(today.getDate() - 2)
 				return new Set([formatYMD(yesterday), formatYMD(dayBefore)])
 			},
-
 			isInvalidValue(value) {
 				const v = String(value == null ? '' : value).trim()
-				return !v || v >= '999999990.00' || v === 'NA'
+				if (!v || v === 'NA') return true
+				const n = Number(v)
+				return !Number.isFinite(n) || n >= 999999990
 			},
-
 			getPeriod(timeStr) {
 				const parts = (timeStr || '').split(':')
 				const hour = parseInt(parts[0], 10) || 0

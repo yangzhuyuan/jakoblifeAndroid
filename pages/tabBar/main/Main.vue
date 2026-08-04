@@ -1949,9 +1949,7 @@
 				try {
 					uni.setStorageSync('sleep_alertdisabled', false)
 				} catch (e2) {}
-				if (reason) {
-					console.log('【情绪】已绑定BPW，立即测量可点', reason)
-				}
+				if (reason) {}
 			},
 			/** 标记血压后 PPG 会话（storage，切后台可恢复灰态） */
 			markBpw6AfterBpPpgBusy(reason) {
@@ -2043,9 +2041,7 @@
 				} catch (e2) {}
 				// 熄屏/后台时 hideLoading 常无效，回前台再清
 				this.bpw6NeedClearLoadingOnShow = true
-				if (reason) {
-					console.log('【情绪】恢复测量按钮', reason)
-				}
+				if (reason) {}
 			},
 			/** 清除 BPW1 PPG 传输超时定时器（防止旧会话超时打断新会话） */
 			clearBpw1PpgTransferWatchdog(reason) {
@@ -2246,7 +2242,6 @@
 						uni.hideLoading()
 					} catch (e) {}
 					this.hideBpw6PpgLoading(true)
-					console.log('【BPW6】回前台清除残留测量中 loading')
 					return
 				}
 
@@ -2993,7 +2988,6 @@
 			async connectMultipleDevices(uniqueArr) {
 				// PPG 传数中禁止扫描重连，否则会打断 notify/ACK
 				if (this.shouldDeferBleReconnectForPpg()) {
-					console.log('【BPW1】PPG进行中，跳过connectMultipleDevices')
 					return
 				}
 				let deviceIds = (uniqueArr || []).filter((deviceId) => !this.isBleReconnectBlocked(deviceId));
@@ -3678,9 +3672,7 @@
 					clearTimeout(this.bpw1ImmediateAfterSyncTimer)
 					this.bpw1ImmediateAfterSyncTimer = null
 				}
-				if (reason) {
-					console.log('【BPW1】清理立即测量等待', reason)
-				}
+				if (reason) {}
 			},
 			/** 立即测量是否走 BPW6 PPG：已绑 BPW6 即走 BPW6（仅绑 BPW1 时仍走 BPW1） */
 			shouldUseBpw6ForEmotionImmediate() {
@@ -3873,7 +3865,6 @@
 				that.clearBpw1PpgTransferWatchdog('启动PPG-' + source)
 				that.OTAdata(that.deviceIdwatch ? that.deviceIdwatch : uni.getStorageSync("deviceIdwatch"), BPW1serviceId,
 					BPW1write)
-				console.log('【BPW1】启动PPG来源', source)
 				console.log(uni.getStorageSync("deviceIdwatch"))
 				console.log(that.deviceIdwatch)
 				console.log(BPW1serviceId)
@@ -7161,12 +7152,25 @@
 				const AlltypeArray = that.dataBuffer;
 				const alltypearray = that.formatData(AlltypeArray);
 				const protocolData = that.parseProtocolData(alltypearray);
+				// 历史同步：血压/心率分包到达，保留未配对缓存，避免后包清空导致漏报
+				const keepHistoryHr = that.isBpw1HistorySyncing() ? [...(that.hrResult || [])] : [];
 				that.hrResult = []
 				const hrResultdata = Healthparser.parseProtocolData(protocolData);
 				const hrRecords = (hrResultdata && hrResultdata.data && hrResultdata.data.records) ?
 					hrResultdata.data.records : [];
 				for (let i = 0; i < hrRecords.length; i++) {
 					that.hrResult.push(hrRecords[i])
+				}
+				if (keepHistoryHr.length > 0) {
+					keepHistoryHr.forEach(hr => {
+						const key = that.normalizeDateTimeKey(`${hr.date} ${hr.time}`)
+						if (!key) return
+						const exists = that.hrResult.some(item =>
+							that.normalizeDateTimeKey(`${item.date} ${item.time}`) === key)
+						if (!exists) {
+							that.hrResult.push(hr)
+						}
+					})
 				}
 				const heart = protocolData.Covmamlueand.slice(0, 8);
 				const heartTime = heart.slice(0, 4);
@@ -7318,7 +7322,7 @@
 								}
 								if (canUpload19) {
 									if (isHistorySync19) {
-										// 历史上报：无弹窗
+										// 历史上报：无弹窗、不启 PPG
 										that.Watch_Historical_data(
 											that.shoubiaomac,
 											heartRateData.systolic,
@@ -7332,6 +7336,10 @@
 											heartRateData.diastolic, heartRateData.bloodPressureType, that
 											.shoubiaosn,
 											heartRateDatatime);
+										// 实时血压(19)后启 PPG；仅定时/实时血压/立即测量可启 PPG
+										if (that.isBpw1BpPacketEligibleForLiveMeasure(heartRateDatatime)) {
+											that.tryStartBpw1PpgAfterBp('实时血压19', true);
+										}
 									}
 								}
 							},
@@ -7362,12 +7370,25 @@
 				const protocolData = that.parseProtocolData(alltypearray);
 				const Covmamlueand = alltypearray.slice(18, alltypearray.length);
 				const bpResultdata = Healthparser.parseProtocolData(protocolData);
+				// 历史同步：血压/心率分包到达，保留未配对缓存，避免后包清空导致漏报
+				const keepHistoryBp = that.isBpw1HistorySyncing() ? [...(that.bpResult || [])] : [];
 				that.bpResult = []
 				const bpRecords = (bpResultdata && bpResultdata.data && bpResultdata.data.records) ?
 					bpResultdata.data.records : [];
 				// 必须包含全部记录（含最后一条）。原先 length-1 会在单条实时血压时让 bpResult 为空，历史上报只剩心率
 				for (let i = 0; i < bpRecords.length; i++) {
 					that.bpResult.push(bpRecords[i])
+				}
+				if (keepHistoryBp.length > 0) {
+					keepHistoryBp.forEach(bp => {
+						const key = that.normalizeDateTimeKey(`${bp.date} ${bp.time}`)
+						if (!key) return
+						const exists = that.bpResult.some(item =>
+							that.normalizeDateTimeKey(`${item.date} ${item.time}`) === key)
+						if (!exists) {
+							that.bpResult.push(bp)
+						}
+					})
 				}
 				const heartTime = Covmamlueand.slice(0, 4);
 				const {
@@ -9707,31 +9728,78 @@
 					const pending = this.bpw1PendingLiveBp;
 					const started = (pending && pending.waitStartedAt) || 0;
 					const waitedMs = started ? (Date.now() - started) : 0;
-					// 超过 8 秒仍未精确配对时放宽到 5 秒强制合并
+					// 超过 8 秒仍未精确配对时放宽时间窗强制合并
 					this.tryFlushBpw1LiveBpHrUpload(waitedMs >= 8000);
 					if (this.bpw1PendingLiveBp) {
 						if (!started || waitedMs < 30000) {
 							this.scheduleBpw1LiveBpHrRetry();
 						} else {
-							console.warn('【BPW1】等待伴生心率超过30秒，放弃本次血压合并（不拆成只报心率）');
+							const companion = this.bpw1PendingBpCompanionHr;
 							const wantPpg = !!(pending && pending.startPpgAfterBp);
 							const requireBlewatchIdForYali = !pending || pending.requireBlewatchIdForYali !==
 								false;
-							this.bpw1PendingLiveBp = null;
-							this.bpw1AwaitingBpHrPair = false;
-							// 超时仍不单独补报伴生心率，避免「测血压却只有心率」
-							this.bpw1PendingBpCompanionHr = null;
-							this.clearBpw1LiveBpMeasureGate('等心率超时放弃合并');
-							// 实时血压已结束：仍启血压后 PPG（历史同步不会走进本等待逻辑）
-							if (wantPpg) {
-								const ok = this.tryStartBpw1PpgAfterBp('等心率超时后', requireBlewatchIdForYali);
-								if (!ok && !this.isBpw1ActivePpgSession() && !this.yalixueyatype &&
+							// 血压后必有心率：两侧都在则强制合并上报（不因时间窗丢弃）；无伴生心率才放弃血压
+							if (pending && companion && this.isValidBpw1HeartRate(companion.heartRate)) {
+								console.warn('【BPW1】等待伴生心率超过30秒，强制合并上报血压+心率');
+								this.bpw1PendingLiveBp = null;
+								this.bpw1AwaitingBpHrPair = false;
+								this.bpw1PendingBpCompanionHr = null;
+								this.rememberBpw1BpHrPairUpload(pending.ts, companion);
+								this.clearBpw1LiveBpMeasureGate('等心率超时强制合并');
+								const that = this;
+								uni.getNetworkType({
+									success: function(res) {
+										if (res.networkType !== 'none') {
+											that.jakoblife_fat_scale22(
+												that.shoubiaomac,
+												pending.systolic,
+												pending.diastolic,
+												companion.heartRate,
+												that.shoubiaosn,
+												pending.ts
+											);
+										}
+										if (wantPpg) {
+											const ok = that.tryStartBpw1PpgAfterBp('等心率超时强制合并',
+												requireBlewatchIdForYali);
+											if (!ok && !that.isBpw1ActivePpgSession() && !that
+												.yalixueyatype &&
+												!that._bpw1AfterBpPpgTimer && !that
+												._bpw1AfterBpLaunching) {
+												that.applyEmotionButtonIdleByBind('等心率超时后PPG未启动')
+											}
+										}
+									},
+									fail: function() {
+										if (wantPpg) {
+											const ok = that.tryStartBpw1PpgAfterBp('等心率超时强制合并-网络失败',
+												requireBlewatchIdForYali);
+											if (!ok && !that.isBpw1ActivePpgSession() && !that
+												.yalixueyatype &&
+												!that._bpw1AfterBpPpgTimer && !that
+												._bpw1AfterBpLaunching) {
+												that.applyEmotionButtonIdleByBind('等心率超时后PPG未启动')
+											}
+										}
+									}
+								});
+							} else {
+								console.warn('【BPW1】等待伴生心率超过30秒，放弃本次血压合并（无有效伴生心率）');
+								this.bpw1PendingLiveBp = null;
+								this.bpw1AwaitingBpHrPair = false;
+								this.bpw1PendingBpCompanionHr = null;
+								this.clearBpw1LiveBpMeasureGate('等心率超时放弃合并');
+								// 实时血压已结束：仍启血压后 PPG；后续单独心率仍可按库缺失补报
+								if (wantPpg) {
+									const ok = this.tryStartBpw1PpgAfterBp('等心率超时后', requireBlewatchIdForYali);
+									if (!ok && !this.isBpw1ActivePpgSession() && !this.yalixueyatype &&
+										!this._bpw1AfterBpPpgTimer && !this._bpw1AfterBpLaunching) {
+										this.applyEmotionButtonIdleByBind('等心率超时后PPG未启动')
+									}
+								} else if (!this.isBpw1ActivePpgSession() && !this.yalixueyatype &&
 									!this._bpw1AfterBpPpgTimer && !this._bpw1AfterBpLaunching) {
-									this.applyEmotionButtonIdleByBind('等心率超时后PPG未启动')
+									this.applyEmotionButtonIdleByBind('等心率超时放弃合并')
 								}
-							} else if (!this.isBpw1ActivePpgSession() && !this.yalixueyatype &&
-								!this._bpw1AfterBpPpgTimer && !this._bpw1AfterBpLaunching) {
-								this.applyEmotionButtonIdleByBind('等心率超时放弃合并')
 							}
 						}
 					}
@@ -9823,7 +9891,7 @@
 				}
 				return false;
 			},
-			/** 结束血压测量配对窗口；优先尝试合并上报，未配对成功不拆开补报血压 */
+			/** 结束血压测量配对窗口；两侧都在则合并上报；仅心率则库缺失才补报；有血压无心率不空心率上报 */
 			releaseBpw1AwaitingBpHrPair(uploadLeftoverHr) {
 				const that = this;
 				that.tryFlushBpw1LiveBpHrUpload(false);
@@ -9834,42 +9902,37 @@
 					clearTimeout(that.bpw1LiveBpHrFlushTimer);
 					that.bpw1LiveBpHrFlushTimer = null;
 				}
-				// 仍缺一侧时丢弃未完成血压缓存，避免后续空心率/分报
 				that.bpw1PendingLiveBp = null;
 				that.bpw1PendingBpCompanionHr = null;
 				that.clearBpw1LiveBpMeasureGate('释放血压心率配对窗口');
 				if (pendingBp && leftover && that.isValidBpw1HeartRate(leftover.heartRate)) {
-					// 释放时若两侧都在，再尝试一次合并（时间窗放宽到 8 秒）
-					const skew = (leftover.ts != null && pendingBp.ts != null) ?
-						Math.abs(Number(leftover.ts) - Number(pendingBp.ts)) : Infinity;
-					if (skew <= 8) {
-						that.rememberBpw1BpHrPairUpload(pendingBp.ts, leftover);
-						uni.getNetworkType({
-							success: function(res) {
-								if (res.networkType === 'none') {
-									return;
-								}
-								that.jakoblife_fat_scale22(
-									that.shoubiaomac,
-									pendingBp.systolic,
-									pendingBp.diastolic,
-									leftover.heartRate,
-									that.shoubiaosn,
-									pendingBp.ts
-								);
+					// 血压测量后必有心率：释放时两侧都在则合并上报（不因时间窗丢弃）
+					that.rememberBpw1BpHrPairUpload(pendingBp.ts, leftover);
+					uni.getNetworkType({
+						success: function(res) {
+							if (res.networkType === 'none') {
+								return;
 							}
-						});
-						return;
-					}
+							that.jakoblife_fat_scale22(
+								that.shoubiaomac,
+								pendingBp.systolic,
+								pendingBp.diastolic,
+								leftover.heartRate,
+								that.shoubiaosn,
+								pendingBp.ts
+							);
+						}
+					});
+					return;
 				}
-				// 有未完成血压缓存时，不单独补报伴生心率（避免测血压却只有心率）
+				// 有血压无心率：不空心率上报血压
 				if (pendingBp) {
 					return;
 				}
 				if (!uploadLeftoverHr || !leftover || that.isBpw1HrCoveredByBpPair(leftover)) {
 					return;
 				}
-				// 仅有伴生心率、无血压：保留原独立心率补报（非血压测量场景）
+				// 测心率/PPG 等仅有心率：库中没有才补报（无血压）
 				uni.getNetworkType({
 					success: function(res) {
 						if (res.networkType === 'none') {
@@ -9926,8 +9989,8 @@
 				const sameDeviceTime = !!(hasValidHr && pending.date && pending.time &&
 					that.normalizeDateTimeKey(`${companion.date} ${companion.time}`) ===
 					that.normalizeDateTimeKey(`${pending.date} ${pending.time}`));
-				// 设备返回时间相同或差 ≤5 秒都合并（force 时放宽到 8 秒），统一用血压时间上报
-				const canPair = !!(hasValidHr && (sameDeviceTime || skew <= 5 || (force && skew <= 8)));
+				// 设备返回时间相同或差 ≤5 秒都合并（force 时放宽到 30 秒），统一用血压时间上报
+				const canPair = !!(hasValidHr && (sameDeviceTime || skew <= 5 || (force && skew <= 30)));
 				if (!canPair) {
 					return;
 				}
@@ -10049,11 +10112,12 @@
 				return false;
 			},
 			/** BPW1：库中没有的心率全部上报（按测量时间去重；已并入血压的跳过） */
-			async uploadBpw1HeartRateMissingInDb(deviceId, deviceSn, hrRecords) {
+			async uploadBpw1HeartRateMissingInDb(deviceId, deviceSn, hrRecords, options = {}) {
 				const that = this;
 				if (!deviceSn || !Array.isArray(hrRecords) || hrRecords.length === 0) {
 					return;
 				}
+				const exactConsumedOnly = options.exactConsumedOnly === true;
 				try {
 					const snList = (that.deviceSnuserID && that.deviceSnuserID.length) ?
 						that.deviceSnuserID : [deviceSn];
@@ -10074,7 +10138,8 @@
 					if (!key || uploadedKeys.has(key)) {
 						continue;
 					}
-					if (that.isBpw1HrCoveredByBpPair(key)) {
+					// exactConsumedOnly：历史多出的单独/PPG 心率，仅跳过精确并入血压的那条，避免被 ±2s 误伤
+					if (exactConsumedOnly ? that.isBpw1HrConsumedByBp(key) : that.isBpw1HrCoveredByBpPair(key)) {
 						console.log('【BPW1】心率已随血压合并上报，跳过', key, hr.heartRate);
 						continue;
 					}
@@ -10538,71 +10603,143 @@
 			async uploadBPW6SpO2HistoryWithDeduplication(deviceId, deviceSn) {
 				return this.uploadBPW6SpO2WithSlotDedup(deviceId, deviceSn);
 			},
+			/**
+			 * BPW1 历史：N 条血压必有 N 条可匹配心率；多出的心率来自单独测心率/PPG。
+			 * 先精确时间配对，再按时间差全局贪心唯一配对；剩余心率交给单独补报。
+			 * 仅用于历史合并，不影响实时血压配对。
+			 */
+			pairBpw1HistoryBpWithHr(localBpRecords, localHrRecords, maxSkew = 30) {
+				const that = this;
+				const skewLimit = maxSkew == null ? 30 : Number(maxSkew);
+				const bpItems = [];
+				(localBpRecords || []).forEach(bp => {
+					const key = that.normalizeDateTimeKey(`${bp.date} ${bp.time}`);
+					if (!key) return;
+					const ts = that.datatime(key);
+					if (ts == null || Number.isNaN(Number(ts))) return;
+					bpItems.push({
+						bp,
+						key,
+						ts: Number(ts)
+					});
+				});
+				const hrItems = [];
+				const hrUsed = new Set();
+				(localHrRecords || []).forEach(hr => {
+					if (!hr || !that.isValidBpw1HeartRate(hr.heartRate)) return;
+					const key = that.normalizeDateTimeKey(`${hr.date} ${hr.time}`);
+					if (!key) return;
+					const ts = that.datatime(key);
+					if (ts == null || Number.isNaN(Number(ts))) return;
+					hrItems.push({
+						hr,
+						key,
+						ts: Number(ts)
+					});
+				});
+				const pairs = [];
+				const bpUsed = new Set();
+				// 1) 精确同一测量时间优先（血压伴生心率）
+				bpItems.forEach(bi => {
+					if (bpUsed.has(bi.key)) return;
+					const exact = hrItems.find(hi => !hrUsed.has(hi.key) && hi.key === bi.key);
+					if (!exact) return;
+					bpUsed.add(bi.key);
+					hrUsed.add(exact.key);
+					pairs.push({
+						bp: bi.bp,
+						bpKey: bi.key,
+						bpTs: bi.ts,
+						hr: exact.hr,
+						hrKey: exact.key,
+						skew: 0
+					});
+				});
+				// 2) 剩余血压：全局按时间差最小唯一配对（避免一条心率被多条血压抢走）
+				const candidates = [];
+				bpItems.forEach(bi => {
+					if (bpUsed.has(bi.key)) return;
+					hrItems.forEach(hi => {
+						if (hrUsed.has(hi.key)) return;
+						const skew = Math.abs(hi.ts - bi.ts);
+						if (skew <= skewLimit) {
+							candidates.push({
+								bi,
+								hi,
+								skew
+							});
+						}
+					});
+				});
+				candidates.sort((a, b) => a.skew - b.skew || a.bi.ts - b.bi.ts);
+				candidates.forEach(c => {
+					if (bpUsed.has(c.bi.key) || hrUsed.has(c.hi.key)) return;
+					bpUsed.add(c.bi.key);
+					hrUsed.add(c.hi.key);
+					pairs.push({
+						bp: c.bi.bp,
+						bpKey: c.bi.key,
+						bpTs: c.bi.ts,
+						hr: c.hi.hr,
+						hrKey: c.hi.key,
+						skew: c.skew
+					});
+				});
+				const leftoverHr = hrItems.filter(hi => !hrUsed.has(hi.key)).map(hi => hi.hr);
+				const unmatchedBp = bpItems.filter(bi => !bpUsed.has(bi.key));
+				return {
+					pairs,
+					leftoverHr,
+					unmatchedBp
+				};
+			},
 			mergeAndUploadWithDeduplication(localHrRecords, localBpRecords) {
 				const that = this;
 				const existingTimes = that.getExistingBloodPressureTimeSet();
-				const unmatchedHr = [...(localHrRecords || [])];
 				const bpList = [...(localBpRecords || [])];
+				const hrList = [...(localHrRecords || [])];
 				const matchedHrKeys = new Set();
 				const uploadedBpKeys = new Set();
-				const hrExactMap = new Map();
-				unmatchedHr.forEach(hr => {
-					const hk = that.normalizeDateTimeKey(`${hr.date} ${hr.time}`);
-					if (hk && !hrExactMap.has(hk)) {
-						hrExactMap.set(hk, hr);
-					}
-				});
-				// 血压历史必须带有效心率一次上报：先精确匹配，再 ±2 秒最近匹配；无心率则跳过（不拆开、不用空心率）
-				bpList.forEach(bp => {
+				// 先过滤服务端/本轮已有血压，再做 N:N 唯一配对（多出的心率留给单独测/PPG）
+				const pendingBp = bpList.filter(bp => {
 					const key = that.normalizeDateTimeKey(`${bp.date} ${bp.time}`);
-					if (!key) {
-						return;
-					}
+					if (!key) return false;
 					const bpTs = that.datatime(key);
-					// 服务端已有，或本轮已合并上报过，避免血压/心率包先后到达导致重复上报
 					if (existingTimes.has(key) || uploadedBpKeys.has(key) ||
 						(that.bpw1HrConsumedByBpKeys && (
 							that.bpw1HrConsumedByBpKeys.has(key) ||
 							that.bpw1HrConsumedByBpKeys.has(String(bpTs))
 						))) {
-						// console.log('【BPW1】血压已存在/已合并，跳过', key);
-						return;
+						return false;
 					}
-					let nearest = null;
-					const exactHr = hrExactMap.get(key);
-					if (exactHr && that.isValidBpw1HeartRate(exactHr.heartRate)) {
-						nearest = {
-							hr: exactHr,
-							key
-						};
-					} else {
-						nearest = that.findNearestBpw1HrWithinOneSec(unmatchedHr, bpTs, 2);
-					}
-					if (!nearest || !that.isValidBpw1HeartRate(nearest.hr.heartRate)) {
-						console.warn('【BPW1】历史血压无匹配心率，跳过（避免分报/空心率）:', key);
-						return;
-					}
-					matchedHrKeys.add(nearest.key);
-					uploadedBpKeys.add(key);
-					that.rememberBpw1BpHrPairUpload(bpTs, nearest.hr);
-					hrExactMap.delete(nearest.key);
-					const idx = unmatchedHr.indexOf(nearest.hr);
-					if (idx >= 0) {
-						unmatchedHr.splice(idx, 1);
-					}
-					console.log('【BPW1】上传血压+心率:', key, {
-						bp: `${bp.highPressure}/${bp.lowPressure}`,
-						hr: nearest.hr.heartRate,
-						hrKey: nearest.key
+					return true;
+				});
+				const {
+					pairs,
+					leftoverHr,
+					unmatchedBp
+				} = that.pairBpw1HistoryBpWithHr(pendingBp, hrList, 30);
+				pairs.forEach(p => {
+					matchedHrKeys.add(p.hrKey);
+					uploadedBpKeys.add(p.bpKey);
+					that.rememberBpw1BpHrPairUpload(p.bpTs, p.hr);
+					console.log('【BPW1】上传血压+心率:', p.bpKey, {
+						bp: `${p.bp.highPressure}/${p.bp.lowPressure}`,
+						hr: p.hr.heartRate,
+						hrKey: p.hrKey,
+						skew: p.skew
 					});
 					that.Watch_Historical_data(
 						that.shoubiaomac,
-						bp.highPressure,
-						bp.lowPressure,
-						nearest.hr.heartRate,
+						p.bp.highPressure,
+						p.bp.lowPressure,
+						p.hr.heartRate,
 						that.shoubiaosn,
-						bpTs
+						p.bpTs
 					);
+				});
+				(unmatchedBp || []).forEach(bi => {
+					console.warn('【BPW1】历史血压无匹配心率，跳过（避免分报/空心率）:', bi.key);
 				});
 				// 同步清理缓存，避免后续包再次合并时重复上报
 				if (uploadedBpKeys.size > 0 || matchedHrKeys.size > 0) {
@@ -10614,16 +10751,18 @@
 					);
 				}
 
-				// 未配对心率：先查接口，库中/本会话没有的才单独上报（已并入血压的不再报）
-				const leftoverHr = unmatchedHr.filter(hr => {
+				// 多出的心率（单独测心率/PPG）：仅跳过已精确并入血压的，库中没有才补报
+				const extraHr = (leftoverHr || []).filter(hr => {
 					const key = that.normalizeDateTimeKey(`${hr.date} ${hr.time}`);
-					return !!(key && !matchedHrKeys.has(key) && !that.isBpw1HrCoveredByBpPair(key));
+					return !!(key && !matchedHrKeys.has(key) && !that.isBpw1HrConsumedByBp(key));
 				});
-				if (leftoverHr.length > 0) {
+				if (extraHr.length > 0) {
 					that.uploadBpw1HeartRateMissingInDb(
 						that.shoubiaomac,
 						that.shoubiaosn,
-						leftoverHr
+						extraHr, {
+							exactConsumedOnly: true
+						}
 					);
 				}
 			},
@@ -13252,6 +13391,16 @@
 				}
 				if (this.bpw1HistorySyncActive) {
 					console.log('【BPW1】结束历史同步', reason || '');
+					// 结束前再合并一次：分包先后到达时补报库中缺失的血压/心率；不启 PPG
+					const hrLeft = this.hrResult || [];
+					const bpLeft = this.bpResult || [];
+					if (hrLeft.length > 0 || bpLeft.length > 0) {
+						try {
+							this.mergeAndUploadWithDeduplication(hrLeft, bpLeft);
+						} catch (e) {
+							console.warn('【BPW1】历史同步结束合并失败', e);
+						}
+					}
 				}
 				this.bpw1HistorySyncActive = false;
 				this.blewatch_id = "0";

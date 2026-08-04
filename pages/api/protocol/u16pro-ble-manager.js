@@ -145,6 +145,12 @@ class U16ProBLEManager {
 		/** 静默预停止后短窗口：迟到的 0x4B 不应回调页面（否则会当成测完拉空数据并弹失败） */
 		this._ppgSilentStopGuardUntil = 0
 		this._ppgManagedRead = false
+		/** 0x4C 应答迟到时暂存，供超时后仍能继续拉数（后台常见） */
+		this._latePpgSizeResult = null
+		this._latePpgSizeAt = 0
+		this._ppgXferPumpTimer = null
+		this._lastPpgXferPokeAt = 0
+		this._lastPpgSizeResendAt = 0
 		/** 血压原始 / RRI 读数锁（协议预留，业务暂未用） */
 		this._bpRawManagedRead = false
 
@@ -283,6 +289,20 @@ class U16ProBLEManager {
 		return new Promise(resolve => setTimeout(resolve, ms))
 	}
 
+	/** 定时 PPG 测量/拉数/上传中（读 storage，避免与调度模块循环依赖） */
+	_isQxScheduledPpgBleBusy() {
+		try {
+			if (this._ppgManagedRead) return true
+			const xfer = uni.getStorageSync('qx_ble_ppg_xfer_busy')
+			if (xfer === 1 || xfer === '1') return true
+			const scheduled = uni.getStorageSync('qx_ble_scheduled_measure')
+			if (scheduled === 1 || scheduled === '1') return true
+			const send = uni.getStorageSync('sendwatch')
+			if (send === 1 || send === '1') return true
+		} catch (e) {}
+		return false
+	}
+
 	/**
 	 * 从 notify 数据中拆分多个 0xBC 包（设备可能粘包发送）
 	 */
@@ -350,11 +370,15 @@ class U16ProBLEManager {
 				(result.cmd === CMD.PPG_GET_DATA || result.cmd === CMD.BP_RAW_GET_DATA)) {
 				const parsed = result.parsed || {}
 				if (parsed.offset !== pending.expectedOffset) {
-					console.log('【BC】offset不匹配，继续等待', {
-						cmd: '0x' + result.cmd.toString(16),
-						expected: pending.expectedOffset,
-						received: parsed.offset
-					})
+					// 托管拉数中：旧包/重发迟到应答，静默丢弃，勿刷屏
+					if (!(this._ppgManagedRead && result.cmd === CMD.PPG_GET_DATA &&
+							parsed.offset < pending.expectedOffset)) {
+						console.log('【BC】offset不匹配，继续等待', {
+							cmd: '0x' + result.cmd.toString(16),
+							expected: pending.expectedOffset,
+							received: parsed.offset
+						})
+					}
 					continue
 				}
 			}
@@ -366,6 +390,15 @@ class U16ProBLEManager {
 		}
 		if (result && result.cmd !== undefined) {
 			const pendingKeys = Object.keys(this._pendingBcRequests)
+			// 后台 0x4C 常迟到：无等待队列时先锁存 size，避免放弃后数据作废
+			if (result.cmd === CMD.PPG_GET_SIZE && result.parsed && result.parsed.size > 0) {
+				this._latePpgSizeResult = {
+					...(result.parsed || {}),
+					type: 'ppg_size'
+				}
+				this._latePpgSizeAt = Date.now()
+				console.log('【PPG】锁存迟到的数据大小', this._latePpgSizeResult.size)
+			}
 			const isUnsolicitedLongNotify = !pendingKeys.length && (
 				result.cmd === CMD.PPG_MEASUREMENT_COMPLETE ||
 				result.cmd === CMD.PPG_STOP ||
@@ -373,11 +406,14 @@ class U16ProBLEManager {
 				result.cmd === CMD.BP_RAW_GET_SIZE ||
 				result.cmd === CMD.BP_RAW_GET_DATA
 			)
-			if (!isUnsolicitedLongNotify) {
-				console.warn('【PPG】收到BC应答但未匹配等待队列', {
-					cmd: '0x' + result.cmd.toString(16),
-					pendingKeys
-				})
+			// 托管分块：迟到的旧 offset 0x4D 不当告警
+			const isStalePpgChunk = this._ppgManagedRead && result.cmd === CMD.PPG_GET_DATA &&
+				pendingKeys.some((k) => String(k).indexOf('cmd_' + CMD.PPG_GET_DATA + '_offset_') === 0)
+			if (!isUnsolicitedLongNotify && !isStalePpgChunk) {
+				// console.log('【PPG】收到BC应答但未匹配等待队列', {
+				// 	cmd: '0x' + result.cmd.toString(16),
+				// 	pendingKeys
+				// })
 			}
 		}
 		return false
@@ -893,7 +929,7 @@ class U16ProBLEManager {
 			case CMD.PPG_START_WITH_DURATION:
 			case CMD.PPG_START:
 			case CMD.PPG_STOP:
-				console.log('【PPG测量命令响应】', result.parsed)
+				// console.log('【PPG测量命令响应】', result.parsed)
 				if (result.cmd === CMD.PPG_STOP && result.parsed?.success) {
 					this.state.ppgMeasuring = false
 				} else if ((result.cmd === CMD.PPG_START_WITH_DURATION ||
@@ -991,22 +1027,21 @@ class U16ProBLEManager {
 						...result.parsed,
 						type: 'ppg_command'
 				}
-			case CMD.PPG_MEASUREMENT_COMPLETE:
-				console.log('【PPG测量完成通知】', result.parsed)
+			case CMD.PPG_MEASUREMENT_COMPLETE: {
+				// console.log('【PPG测量完成通知】', result.parsed)
 				this.state.ppgMeasuring = false
-				{
-					const completePayload = {
-						...(result.parsed || {}),
-						cmd: result.cmd,
-						completed: true,
-						deviceId,
-						type: 'ppg_measurement_complete'
-					}
-					if (this.callbacks.onPPGMeasurement) {
-						this.callbacks.onPPGMeasurement(completePayload)
-					}
-					return completePayload
+				const completePayload = {
+					...(result.parsed || {}),
+					cmd: result.cmd,
+					completed: true,
+					deviceId,
+					type: 'ppg_measurement_complete'
 				}
+				if (this.callbacks.onPPGMeasurement) {
+					this.callbacks.onPPGMeasurement(completePayload)
+				}
+				return completePayload
+			}
 			case CMD.PPG_GET_SIZE:
 				console.log('【PPG数据大小】', result.parsed)
 				this.state.ppgDataSize = result.parsed.size || 0
@@ -1098,7 +1133,11 @@ class U16ProBLEManager {
 			if (this._pendingBcRequests[key]) {
 				clearTimeout(this._pendingBcRequests[key].timer)
 			}
+			const startedAt = Date.now()
+			const deadline = startedAt + timeout
 			const timer = setTimeout(() => {
+				const pending = this._pendingBcRequests[key]
+				if (!pending || pending.startedAt !== startedAt) return
 				delete this._pendingBcRequests[key]
 				const offsetHint = expectedOffset !== undefined ? ` offset=${expectedOffset}` : ''
 				reject(new Error(`BC命令0x${cmd.toString(16)}${offsetHint}响应超时`))
@@ -1110,9 +1149,36 @@ class U16ProBLEManager {
 				acceptCmds,
 				expectedOffset,
 				acceptParsedTypes,
-				requestCmd: cmd
+				requestCmd: cmd,
+				startedAt,
+				deadline
 			}
 		})
+	}
+
+	/**
+	 * 保活唤醒时调用：墙钟已超时的 pending 立即 reject（后台 setTimeout 常被冻结）
+	 */
+	flushOverdueBcPendingRequests() {
+		const now = Date.now()
+		const keys = Object.keys(this._pendingBcRequests || {})
+		for (let i = 0; i < keys.length; i++) {
+			const key = keys[i]
+			const pending = this._pendingBcRequests[key]
+			if (!pending || !(pending.deadline > 0) || now < pending.deadline) continue
+			clearTimeout(pending.timer)
+			delete this._pendingBcRequests[key]
+			const cmd = pending.requestCmd
+			const offsetHint = pending.expectedOffset !== undefined ?
+				` offset=${pending.expectedOffset}` :
+				''
+			console.warn('【PPG】保活墙钟强制超时',
+				`0x${cmd != null ? cmd.toString(16) : '?'}${offsetHint}`)
+			try {
+				pending.reject(new Error(
+					`BC命令0x${cmd != null ? cmd.toString(16) : '?'}${offsetHint}响应超时(保活墙钟)`))
+			} catch (e) {}
+		}
 	}
 
 	_resetPPGReadingState() {
@@ -1140,10 +1206,19 @@ class U16ProBLEManager {
 			[DATA_TYPE.TIME_FORMAT]: '时间格式',
 			[DATA_TYPE.BATTERY]: '电量'
 		}
-
 		const typeName = typeMap[dataType] || '未知'
-		console.log(`【数据改变通知】${typeName} 有更新`, dataType)
-
+		// 定时 PPG 测量/拉数/上传中：勿抢 BLE 通道拉步数/心率历史（会卡住下发或传数）
+		if (dataType !== DATA_TYPE.BATTERY && this._isQxScheduledPpgBleBusy()) {
+			if (this.callbacks.onDataChanged) {
+				this.callbacks.onDataChanged({
+					type: dataType,
+					typeName,
+					deviceId,
+					deferred: true
+				})
+			}
+			return
+		}
 		// 根据类型自动获取数据
 		switch (dataType) {
 			case DATA_TYPE.BLOOD_PRESSURE:
@@ -1153,13 +1228,10 @@ class U16ProBLEManager {
 						this.readingState.expectedBPCount > 0) {
 						this.readingState.isReadingBPHistory = false
 					} else {
-						console.log('【数据改变通知】血压历史读取中，跳过本次拉取')
 						break
 					}
 				}
-				this.readLatestBPHistory(1, deviceId).catch(err => {
-					console.warn('【数据改变通知】血压最新数据拉取失败', err)
-				})
+				this.readLatestBPHistory(1, deviceId).catch(err => {})
 				break
 			case DATA_TYPE.HEART_RATE:
 				// 通知瞬间冻结基线；新一次测量允许再重读一次
@@ -1183,9 +1255,7 @@ class U16ProBLEManager {
 			case DATA_TYPE.SLEEP:
 				this.readDailyInfo(0, deviceId)
 				break
-
 		}
-
 		// 触发回调
 		if (this.callbacks.onDataChanged) {
 			this.callbacks.onDataChanged({
@@ -1195,7 +1265,6 @@ class U16ProBLEManager {
 			})
 		}
 	}
-
 	/**
 	 * 处理心率历史数据响应
 	 * @param {Object} data - 解析后的心率数据包
@@ -1733,7 +1802,6 @@ class U16ProBLEManager {
 			if (!this.readingState.isReadingHRHistory) {
 				return
 			}
-			console.warn('【心率历史】读取超时，强制结束以免后续测量卡住')
 			this._resetHRReadingState()
 			this._flushPendingHRHistoryReadSoon()
 		}, 30000)
@@ -2267,7 +2335,7 @@ class U16ProBLEManager {
 
 		const buffer = new Uint8Array(packet).buffer
 		const hexStr = U16ProProtocol.bytesToHex(packet)
-		console.log('【发送数据】:' + hexStr)
+		// console.log('【发送数据】:' + hexStr)
 		return new Promise((resolve, reject) => {
 			uni.writeBLECharacteristicValue({
 				deviceId: targetDeviceId,
@@ -2331,7 +2399,6 @@ class U16ProBLEManager {
 	 * 4.5 读取血压历史
 	 */
 	async readBPHistory(timestamp = 0, direction = 0, count = 50, deviceId) {
-		console.log("【BPW6读取血压历史】deviceId:", deviceId)
 		if (this.readingState.isReadingBPHistory) {
 			throw new Error('正在读取血压历史，请稍候')
 		}
@@ -2806,11 +2873,13 @@ class U16ProBLEManager {
 		const sinceLastNotifyMs = this._lastBcNotifyTime ?
 			Date.now() - this._lastBcNotifyTime :
 			-1
+		// 刚收到完成帧等 BC 包时通道已热，再 refresh 会拖死后台拉数起步
+		const channelHot = sinceLastNotifyMs >= 0 && sinceLastNotifyMs < 5000
 
 		// 通道+notify 已就绪：勿因 force 反复 rediscover（会抢占链路 → status=0）
-		// 但从未收到过 BC 包时，轻量刷新一次 notify（否则首包常超时，见 neverReceivedBc）
+		// 从未收过 BC 才轻量刷新；热通道即使 force 也跳过
 		if (channelReady && notifyReady) {
-			if (forceNotify || neverReceivedBc) {
+			if ((forceNotify || neverReceivedBc) && !channelHot) {
 				console.log('【PPG】BC通道已就绪，仅轻量刷新notify', {
 					sinceLastNotifyMs,
 					neverReceivedBc,
@@ -2843,6 +2912,81 @@ class U16ProBLEManager {
 		return this._ppgManagedRead
 	}
 
+	/**
+	 * 保活心跳调用：续 WakeLock / xfer 时间戳；仅在真正卡住时重发
+	 * （勿在传数顺畅时重发 0x4D：会与下一包抢答，出现 offset 不匹配）
+	 */
+	pokePpgManagedReadKeepAlive(deviceId, options = {}) {
+		if (!this._ppgManagedRead) return
+		const allowChunkResend = options.allowChunkResend !== false
+		try {
+			uni.setStorageSync('qx_ble_ppg_xfer_busy_at', Date.now())
+		} catch (e) {}
+		// #ifdef APP-PLUS
+		try {
+			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule')
+			if (plugin && typeof plugin.acquireWakeLock === 'function') {
+				plugin.acquireWakeLock({}, () => {})
+			}
+		} catch (e2) {}
+		// #endif
+		const targetDeviceId = deviceId || this.deviceId
+		const now = Date.now()
+		// 仍在等 0x4C：可重发（size 阶段无 offset 序列问题）
+		const sizeKey = this._getPendingBcRequestKey(CMD.PPG_GET_SIZE)
+		if (this._pendingBcRequests[sizeKey] && !(this.ppgReadingState && this.ppgReadingState.isReading)) {
+			if (!this._lastPpgSizeResendAt || now - this._lastPpgSizeResendAt >= 2000) {
+				this._lastPpgSizeResendAt = now
+				console.log('【PPG】保活唤醒重发0x4C')
+				this.sendBcCommand(U16ProProtocol.buildPPGGetSize(), targetDeviceId, {
+					skipPrepare: true
+				}).catch(() => {})
+			}
+			return
+		}
+		// 分块中：仅「同 offset 已等 >3s 且近期无 notify」才重发，避免抢包错位
+		if (!allowChunkResend) return
+		if (!(this.ppgReadingState && this.ppgReadingState.isReading)) return
+		const recentNotify = this._lastBcNotifyTime && (now - this._lastBcNotifyTime < 1500)
+		if (recentNotify) return
+		const offset = this.ppgReadingState.currentOffset || 0
+		const dataKey = this._getPendingBcRequestKey(CMD.PPG_GET_DATA, offset)
+		const pending = this._pendingBcRequests[dataKey]
+		if (!pending) return
+		const waited = pending.startedAt > 0 ? (now - pending.startedAt) : 0
+		if (waited < 3000) return
+		if (this._lastPpgChunkResendAt && now - this._lastPpgChunkResendAt < 3000) return
+		this._lastPpgChunkResendAt = now
+		console.log('【PPG】分块卡住重发0x4D', {
+			offset,
+			waitedMs: waited
+		})
+		this.sendBcCommand(U16ProProtocol.buildPPGGetData(offset), targetDeviceId, {
+			skipPrepare: true
+		}).catch(() => {})
+	}
+
+	_startPpgXferPump() {
+		this._stopPpgXferPump()
+		// 仅续期 WakeLock/xfer，不重发 0x4D（重发交由保活闹钟在卡住时触发）
+		this._ppgXferPumpTimer = setInterval(() => {
+			if (!this._ppgManagedRead) {
+				this._stopPpgXferPump()
+				return
+			}
+			this.pokePpgManagedReadKeepAlive(this.deviceId, {
+				allowChunkResend: false
+			})
+		}, 3000)
+	}
+
+	_stopPpgXferPump() {
+		if (this._ppgXferPumpTimer != null) {
+			clearInterval(this._ppgXferPumpTimer)
+			this._ppgXferPumpTimer = null
+		}
+	}
+
 	async _enableBcServiceNotify(targetDeviceId) {
 		await new Promise((resolve, reject) => {
 			uni.getBLEDeviceServices({
@@ -2864,22 +3008,27 @@ class U16ProBLEManager {
 						success: (charRes) => {
 							const list = charRes.characteristics || []
 							let writeChar = list.find(
-								c => this._isSameBleUuid(c.uuid, BC_BLE_UUID.WRITE) &&
-								(c.properties.write || c.properties.writeNoResponse)
+								c => this._isSameBleUuid(c.uuid, BC_BLE_UUID
+									.WRITE) &&
+								(c.properties.write || c.properties
+									.writeNoResponse)
 							)
 							if (!writeChar) {
 								writeChar = list.find(
-									c => c.properties && (c.properties.write || c.properties
+									c => c.properties && (c.properties.write ||
+										c.properties
 										.writeNoResponse)
 								)
 							}
 							let notifyChar = list.find(
-								c => this._isSameBleUuid(c.uuid, BC_BLE_UUID.NOTIFY) &&
+								c => this._isSameBleUuid(c.uuid, BC_BLE_UUID
+									.NOTIFY) &&
 								(c.properties.notify || c.properties.indicate)
 							)
 							if (!notifyChar) {
 								notifyChar = list.find(
-									c => c.properties && (c.properties.notify || c.properties
+									c => c.properties && (c.properties.notify ||
+										c.properties
 										.indicate)
 								)
 							}
@@ -2928,11 +3077,11 @@ class U16ProBLEManager {
 		const preferred = this.bcWriteType === 'write' || this.bcWriteType === 'writeNoResponse' ?
 			this.bcWriteType :
 			'writeNoResponse'
-		const writeModes = []
-		;[preferred, 'writeNoResponse', null, 'write'].forEach((m) => {
+		const writeModes = [];
+		[preferred, 'writeNoResponse', null, 'write'].forEach((m) => {
 			if (writeModes.indexOf(m) < 0) writeModes.push(m)
 		})
-		const packetBytes = hexStr ? U16ProProtocol.hexToBytes(hexStr) : null
+		const packetBytes = options.packetBytes || (hexStr ? U16ProProtocol.hexToBytes(hexStr) : null)
 		const buildFreshBuffer = () => {
 			if (packetBytes && packetBytes.length) {
 				return new Uint8Array(packetBytes).buffer
@@ -2974,33 +3123,32 @@ class U16ProBLEManager {
 				},
 				fail: (err) => {
 					const errCode = err && (err.errCode != null ? err.errCode : err.code)
-					console.warn('【PPG】writeType=' + modeLabel + ' 失败', {
-						errCode,
-						serviceId: this.bcServiceId,
-						characteristicId: this.bcWriteCharId,
-						err
-					})
+					// console.log('【PPG】writeType=' + modeLabel + ' 失败', {
+					// 	errCode,
+					// 	serviceId: this.bcServiceId,
+					// 	characteristicId: this.bcWriteCharId,
+					// 	err
+					// })
 					if (errCode === 10007 && modeIndex + 1 < writeModes.length) {
 						const nextLabel = writeModes[modeIndex + 1] || 'default'
-						console.warn('【PPG】尝试下一writeType=' + nextLabel)
+						// console.log('【PPG】尝试下一writeType=' + nextLabel)
 						attemptWrite(modeIndex + 1, allowRediscoverNow).then(resolve).catch(reject)
 						return
 					}
 					if (errCode === 10007 && allowRediscoverNow) {
-						console.warn('【PPG】writeType均不支持，重新发现BC服务')
+						console.log('【PPG】writeType均不支持，重新发现BC服务')
 						this.isBcNotifying = false
 						this.ensureBcServiceReady(targetDeviceId, {
-								force: true
-							})
-							.then(() => this._sleep(300))
-							.then(() => attemptWrite(0, false).then(resolve).catch(reject))
-							.catch(reject)
+							force: true
+						}).then(() => this._sleep(300)).then(() => attemptWrite(0, false).then(
+							resolve).catch(reject)).catch(reject)
 						return
 					}
 					// 非 10007：短延迟同模式重试一次，再换模式
 					if (modeIndex + 1 < writeModes.length) {
 						setTimeout(() => {
-							attemptWrite(modeIndex + 1, allowRediscoverNow).then(resolve).catch(reject)
+							attemptWrite(modeIndex + 1, allowRediscoverNow).then(resolve)
+								.catch(reject)
 						}, 120)
 						return
 					}
@@ -3025,7 +3173,7 @@ class U16ProBLEManager {
 	async _ensurePpgIdleBeforeStart(deviceId) {
 		const targetDeviceId = deviceId || this.deviceId
 		if (!targetDeviceId || !this.state.ppgMeasuring) {
-			console.log('【PPG】设备未在测量中，跳过预停止')
+			// console.log('【PPG】设备未在测量中，跳过预停止')
 			return
 		}
 
@@ -3178,7 +3326,9 @@ class U16ProBLEManager {
 	 */
 	async sendBcCommand(packet, deviceId, options = {}) {
 		const {
-			skipPrepare = false
+			skipPrepare = false,
+				allowRediscover = true,
+				quiet = false
 		} = options
 		const targetDeviceId = deviceId || this.deviceId
 		if (!targetDeviceId) {
@@ -3190,10 +3340,11 @@ class U16ProBLEManager {
 		}
 
 		const buffer = new Uint8Array(packet).buffer
-		const hexStr = U16ProProtocol.bytesToHex(packet)
-		// 后台 skipPrepare：仍允许一次 rediscover（UUID 错会导致连续 10007）
+		// 托管分块热路径：跳过 hex 往返，显著加快后台拉数
+		const hexStr = (quiet || this._ppgManagedRead) ? '' : U16ProProtocol.bytesToHex(packet)
 		return this._writeBcCharacteristic(targetDeviceId, buffer, hexStr, {
-			allowRediscover: true
+			allowRediscover: allowRediscover && !this._ppgManagedRead,
+			packetBytes: packet
 		})
 	}
 
@@ -3276,7 +3427,7 @@ class U16ProBLEManager {
 				if (parsed?.success) {
 					return parsed
 				}
-				console.warn('【PPG】0x49 设备拒绝 → 锁定兼容机档案', parsed)
+				console.log('【PPG】0x49 设备拒绝 → 锁定兼容机档案', parsed)
 				this._setPpgDeviceProfile(targetDeviceId, 'compat')
 				await this._sleep(immediateMode ? 800 : 400)
 				return this._startPpgPathCompat(seconds, targetDeviceId, {
@@ -3284,7 +3435,7 @@ class U16ProBLEManager {
 					forceNotify: false
 				})
 			} catch (err) {
-				console.warn('【PPG】0x49 无应答 → 锁定标准机档案', err.message || err)
+				console.log('【PPG】0x49 无应答 → 锁定标准机档案', err.message || err)
 				this._setPpgDeviceProfile(targetDeviceId, 'standard')
 				const lateAfter49 = await this._waitLatePpgStartOrComplete(immediateMode ? 1500 : 2500)
 				if (lateAfter49?.success) {
@@ -3318,13 +3469,14 @@ class U16ProBLEManager {
 	async _startPpgPathStandard(deviceId, options = {}) {
 		const {
 			immediateMode = false,
-			forceNotify = false
+				forceNotify = false
 		} = options
 		console.log('【PPG】进入标准机路径(仅无时长，无预停止)')
-		// 立即测量：首发前多稳一会儿（外层 2.5s 后再发常 success；前置到本路径提高第1次成功率）
+		// 立即测量：外层已 settle；此处仅短稳，避免再叠 2.2s 导致「点很久才启动」
 		if (immediateMode) {
-			console.log('【PPG】标准机首发前稳定等待')
-			await this._sleep(2200)
+			const hot = !!(this.isBcNotifying && this._lastBcNotifyTime &&
+				Date.now() - this._lastBcNotifyTime < 30000)
+			await this._sleep(hot ? 280 : 800)
 		}
 		const plain = await this._tryStartPpgPlain4A(deviceId, {
 			immediateMode,
@@ -3348,7 +3500,7 @@ class U16ProBLEManager {
 	async _startPpgPathCompat(seconds, deviceId, options = {}) {
 		const {
 			immediateMode = false,
-			forceNotify = false
+				forceNotify = false
 		} = options
 		console.log('【PPG】进入兼容机路径(仅时长，无预停止、不降级无时长)')
 		const parsed4a = await this._tryStartPpgDuration4A(seconds, deviceId, {
@@ -3370,7 +3522,7 @@ class U16ProBLEManager {
 	async _tryStartPpgDuration4A(seconds, deviceId, options = {}) {
 		const {
 			immediateMode = false,
-			forceNotify = false
+				forceNotify = false
 		} = options
 		const packet4a = U16ProProtocol.buildPPGStartWithDurationOn4A(seconds)
 		console.log('【PPG】兼容路径0x4A+时长', U16ProProtocol.bytesToHex(packet4a))
@@ -3393,9 +3545,9 @@ class U16ProBLEManager {
 	async _tryStartPpgPlain4A(deviceId, options = {}) {
 		const {
 			immediateMode = false,
-			forceNotify = false,
-			silentStopFirst = false,
-			rejectRetries
+				forceNotify = false,
+				silentStopFirst = false,
+				rejectRetries
 		} = options
 		this._ppgAwaitingStartSettle = true
 		try {
@@ -3411,8 +3563,9 @@ class U16ProBLEManager {
 						stopErr)
 				}
 			} else {
-				// 无预停止：立即测量略多等，降低首包 status=0
-				await this._sleep(immediateMode ? 600 : 300)
+				// 无预停止：立即测量热通道短等，冷通道略多等
+				const hot = !!(this.isBcNotifying && this._lastBcNotifyTime)
+				await this._sleep(immediateMode ? (hot ? 180 : 450) : 300)
 			}
 			this.state.ppgMeasuring = false
 			const plainPacket = U16ProProtocol.buildPPGStart()
@@ -3496,8 +3649,7 @@ class U16ProBLEManager {
 		}).then((result) => ({
 			success: true,
 			status: (result.parsed && result.parsed.status) != null ?
-				result.parsed.status :
-				BC_PACKET.SUCCESS_DATA,
+				result.parsed.status : BC_PACKET.SUCCESS_DATA,
 			cmd: result.cmd,
 			completed: true,
 			type: 'ppg_measurement_complete',
@@ -3583,16 +3735,63 @@ class U16ProBLEManager {
 
 	/**
 	 * 4.7 请求PPG数据大小
+	 * 托管拉数：短超时 + 等待期内重发 0x4C（对齐立即测量「测完即拉」；勿长时间干等）
 	 */
 	async getPPGDataSize(deviceId, waitResponse = true) {
 		const packet = U16ProProtocol.buildPPGGetSize()
 		if (!waitResponse) {
 			return this.sendBcCommand(packet, deviceId)
 		}
-		const responsePromise = this._waitForBcResponse(CMD.PPG_GET_SIZE)
-		await this.sendBcCommand(packet, deviceId)
-		const result = await responsePromise
-		return result.parsed
+		const managed = !!this._ppgManagedRead
+		const timeout = managed ? 18000 : 12000
+		const responsePromise = this._waitForBcResponse(CMD.PPG_GET_SIZE, {
+			timeout
+		})
+		// 托管拉数中通道已就绪：跳过 prepare，避免后台反复 refresh 卡死
+		await this.sendBcCommand(packet, deviceId, {
+			skipPrepare: managed
+		})
+		let resendTimer = null
+		if (managed) {
+			let resendCount = 0
+			resendTimer = setInterval(() => {
+				const key = this._getPendingBcRequestKey(CMD.PPG_GET_SIZE)
+				if (!this._pendingBcRequests[key] || resendCount >= 5) {
+					if (resendTimer != null) {
+						clearInterval(resendTimer)
+						resendTimer = null
+					}
+					return
+				}
+				resendCount++
+				console.log('【PPG】0x4C等待中重发', resendCount)
+				this.sendBcCommand(packet, deviceId, {
+					skipPrepare: true
+				}).catch(() => {})
+			}, 2500)
+		}
+		try {
+			const result = await responsePromise
+			this._latePpgSizeResult = null
+			this._latePpgSizeAt = 0
+			return result.parsed
+		} catch (err) {
+			// 超时后若迟到 size 已到，直接用（日志：超时后仍打印【PPG数据大小】）
+			const late = this._latePpgSizeResult
+			const lateAt = this._latePpgSizeAt || 0
+			if (late && late.size > 0 && Date.now() - lateAt < 90000) {
+				console.warn('【PPG】0x4C等待超时，改用迟到锁存的size', late.size)
+				this._latePpgSizeResult = null
+				this._latePpgSizeAt = 0
+				return late
+			}
+			throw err
+		} finally {
+			if (resendTimer != null) {
+				clearInterval(resendTimer)
+				resendTimer = null
+			}
+		}
 	}
 
 	/**
@@ -3603,25 +3802,103 @@ class U16ProBLEManager {
 		if (!waitResponse) {
 			return this.sendBcCommand(packet, deviceId)
 		}
+		const timeout = this._ppgManagedRead ? 6000 : 10000
 		const responsePromise = this._waitForBcResponse(CMD.PPG_GET_DATA, {
 			expectedOffset: offset,
-			timeout: 15000
+			timeout
 		})
-		await this.sendBcCommand(packet, deviceId)
+		const writePromise = this.sendBcCommand(packet, deviceId, {
+			skipPrepare: !!this._ppgManagedRead,
+			allowRediscover: false,
+			quiet: !!this._ppgManagedRead
+		})
+		if (this._ppgManagedRead) {
+			// 托管拉数：应答已先挂起，不必等 write success（Android 回调常拖慢每包数十 ms）
+			writePromise.catch(() => {})
+			const result = await responsePromise
+			return result.parsed
+		}
+		await writePromise
 		const result = await responsePromise
 		return result.parsed
 	}
 
 	/**
 	 * 读取全部PPG数据（0x4C 一次，再按 offset 顺序逐包 0x4D）
+	 * 对齐立即测量：测完后尽快发 0x4C，勿在成功路径上反复 refresh notify
 	 */
 	async readAllPPGData(deviceId) {
 		if (this.ppgReadingState.isReading) {
 			throw new Error('正在读取PPG数据，请稍候')
 		}
 
-		const sizeResult = await this.getPPGDataSize(deviceId)
+		const targetDeviceId = deviceId || this.deviceId
+		// 刚收到完成帧时 notify 通常已通，勿 forceNotify（后台会卡十几秒）
+		const recentBc = !!(this._lastBcNotifyTime &&
+			(Date.now() - this._lastBcNotifyTime < 8000))
+		try {
+			if (recentBc) {
+				this._ensureBcNotifyListenerActive()
+			} else {
+				await this._prepareBcChannel(targetDeviceId, {
+					forceNotify: false
+				})
+			}
+		} catch (ePrep) {
+			console.warn('【PPG】拉数前通道准备失败，继续尝试', ePrep)
+		}
+
+		this._ppgManagedRead = true
+		this._latePpgSizeResult = null
+		this._latePpgSizeAt = 0
+		this._startPpgXferPump()
+		try {
+			uni.setStorageSync('qx_ble_ppg_xfer_busy', 1)
+			uni.setStorageSync('qx_ble_ppg_xfer_busy_at', Date.now())
+		} catch (eMark) {}
+
+		let sizeResult = null
+		let sizeErr = null
+		for (let retry = 0; retry < 5; retry++) {
+			try {
+				if (retry > 0) {
+					console.warn('【PPG】请求数据大小重试', retry)
+					// 前两次只重发 0x4C；多次失败再轻刷 notify（避免打断刚到的应答）
+					if (retry >= 3) {
+						try {
+							await this._refreshBcNotify(targetDeviceId)
+						} catch (eN) {}
+						await this._sleep(200)
+					} else {
+						await this._sleep(120)
+					}
+				}
+				sizeResult = await this.getPPGDataSize(targetDeviceId)
+				sizeErr = null
+				break
+			} catch (eSize) {
+				sizeErr = eSize
+				await this._sleep(retry < 3 ? 400 : 800)
+				const late = this._latePpgSizeResult
+				const lateAt = this._latePpgSizeAt || 0
+				if (late && late.size > 0 && Date.now() - lateAt < 90000) {
+					console.warn('【PPG】重试间隙命中迟到size', late.size)
+					sizeResult = late
+					this._latePpgSizeResult = null
+					this._latePpgSizeAt = 0
+					sizeErr = null
+					break
+				}
+			}
+		}
+		if (sizeErr || !sizeResult) {
+			this._stopPpgXferPump()
+			this._ppgManagedRead = false
+			throw sizeErr || new Error('PPG数据大小读取失败')
+		}
 		if (sizeResult.error || !sizeResult.size) {
+			this._stopPpgXferPump()
+			this._ppgManagedRead = false
 			return {
 				size: 0,
 				ppgData: [],
@@ -3629,34 +3906,119 @@ class U16ProBLEManager {
 			}
 		}
 
+		console.log('【PPG】开始分块拉数', {
+			size: sizeResult.size,
+			deviceId: targetDeviceId
+		})
 		this.ppgReadingState.isReading = true
 		this.ppgReadingState.totalSize = sizeResult.size
 		this.ppgReadingState.buffer = []
 		this.ppgReadingState.currentOffset = 0
-		this._ppgManagedRead = true
 
 		const allData = []
 		let offset = 0
 		let chunkIndex = 0
+		// 预取下一 offset：收完本包即已在飞下一包，缩短串行空档
+		let prefetch = null // { offset, promise }
+
+		const fetchChunkAt = async (atOffset) => {
+			let chunk = null
+			let lastErr = null
+			for (let retry = 0; retry < 4; retry++) {
+				try {
+					if (retry > 0) {
+						console.warn('【PPG】分块重试', {
+							offset: atOffset,
+							retry,
+							chunkIndex
+						})
+						this.flushOverdueBcPendingRequests()
+						if (retry >= 2) {
+							const staleMs = this._lastBcNotifyTime ?
+								Date.now() - this._lastBcNotifyTime :
+								99999
+							if (staleMs > 4000) {
+								try {
+									await this._refreshBcNotify(targetDeviceId)
+								} catch (eN) {}
+							}
+						}
+						await this._sleep(50)
+					}
+					this.ppgReadingState.currentOffset = atOffset
+					chunk = await this.getPPGDataAtOffset(atOffset, targetDeviceId)
+					lastErr = null
+					break
+				} catch (err) {
+					lastErr = err
+				}
+			}
+			if (lastErr || !chunk || chunk.error || !chunk.ppgData) {
+				throw new Error((lastErr && lastErr.message) || (chunk && chunk.error) ||
+					'PPG数据块读取失败')
+			}
+			if (chunk.offset !== atOffset) {
+				throw new Error(`PPG offset不匹配: 期望${atOffset}, 收到${chunk.offset}`)
+			}
+			return chunk
+		}
 
 		try {
 			while (offset < sizeResult.size) {
-				// console.log(`【PPG】请求第${chunkIndex}包 offset=${offset}`)
-				const chunk = await this.getPPGDataAtOffset(offset, deviceId)
-				if (chunk.error || !chunk.ppgData) {
-					throw new Error(chunk.error || 'PPG数据块读取失败')
+				let chunk = null
+				if (prefetch && prefetch.offset === offset) {
+					try {
+						chunk = await prefetch.promise
+					} catch (ePrefetch) {
+						// 预取失败则本 offset 走正常重试
+						chunk = null
+					}
+					prefetch = null
 				}
-				if (chunk.offset !== offset) {
-					throw new Error(`PPG offset不匹配: 期望${offset}, 收到${chunk.offset}`)
+				if (!chunk) {
+					chunk = await fetchChunkAt(offset)
 				}
-				allData.push(...chunk.ppgData)
 				if (chunk.chunkSize === 0) {
 					break
 				}
-				offset += chunk.chunkSize
+				const nextOffset = offset + chunk.chunkSize
+				// 先发下一包请求，再拼数据，重叠 BLE RTT
+				if (nextOffset < sizeResult.size) {
+					this.ppgReadingState.currentOffset = nextOffset
+					prefetch = {
+						offset: nextOffset,
+						promise: fetchChunkAt(nextOffset)
+					}
+				}
+				const payload = chunk.ppgData
+				if (payload && payload.length) {
+					if (payload.length < 64) {
+						allData.push.apply(allData, payload)
+					} else {
+						for (let i = 0; i < payload.length; i++) {
+							allData.push(payload[i])
+						}
+					}
+				}
+				offset = nextOffset
 				chunkIndex++
-				if (offset < sizeResult.size) {
-					await this._sleep(BC_PACKET.PPG_READ_INTERVAL_MS)
+				this.ppgReadingState.currentOffset = offset
+				// 勿每包 setStorageSync（Android 很慢）；约每 3 秒或每 40 包续一次
+				const nowTouch = Date.now()
+				if (!this._lastPpgXferTouchAt || nowTouch - this._lastPpgXferTouchAt >= 3000 ||
+					chunkIndex % 40 === 0) {
+					this._lastPpgXferTouchAt = nowTouch
+					try {
+						uni.setStorageSync('qx_ble_ppg_xfer_busy_at', nowTouch)
+					} catch (eT) {}
+				}
+				if (chunkIndex === 1 || chunkIndex % 50 === 0 || offset >= sizeResult.size) {
+					console.log('【PPG】拉数进度', {
+						chunkIndex,
+						offset,
+						total: sizeResult.size,
+						pct: Math.round(offset * 100 / sizeResult.size)
+					})
 				}
 			}
 
@@ -3664,19 +4026,27 @@ class U16ProBLEManager {
 			this.state.ppgDataSize = sizeResult.size
 			this._resetPPGReadingState()
 
+			console.log('【PPG】分块拉数完成', {
+				bytes: allData.length,
+				chunks: chunkIndex
+			})
 			const finalResult = {
 				size: allData.length,
 				ppgData: allData,
 				completed: true,
-				// 协议说明：32位ADC/200Hz；现有上传仍只用 ppgData 原始字节
 				adc: U16ProProtocol.parsePpgAdcSamples(allData)
 			}
 
 			return finalResult
 		} catch (error) {
+			prefetch = null
+			try {
+				this.flushOverdueBcPendingRequests()
+			} catch (eFlush) {}
 			this._resetPPGReadingState()
 			throw error
 		} finally {
+			this._stopPpgXferPump()
 			this._ppgManagedRead = false
 		}
 	}

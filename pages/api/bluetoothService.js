@@ -59,7 +59,7 @@ export default class BluetoothService {
 					resolve(res.services);
 				},
 				fail: (err) => {
-					console.error("获取服务失败", err);
+					// console.error("获取服务失败", err);
 					reject(err);
 				},
 			});

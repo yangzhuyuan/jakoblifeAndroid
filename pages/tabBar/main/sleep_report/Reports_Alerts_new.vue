@@ -207,7 +207,6 @@
 			} else {
 				this.deviceId = uni.getStorageSync('deviceIdwatch')
 			}
-			console.log('devicetype', this.devicetype, 'isBpw6', isBpw6, 'settingMode', this.settingMode)
 		},
 		onShow() {
 			const titleKey = this.settingMode === 'wugan' ?
@@ -501,7 +500,6 @@
 
 			clickset() {
 				let that = this
-				console.log("clickset", that.switchHER, that.switchEmotion, that.settingMode)
 				// 仅校验当前页可见区块，避免隐藏区块开关导致无法保存
 				if (that.showWuganSection && that.switchHER === true) {
 					const w = that.validateScheduleWindow(that.time1, that.time2)
@@ -556,13 +554,11 @@
 							uni.removeStorageSync('sendwatch')
 						}
 						this.afterQxSavedStartBleSchedule()
-
-						setTimeout(() => {
-							uni.switchTab({
-								url: '/pages/tabBar/main/Main'
-							})
-						}, 1000)
-
+						// setTimeout(() => {
+						// 	uni.switchTab({
+						// 		url: '/pages/tabBar/main/Main'
+						// 	})
+						// }, 50)
 					} else {
 						uni.showToast({
 							title: this.$t('失败'),

@@ -886,9 +886,11 @@
 				return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 			},
 			onStartTimeChange(e) {
-				const startTime = parseFloat(e.detail.value);
+				const total = this.fullWaveTotalDuration || 0;
+				const win = Math.min(this.fullWaveDuration || 5, Math.max(0, total));
+				const startTime = Math.max(0, Math.min(parseFloat(e.detail.value) || 0, Math.max(0, total - win)));
 				this.fullWaveStartTime = startTime;
-				this.fullWaveEndTime = startTime + this.fullWaveDuration;
+				this.fullWaveEndTime = Math.min(total, startTime + win);
 				this.updateFullWaveData();
 			},
 			updateFullWaveData() {
@@ -936,8 +938,10 @@
 				this.fullWaveZoom = 50;
 				const totalDataPoints = this.apiDataList.length;
 				const totalDuration = totalDataPoints / this.sampleRate;
-				this.fullWaveStartTime = Math.max(0, Math.min(25, totalDuration - 5));
-				this.fullWaveEndTime = Math.min(totalDuration, this.fullWaveStartTime + 5);
+				// 不要写死 25s 上限，否则 40s 数据滑条/起止会被截断
+				const win = Math.min(this.fullWaveDuration || 5, Math.max(0, totalDuration));
+				this.fullWaveStartTime = 0;
+				this.fullWaveEndTime = Math.min(totalDuration, win);
 				const processed = this.processEcgDataArray(this.apiDataList);
 				this.dataList = this.prepareFullWaveData(processed);
 				this.calculateGainForFullData(processed);
@@ -1170,8 +1174,10 @@
 				this.fullWaveZoom = 50;
 				const totalDataPoints = sourceData.length;
 				const totalDuration = totalDataPoints / this.sampleRate;
-				this.fullWaveStartTime = Math.max(0, Math.min(25, totalDuration - 10));
-				this.fullWaveEndTime = Math.min(totalDuration, this.fullWaveStartTime + 10);
+				// 不要写死 25s 上限，总时长由点数/采样率决定（如 10000@250Hz=40s）
+				const win = Math.min(this.fullWaveDuration || 10, Math.max(0, totalDuration));
+				this.fullWaveStartTime = 0;
+				this.fullWaveEndTime = Math.min(totalDuration, win);
 				this.dataList = this.prepareFullWaveData(sourceData);
 				this.calculateGainForFullData(sourceData);
 				this.dataSourceTip = dataSource;

@@ -283,7 +283,6 @@
 			 * 蓝牙准备就绪
 			 */
 			handleBluetoothReady() {
-				console.log('蓝牙初始化成功')
 				// 检查定位权限（Android）
 				this.checkAndroidLocation()
 			},
@@ -324,7 +323,6 @@
 
 				// Android 12+ 不需要定位权限
 				if (this.getAndroidVersion() >= 12) {
-					console.log('Android 12+，跳过定位检查')
 					this.locationChecked = true
 					this.locationGranted = true
 					this.startCameraCheck()
@@ -584,7 +582,6 @@
 			 * 处理扫码结果
 			 */
 			getCode(barCode) {
-				console.log("barCode", barCode, this.modelname)
 				switch (this.modelname) {
 					case 'BPW1':
 						this.handleBPW1Code(barCode)
@@ -616,7 +613,6 @@
 					this.BPW1deviceId = output;
 					this.context_msg = barCode
 				}
-				console.log("context_msg", this.context_msg)
 				this.img_scan = false
 				this.getDeviceInfo()
 			},
@@ -629,11 +625,9 @@
 					this.context_msg = `300001${cleanMac}`
 				} else {
 					let output = this.formatMacCustom(barCode);
-					console.log("output", output); // 输出: 41:42:2E:E1:C6:6D
 					this.BPW6deviceId = output;
 					this.context_msg = barCode
 				}
-				console.log("context_msg", this.context_msg)
 				this.img_scan = false
 				this.getDeviceInfo()
 			},
@@ -793,7 +787,6 @@
 			 * 跳转到绑定页面
 			 */
 			navigateToBind(modelId) {
-				console.log("navigateToBind", modelId)
 				const routes = {
 					0: () => this.bindDeviceDirectly(this.context_msg1, '', modelId),
 					1: () => this.handleBLEBind(modelId),
@@ -838,8 +831,6 @@
 			 * 处理蓝牙绑定
 			 */
 			handleBLEBind(modelId) {
-				console.log("handleBLEBind", this.context_msg1, this.BPW1deviceId, this.BPW6deviceId, modelId, this
-					.modelname)
 				if (this.modelname === 'BPW1') {
 					this.BPW1model = modelId
 					this.bindBPW1Device(this.context_msg1, this.BPW1deviceId, modelId)
@@ -1007,7 +998,6 @@
 				console.log(targetMac, sn)
 				let scanCount = 0
 				let found = false
-
 				this.scanTimer = setInterval(() => {
 					scanCount++
 					if (scanCount >= BLE_CONSTANTS.SCAN_TIMEOUT && !found) {
@@ -1034,7 +1024,6 @@
 					}
 				})
 			},
-
 			/**
 			 * 创建BPW6 BLE连接（带重试）
 			 */

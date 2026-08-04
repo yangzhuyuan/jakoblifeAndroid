@@ -902,7 +902,9 @@
 				if (!retVarListStr) return processedData;
 				const isInvalid = (value) => {
 					const v = String(value == null ? '' : value).trim();
-					return !v || v >= '999999990.00' || v === 'NA';
+					if (!v || v === 'NA') return true;
+					const n = Number(v);
+					return !Number.isFinite(n) || n >= 999999990;
 				};
 				const seen = new Set();
 				const rows = retVarListStr.split(';').filter(Boolean);

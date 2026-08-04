@@ -1253,7 +1253,8 @@
 						if (get_finalRetVarList.data.retVarList !== "") {
 							let resultArray = get_finalRetVarList.data.retVarList.split(";");
 							const checkAndAssign = (value) => {
-								return value >= "999999990.00" ? "NA" : value;
+								const n = Number(value)
+								return Number.isFinite(n) && n >= 999999990 ? "NA" : value
 							};
 							let shouldShowMeasurementAdvice = false
 							for (let i = 0; i < resultArray.length; i++) {
@@ -1603,7 +1604,9 @@
 				}
 				const isInvalid = (value) => {
 					const v = String(value == null ? '' : value).trim()
-					return !v || v >= '999999990.00' || v === 'NA'
+					if (!v || v === 'NA') return true
+					const n = Number(v)
+					return !Number.isFinite(n) || n >= 999999990
 				}
 				const isHighBpHit = (lp, hp) => {
 					return (lp >= 81 && lp <= 90) || (hp >= 121 && hp <= 140) ||

@@ -31,7 +31,7 @@
 				<view class="ecgdatarows_sty_item_1">
 					<view>{{item.createTime}}</view>
 					<view
-						@click="$emit('ecg-detail', item.createTime, item.startTime, item.recordId, item.rawData, item.voltageRange)"
+						@click="$emit('ecg-detail', item.createTime, item.startTime, item.recordId, item.rawData, item.voltageRange, item.dataFormat, item.dataLength)"
 						class="ecgdatarows_sty_item_bt">{{$t('心电图')}}
 					</view>
 				</view>

@@ -263,9 +263,7 @@
 					nickName: '',
 					remark: this.$url_APP_IP
 				}
-
 				console.log("App用户名密码注册：" + this.$url_APP_IP, requestData)
-
 				this.$post(this.$url_APP_IP + "/prod-api/app/register", requestData, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(this.handleRegisterResponse).catch(this.handleRegisterError)
@@ -275,7 +273,6 @@
 			handleRegisterResponse(res) {
 				uni.hideLoading()
 				console.log("App用户名密码注册res：" + JSON.stringify(res))
-
 				switch (res.code) {
 					case 200:
 						this.handleRegisterSuccess(res)
@@ -291,12 +288,8 @@
 
 			// 处理注册成功
 			handleRegisterSuccess(res) {
-				// uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
-				console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
-
 				this.register_token(res.token)
 				this.register_unername(this.vip_unername)
-
 				uni.showToast({
 					title: this.$t("成功"),
 					icon: 'none'

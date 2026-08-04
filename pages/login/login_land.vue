@@ -409,7 +409,6 @@
 					}
 				})
 			},
-
 			//发送手机登录验证码
 			send_login_code() {
 				const data = {
@@ -450,7 +449,6 @@
 					uni.hideLoading();
 				})
 			},
-
 			//发送邮箱登录验证码
 			send_login_code1() {
 				const data = {
@@ -490,17 +488,14 @@
 					uni.hideLoading();
 				})
 			},
-
 			//判断是否是邮箱
 			validateEmail(email) {
 				const reg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 				return reg.test(email);
 			},
-
 			//登录
 			async login_submit1() {
 				let that = this;
-				console.log("点击登录：", that.$url_APP_IP)
 				uni.showLoading({
 					title: that.$t('登录中'),
 					mask: true
@@ -541,94 +536,15 @@
 					return;
 				}
 				if (that.mm_yzm) {
-					// const checkemailregister = await check_email_register(that.unername, that.$APP_IP1);
-					// console.log("密码判断当前账号归属哪一个服务器：", checkemailregister);
-					// switch (checkemailregister) {
-					// 	case "Chinese_server":
-					// 		Vue.prototype.$url_APP_IP = that.$APP_IP1;
-					// 		if (that.validateEmail(that.unername)) {
-					// 			const ISUserInfoChina = await ISgetUserInfoChina2(that.unername, "密码", that.passwrod,
-					// 				that.$APP_IP1);
-					// 			const IStokenChina2 = uni.getStorageSync("IStokenChina2")
-					// 			const userids = await ISUSERID(IStokenChina2, that.$APP_IP1)
-					// 			console.log("邮箱验证码ISUserInfoChina", ISUserInfoChina)
-					// 			console.log("邮箱验证码userids", userids)
-					// 			console.log("邮箱验证码IStokenChina2", IStokenChina2)
-					// 			that.migrationtrigger(userids, IStokenChina2, that.unername, "密码", that.passwrod)
-					// 		}
-					// 		break
-					// 	case "American_server":
-					// 	case "Chinese_American_servers":
-					// 		Vue.prototype.$url_APP_IP = that.$APP_IP2;
-					// 		break
-					// 	default:
-					// 		console.log("密码" + checkemailregister);
-					// 		const isInChina = await isInChinaByIP();
-					// 		if (isInChina) {
-					// 			Vue.prototype.$url_APP_IP = that.$APP_IP1;
-					// 		} else {
-					// 			Vue.prototype.$url_APP_IP = that.$APP_IP2;
-					// 		}
-					// 		break;
-					// }
 					that.user_login();
 				} else {
 					if (!that.validateEmail(that.unername)) {
-						// const checkemailregister = await check_email_register(that.unername, that.$APP_IP1);
-						// console.log("手机号验证码判断当前账号归属哪一个服务器：", checkemailregister);
-						// switch (checkemailregister) {
-						// 	case "Chinese_server":
-						// 		Vue.prototype.$url_APP_IP = that.$APP_IP1;
-						// 		break
-						// 	case "American_server":
-						// 	case "Chinese_American_servers":
-						// 		Vue.prototype.$url_APP_IP = that.$APP_IP2;
-						// 		break
-						// 	default:
-						// 		console.log("手机号验证码" + checkemailregister);
-						// 		const isInChina = await isInChinaByIP();
-						// 		if (isInChina) {
-						// 			Vue.prototype.$url_APP_IP = that.$APP_IP1;
-						// 		} else {
-						// 			Vue.prototype.$url_APP_IP = that.$APP_IP2;
-						// 		}
-						// 		break
-						// }
 						that.app_login();
 					} else {
-						// const checkemailregister = await check_email_register(that.unername, that.$APP_IP1);
-						// console.log("邮箱验证码判断当前账号归属哪一个服务器：", checkemailregister);
-						// switch (checkemailregister) {
-						// 	case "Chinese_server":
-						// 		Vue.prototype.$url_APP_IP = that.$APP_IP1;
-						// 		const ISUserInfoChina = await ISgetUserInfoChina2(that.unername, "验证码", "888888",
-						// 			that.$APP_IP1);
-						// 		const IStokenChina2 = uni.getStorageSync("IStokenChina2")
-						// 		const userids = await ISUSERID(IStokenChina2, that.$APP_IP1)
-						// 		console.log("邮箱验证码ISUserInfoChina", ISUserInfoChina)
-						// 		console.log("邮箱验证码userids", userids)
-						// 		console.log("邮箱验证码IStokenChina2", IStokenChina2)
-						// 		that.migrationtrigger(userids, IStokenChina2, that.unername, "验证码", "888888")
-						// 		break
-						// 	case "American_server":
-						// 	case "Chinese_American_servers":
-						// 		Vue.prototype.$url_APP_IP = that.$APP_IP2;
-						// 		break
-						// 	default:
-						// 		console.log("邮箱验证码" + checkemailregister);
-						// 		const isInChina = await isInChinaByIP();
-						// 		if (isInChina) {
-						// 			Vue.prototype.$url_APP_IP = that.$APP_IP1;
-						// 		} else {
-						// 			Vue.prototype.$url_APP_IP = that.$APP_IP2;
-						// 		}
-						// 		break
-						// }
 						that.app_email_login();
 					}
 				}
 			},
-
 			async migrationtrigger(userids, IStokenChina2, username, type, password) {
 				const that = this;
 				const data = {
@@ -695,7 +611,6 @@
 					setActiveAppRegion('cn', Vue);
 				}
 			},
-
 			//用户名/手机号/邮箱+密码登录
 			user_login() {
 				const data = {

@@ -23,7 +23,8 @@
 		onQxBleAppForeground,
 		setQxBleAppForegroundState,
 		ensureQxBleKeepAliveForBackground,
-		replanQxBleScheduleOnTimezoneChange
+		replanQxBleScheduleOnTimezoneChange,
+		requestBpw6SilentReconnect
 	} from '@/pages/api/qxBleAlignedSchedule.js';
 	import {
 		startTimezoneWatch,
@@ -137,6 +138,13 @@
 			setTimeout(() => {
 				that.tryResumeQxBleSchedule()
 			}, 2600)
+			// BPW6 回前台强制补一次静默重连（与 onQxBleAppForeground 去重节流）
+			try {
+				const bpw6 = uni.getStorageSync('BPW6devicemac')
+				if (bpw6) {
+					requestBpw6SilentReconnect(bpw6, 'App.onShow')
+				}
+			} catch (e) {}
 			// #endif
 			let timesder = setInterval(() => {
 				if (uni.getStorageSync("token")) {

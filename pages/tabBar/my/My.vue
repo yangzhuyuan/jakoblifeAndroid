@@ -85,7 +85,7 @@
 					url: '/pages/tabBar/tendency/supplement'
 				},
 				// {
-				// 	title: 'ECG',
+				// 	title: 'ECG模板',
 				// 	url: '/pages/tabBar/main/ECGdemo/ECGdemo'
 				// },
 				...(isChinese ? [{

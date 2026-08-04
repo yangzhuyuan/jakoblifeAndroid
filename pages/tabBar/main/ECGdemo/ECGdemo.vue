@@ -93,7 +93,19 @@
 				<view class="test-actions" style="margin-top: 10px;">
 					<button class="btn secondary" :disabled="isMockTesting" @tap="loadBleFullWave">加载BLE全波形</button>
 				</view>
-				<text class="test-hint">BLE测试数据：{{ bleDataPointCount }} 点（250hz_40s.txt）</text>
+				<text class="test-hint">BLE测试数据：原始 {{ bleDataPointCount }} 点 @250Hz ≈40s（250hz_40s.txt）</text>
+
+				<!-- <view class="txt-import-section">
+					<text class="test-title">客户 hex TXT 解析上报</text>
+					<view class="test-actions">
+						<button class="btn primary" :disabled="customerTxtBusy || isMockTesting"
+							@tap="pickCustomerTxtFile">选择TXT上报</button>
+						<button class="btn secondary" :disabled="customerTxtBusy || isMockTesting"
+							@tap="parseAndUploadBuiltinTxt">内置250hz上报</button>
+					</view>
+					<text class="test-hint" v-if="customerTxtInfo">{{ customerTxtInfo }}</text>
+					<text class="test-hint" v-else>内置上报：ble-test-data(uV)→mV 后按原 INT16（2字节/点）上报</text>
+				</view> -->
 			</view>
 		</view>
 	</scroll-view>
@@ -128,30 +140,30 @@
 	/** 结束后全图垂直增益：明显缩小（全图用 measureAmplifyFactor） */
 	const BLE_FULL_WAVE_GAIN = 0.36;
 	/**
-	 * 设备帧近乎正负交替，差分后有效率约 125Hz。
-	 * 必须用 125 绘制：若误用 250，时间轴被压扁，全波形会特别紧凑。
+	 * 绘制采样率固定 250Hz（与 TXT/上报一致）。
+	 * 显示：差分配对后 hold×2 对齐原始点数（10000@250Hz=40s）；上报仍用原始 mV，不走显示缓冲。
 	 */
 	const BLE_DRAW_SAMPLE_RATE = 250;
 	/**
-	 * 一屏目标可见波峰数（约 5～6 个）。
-	 * 注意：screenDuration 越长，一屏波峰越多、越挤。
+	 * 实时一屏目标可见波峰数（约 3～4 个）。仅本页 applyBleWaveRange 测量态使用。
+	 * 注意：screenDuration 越长，一屏波峰越多、越挤；全波形窗口仍用 BLE_FULL_WAVE_SECONDS。
 	 */
-	const BLE_TARGET_PEAKS = 5.5;
-	/** 一屏秒数兜底；可见峰约 0.2s 一个，约 1.2s 对应 5～6 个 */
-	const BLE_SCREEN_SECONDS = 1.2;
-	/** 每次蓝牙测量固定时长（秒）——录多少秒，不是一屏画多少秒 */
-	const BLE_MEASURE_SECONDS = 60;
+	const BLE_TARGET_PEAKS = 3.5;
+	/** 实时一屏秒数：PC 建议最近 3～10 秒 mV 波形 */
+	const BLE_SCREEN_SECONDS = 3.0;
+	const BLE_SCREEN_SECONDS_MIN = 3;
+	const BLE_SCREEN_SECONDS_MAX = 10;
+	/** 每次蓝牙测量固定时长（秒）；模拟以 TXT 播完为准 */
+	const BLE_MEASURE_SECONDS = 40;
 	/**
 	 * 全图一屏时间窗（秒）。
 	 * 必须短：一屏画满 40s/整段数据会挤成一条毛刺带；用滑条看其余时段。
 	 */
-	const BLE_FULL_WAVE_SECONDS = 2.5;
+	const BLE_FULL_WAVE_SECONDS = 3.0;
 	/** 测量最大点数（按绘制采样率） */
 	const BLE_MEASURE_MAX_POINTS = BLE_MEASURE_SECONDS * BLE_DRAW_SAMPLE_RATE;
-
 	/**
-	 * 按「画面上能看见的波峰」间距估算一屏时长（不是稀疏 R 峰）。
-	 * 当前 BLE 差分波形可见峰大约 0.2s 一个，3s+ 一屏会画出十几个。
+	 * 按可见波峰间距估算实时一屏时长（仅本页测量绘制，不影响全波形/云端/其他页）。
 	 */
 	function estimateBleScreenSeconds(samples, sampleRate = BLE_DRAW_SAMPLE_RATE, targetPeaks = BLE_TARGET_PEAKS) {
 		const fallback = BLE_SCREEN_SECONDS;
@@ -166,10 +178,10 @@
 			s2 += d * d;
 		}
 		const std = Math.sqrt(s2 / n) || 1;
-		// 略高于均值即可，对齐肉眼看到的尖峰（不是只取最高 R）
-		const thr = mean + 0.35 * std;
-		// ~0.18s：按可见峰密度，而不是 0.45s 生理 RR
-		const minDist = Math.max(18, Math.floor(sampleRate * 0.18));
+		// 偏高阈值，贴近肉眼主波峰（R 峰），减少小毛刺计入
+		const thr = mean + 0.55 * std;
+		// ~0.35s：按心率量级的主峰间距
+		const minDist = Math.max(40, Math.floor(sampleRate * 0.35));
 		const peaks = [];
 		for (let i = 2; i < n - 2; i++) {
 			const v = samples[i];
@@ -180,14 +192,14 @@
 				}
 			}
 		}
-		if (peaks.length < 4) return fallback;
+		if (peaks.length < 3) return fallback;
 		const rrs = [];
 		for (let i = 1; i < peaks.length; i++) rrs.push(peaks[i] - peaks[i - 1]);
 		rrs.sort((a, b) => a - b);
-		const medRr = rrs[Math.floor(rrs.length / 2)] || Math.round(sampleRate * 0.22);
-		const sec = ((Math.max(5, targetPeaks) - 1) * medRr) / sampleRate;
-		// 一屏约 5～6 个可见峰
-		return Math.max(1.0, Math.min(1.5, sec));
+		const medRr = rrs[Math.floor(rrs.length / 2)] || Math.round(sampleRate * 0.7);
+		const sec = ((Math.max(2, targetPeaks) - 1) * medRr) / sampleRate;
+		// PC：实时窗口建议最近 3～10 秒 mV 波形（250Hz×3s≈750 点）
+		return Math.max(BLE_SCREEN_SECONDS_MIN, Math.min(BLE_SCREEN_SECONDS_MAX, sec || fallback));
 	}
 
 	/** 设备差分编码的「轨」幅值（约 ±1650） */
@@ -221,12 +233,15 @@
 		};
 	}
 
+	/** 本设备差分后显示极性：正值向上为 R 峰。若仍朝下，只改这一处为 1 或 -1 */
+	const BLE_ECG_POLARITY = -1;
+
 	/**
-	 * 与模拟同源的实时/离线解码：
+	 * 仅显示用（不上报）：
 	 * 1) 连续同号 ±1650 轨合并，避免配对错位
-	 * 2) 交替对 → (b-a)/2 去载波（极性与设备一致）
-	 * 3) 连续小信号 → -(a+b)/2，避免差分抹平真实波形
-	 * 4) 限幅 + 显示缩放；每对输出 1 点（125Hz）
+	 * 2) 交替对 → (a-b)/2 去载波
+	 * 3) 连续小信号 → (a+b)/2
+	 * 4) * BLE_ECG_POLARITY；每对输出 1 点（离线再拉回原始点数）
 	 */
 	function processBleStreamSample(state, rawVal) {
 		if (!state || !Number.isFinite(rawVal)) return [];
@@ -245,15 +260,38 @@
 		const a = state.pending;
 		const b = rawVal;
 		state.pending = null;
-		// 取反极性：此前 (a-b)/2 会把 R 峰画反
-		let v = isBleAlternatingPair(a, b) ? (b - a) / 2 : -(a + b) / 2;
+		let v = isBleAlternatingPair(a, b) ? (a - b) / 2 : (a + b) / 2;
 		v = slewBleValue(v, state.lastRaw);
 		state.lastRaw = v;
-		return [v / BLE_DISPLAY_SCALE];
+		return [(v * BLE_ECG_POLARITY) / BLE_DISPLAY_SCALE];
 	}
 
 	/**
-	 * 离线整段：与实时同一套 processBleStreamSample。不改 ecg-wave。
+	 * 差分后点数约减半；逐点 hold×2 拉回 250Hz 时间轴，最终对齐 rawLen（通常 10000=40s）。
+	 * 禁止不封顶 hold 出 20000（那才会被画成 80s）。
+	 */
+	function expandDisplayToRawLength(samples, rawLen) {
+		if (!samples || !samples.length) return [];
+		const target = Math.max(1, rawLen | 0);
+		let src = samples;
+		if (samples.length * 2 <= target + 2 || samples.length < target) {
+			const held = new Array(samples.length * 2);
+			for (let i = 0; i < samples.length; i++) {
+				held[i * 2] = samples[i];
+				held[i * 2 + 1] = samples[i];
+			}
+			src = held;
+		}
+		if (src.length === target) return src.slice();
+		if (src.length > target) return src.slice(0, target);
+		const out = src.slice();
+		const last = out[out.length - 1];
+		while (out.length < target) out.push(last);
+		return out;
+	}
+
+	/**
+	 * 仅显示用离线整段：与实时同一套 processBleStreamSample，再 hold×2 对齐原始点数。不上报。
 	 */
 	function prepareBleContinuousWave(raw) {
 		if (!raw || !raw.length) return [];
@@ -265,14 +303,420 @@
 				out.push(samples[j]);
 			}
 		}
-		return out;
+		return expandDisplayToRawLength(out, raw.length);
 	}
 
+	/* ==================== 客户 hex TXT（对齐 ecg_main.py 导入流程，仅本页） ==================== */
+	/** 对齐 PC：文件名无 Nhz 时默认 250Hz */
+	const CUSTOMER_TXT_DEFAULT_FS = 250;
+	const CUSTOMER_TXT_CTRL_START = 'A6 15 01 16';
+	const CUSTOMER_TXT_CTRL_END = 'A6 15 00 15';
+	const CUSTOMER_TXT_MIN_KEEP_SEC = 10;
+	/** 上报固定：250Hz × 40s = 10000 点（与 TXT/BLE 一致）；对齐 DEFAULT_ECG_STORAGE_VOLTAGE_RANGE_MV=500 */
+	const CUSTOMER_UPLOAD_FS = 250;
+	const CUSTOMER_UPLOAD_SECONDS = 40;
+	const CUSTOMER_UPLOAD_POINTS = CUSTOMER_UPLOAD_FS * CUSTOMER_UPLOAD_SECONDS; // 10000
+	/** 对齐 ecg_main.DEFAULT_ECG_STORAGE_VOLTAGE_RANGE_MV */
+	const CUSTOMER_STORAGE_VOLTAGE_RANGE_MV = 500;
 
+	/**
+	 * 仅本页上报用：把采样压成 10000 点 @250Hz，去掉 hold×2 / 成对多采导致的 20000。
+	 * 不影响显示、不影响其他文件。
+	 */
+	function normalizeEcgUploadSamples(samples, expectPoints = CUSTOMER_UPLOAD_POINTS) {
+		const src = (samples || []).filter(v => Number.isFinite(v));
+		if (!src.length) return {
+			signal: [],
+			corrected: false,
+			from: 0
+		};
+		if (src.length === expectPoints) {
+			return {
+				signal: src.slice(),
+				corrected: false,
+				from: src.length
+			};
+		}
+		// 典型：hold 重复或设备成对上报 → 约 2 倍，隔点抽取
+		if (src.length === expectPoints * 2) {
+			const out = new Array(expectPoints);
+			for (let i = 0; i < expectPoints; i++) out[i] = src[i * 2];
+			return {
+				signal: out,
+				corrected: true,
+				from: src.length
+			};
+		}
+		if (src.length > expectPoints) {
+			// 均匀抽稀到 10000，保持约 40s 覆盖
+			const out = new Array(expectPoints);
+			const last = src.length - 1;
+			for (let i = 0; i < expectPoints; i++) {
+				out[i] = src[Math.round((i * last) / (expectPoints - 1))];
+			}
+			return {
+				signal: out,
+				corrected: true,
+				from: src.length
+			};
+		}
+		return {
+			signal: src.slice(),
+			corrected: false,
+			from: src.length
+		};
+	}
+
+	function customerPercentile(arr, p) {
+		if (!arr || !arr.length) return 0;
+		const sorted = arr.slice().sort((a, b) => a - b);
+		const idx = (p / 100) * (sorted.length - 1);
+		const lo = Math.floor(idx);
+		const hi = Math.ceil(idx);
+		if (lo === hi) return sorted[lo];
+		const t = idx - lo;
+		return sorted[lo] * (1 - t) + sorted[hi] * t;
+	}
+
+	/**
+	 * 固定极性由 BLE_ECG_POLARITY 处理；此处不再按能量自动翻转（会与肉眼 R 峰冲突并二次取反）。
+	 */
+	function orientCustomerEcgUpright(signal) {
+		return {
+			signal: signal ? signal.slice() : [],
+			flipped: false
+		};
+	}
+
+	/**
+	 * 仅本页实时/全波形显示：mV 转回 uV 量级后差分成连续波（不上报）。
+	 * 上报严格按 PC：uV→mV 后的数值，不做差分解码。
+	 */
+	function customerMvToDisplayWave(mvSignal) {
+		if (!mvSignal || !mvSignal.length) return [];
+		let maxAbs = 0;
+		for (let i = 0; i < mvSignal.length; i++) {
+			const a = Math.abs(Number(mvSignal[i]));
+			if (Number.isFinite(a) && a > maxAbs) maxAbs = a;
+		}
+		const rawLike = maxAbs > 0 && maxAbs < 20 ?
+			mvSignal.map((v) => (Number.isFinite(v) ? v * 1000 : 0)) :
+			mvSignal.slice();
+		return prepareBleContinuousWave(rawLike);
+	}
+
+	function inferFsFromFileName(fileName) {
+		if (!fileName) return 0;
+		const m = String(fileName).match(/(\d+)\s*(?:hz|Hz|HZ)/);
+		return m ? parseInt(m[1], 10) : 0;
+	}
+
+	function splitBytesBy0A(bytes) {
+		const lines = [];
+		let cur = [];
+		for (let i = 0; i < bytes.length; i++) {
+			if (bytes[i] === 0x0a) {
+				lines.push(cur);
+				cur = [];
+			} else {
+				cur.push(bytes[i]);
+			}
+		}
+		if (cur.length) lines.push(cur);
+		return lines;
+	}
+
+	function decodeAsciiOrLatin1(lineBytes) {
+		let s = '';
+		for (let i = 0; i < lineBytes.length; i++) {
+			s += String.fromCharCode(lineBytes[i] & 0xff);
+		}
+		return s;
+	}
+
+	function lineBytesToHex(lineBytes) {
+		return lineBytes
+			.map(b => (b & 0xff).toString(16).padStart(2, '0').toUpperCase())
+			.join(' ');
+	}
+
+	/**
+	 * 对齐 read_customer_ecg_hex_txt：hex 文本 → bytes → 按 0A 分行 → 控制帧 / #采样。
+	 * 一个数据点 = 一整帧，例如：
+	 *   23 31 36 31 37 2E 37 37 6B 0A
+	 *   #  1  6  1  7  .  7  7  CS LF
+	 * → 原始值 1617.77（uV）→ ÷1000 → 1.61777 mV → INT16 小端上报（2字节/点）
+	 * （末尾 6B 为校验，0A 为帧尾，不计入采样值）
+	 */
+	function parseCustomerHexTxt(txtContent) {
+		const hexList = String(txtContent || '').match(/[0-9A-Fa-f]{2}/g) || [];
+		const bytes = hexList.map(h => parseInt(h, 16));
+		const lines = splitBytesBy0A(bytes);
+		const ecgValues = [];
+		const controlFrames = [];
+
+		for (let i = 0; i < lines.length; i++) {
+			const lineBytes = lines[i];
+			if (!lineBytes.length) continue;
+			const hexLine = lineBytesToHex(lineBytes);
+			if (hexLine === CUSTOMER_TXT_CTRL_START || hexLine === CUSTOMER_TXT_CTRL_END) {
+				controlFrames.push(hexLine);
+				continue;
+			}
+			// 按 0A 切出的一行 = 1 个数据点；只取 # 后数值，忽略校验字节
+			const lineText = decodeAsciiOrLatin1(lineBytes).trim();
+			if (!lineText.startsWith('#')) continue;
+			const match = lineText.match(/#\s*([-+]?\d+(?:\.\d+)?)/);
+			if (match) {
+				ecgValues.push(parseFloat(match[1]));
+			}
+		}
+		return {
+			ecgValues,
+			controlFrames
+		};
+	}
+
+	/** 转换后 mV 最多保留小数点后 6 位 */
+	function roundMv6(v) {
+		const n = Number(v);
+		if (!Number.isFinite(n)) return 0;
+		return parseFloat(n.toFixed(6));
+	}
+
+	/**
+	 * 对齐 ecg_main.normalize_imported_ecg_units：
+	 * 绝对值 99 分位 > 20 → 视为 uV，除以 1000 转 mV。
+	 * 例：1617.77 uV → 1.61777 mV；已是 mV 则原样返回。
+	 * 转换后一律最多保留 6 位小数。
+	 */
+	function convertCustomerEcgToMv(ecgValues) {
+		const values = (ecgValues || []).filter(v => Number.isFinite(v));
+		if (!values.length) {
+			return {
+				signal: [],
+				unitWasUv: false,
+				unitMode: 'unknown',
+				p99Abs: 0
+			};
+		}
+		const p99Abs = customerPercentile(values.map(Math.abs), 99);
+		const unitWasUv = p99Abs > 20;
+		const signal = (unitWasUv ? values.map(v => v / 1000) : values.slice()).map(roundMv6);
+		return {
+			signal,
+			unitWasUv,
+			unitMode: unitWasUv ? 'uV_to_mV' : 'mV',
+			p99Abs
+		};
+	}
+
+	/**
+	 * 上报前强制得到 mV 波形：原始 #/ADC 若是 uV（p99Abs>20）则 ÷1000。
+	 * 禁止把 uV 直接送去量化打包。转换后最多 6 位小数。
+	 */
+	function ensureUploadMvSignal(rawValues) {
+		const raw = [];
+		for (let i = 0; i < (rawValues || []).length; i++) {
+			const v = Number(rawValues[i]);
+			if (Number.isFinite(v)) raw.push(v);
+		}
+		const converted = convertCustomerEcgToMv(raw);
+		const mv = converted.signal;
+		const p99Mv = mv.length ? customerPercentile(mv.map(Math.abs), 99) : 0;
+		// 转换后仍像 uV：再强制 ÷1000（防上游已标 mV 但数值未除）
+		if (p99Mv > 20) {
+			const forced = mv.map(v => roundMv6(v / 1000));
+			return {
+				raw,
+				signal: forced,
+				unitWasUv: true,
+				unitMode: 'uV_to_mV_forced',
+				p99AbsRaw: converted.p99Abs,
+				p99AbsMv: customerPercentile(forced.map(Math.abs), 99)
+			};
+		}
+		return {
+			raw,
+			signal: mv.map(roundMv6),
+			unitWasUv: converted.unitWasUv,
+			unitMode: converted.unitMode,
+			p99AbsRaw: converted.p99Abs,
+			p99AbsMv: p99Mv
+		};
+	}
+
+	function isCustomerWindowGood(windowSamples) {
+		if (!windowSamples || windowSamples.length < 8) return false;
+		const finite = [];
+		for (let i = 0; i < windowSamples.length; i++) {
+			const v = windowSamples[i];
+			if (Number.isFinite(v)) finite.push(v);
+		}
+		const validRatio = finite.length / windowSamples.length;
+		if (validRatio < 0.95) return false;
+		if (finite.length < 8) return false;
+
+		const p5 = customerPercentile(finite, 5);
+		const p95 = customerPercentile(finite, 95);
+		const robustRange = p95 - p5;
+		if (robustRange < 0.03 || robustRange > 15.0) return false;
+
+		const p99Abs = customerPercentile(finite.map(Math.abs), 99);
+		if (p99Abs > 20.0) return false;
+
+		const uniq = {};
+		let uniqCount = 0;
+		for (let i = 0; i < finite.length; i++) {
+			const key = finite[i].toFixed(6);
+			if (!uniq[key]) {
+				uniq[key] = 1;
+				uniqCount++;
+			}
+		}
+		if (uniqCount / finite.length <= 0.02) return false;
+
+		const diffs = [];
+		for (let i = 1; i < finite.length; i++) {
+			diffs.push(Math.abs(finite[i] - finite[i - 1]));
+		}
+		const diffScale = customerPercentile(diffs, 95);
+		if (diffScale > Math.max(5.0, robustRange * 8.0)) return false;
+		return true;
+	}
+
+	/**
+	 * 首尾质量裁剪：2s 窗、1s 步；只裁首尾；裁后不足 10s 则不裁。
+	 */
+	function trimLowQualityEdges(signal, fs) {
+		const info = {
+			trim_start_sec: 0,
+			trim_end_sec: 0,
+			trim_applied: false
+		};
+		if (!signal || !signal.length || !fs || fs <= 0) {
+			return {
+				signal: signal || [],
+				info
+			};
+		}
+		const winSec = 2;
+		const stepSec = 1;
+		const win = Math.max(1, Math.round(fs * winSec));
+		const step = Math.max(1, Math.round(fs * stepSec));
+		if (signal.length < win) {
+			return {
+				signal: signal.slice(),
+				info
+			};
+		}
+
+		const goodStarts = [];
+		for (let start = 0; start + win <= signal.length; start += step) {
+			const slice = signal.slice(start, start + win);
+			if (isCustomerWindowGood(slice)) goodStarts.push(start);
+		}
+		if (!goodStarts.length) {
+			return {
+				signal: signal.slice(),
+				info
+			};
+		}
+
+		const firstGood = goodStarts[0];
+		const lastGoodEnd = goodStarts[goodStarts.length - 1] + win;
+		const trimmed = signal.slice(firstGood, lastGoodEnd);
+		const keepSec = trimmed.length / fs;
+		if (keepSec < CUSTOMER_TXT_MIN_KEEP_SEC) {
+			return {
+				signal: signal.slice(),
+				info
+			};
+		}
+
+		info.trim_start_sec = firstGood / fs;
+		info.trim_end_sec = (signal.length - lastGoodEnd) / fs;
+		info.trim_applied = info.trim_start_sec > 0 || info.trim_end_sec > 0;
+		return {
+			signal: trimmed,
+			info
+		};
+	}
+
+	/**
+	 * 对齐 ecg_main：
+	 * - store_data 入库：仅 uV→mV（p99Abs>20 则 ÷1000），不做首尾裁剪
+	 * - 首尾质量裁剪只用于本地 trimInfo / 特征侧参考，不改写入 rawData 的波形
+	 * 例：1617.77 uV → 1.61777 mV
+	 */
+	function applyPcVoltagePipeline(rawValues, fileName) {
+		const rawUv = [];
+		for (let i = 0; i < (rawValues || []).length; i++) {
+			const v = Number(rawValues[i]);
+			if (Number.isFinite(v)) rawUv.push(v);
+		}
+		const converted = convertCustomerEcgToMv(rawUv);
+		const fs = inferFsFromFileName(fileName) || CUSTOMER_TXT_DEFAULT_FS;
+		const trimResult = trimLowQualityEdges(converted.signal, fs);
+		return {
+			rawUv,
+			samplingRate: fs,
+			/** 与 PC store_data 一致：未裁剪 mV，用于 INT16 上报 */
+			ecgData: converted.signal.slice(),
+			/** 同 ecgData（显式命名，避免误用裁剪结果） */
+			ecgDataFull: converted.signal.slice(),
+			/** 仅本地/元数据：裁剪后波形，不上报 */
+			ecgDataTrimmed: trimResult.signal.slice(),
+			trimInfo: trimResult.info,
+			unit: 'mV',
+			unitWasUv: converted.unitWasUv,
+			unitMode: converted.unitMode,
+			p99AbsRaw: converted.p99Abs,
+			rawPointCount: rawUv.length
+		};
+	}
+
+	/**
+	 * 对齐 PC「导入 TXT ECG」：
+	 * ① hex/# → 原始采样（同 ble-test-data.js，uV）
+	 * ② applyPcVoltagePipeline → 最终 mV
+	 * ③ 调用方再 INT16 编码上报
+	 */
+	function parseCustomerTxt(txtContent, fileName, preParsedValues) {
+		let ecgValues = [];
+		let controlFrames = [];
+		if (preParsedValues && preParsedValues.length) {
+			ecgValues = preParsedValues.filter(v => Number.isFinite(v));
+		} else {
+			const parsed = parseCustomerHexTxt(txtContent);
+			ecgValues = parsed.ecgValues;
+			controlFrames = parsed.controlFrames;
+			if (!(ecgValues.length >= 100 && controlFrames.length)) {
+				throw new Error('非客户 hex TXT（需控制帧且采样≥100）');
+			}
+		}
+		const pipe = applyPcVoltagePipeline(ecgValues, fileName);
+		const oriented = orientCustomerEcgUpright(pipe.ecgData);
+		return {
+			...pipe,
+			controlFrames,
+			ecgDataDisplay: oriented.signal,
+			trimInfo: {
+				...pipe.trimInfo,
+				polarityFlipped: oriented.flipped
+			},
+			raw_format: 'customer_hex_txt'
+		};
+	}
+
+	/**
+	 * ble-test-data.js = 第①步原始 uV（如 1617.77）。
+	 * 显示：差分连续波；上报另走 bleTestEcgData → PC mV → INT16。
+	 */
 	const bleContinuousWaveData = prepareBleContinuousWave(bleTestEcgData);
-	/** 按主峰 RR 估出的一屏秒数（约 4～5 个最高波峰） */
+	/** 按主峰 RR 估出的一屏秒数（钳制在 3～10s） */
 	const BLE_ESTIMATED_SCREEN_SECONDS = estimateBleScreenSeconds(bleContinuousWaveData);
-	/** 缩放后的显示量程 */
+	/** 缩放后的显示量程（差分后仍为显示缓冲量级） */
 	const BLE_VOLTAGE_RANGE = (() => {
 		let maxAbs = 0;
 		for (let i = 0; i < bleContinuousWaveData.length; i++) {
@@ -312,9 +756,13 @@
 				logs: [],
 				logScrollTop: 0,
 				isMockTesting: false,
+				/** BLE 模拟回放定时器（播完即停，不循环） */
+				bleMockTimer: null,
 				selectedType: BLE_TEST_TYPE,
 				rhythmOptions: [],
-				bleDataPointCount: bleContinuousWaveData.length,
+				bleDataPointCount: bleTestEcgData.length,
+				/** 模拟结束后保持 BLE 全波形，云端列表只更新评分不覆盖波形 */
+				keepBleFullWaveDisplay: false,
 				bleHandler: null,
 				scanning: false,
 				bleDeviceList: [],
@@ -328,7 +776,12 @@
 				bleMeasureTimer: null,
 				bleMeasureStartedAt: 0,
 				/** 已点开始测量、等待设备出数 */
-				bleMeasureArmed: false
+				bleMeasureArmed: false,
+				/** 蓝牙原始 # 采样（未做差分显示处理），用于 mV 换算上报 */
+				bleRawEcgValues: [],
+				/** 客户 TXT 解析上报进行中 */
+				customerTxtBusy: false,
+				customerTxtInfo: ''
 			};
 		},
 		computed: {
@@ -427,7 +880,7 @@
 				const wave = this.getWaveRef();
 				const options = [{
 					type: BLE_TEST_TYPE,
-					name: `BLE测试数据(${bleContinuousWaveData.length}点)`
+					name: `BLE测试数据(${bleTestEcgData.length}点)`
 				}];
 				if (wave && typeof wave.getTestRhythmTypes === 'function') {
 					const types = wave.getTestRhythmTypes();
@@ -501,19 +954,60 @@
 				}
 				return !!wave.isMeasuring;
 			},
-			/** 全波形：短窗口不挤在一起；测量仍可录满 40s，滑条翻看 */
+			/**
+			 * 仅本页全波形/云端数据显示用：按主波峰（P95）把高度拉到约半屏 55%，少数尖峰可略裁。
+			 * 不改 ecg-wave 默认逻辑，也不影响实时测量增益（BLE_MEASURE_GAIN）。
+			 * generateApiData 在 voltageRange<=10 时会把 apiDataAmplifyFactor 设为 25，必须在其后覆盖。
+			 */
+			fitEcgDemoWaveGain(wave, data, fillRatio = 0.55) {
+				if (!wave || !data || !data.length) return 0;
+				const absList = [];
+				let maxAbs = 0;
+				for (let i = 0; i < data.length; i++) {
+					const a = Math.abs(Number(data[i]));
+					if (!Number.isFinite(a)) continue;
+					absList.push(a);
+					if (a > maxAbs) maxAbs = a;
+				}
+				if (!absList.length) return 0;
+				absList.sort((a, b) => a - b);
+				const p95 = absList[Math.min(absList.length - 1, Math.floor(absList.length * 0.95))] || maxAbs;
+				const p99 = absList[Math.min(absList.length - 1, Math.floor(absList.length * 0.99))] || maxAbs;
+				// 以 P95 主波峰为准放大；用 P99 托底，避免偶发 maxAbs 把整段压扁
+				const scaleAbs = Math.max(p95 * 1.05, Math.min(p99, maxAbs * 0.55), 0.001);
+				const fixedGain = wave.fixedGain || 50;
+				const marginTB = (wave.margin && (wave.margin.top + wave.margin.bottom)) || 40;
+				const halfH = Math.max(60, ((wave.pxHeight || 280) - marginTB) / 2);
+				const amp = (halfH * fillRatio) / (scaleAbs * fixedGain);
+				wave.apiDataAmplifyFactor = 1;
+				wave.measureAmplifyFactor = amp;
+				wave.amplifyFactor = amp;
+				if (typeof wave.forceDraw === 'function') {
+					wave.forceDraw();
+				}
+				this.addLog('波形缩放',
+					`maxAbs=${maxAbs.toFixed(3)}, p95=${p95.toFixed(3)}, p99=${p99.toFixed(3)}, scale=${scaleAbs.toFixed(3)}, amp=${amp.toFixed(4)}, fill=${fillRatio}`
+				);
+				return amp;
+			},
+			/** 全波形：短窗口不挤在一起；垂直增益按峰值自适应，避免顶出画布 */
 			showBleProcessedFullWave(wave) {
 				if (!wave || typeof wave.showFullWave !== 'function') return;
 				this.applyBleWaveRange(wave, true);
 				wave.showFullWave();
 				const total = typeof wave.fullWaveTotalDuration === 'number' ?
 					wave.fullWaveTotalDuration :
-					((wave.fullDataList && wave.fullDataList.length) || (wave.apiDataList && wave.apiDataList.length) ||
+					((wave.fullDataList && wave.fullDataList.length) || (wave.apiDataList && wave.apiDataList
+							.length) ||
 						0) /
 					(wave.sampleRate || 250);
-				// 一屏固定短窗口，禁止把整段 40s/全部点塞进画布
-				const win = Math.min(BLE_FULL_WAVE_SECONDS, Math.max(0.5, total));
-				// 优先从有信号的靠后位置起看（避开开头基线）
+				// 一屏 3～10s（250Hz×3s≈750 点），禁止把整段 40s 塞进画布
+				const win = Math.min(
+					BLE_FULL_WAVE_SECONDS,
+					Math.max(BLE_SCREEN_SECONDS_MIN, Math.min(BLE_SCREEN_SECONDS_MAX, total ||
+						BLE_SCREEN_SECONDS))
+				);
+				// 优先从有信号的靠后位置起看（避开开头接触不稳定段）
 				const start = total > win + 3 ? Math.min(3, total - win) : 0;
 				wave.fullWaveStartTime = start;
 				wave.fullWaveDuration = win;
@@ -521,12 +1015,14 @@
 				if (typeof wave.updateFullWaveData === 'function') {
 					wave.updateFullWaveData();
 				}
-				// showFullWave 之后再钉一次小增益，避免被组件默认放大顶满画布
-				this.applyBleWaveRange(wave, true);
-				if (typeof wave.forceDraw === 'function') {
-					wave.forceDraw();
-				}
-				this.addLog('全波形', `增益=${BLE_FULL_WAVE_GAIN}, 一屏=${win.toFixed(1)}s(不挤) / 总${total.toFixed(1)}s`);
+				const src = (wave.fullDataList && wave.fullDataList.length) ?
+					wave.fullDataList :
+					(wave.apiDataList || []);
+				const amp = this.fitEcgDemoWaveGain(wave, src, 0.55);
+				this.addLog(
+					'全波形',
+					`自适应增益=${(amp || 0).toFixed(4)}, 一屏=${win.toFixed(1)}s / 总${total.toFixed(1)}s, 极性=${BLE_ECG_POLARITY}`
+				);
 			},
 			clearBleMeasureTimer() {
 				if (this.bleMeasureTimer) {
@@ -572,12 +1068,11 @@
 				}, 300);
 			},
 			/**
-			 * 实时：与模拟同一套 processBleStreamSample（轨合并 / 差分 / 小信号均值）
+			 * 实时显示：与离线 BLE 全波形同一套差分解码（不上报）。
 			 */
 			processLiveBleSample(rawVal) {
-				if (!this._bleStreamState) {
-					this._bleStreamState = createBleStreamState();
-				}
+				if (!Number.isFinite(rawVal)) return [];
+				if (!this._bleStreamState) this._bleStreamState = createBleStreamState();
 				return processBleStreamSample(this._bleStreamState, rawVal);
 			},
 			resetBleStreamState() {
@@ -589,26 +1084,86 @@
 			getBleWavePayload() {
 				return bleContinuousWaveData.slice();
 			},
+			clearBleMockTimer() {
+				if (this.bleMockTimer) {
+					clearInterval(this.bleMockTimer);
+					this.bleMockTimer = null;
+				}
+			},
+			/**
+			 * BLE 模拟：本地按采样率推送，播完自动停止，不循环。
+			 * 不走 ecg-wave.startTestWaveform（其内部会把 index 置 0 重复播放）。
+			 */
+			startBleMockPlayback(wave, payload) {
+				this.clearBleMockTimer();
+				if (wave && typeof wave.stopTestWaveform === 'function') {
+					wave.stopTestWaveform();
+				}
+				if (wave && typeof wave.clear === 'function') {
+					wave.clear();
+				}
+				this._bleMockData = payload || [];
+				this._bleMockIndex = 0;
+				this.applyBleWaveRange(wave);
+				if (typeof wave.startMeasurement === 'function') {
+					wave.startMeasurement();
+				}
+				this.applyBleWaveRange(wave);
+				const batchesPerSecond = 10;
+				const batchSize = Math.max(1, Math.round(BLE_DRAW_SAMPLE_RATE / batchesPerSecond));
+				const interval = Math.round(1000 / batchesPerSecond);
+				this.isMockTesting = true;
+				this.bleMockTimer = setInterval(() => {
+					if (!this.isMockTesting) {
+						this.clearBleMockTimer();
+						return;
+					}
+					const data = this._bleMockData || [];
+					if (this._bleMockIndex >= data.length) {
+						this.clearBleMockTimer();
+						this.addLog('模拟测试', `数据播放完毕(${data.length}点)，自动停止`);
+						this.stopMockTest(true);
+						return;
+					}
+					const end = Math.min(this._bleMockIndex + batchSize, data.length);
+					const batch = data.slice(this._bleMockIndex, end);
+					this._bleMockIndex = end;
+					if (batch.length && typeof wave.pushData === 'function') {
+						wave.pushData(batch);
+					}
+				}, interval);
+			},
 			startMockTest() {
 				const wave = this.getWaveRef();
-				if (!wave || typeof wave.startTestWaveform !== 'function') {
+				if (!wave) {
 					uni.showToast({
 						title: '波形组件未就绪',
 						icon: 'none'
 					});
 					return;
 				}
+				this.keepBleFullWaveDisplay = false;
 				if (this.selectedType === BLE_TEST_TYPE) {
 					const payload = this.getBleWavePayload();
-					this.applyBleWaveRange(wave);
-					wave.startTestWaveform('preset', payload);
-					// startTestWaveform/startMeasurement 后可能重算缓冲，再钉一次一屏时长
-					this.applyBleWaveRange(wave);
-					this.isMockTesting = true;
+					if (!payload.length) {
+						uni.showToast({
+							title: '无模拟数据',
+							icon: 'none'
+						});
+						return;
+					}
+					this.startBleMockPlayback(wave, payload);
 					this.addLog(
 						'模拟测试',
-						`开始BLE回放: ${payload.length}点, screen=${BLE_ESTIMATED_SCREEN_SECONDS.toFixed(2)}s(~${BLE_TARGET_PEAKS}峰), range=${BLE_VOLTAGE_RANGE}`
+						`开始BLE回放(播完即停): ${payload.length}点, screen=${BLE_ESTIMATED_SCREEN_SECONDS.toFixed(2)}s(~${BLE_TARGET_PEAKS}峰), range=${BLE_VOLTAGE_RANGE}`
 					);
+					return;
+				}
+				if (typeof wave.startTestWaveform !== 'function') {
+					uni.showToast({
+						title: '波形组件未就绪',
+						icon: 'none'
+					});
 					return;
 				}
 				wave.startTestWaveform(this.selectedType);
@@ -618,20 +1173,57 @@
 			stopMockTest(showBleFull = true) {
 				const wave = this.getWaveRef();
 				const wasBle = this.selectedType === BLE_TEST_TYPE && this.isMockTesting;
+				this.clearBleMockTimer();
+				// 先标记，避免 stopMeasurement / 定时器误走 saveFinalData 把显示点当成上报
+				if (showBleFull && wasBle) {
+					this.keepBleFullWaveDisplay = true;
+				}
 				if (wave && typeof wave.stopTestWaveform === 'function') {
 					wave.stopTestWaveform();
 				}
+				// 自定义 BLE 回放未走 isTestMode，需显式结束测量
+				if (wasBle && wave && wave.isMeasuring && typeof wave.stopMeasurement === 'function') {
+					wave.stopMeasurement();
+				}
 				this.isMockTesting = false;
-				if (showBleFull && wasBle && wave && typeof wave.showFullWave === 'function') {
-					setTimeout(() => {
-						if (wave.getFullDataCount && wave.getFullDataCount() > 0) {
-							this.showBleProcessedFullWave(wave);
-						}
-					}, 50);
+				this._bleMockData = null;
+				this._bleMockIndex = 0;
+				if (showBleFull && wasBle) {
+					// 与 PC 工具导入 TXT 同一套：uV→mV + 首尾质量裁剪后上报
+					this.uploadMockBleCustomerEcg();
+					setTimeout(() => this.renderBleFullWaveFromPayload('模拟完成'), 50);
 				}
 				this.addLog('模拟测试', '已停止');
 			},
-			loadBleFullWave() {
+			/** 模拟：① bleTestEcgData(uV) → ② PC 电压 mV → 上报 */
+			uploadMockBleCustomerEcg() {
+				if (!bleTestEcgData || !bleTestEcgData.length) {
+					this.addLog('模拟上报', '无 bleTestEcgData');
+					return;
+				}
+				// 每次用原始 uV 重跑第②步，保证最终电压为 1.61777… 再上报
+				const result = parseCustomerTxt('', '250hz_40s.txt', bleTestEcgData);
+				result.raw_format = 'customer_ble_mock';
+				result.fileName = '250hz_40s.txt';
+				const tip =
+					`①原始uV ${result.rawPointCount}点 → ②入库mV ${result.ecgData.length}点(未裁剪,对齐PC), fs=${result.samplingRate}Hz, ` +
+					`unit=${result.unitMode}, ` +
+					`本地裁剪参考=${result.trimInfo.trim_applied ? `首${result.trimInfo.trim_start_sec.toFixed(1)}s/尾${result.trimInfo.trim_end_sec.toFixed(1)}s` : '无'}`;
+				this.addLog('模拟解析上报', tip);
+				this.addLog('模拟解析上报', {
+					step1_rawUv_head: (result.rawUv || bleTestEcgData).slice(0, 5),
+					step2_storeMv_head: (result.ecgData || []).slice(0, 5),
+					sampling_rate: result.samplingRate,
+					unit: result.unit,
+					trim_info_local: result.trimInfo
+				});
+				this.fullDataCount = result.ecgData.length;
+				this.uploadCustomerTxtEcg(result).catch((err) => {
+					this.addLog('模拟上报异常', err);
+				});
+			},
+			/** 与「加载BLE全波形」共用：始终用 bleContinuousWaveData（与 TXT 同点数） */
+			renderBleFullWaveFromPayload(reason = '加载') {
 				const wave = this.getWaveRef();
 				if (!wave || typeof wave.generateApiData !== 'function') {
 					uni.showToast({
@@ -641,20 +1233,350 @@
 					return;
 				}
 				const payload = this.getBleWavePayload();
-				this.stopMockTest(false);
-				this.clearWave();
-				// 先钉采样率/增益，再灌数据，避免按 250Hz 把时间轴压扁
+				if (!payload.length) {
+					uni.showToast({
+						title: '无模拟数据',
+						icon: 'none'
+					});
+					return;
+				}
+				if (typeof this.clearWave === 'function') this.clearWave();
 				this.applyBleWaveRange(wave, true);
 				wave.generateApiData(payload, Math.max(BLE_VOLTAGE_RANGE, 50));
 				this.showBleProcessedFullWave(wave);
 				this.selectedType = BLE_TEST_TYPE;
+				this.fullDataCount = payload.length;
 				this.addLog(
 					'BLE波形',
-					`已加载连续波形 ${payload.length} 点, rate=${BLE_DRAW_SAMPLE_RATE}, 窗口=${BLE_FULL_WAVE_SECONDS}s, voltageRange=${BLE_VOLTAGE_RANGE}`
+					`${reason}: 显示${payload.length}点 @${BLE_DRAW_SAMPLE_RATE}Hz≈${(payload.length / BLE_DRAW_SAMPLE_RATE).toFixed(1)}s（TXT原始${bleTestEcgData.length}点）`
 				);
+			},
+			loadBleFullWave() {
+				this.stopMockTest(false);
+				this.keepBleFullWaveDisplay = true;
+				this.renderBleFullWaveFromPayload('加载BLE全波形');
 				uni.showToast({
-					title: `已加载 ${payload.length} 点`,
+					title: `已加载 ${bleTestEcgData.length} 点`,
 					icon: 'none'
+				});
+			},
+			/* ==================== 客户 hex TXT 解析上报（不影响 BLE 实时/模拟） ==================== */
+			showCustomerMvWave(mvSignal, fs) {
+				const wave = this.getWaveRef();
+				if (!wave || typeof wave.generateApiData !== 'function' || !mvSignal || !mvSignal.length) return;
+				// 显示：差分连续波；上报另走 ensureUploadMvSignal → INT16
+				const display = customerMvToDisplayWave(mvSignal);
+				if (!display.length) return;
+				const displayFs = fs || CUSTOMER_TXT_DEFAULT_FS || 250;
+				let maxAbs = 0;
+				for (let i = 0; i < display.length; i++) {
+					const a = Math.abs(display[i]);
+					if (a > maxAbs) maxAbs = a;
+				}
+				// 传较大 voltageRange，避免 generateApiData 走 apiAmp=25 的小量程分支
+				const voltageRange = Math.max(50, Math.ceil(maxAbs * 1.5 * 10) / 10);
+				this.stopMockTest(false);
+				if (typeof this.clearWave === 'function') this.clearWave();
+				if (typeof wave.setSampleRate === 'function') {
+					wave.setSampleRate(displayFs);
+				} else {
+					wave.sampleRate = displayFs;
+				}
+				wave.generateApiData(display, voltageRange);
+				this.showBleProcessedFullWave(wave);
+				this.addLog('极性',
+					`客户 TXT 显示差分波形 ${display.length} 点 / ${(display.length / displayFs).toFixed(1)}s @${displayFs}Hz（原 ${mvSignal.length} 点）`
+				);
+			},
+			readLocalTxtFile(filePath) {
+				return new Promise((resolve, reject) => {
+					// #ifdef APP-PLUS
+					if (typeof plus !== 'undefined' && plus.io) {
+						plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+							entry.file((file) => {
+								const reader = new plus.io.FileReader();
+								reader.onloadend = (e) => resolve(e.target.result || '');
+								reader.onerror = (err) => reject(err || new Error(
+									'读文件失败'));
+								reader.readAsText(file, 'utf-8');
+							}, reject);
+						}, reject);
+						return;
+					}
+					// #endif
+					uni.getFileSystemManager().readFile({
+						filePath,
+						encoding: 'utf-8',
+						success: (res) => resolve(res.data || ''),
+						fail: reject
+					});
+				});
+			},
+			pickCustomerTxtFile() {
+				if (this.customerTxtBusy) return;
+				this.keepBleFullWaveDisplay = false;
+				const onPicked = async (path, name) => {
+					try {
+						this.customerTxtBusy = true;
+						this.customerTxtInfo = '正在读取并解析...';
+						const content = await this.readLocalTxtFile(path);
+						const fileName = name || path.split(/[/\\]/).pop() || 'import.txt';
+						await this.runCustomerTxtParseAndUpload(content, fileName, null);
+					} catch (err) {
+						this.addLog('TXT导入', err);
+						this.customerTxtInfo = '导入失败: ' + ((err && err.message) || err);
+						uni.showToast({
+							title: '导入失败',
+							icon: 'none'
+						});
+					} finally {
+						this.customerTxtBusy = false;
+					}
+				};
+				// #ifdef APP-PLUS
+				if (typeof plus !== 'undefined' && plus.io && typeof plus.io.chooseFile === 'function') {
+					plus.io.chooseFile({
+						title: '选择 ECG TXT',
+						filter: '.txt',
+						multiple: false,
+						success: (e) => {
+							const files = e.files || [];
+							if (!files.length) return;
+							const f = files[0];
+							const path = typeof f === 'string' ? f : (f.path || f);
+							onPicked(path, (typeof f === 'object' && f.name) || '');
+						},
+						fail: (err) => {
+							this.addLog('TXT导入', err || '取消选择');
+						}
+					});
+					return;
+				}
+				// #endif
+				if (typeof uni.chooseFile === 'function') {
+					uni.chooseFile({
+						count: 1,
+						extension: ['.txt'],
+						success: (res) => {
+							const path = (res.tempFilePaths && res.tempFilePaths[0]) ||
+								(res.tempFiles && res.tempFiles[0] && (res.tempFiles[0].path || res
+									.tempFiles[
+										0]
+									.name));
+							const name = (res.tempFiles && res.tempFiles[0] && res.tempFiles[0]
+								.name) || '';
+							if (path) onPicked(path, name);
+						},
+						fail: (err) => this.addLog('TXT导入', err || '取消选择')
+					});
+					return;
+				}
+				uni.showToast({
+					title: '当前环境不支持选文件，请用内置解析',
+					icon: 'none'
+				});
+			},
+			async parseAndUploadBuiltinTxt() {
+				if (this.customerTxtBusy) return;
+				// 显示与「加载BLE全波形」同一套；上报仍走下方 PC mV→INT16，勿改
+				this.keepBleFullWaveDisplay = true;
+				this.customerTxtBusy = true;
+				this.customerTxtInfo = '正在：ble-test-data(uV)→mV→原INT16上报...';
+				try {
+					// 与蓝牙一致：① 原始 uV（ble-test-data）→ ② 转 mV → ③ 原 INT16 格式上报
+					if (!bleTestEcgData || !bleTestEcgData.length) {
+						throw new Error('无 bleTestEcgData');
+					}
+					await this.runCustomerTxtParseAndUpload(
+						'',
+						'250hz_40s.txt',
+						bleTestEcgData, {
+							displayMode: 'bleFull'
+						}
+					);
+				} catch (err) {
+					this.addLog('TXT上报', err);
+					this.customerTxtInfo = '解析上报失败: ' + ((err && err.message) || err);
+					uni.showToast({
+						title: '解析上报失败',
+						icon: 'none'
+					});
+				} finally {
+					this.customerTxtBusy = false;
+				}
+			},
+			async runCustomerTxtParseAndUpload(txtContent, fileName, preParsedValues, options = {}) {
+				const result = parseCustomerTxt(txtContent, fileName, preParsedValues);
+				result.fileName = fileName || 'customer.txt';
+				if (!result.ecgData || !result.ecgData.length) {
+					throw new Error('未解析到 ECG 采样点');
+				}
+				const tip =
+					`①原始uV ${result.rawPointCount}点 → ②入库mV ${result.ecgData.length}点(未裁剪,对齐PC), ` +
+					`fs=${result.samplingRate}Hz, unit=${result.unitMode}, ` +
+					`本地裁剪参考=${result.trimInfo.trim_applied ? `首${result.trimInfo.trim_start_sec.toFixed(1)}s/尾${result.trimInfo.trim_end_sec.toFixed(1)}s` : '无'}`;
+				this.customerTxtInfo = tip;
+				this.addLog('TXT解析', tip);
+				this.addLog('TXT解析', {
+					step1_rawUv_head: (result.rawUv || []).slice(0, 5),
+					step2_storeMv_head: (result.ecgData || []).slice(0, 5),
+					sampling_rate: result.samplingRate,
+					unit: result.unit,
+					trim_info_local: result.trimInfo
+				});
+				// 内置250hz：显示对齐「加载BLE全波形」；选文件走差分连续波预览
+				if (options && options.displayMode === 'bleFull') {
+					this.renderBleFullWaveFromPayload('内置250hz上报');
+				} else {
+					this.showCustomerMvWave(result.ecgDataDisplay || result.ecgData, result.samplingRate);
+				}
+				await this.uploadCustomerTxtEcg(result);
+			},
+			uploadCustomerTxtEcg(result) {
+				return new Promise((resolve, reject) => {
+					// ① 原始采样（优先 rawUv：1617.77 uV，同 ble-test-data.js）
+					// ② 强制 uV→mV（p99Abs>20 则 ÷1000 → 1.61777 mV）
+					// ③ 原上报格式：INT16 小端 2 字节/点（与 Main.saveFinalData 一致）
+					const FORCE_VR = CUSTOMER_STORAGE_VOLTAGE_RANGE_MV;
+					const fileName = (result && result.fileName) ||
+						`upload_${CUSTOMER_UPLOAD_FS}hz.txt`;
+					const rawSrc = (result && result.rawUv && result.rawUv.length) ?
+						result.rawUv :
+						((result && result.ecgDataFull && result.ecgDataFull.length) ?
+							result.ecgDataFull :
+							((result && result.ecgData) ? result.ecgData : []));
+					const ensured = ensureUploadMvSignal(rawSrc);
+					const signal = ensured.signal;
+					if (!signal.length) {
+						reject(new Error('无可上报 ECG 采样'));
+						return;
+					}
+					if (ensured.p99AbsMv > 20) {
+						reject(new Error(
+							`上报前仍非 mV(p99Abs=${ensured.p99AbsMv.toFixed(2)})，原始需 uV→mV`
+						));
+						return;
+					}
+					const fs = (result && result.samplingRate) ||
+						inferFsFromFileName(fileName) || CUSTOMER_UPLOAD_FS;
+					this.addLog('电压两步(原始→mV上报)', {
+						step1_raw_head: (ensured.raw || []).slice(0, 5),
+						step2_mv_head: signal.slice(0, 5).map((v) => +Number(v).toFixed(5)),
+						unitMode: ensured.unitMode,
+						unitWasUv: ensured.unitWasUv,
+						p99AbsRaw: ensured.p99AbsRaw,
+						p99AbsMv: ensured.p99AbsMv,
+						points: signal.length
+					});
+					const packed = this.packInt16ECGFixed(signal, FORCE_VR);
+					const view = new DataView(packed.buffer);
+					const i0 = view.getInt16(0, true);
+					const i1 = signal.length > 1 ? view.getInt16(2, true) : 0;
+					if (Math.abs(i0) >= 30000 || Math.abs(i1) >= 30000) {
+						reject(new Error(`量化疑似满幅饱和(head=${i0},${i1})，uV→mV 未生效`));
+						return;
+					}
+					// rawData = 库显串（与 display_preview 同一规则，全量上传，非 hex）：
+					// 0x00→空格；控制符/ASCII 原样；0x80-0xFE→?；普通 0xFF 跳过；ffff→??
+					// 例：6a0061009effb2ff… → j a ??c …
+					const rawHex = this.ab2hex(packed.buffer);
+					const byteLen = packed.buffer.byteLength;
+					const dataLength = signal.length;
+					if (byteLen !== dataLength * 2 || rawHex.length !== dataLength * 4) {
+						reject(new Error(
+							`INT16打包长度异常: samples=${dataLength}, bytes=${byteLen}, hex=${rawHex.length}`
+						));
+						return;
+					}
+					const bytes = new Uint8Array(packed.buffer);
+					let rawDisplay = '';
+					for (let i = 0; i + 1 < bytes.length; i += 2) {
+						const lo = bytes[i];
+						const hi = bytes[i + 1];
+						if (lo === 0xff && hi === 0xff) {
+							rawDisplay += '??';
+							continue;
+						}
+						for (let k = 0; k < 2; k++) {
+							const n = bytes[i + k];
+							if (n === 0) rawDisplay += ' ';
+							else if (n === 0xff) continue;
+							else if (n > 126) rawDisplay += '?';
+							else rawDisplay += String.fromCharCode(n);
+						}
+					}
+					// 日志用安全预览（控制符→·），实际上传仍是 rawDisplay 全量
+					const display_preview = Array.from(rawDisplay.slice(0, 48)).map((ch) => {
+						const c = ch.charCodeAt(0);
+						if (c < 32) return '·';
+						return ch;
+					}).join('');
+					this.fullDataCount = dataLength;
+					const tag = (result && result.raw_format === 'customer_ble_raw') ? 'BLE上报' :
+						((result && result.raw_format === 'customer_ble_mock') ? '模拟上报' : 'TXT上报');
+					const ecgdata = {
+						patientId: uni.getStorageSync('userid'),
+						deviceSn: '11111111111',
+						deviceModel: '客户测试ECG',
+						samplingRate: fs,
+						startTime: this.getTimeAllJSON().YMDHMS,
+						dataFormat: 'INT16',
+						voltageRange: FORCE_VR,
+						rawData: rawHex,
+						dataLength: dataLength,
+						baseFeaturesExtracted: '',
+						derivedFeaturesExtracted: '',
+						qualityScore: '',
+						modelScore: '',
+						measurementTs: this.UTCdatatime().timestampSec,
+						measurementTimezone: this.getTimeAllJSON().YMDHMS
+					};
+					console.log('ecgdata(upload-DISPLAY)', {
+						upload_mode: 'DISPLAY_PREVIEW_FULL',
+						patientId: ecgdata.patientId,
+						samplingRate: ecgdata.samplingRate,
+						dataLength: ecgdata.dataLength,
+						rawData_len: rawDisplay.length,
+						display_preview: display_preview,
+						rawData_hex_head: rawHex.slice(0, 40),
+						codes_head: Array.from(bytes.slice(0, 10)),
+						step1_raw_head: (ensured.raw || []).slice(0, 5),
+						step2_mv_head: signal.slice(0, 5),
+						coded_head: [i0, i1],
+						rawData: ecgdata.rawData
+					});
+					this.addLog('编码预览(DISPLAY)', {
+						uploadMode: 'DISPLAY_PREVIEW_FULL',
+						rawDataLen: rawDisplay.length,
+						displayPreview: display_preview,
+						hexHead: rawHex.slice(0, 40)
+					});
+					this.$post(this.$url_APP_IP + '/prod-api/device/ecgdata', ecgdata, {
+						'Authorization': 'Bearer ' + uni.getStorageSync('token'),
+						'content-type': 'application/json;charset=UTF-8'
+					}).then((res) => {
+						this.buffer = '';
+						if (res.code === 200) {
+							this.addLog(tag,
+								`上传成功 DISPLAY len=${rawDisplay.length} 头 ${display_preview}`
+							);
+							this.customerTxtInfo =
+								`上传成功 DISPLAY(${rawDisplay.length})→${display_preview}`;
+							uni.showLoading({
+								title: this.$t('正在云端计算中请稍后'),
+								mask: true
+							});
+							this.ecgdatalist();
+							resolve(res);
+						} else {
+							this.addLog(tag + '失败', res);
+							reject(res);
+						}
+					}).catch((err) => {
+						this.buffer = '';
+						this.addLog(tag + '异常', err);
+						reject(err);
+					});
 				});
 			},
 			/* ==================== 蓝牙连接 ==================== */
@@ -960,6 +1882,7 @@
 			doStartMeasure() {
 				const wave = this.getWaveRef();
 				if (!wave) return;
+				this.keepBleFullWaveDisplay = false;
 				this.addLog('测量', '开始测量前状态: ' + JSON.stringify({
 					isMeasuring: wave.isMeasuring,
 					showFullWave: wave.showFullWaveMode,
@@ -1010,16 +1933,19 @@
 			ecgbtn(createTime, startTime, id, rawData, voltageRange) {
 				this.addLog('心电图', `查看详情 recordId=${id}`);
 				uni.navigateTo({
+					// 恢复原 ecgFull；显示差分连续波，与「加载BLE全波形」一致（不上报）
 					url: '/pages/tabBar/main/ecgFull',
 					success: (res) => {
 						const mvArr = this.unpackInt16ECG(
 							this.toArrayBuffer(rawData),
 							voltageRange || 500
 						);
-						res.eventChannel.emit('sendData', mvArr);
+						const displayArr = customerMvToDisplayWave(mvArr);
+						const payload = (displayArr && displayArr.length) ? displayArr : mvArr;
+						res.eventChannel.emit('sendData', payload);
 						res.eventChannel.emit('startTime', startTime);
 						res.eventChannel.emit('createTime', createTime);
-						uni.setStorageSync('sendData', mvArr);
+						uni.setStorageSync('sendData', payload);
 					}
 				});
 			},
@@ -1103,6 +2029,12 @@
 					}
 				}
 				if (!wave.isMeasuring) return;
+				// 缓存原始采样（非 TXT）：与 PC 工具同一套 uV→mV + 首尾裁剪上报
+				if (!this.bleRawEcgValues) this.bleRawEcgValues = [];
+				const rawMax = BLE_MEASURE_SECONDS * CUSTOMER_TXT_DEFAULT_FS;
+				if (this.bleRawEcgValues.length < rawMax) {
+					this.bleRawEcgValues.push(val);
+				}
 				const samples = this.processLiveBleSample(val);
 				if (!samples.length) return;
 				// 首包波形到达时重置 40s 计时，保证从真实出数起算
@@ -1113,15 +2045,22 @@
 				if (this.dataCount >= BLE_MEASURE_MAX_POINTS) {
 					return;
 				}
+				// 每对原始点只解出 1 个显示值，再 hold 成 2 点，保持 250Hz 时间轴（封顶 10000，不造 20000）
+				const held = [];
+				for (let i = 0; i < samples.length; i++) {
+					held.push(samples[i], samples[i]);
+				}
 				const remain = BLE_MEASURE_MAX_POINTS - this.dataCount;
-				const toPush = samples.length > remain ? samples.slice(0, remain) : samples;
+				const toPush = held.length > remain ? held.slice(0, remain) : held;
 				if (!toPush.length) return;
 				wave.pushData(toPush);
 				this.dataCount += toPush.length;
 				this.fullDataCount = wave.getFullDataCount ? wave.getFullDataCount() : this.dataCount;
 				this.queueLength = wave.getQueueLength ? wave.getQueueLength() : 0;
 				if (this.dataCount === 1 || this.dataCount % 50 === 0) {
-					this.addLog('波形', `已接收 ${this.dataCount} 点, 最近原始=${val}, 显示=${toPush[0].toFixed(3)}`);
+					this.addLog('波形',
+						`已接收显示${this.dataCount}点/原始${this.bleRawEcgValues.length}点, 最近原始=${val}, 显示=${toPush[0].toFixed(3)}`
+					);
 				}
 				if (this.dataCount >= BLE_MEASURE_MAX_POINTS) {
 					this.clearBleMeasureTimer();
@@ -1161,7 +2100,8 @@
 						wave.stopMeasurement();
 					}
 					const finalData = typeof wave.getFullDataList === 'function' ? wave.getFullDataList() : [];
-					const rate = (typeof wave.getsampleRate === 'function' ? wave.getsampleRate() : wave.sampleRate) ||
+					const rate = (typeof wave.getsampleRate === 'function' ? wave.getsampleRate() : wave
+							.sampleRate) ||
 						BLE_DRAW_SAMPLE_RATE;
 					const duration = finalData.length / rate;
 					this.addLog('采集结束', {
@@ -1192,75 +2132,144 @@
 				}
 			},
 			packInt16ECG(arr) {
-				const n = arr.length;
+				const src = arr || [];
+				const n = src.length;
 				const ab = new ArrayBuffer(n * 2);
 				const view = new DataView(ab);
-				let maxVal = Math.max(...arr);
-				let minVal = Math.min(...arr);
-				let range = Math.max(Math.abs(maxVal), Math.abs(minVal)) * 1.2;
-				const voltageRange = Math.max(range, 1);
+				if (!n) {
+					return {
+						buffer: ab,
+						voltageRange: 500
+					};
+				}
+				let maxAbs = 0;
+				for (let i = 0; i < n; i++) {
+					const a = Math.abs(Number(src[i]));
+					if (Number.isFinite(a) && a > maxAbs) maxAbs = a;
+				}
+				// 客户 mV（常见 <20）固定 500；否则动态量程
+				const voltageRange = (maxAbs > 0 && maxAbs <= 20) ?
+					500 :
+					Math.max(maxAbs * 1.2, 1);
 				const scale = 32767 / voltageRange;
 				for (let i = 0; i < n; i++) {
-					let v = Math.max(-voltageRange, Math.min(voltageRange, arr[i]));
-					view.setInt16(i * 2, Math.round(v * scale), true);
+					const raw = Number(src[i]);
+					const v = Number.isFinite(raw) ?
+						Math.max(-voltageRange, Math.min(voltageRange, raw)) :
+						0;
+					// 对齐 numpy (x*scale).astype(np.int16)：向零截断，不用 Math.round
+					let iv = Math.trunc(v * scale);
+					if (iv > 32767) iv = 32767;
+					if (iv < -32768) iv = -32768;
+					view.setInt16(i * 2, iv, true);
 				}
 				return {
 					buffer: ab,
 					voltageRange
 				};
 			},
+			/**
+			 * 对齐 ecg_main.store_data 量化：
+			 * scale=32767/vr; clip; (v*scale).astype(np.int16) → 向零截断；小端 struct.pack（2字节/点）
+			 */
+			packInt16ECGFixed(arr, voltageRange = CUSTOMER_STORAGE_VOLTAGE_RANGE_MV) {
+				const n = (arr || []).length;
+				const ab = new ArrayBuffer(n * 2);
+				const view = new DataView(ab);
+				const vr = Math.max(1, Number(voltageRange) || 500);
+				const scale = 32767 / vr;
+				for (let i = 0; i < n; i++) {
+					const raw = Number(arr[i]);
+					const v = Number.isFinite(raw) ? Math.max(-vr, Math.min(vr, raw)) : 0;
+					let iv = Math.trunc(v * scale);
+					if (iv > 32767) iv = 32767;
+					if (iv < -32768) iv = -32768;
+					view.setInt16(i * 2, iv, true);
+				}
+				return {
+					buffer: ab,
+					voltageRange: vr
+				};
+			},
+			/** 逆变换：int16 / (32767/vr) → mV */
 			unpackInt16ECG(ab, voltageRange = 500) {
 				if (!ab || !(ab instanceof ArrayBuffer)) return [];
 				const n = ab.byteLength / 2;
 				const view = new DataView(ab);
 				const arr = new Array(n);
-				const scale = 32767 / voltageRange;
+				const vr = Math.max(1, Number(voltageRange) || 500);
+				const scale = 32767 / vr;
 				for (let i = 0; i < n; i++) {
 					arr[i] = parseFloat((view.getInt16(i * 2, true) / scale).toFixed(6));
 				}
 				return arr;
 			},
+			/** 兼容历史 1 字节/点记录解包：INT8 量程为 ±127，不是 ±32767 */
+			unpackInt8ECG(ab, voltageRange = 500) {
+				if (!ab || !(ab instanceof ArrayBuffer)) return [];
+				const n = ab.byteLength;
+				const view = new DataView(ab);
+				const arr = new Array(n);
+				const vr = Math.max(1, Number(voltageRange) || 500);
+				const scale = 127 / vr;
+				for (let i = 0; i < n; i++) {
+					arr[i] = parseFloat((view.getInt8(i) / scale).toFixed(6));
+				}
+				return arr;
+			},
+			/** 按 dataFormat / 字节长度自动解包：优先 INT16 2字节；兼容旧 1字节/点 */
+			unpackEcgRaw(ab, voltageRange = 500, dataFormat, dataLength) {
+				const fmt = String(dataFormat || '').toUpperCase();
+				const bytes = (ab && ab.byteLength) || 0;
+				const n = Number(dataLength) || 0;
+				// 奇数长度只能是 INT8
+				if (bytes > 0 && bytes % 2 !== 0) {
+					return this.unpackInt8ECG(ab, voltageRange);
+				}
+				// 显式 INT16 / 未标注：按 2 字节/点（勿把 rawByteLength 误当 dataLength→INT8→点数翻倍成 80s）
+				if (fmt === 'INT16' || !fmt) {
+					return this.unpackInt16ECG(ab, voltageRange);
+				}
+				// 显式 INT8，或点数==字节数的历史 1 字节/点
+				if (fmt === 'INT8' || (n > 0 && bytes === n)) {
+					return this.unpackInt8ECG(ab, voltageRange);
+				}
+				return this.unpackInt16ECG(ab, voltageRange);
+			},
 			saveFinalData(data) {
 				const wave = this.getWaveRef();
 				if (!wave) return;
-				const packed = this.packInt16ECG(data);
-				const ecgdata = {
-					patientId: uni.getStorageSync('userid'),
-					deviceSn: "11111111111",
-					deviceModel: "客户测试ECG",
-					samplingRate: wave.getsampleRate(),
-					startTime: this.getTimeAllJSON().YMDHMS,
-					dataFormat: 'INT16',
-					voltageRange: packed.voltageRange,
-					rawData: this.ab2hex(packed.buffer),
-					dataLength: this.fullDataCount,
-					baseFeaturesExtracted: '',
-					derivedFeaturesExtracted: '',
-					qualityScore: '',
-					modelScore: '',
-					measurementTs: this.UTCdatatime().timestampSec,
-					measurementTimezone: this.getTimeAllJSON().YMDHMS
-				};
-				this.addLog('上传', `数据点数: ${this.fullDataCount}`);
-				this.$post(this.$url_APP_IP + '/prod-api/device/ecgdata', ecgdata, {
-					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
-					'content-type': 'application/json;charset=UTF-8'
-				}).then((res) => {
-					this.buffer = '';
-					if (res.code === 200) {
-						this.addLog('上传', '数据上传成功');
-						uni.showLoading({
-							title: this.$t('正在云端计算中请稍后'),
-							mask: true
-						});
-						this.ecgdatalist();
-					} else {
-						this.addLog('上传失败', res);
-					}
-				}).catch((err) => {
-					this.buffer = '';
-					this.addLog('上传异常', err);
-				});
+				// 模拟上报已走 uploadMockBleCustomerEcg（PC TXT 流程），禁止再用显示缓冲二次上报
+				if (this.keepBleFullWaveDisplay || this.isMockTesting) {
+					this.addLog('上传', '已跳过：模拟/BLE全波形模式不走 saveFinalData');
+					return;
+				}
+				const raw = this.bleRawEcgValues;
+				// 蓝牙原始采样：对齐 PC store_data = uV→mV 后原样入库（不裁剪、不 pad）
+				if (raw && raw.length) {
+					const result = parseCustomerTxt('', `ble_${CUSTOMER_UPLOAD_FS}hz.txt`, raw.slice());
+					result.raw_format = 'customer_ble_raw';
+					const tip =
+						`BLE原始${result.rawPointCount}点 → 入库mV${result.ecgData.length}点(未裁剪,对齐PC), fs=${result.samplingRate}Hz, ` +
+						`unit=${result.unitMode || (result.unitWasUv ? 'uV_to_mV' : 'mV')}, ` +
+						`本地裁剪参考=${result.trimInfo.trim_applied ? `首${result.trimInfo.trim_start_sec.toFixed(1)}s/尾${result.trimInfo.trim_end_sec.toFixed(1)}s` : '无'}`;
+					this.addLog('BLE解析上报', tip);
+					this.addLog('BLE解析上报', {
+						sampling_rate: result.samplingRate,
+						unit: result.unit,
+						unit_mode: result.unitMode,
+						raw_format: result.raw_format,
+						trim_info_local: result.trimInfo,
+						upload_points: result.ecgData.length
+					});
+					this.fullDataCount = result.ecgData.length;
+					this.uploadCustomerTxtEcg(result).catch((err) => {
+						this.addLog('BLE上报异常', err);
+					});
+					return;
+				}
+				// 无原始缓存时禁止用差分显示缓冲上报（会与 PC 不一致）
+				this.addLog('上传', '无 bleRawEcgValues，跳过（避免把显示差分波形当上报）');
 			},
 			ecgdatalist() {
 				const ecgdata = {
@@ -1281,12 +2290,30 @@
 						this.ecgdatarows = res.rows.slice().reverse();
 						const latestRow = res.rows[res.total - 1];
 						const wave = this.getWaveRef();
-						if (wave) {
-							const newData = this.unpackInt16ECG(
+						if (wave && !this.keepBleFullWaveDisplay) {
+							// 只用采样点数 dataLength，禁止 fallback rawByteLength（20000字节误判成 20000 点≈80s）
+							const unpacked = this.unpackEcgRaw(
 								this.toArrayBuffer(latestRow.rawData),
-								latestRow.voltageRange || 500
+								latestRow.voltageRange || 500,
+								latestRow.dataFormat || 'INT16',
+								latestRow.dataLength
 							);
-							wave.generateApiData(newData, latestRow.voltageRange);
+							// 云端存的是 PC 流程 mV；本页显示再差分成连续波（与「加载BLE全波形」一致）
+							const newData = customerMvToDisplayWave(unpacked);
+							const displayFs = latestRow.samplingRate || CUSTOMER_TXT_DEFAULT_FS || 250;
+							this.addLog('极性',
+								`云端显示差分波形 ${newData.length} 点 / ${(newData.length / displayFs).toFixed(1)}s @${displayFs}Hz（原 ${unpacked.length} 点）`
+							);
+							const vr = Math.max(50, Number(latestRow.voltageRange) || 50);
+							if (typeof wave.setSampleRate === 'function') {
+								wave.setSampleRate(displayFs);
+							} else {
+								wave.sampleRate = displayFs;
+							}
+							wave.generateApiData(newData, vr);
+							this.showBleProcessedFullWave(wave);
+						} else if (this.keepBleFullWaveDisplay) {
+							this.addLog('云端', '已保留 BLE 全波形显示，仅更新评分/列表');
 						}
 						this.baseFeaturesExtracted = latestRow.baseFeaturesExtracted === 1 ?
 							this.$t('完成') : this.$t('未完成');
@@ -1295,7 +2322,8 @@
 						this.qualityScore = latestRow.baseFeaturesExtracted === 1 ?
 							latestRow.qualityScore : this.$t('云端数据计算中');
 						this.modelScore = latestRow.baseFeaturesExtracted === 1 ?
-							(latestRow.modelScore == null ? this.$t('ECG房颤数据质量偏低提示') : latestRow.modelScore) :
+							(latestRow.modelScore == null ? this.$t('ECG房颤数据质量偏低提示') : latestRow
+								.modelScore) :
 							this.$t('云端数据计算中');
 						this.addLog('云端', `获取 ${res.total} 条记录`);
 					} else {
@@ -1321,14 +2349,43 @@
 				this.queueLength = 0;
 				this.measurementStatus = '';
 				this._bleMeasureFinishing = false;
+				this.bleRawEcgValues = [];
 				this.clearBleMeasureTimer();
 				this.resetBleStreamState();
 			},
+			/**
+			 * rawData → ArrayBuffer。
+			 * 兼容：1) hex  2) base64  3) INT16 小端二进制字符串（PC/库展示）
+			 */
 			toArrayBuffer(data) {
-				const buffer = new ArrayBuffer(data.length / 2);
-				const dataView = new DataView(buffer);
-				for (let i = 0; i < data.length; i += 2) {
-					dataView.setUint8(i / 2, parseInt(data.substr(i, 2), 16));
+				if (!data) return new ArrayBuffer(0);
+				if (data instanceof ArrayBuffer) return data;
+				const s = String(data);
+				// 纯 hex（偶数长度）
+				if (/^[0-9a-fA-F]+$/.test(s) && (s.length % 2) === 0 && s.length >= 4) {
+					const buffer = new ArrayBuffer(s.length / 2);
+					const dataView = new DataView(buffer);
+					for (let i = 0; i < s.length; i += 2) {
+						dataView.setUint8(i / 2, parseInt(s.substr(i, 2), 16));
+					}
+					return buffer;
+				}
+				// base64（含 +/ 或尾部 =）
+				if (/^[A-Za-z0-9+/]+=*$/.test(s) && s.length >= 8 && (s.length % 4) === 0) {
+					try {
+						if (typeof uni !== 'undefined' && typeof uni.base64ToArrayBuffer === 'function') {
+							return uni.base64ToArrayBuffer(s);
+						}
+					} catch (e) {
+						/* fallthrough */
+					}
+				}
+				// 二进制字符串：每个 char → 1 byte
+				const n = s.length;
+				const buffer = new ArrayBuffer(n);
+				const view = new Uint8Array(buffer);
+				for (let i = 0; i < n; i++) {
+					view[i] = s.charCodeAt(i) & 0xff;
 				}
 				return buffer;
 			},
@@ -1337,7 +2394,35 @@
 					new Uint8Array(buffer),
 					bit => ('00' + bit.toString(16)).slice(-2)
 				).join('');
-			}
+			},
+			/** ArrayBuffer → Base64（JSON 安全传 INT16 字节） */
+			ab2base64(buffer) {
+				if (typeof uni !== 'undefined' && typeof uni.arrayBufferToBase64 === 'function') {
+					return uni.arrayBufferToBase64(buffer || new ArrayBuffer(0));
+				}
+				const bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+				let bin = '';
+				const chunk = 0x8000;
+				for (let i = 0; i < bytes.length; i += chunk) {
+					bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+				}
+				if (typeof btoa === 'function') return btoa(bin);
+				return bin;
+			},
+			/** ArrayBuffer → 二进制字符串（库里显示为 j/a/?? 那种） */
+			ab2binStr(buffer) {
+				const bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+				const chunk = 0x8000;
+				if (bytes.length <= chunk) {
+					return String.fromCharCode.apply(null, bytes);
+				}
+				let out = '';
+				for (let i = 0; i < bytes.length; i += chunk) {
+					const sub = bytes.subarray(i, Math.min(i + chunk, bytes.length));
+					out += String.fromCharCode.apply(null, sub);
+				}
+				return out;
+			},
 		}
 	};
 </script>
@@ -1586,6 +2671,12 @@
 		background: #f8f9fa;
 		border-radius: 12px;
 		border: 1px dashed #d0d0d0;
+	}
+
+	.txt-import-section {
+		margin-top: 16px;
+		padding-top: 16px;
+		border-top: 1px solid #e8e8e8;
 	}
 
 	.test-title {

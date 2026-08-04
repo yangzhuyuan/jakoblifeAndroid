@@ -2009,12 +2009,10 @@
 					startTime: startTime,
 					endTime: endTime,
 				}
-				console.log("【query_minmax】", data)
 				this.$post(this.$url_APP_IP + this.$url_query_minmax, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					console.log("【query_minmaxres】", res)
 					if (res.code == 200) {
 						//最近
 						this.lately_Blood_pressure = this.bgaaa(res.data.last.lowPressure, res.data.last

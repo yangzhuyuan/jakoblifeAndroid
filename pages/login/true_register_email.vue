@@ -98,14 +98,10 @@
 					// this.tanchuang = true
 					// this.yzm = ''
 					// this.captchaImage();
-
-
 					uni.showLoading({
 						title: this.$t('发送中'),
 						mask: true
 					})
-
-
 					this.send_register_code()
 				}
 			},
@@ -189,13 +185,13 @@
 				}
 			},
 			btn_next() {
-				if (this.email === "" || this.email === undefined) {
+				if (!this.email) {
 					uni.showToast({
 						title: this.$t('请输入邮箱'),
 						icon: 'none'
 					})
 					return
-				} else if (this.yanzhengma == "" || this.yanzhengma == undefined) {
+				} else if (!this.yanzhengma) {
 					uni.showToast({
 						title: this.$t('请输入验证码'),
 						icon: 'none'
@@ -247,7 +243,7 @@
 					console.log("失败", err)
 				})
 			},
-			//第三方登录后用户绑定手机号
+			//第三方登录后用户绑定邮箱
 			bind_email() {
 				let that = this
 				let data = {
@@ -258,8 +254,7 @@
 					'Authorization': 'Bearer ' + that.tokens,
 					'content-type': 'application/json;charset=UTF-8'
 				}).then((res) => {
-					console.log("第三方登录后用户绑定手机号:", res)
-					if (res.code == 200) {
+					if (res.code === 200) {
 						uni.showToast({
 							title: that.$t("成功"),
 							icon: 'none'
