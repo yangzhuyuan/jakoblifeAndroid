@@ -268,6 +268,7 @@
 				that.loading = true
 				const data = {
 					userId: uni.getStorageSync("userid"),
+					// deviceId: uni.getStorageSync("deviceSn"),
 					profDate: that.pacitime,
 					filterVarList: that.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'

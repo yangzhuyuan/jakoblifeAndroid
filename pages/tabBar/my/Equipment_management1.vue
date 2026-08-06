@@ -286,6 +286,9 @@
 				if (this.deviceModelId === '30000') {
 					this.setacktypes("0")
 					this.calculateChecksumsss(this.mac);
+					uni.removeStorageSync('deviceIdwatch');
+					uni.removeStorageSync('serviceIdwatch');
+					uni.removeStorageSync('writeuuid');
 				}
 				if (this.deviceModelId === '30001') {
 					console.log('正在解绑设备，型号：30001');

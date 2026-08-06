@@ -676,12 +676,10 @@
 				this.$post(this.$url_APP_IP + "/prod-api/app/app_login", data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					console.log(this.$url_APP_IP, res)
 					uni.hideLoading()
 					switch (res.code) {
 						case 200:
 							uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
-							console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
 							uni.setStorageSync("token", res.token)
 							uni.setStorageSync("unername", this.unername)
 							uni.showToast({

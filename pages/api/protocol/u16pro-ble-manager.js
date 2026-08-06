@@ -428,6 +428,15 @@ class U16ProBLEManager {
 	}
 
 	/**
+	 * BPW6 解绑后清空转发，并允许下次重新注册全局监听。
+	 * 避免解绑后仍占用 uni.onBLECharacteristicValueChange，导致随后绑定的 BPW1 收不到包。
+	 */
+	clearForwardNotifyRouting() {
+		this._forwardNotifyHandler = null
+		this._bleListenerInitialized = false
+	}
+
+	/**
 	 * 注册统一的 BLE notify 监听（BC 协议优先，再转发给页面层）
 	 */
 	_registerUnifiedBleListener() {
@@ -2344,6 +2353,14 @@ class U16ProBLEManager {
 				value: buffer,
 				success: (res) => {
 					console.log('【BPW6发送成功】：' + hexStr)
+					this.isConnected = true
+					if (targetDeviceId) this.deviceId = targetDeviceId
+					this._lastGattWriteOkAt = Date.now()
+					try {
+						uni.$emit('BPW6_GATT_ALIVE', {
+							deviceId: targetDeviceId
+						})
+					} catch (eEmit) {}
 					resolve(res)
 				},
 				fail: (err) => {
@@ -3119,6 +3136,14 @@ class U16ProBLEManager {
 					} else if (!this.bcWriteType) {
 						this.bcWriteType = 'writeNoResponse'
 					}
+					this.isConnected = true
+					if (targetDeviceId) this.deviceId = targetDeviceId
+					this._lastGattWriteOkAt = Date.now()
+					try {
+						uni.$emit('BPW6_GATT_ALIVE', {
+							deviceId: targetDeviceId
+						})
+					} catch (eEmit) {}
 					resolve(res)
 				},
 				fail: (err) => {

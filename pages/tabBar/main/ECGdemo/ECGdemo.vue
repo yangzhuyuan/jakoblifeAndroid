@@ -1189,37 +1189,60 @@
 				this._bleMockData = null;
 				this._bleMockIndex = 0;
 				if (showBleFull && wasBle) {
-					// 与 PC 工具导入 TXT 同一套：uV→mV + 首尾质量裁剪后上报
+					// 与 PC 工具导入 TXT 同一套：uV→mV → INT16 上报
 					this.uploadMockBleCustomerEcg();
 					setTimeout(() => this.renderBleFullWaveFromPayload('模拟完成'), 50);
 				}
 				this.addLog('模拟测试', '已停止');
 			},
-			/** 模拟：① bleTestEcgData(uV) → ② PC 电压 mV → 上报 */
+			/**
+			 * 模拟 / 蓝牙测量共用：① 原始 uV → ② PC 电压 mV → ③ INT16 上报。
+			 * 与「开始模拟」完全同一套，仅数据源不同（bleTestEcgData vs bleRawEcgValues）。
+			 */
+			uploadRawUvCustomerEcg(rawUvValues, options = {}) {
+				const raw = (rawUvValues || []).filter(v => Number.isFinite(Number(v))).map(Number);
+				const logTag = options.logTag || '解析上报';
+				const errTag = options.errTag || '上报异常';
+				const fileName = options.fileName || '250hz_40s.txt';
+				const rawFormat = options.raw_format || 'customer_ble_raw';
+				if (!raw.length) {
+					this.addLog(logTag, '无原始 uV 采样');
+					return;
+				}
+				const result = parseCustomerTxt('', fileName, raw);
+				result.raw_format = rawFormat;
+				result.fileName = fileName;
+				const tip =
+					`①原始uV ${result.rawPointCount}点 → ②入库mV ${result.ecgData.length}点(未裁剪,对齐PC), fs=${result.samplingRate}Hz, ` +
+					`unit=${result.unitMode}, ` +
+					`本地裁剪参考=${result.trimInfo.trim_applied ? `首${result.trimInfo.trim_start_sec.toFixed(1)}s/尾${result.trimInfo.trim_end_sec.toFixed(1)}s` : '无'}`;
+				this.addLog(logTag, tip);
+				this.addLog(logTag, {
+					step1_rawUv_head: (result.rawUv || raw).slice(0, 5),
+					step2_storeMv_head: (result.ecgData || []).slice(0, 5),
+					sampling_rate: result.samplingRate,
+					unit: result.unit,
+					unit_mode: result.unitMode,
+					raw_format: result.raw_format,
+					trim_info_local: result.trimInfo,
+					upload_points: result.ecgData.length
+				});
+				this.fullDataCount = result.ecgData.length;
+				this.uploadCustomerTxtEcg(result).catch((err) => {
+					this.addLog(errTag, err);
+				});
+			},
+			/** 模拟：bleTestEcgData(uV) → 与蓝牙测量同一套上报 */
 			uploadMockBleCustomerEcg() {
 				if (!bleTestEcgData || !bleTestEcgData.length) {
 					this.addLog('模拟上报', '无 bleTestEcgData');
 					return;
 				}
-				// 每次用原始 uV 重跑第②步，保证最终电压为 1.61777… 再上报
-				const result = parseCustomerTxt('', '250hz_40s.txt', bleTestEcgData);
-				result.raw_format = 'customer_ble_mock';
-				result.fileName = '250hz_40s.txt';
-				const tip =
-					`①原始uV ${result.rawPointCount}点 → ②入库mV ${result.ecgData.length}点(未裁剪,对齐PC), fs=${result.samplingRate}Hz, ` +
-					`unit=${result.unitMode}, ` +
-					`本地裁剪参考=${result.trimInfo.trim_applied ? `首${result.trimInfo.trim_start_sec.toFixed(1)}s/尾${result.trimInfo.trim_end_sec.toFixed(1)}s` : '无'}`;
-				this.addLog('模拟解析上报', tip);
-				this.addLog('模拟解析上报', {
-					step1_rawUv_head: (result.rawUv || bleTestEcgData).slice(0, 5),
-					step2_storeMv_head: (result.ecgData || []).slice(0, 5),
-					sampling_rate: result.samplingRate,
-					unit: result.unit,
-					trim_info_local: result.trimInfo
-				});
-				this.fullDataCount = result.ecgData.length;
-				this.uploadCustomerTxtEcg(result).catch((err) => {
-					this.addLog('模拟上报异常', err);
+				this.uploadRawUvCustomerEcg(bleTestEcgData, {
+					fileName: '250hz_40s.txt',
+					raw_format: 'customer_ble_mock',
+					logTag: '模拟解析上报',
+					errTag: '模拟上报异常'
 				});
 			},
 			/** 与「加载BLE全波形」共用：始终用 bleContinuousWaveData（与 TXT 同点数） */
@@ -2239,36 +2262,23 @@
 			saveFinalData(data) {
 				const wave = this.getWaveRef();
 				if (!wave) return;
-				// 模拟上报已走 uploadMockBleCustomerEcg（PC TXT 流程），禁止再用显示缓冲二次上报
+				// 模拟上报已走 uploadMockBleCustomerEcg，禁止再用显示缓冲二次上报
 				if (this.keepBleFullWaveDisplay || this.isMockTesting) {
 					this.addLog('上传', '已跳过：模拟/BLE全波形模式不走 saveFinalData');
 					return;
 				}
 				const raw = this.bleRawEcgValues;
-				// 蓝牙原始采样：对齐 PC store_data = uV→mV 后原样入库（不裁剪、不 pad）
+				// 蓝牙原始 # 采样：与「开始模拟」同一套 uploadRawUvCustomerEcg（uV→mV→INT16）
 				if (raw && raw.length) {
-					const result = parseCustomerTxt('', `ble_${CUSTOMER_UPLOAD_FS}hz.txt`, raw.slice());
-					result.raw_format = 'customer_ble_raw';
-					const tip =
-						`BLE原始${result.rawPointCount}点 → 入库mV${result.ecgData.length}点(未裁剪,对齐PC), fs=${result.samplingRate}Hz, ` +
-						`unit=${result.unitMode || (result.unitWasUv ? 'uV_to_mV' : 'mV')}, ` +
-						`本地裁剪参考=${result.trimInfo.trim_applied ? `首${result.trimInfo.trim_start_sec.toFixed(1)}s/尾${result.trimInfo.trim_end_sec.toFixed(1)}s` : '无'}`;
-					this.addLog('BLE解析上报', tip);
-					this.addLog('BLE解析上报', {
-						sampling_rate: result.samplingRate,
-						unit: result.unit,
-						unit_mode: result.unitMode,
-						raw_format: result.raw_format,
-						trim_info_local: result.trimInfo,
-						upload_points: result.ecgData.length
-					});
-					this.fullDataCount = result.ecgData.length;
-					this.uploadCustomerTxtEcg(result).catch((err) => {
-						this.addLog('BLE上报异常', err);
+					this.uploadRawUvCustomerEcg(raw.slice(), {
+						fileName: '250hz_40s.txt',
+						raw_format: 'customer_ble_raw',
+						logTag: 'BLE解析上报',
+						errTag: 'BLE上报异常'
 					});
 					return;
 				}
-				// 无原始缓存时禁止用差分显示缓冲上报（会与 PC 不一致）
+				// 无原始缓存时禁止用差分显示缓冲上报（会与 PC/模拟不一致）
 				this.addLog('上传', '无 bleRawEcgValues，跳过（避免把显示差分波形当上报）');
 			},
 			ecgdatalist() {

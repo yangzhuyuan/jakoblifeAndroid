@@ -659,6 +659,11 @@
 	import {
 		U16ProProtocol
 	} from '../../api/protocol/u16pro-protocol.js'
+	import {
+		BC_BLE_UUID,
+		BC_PACKET,
+		DATA_TYPE
+	} from '../../api/protocol/u16pro-constants.js'
 	// 导入天气所需的函数
 	import {
 		getGlobalLocalWeather,
@@ -672,9 +677,14 @@
 		refreshQxBleKeepAliveNotification,
 		isQxBpw6EmotionMode,
 		notifyQxBleWatchConnectionState,
+		markQxBleBpw6AdapterDown,
 		isQxBleAppInForeground,
-		hasQxBleLiveMeasureRuntime
+		hasQxBleLiveMeasureRuntime,
+		ensureQxBleKeepAliveForBackground,
+		markQxPpgXferBusy,
+		touchQxPpgXferBusy
 	} from '../../api/qxBleAlignedSchedule.js';
+	import keepAliveManager from '@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js'
 	import {
 		jakobLifeDebugFileLog
 	} from '../../api/jakobLifeDebugFileLog.js';
@@ -1378,8 +1388,15 @@
 				bpw1ImmediateCmdStarted: false,
 				bpw1ImmediateSyncDelayTimer: null,
 				bpw1ImmediateAfterSyncTimer: null,
+				/** BPW1 情绪测量：已发 OTA 查询、等待设备信息后再下发测量命令 */
+				bpw1PendingEmotionMeasure: null,
+				bpw1EmotionMeasureWaitTimer: null,
+				bpw1OtaReadyFlushTimer: null,
 				/** BPW1 PPG 正在收数传输（Status01~02），切前后台禁止重连打断 */
 				bpw1PpgTransferActive: false,
+				/** BPW1 PPG 最近收包墙钟 / 传输超时截止（收包续期，等 Status02） */
+				bpw1PpgLastPacketAt: 0,
+				bpw1PpgTransferDeadline: 0,
 				types_index: uni.getStorageSync("types_index") || 0,
 				types_array: [this.$t("心情指数"), this.$t("抑郁风险评分"), this.$t("压力指数"), this.$t("疲劳指数"), this.$t("恢复指数")],
 				sleep_alertdisabled: true,
@@ -1423,6 +1440,22 @@
 				/** BPW1 历史同步进行中（比 blewatch_id 更稳，避免中途被睡眠包清掉后误弹窗） */
 				bpw1HistorySyncActive: false,
 				bpw1HistorySyncEndTimer: null,
+				/** 历史同步结束后再下发天气，避免抢通道 */
+				bpw1PendingWeatherAfterHistory: null,
+				/** 历史同步结束后再配对/开音频，避免与运动回复/同步写撞 10007 */
+				bpw1PendingPairAudio: null,
+				/** 历史同步结束后再恢复定时调度，避免调度写抢通道 */
+				bpw1PendingResumeSchedule: false,
+				/** 连接初始化链（保留字段，当前用固定定时调度） */
+				bpw1InitChain: null,
+				bpw1InitChainTimer: null,
+				/** BPW1 连接初始化定时器（重连必须清掉，否则旧运动/同步会撞新一轮） */
+				bpw1TimeDelayTimer: null,
+				bpw1SportTimer: null,
+				bpw1SyncTimer: null,
+				bpw1SetupGen: 0,
+				/** 查询→校时→运动→同步命令阶段：暂停 ACK 写出，避免与初始化命令撞写 10007 */
+				bpw1SetupCmdBusy: false,
 				/** BPW1 本会话已上报过的心率时间键（防接口回填前重复上报） */
 				bpw1UploadedHrKeys: null,
 				deviceSnuserID: [],
@@ -1492,6 +1525,23 @@
 				bpw6BleNotifyListenerRegistered: false,
 				/** 前台系统已连接列表连续未命中次数（用于避免偶发空列表误断） */
 				bpw6BleMissCount: 0,
+				/** 防止 createBLEConnection 并发风暴 */
+				bpw6BleConnecting: false,
+				bpw6BleLastConnectAt: 0,
+				/** 仅：App 后台 + 超距断开后回到范围的独立回连定时器（不影响其它回连） */
+				bpw6BgOutOfRangeReconnectTimer: null,
+				bpw6BgOutOfRangeReconnectBusy: false,
+				/** 后台关蓝牙后，等 available:true 再静默回连（不走前台断开清理） */
+				bpw6BgNeedReconnectAfterAdapterOn: false,
+				/** 本轮由后台开蓝牙触发的回连（假 already 时要强制断开重连） */
+				bpw6BgFromBtToggleReconnect: false,
+				/** 后台开蓝牙后假 already 强制断开重试次数 */
+				bpw6BgFakeAlreadyRetries: 0,
+				/** 后台静默回连启动时间（卡住时 watchdog 可重启） */
+				bpw6BgReconnectArmedAt: 0,
+				/** 前台蓝牙关闭后，等 available:true 再直连回连 */
+				bpw6FgNeedReconnectAfterAdapterOn: false,
+				bpw6BgBtToggleStartTimer: null,
 				QX_FAIL: false,
 				QX_HIDE: true,
 				devicetype: 30000,
@@ -1561,8 +1611,10 @@
 			uni.$on('DEVICE_BIND_PAGE_ACTIVE', this.onDeviceBindPageActive)
 			uni.$on('DEVICE_BIND_PAGE_INACTIVE', this.onDeviceBindPageInactive)
 			uni.$on('EMOTION_MEASURE_BUSY', this.onEmotionMeasureBusy)
+			uni.$on('BPW6_ENSURE_RECONNECT', this.onBpw6EnsureReconnect)
 		},
 		onUnload() {
+			this.stopBpw6BgOutOfRangeReconnect()
 			this.unregisterBpw6BleConnectionMonitor()
 			this.disConnect()
 			stopTimezoneWatch()
@@ -1574,11 +1626,19 @@
 			uni.$off('DEVICE_BIND_PAGE_ACTIVE', this.onDeviceBindPageActive)
 			uni.$off('DEVICE_BIND_PAGE_INACTIVE', this.onDeviceBindPageInactive)
 			uni.$off('EMOTION_MEASURE_BUSY', this.onEmotionMeasureBusy)
+			uni.$off('BPW6_ENSURE_RECONNECT', this.onBpw6EnsureReconnect)
 			this.xueyehuilian = false
 		},
 
 		onShow() {
 			let that = this
+			// 回前台：停止后台静默回连，交还现有前台回连逻辑
+			that.markBpw6BgNeedBtReconnect(false)
+			that.bpw6BgFromBtToggleReconnect = false
+			that.bpw6BgFakeAlreadyRetries = 0
+			that.bpw6FgNeedReconnectAfterAdapterOn = false
+			that.stopBpw6BgOutOfRangeReconnect()
+			that.stopBpw6BgBtOnWatchdog()
 			uni.removeStorageSync("jiance")
 			uni.setStorageSync("last_app_version", systemInfo.appVersion)
 			that.initPage();
@@ -1742,6 +1802,7 @@
 					this.sleep_alertid === 1 || this.bpw6PpgStartInProgress || !!this.watchtimer2 ||
 					// BPW1 立即测量：历史同步等待中尚未置 sleep_alertid，也算忙碌
 					this.bpw1ImmediatePpgLaunchLock || this.bpw1ImmediateCmdStarted ||
+					!!this.bpw1PendingEmotionMeasure ||
 					this.bpw1PpgTransferActive ||
 					// BPW1 血压后 PPG：等合并 / 延迟启动 / 命令已发
 					bpw1AfterBpPending || bpw1AfterBpLaunch ||
@@ -1764,6 +1825,7 @@
 				if (this.bpw6EmotionPpgActive) return false
 				return !!(this.immediateEmotionMeasure || this.sleep_alertid === 1 ||
 					this.bpw1ImmediatePpgLaunchLock || this.bpw1ImmediateCmdStarted ||
+					this.bpw1PendingEmotionMeasure ||
 					this.yalixueyatype || this.bpw1PpgTransferActive || !!this.watchtimer2 ||
 					!!this._bpw1AfterBpPpgTimer || this._bpw1AfterBpLaunching === true ||
 					!!(this.bpw1PendingLiveBp && this.bpw1PendingLiveBp.startPpgAfterBp) ||
@@ -1779,7 +1841,8 @@
 				const silent = options.silent === true
 				const toastKey = options.toastKey
 				const inSession = this.isBpw1ActivePpgSession() || this.hasLiveBpw1EmotionSession() ||
-					this.yalixueyatype === true || this.bpw1ImmediatePpgLaunchLock === true
+					this.yalixueyatype === true || this.bpw1ImmediatePpgLaunchLock === true ||
+					!!this.bpw1PendingEmotionMeasure
 				if (!inSession) {
 					return false
 				}
@@ -2198,10 +2261,12 @@
 			},
 			/** PPG 进行中：禁止前后台触发 BLE 扫描重连（会中断传数/ACK） */
 			shouldDeferBleReconnectForPpg() {
+				// 含定时槽位已占位（sendwatch）但尚未 bpw6PpgMeasuring：勿 create/close 抢 GATT
 				return !!(this.isBpw1ActivePpgSession() || this.hasLiveBpw1EmotionSession() ||
 					this.bpw1ImmediatePpgLaunchLock ||
 					this.hasLiveBpw6EmotionSession() || this.hasSilentBpw6PpgWork() ||
-					this.bpw6PpgStartInProgress)
+					this.bpw6PpgStartInProgress ||
+					this.isEmotionMeasureBusySession())
 			},
 			/**
 			 * 回前台纠偏 BPW6「测量中」：
@@ -2566,6 +2631,7 @@
 					clearInterval(gt.BPW6intervalTimer);
 					gt.BPW6intervalTimer = null;
 				}
+				this.stopBpw6BgOutOfRangeReconnect();
 				this.cancelBpw6BlePendingWork();
 			},
 			clearAllReconnectTimers() {
@@ -2582,6 +2648,7 @@
 					clearInterval(gt.BPW6intervalTimer);
 					gt.BPW6intervalTimer = null;
 				}
+				this.stopBpw6BgOutOfRangeReconnect();
 				this.cancelBpw6BlePendingWork();
 			},
 			setBpw6ReconnectTimer(timer) {
@@ -2596,15 +2663,637 @@
 					Vue.prototype.$globalTimers.BPW6intervalTimer = timer;
 				}
 			},
+			/** 停止「仅后台超距」独立回连（不影响 BPW6intervalTimer / 前台回连） */
+			stopBpw6BgOutOfRangeReconnect() {
+				this._bpw6BgNativeLoopActive = false;
+				this.clearBpw6NativeDelayed('reconnectLoop');
+				this.clearBpw6NativeDelayed('btToggleStart');
+				this.clearBpw6NativeDelayed('btToggleAfterClose');
+				this.clearBpw6NativeDelayed('btToggleCloseFallback');
+				this.clearBpw6NativeDelayed('alreadyRetry');
+				this.clearBpw6NativeDelayed('alreadyRetryFallback');
+				this.clearBpw6NativeDelayed('fgAdapterOnReconnect');
+				this.clearBpw6NativeDelayed('reconnectQuick');
+				const t = this.bpw6BgOutOfRangeReconnectTimer;
+				if (t != null && typeof t === 'number') {
+					clearInterval(t);
+				}
+				this.bpw6BgOutOfRangeReconnectTimer = null;
+				this.bpw6BgOutOfRangeReconnectBusy = false;
+				this.bpw6BgReconnectArmedAt = 0;
+				if (this.bpw6BgBtToggleStartTimer) {
+					clearTimeout(this.bpw6BgBtToggleStartTimer);
+					this.bpw6BgBtToggleStartTimer = null;
+				}
+			},
+			/** 后台 JS setTimeout/setInterval 常被冻结，延迟任务改走 Android Handler */
+			postBpw6NativeDelayed(key, fn, delayMs) {
+				this.clearBpw6NativeDelayed(key);
+				const run = () => {
+					// 执行后清掉句柄，避免 isBpw6BgReconnectArmed 一直为 true 卡住
+					try {
+						const map = this._bpw6NativeDelayed;
+						if (map && map[key]) delete map[key];
+					} catch (e0) {}
+					try {
+						fn && fn();
+					} catch (e) {
+						console.log('[BPW6] native delayed 异常', key, e);
+					}
+				};
+				// #ifdef APP-PLUS
+				try {
+					if (uni.getSystemInfoSync().platform === 'android') {
+						const Handler = plus.android.importClass('android.os.Handler');
+						const Looper = plus.android.importClass('android.os.Looper');
+						const handler = new Handler(Looper.getMainLooper());
+						const runnable = plus.android.implements('java.lang.Runnable', {
+							run: run
+						});
+						handler.postDelayed(runnable, Math.max(0, delayMs || 0));
+						if (!this._bpw6NativeDelayed) this._bpw6NativeDelayed = {};
+						this._bpw6NativeDelayed[key] = {
+							handler,
+							runnable,
+							jsTimer: null
+						};
+						return;
+					}
+				} catch (e) {
+					console.log('[BPW6] native Handler 不可用，回退 setTimeout', key, e);
+				}
+				// #endif
+				const jsTimer = setTimeout(run, Math.max(0, delayMs || 0));
+				if (!this._bpw6NativeDelayed) this._bpw6NativeDelayed = {};
+				this._bpw6NativeDelayed[key] = {
+					handler: null,
+					runnable: null,
+					jsTimer
+				};
+			},
+			clearBpw6NativeDelayed(key) {
+				const map = this._bpw6NativeDelayed;
+				if (!map || !map[key]) return;
+				const item = map[key];
+				try {
+					if (item.handler && item.runnable) {
+						item.handler.removeCallbacks(item.runnable);
+					}
+				} catch (e) {}
+				if (item.jsTimer) {
+					clearTimeout(item.jsTimer);
+				}
+				delete map[key];
+			},
+			stopBpw6BgBtOnWatchdog() {
+				this._bpw6BgBtOnWatchdogActive = false;
+				this.clearBpw6NativeDelayed('btOnWatchdog');
+			},
+			/** 等蓝牙再开：用原生 Handler 轮询，不依赖后台 JS 定时器 */
+			armBpw6BgBtOnWatchdog() {
+				if (isQxBleAppInForeground()) return;
+				if (!this.hasBpw6BgNeedBtReconnect()) return;
+				// 每次标记都重新武装，避免上一轮 tick 丢失后永远不巡检
+				this.stopBpw6BgBtOnWatchdog();
+				this._bpw6BgBtOnWatchdogActive = true;
+				const tick = () => {
+					if (!this._bpw6BgBtOnWatchdogActive) return;
+					if (isQxBleAppInForeground() || !this.hasBpw6BgNeedBtReconnect()) {
+						this.stopBpw6BgBtOnWatchdog();
+						return;
+					}
+					this.acquireBpw6BgReconnectWakeLock();
+					this.triggerBpw6BgBtReconnectIfNeeded('native-watchdog');
+					if (!this._bpw6BgBtOnWatchdogActive) return;
+					if (!this.hasBpw6BgNeedBtReconnect()) {
+						this.stopBpw6BgBtOnWatchdog();
+						return;
+					}
+					this.postBpw6NativeDelayed('btOnWatchdog', tick, 2000);
+				};
+				this.postBpw6NativeDelayed('btOnWatchdog', tick, 800);
+			},
+			acquireBpw6BgReconnectWakeLock() {
+				// #ifdef APP-PLUS
+				try {
+					const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
+					if (plugin && typeof plugin.acquireWakeLock === 'function') {
+						plugin.acquireWakeLock({}, () => {});
+					}
+				} catch (e) {}
+				try {
+					ensureQxBleKeepAliveForBackground();
+				} catch (e2) {}
+				// #endif
+			},
+			markBpw6BgNeedBtReconnect(on) {
+				this.bpw6BgNeedReconnectAfterAdapterOn = !!on;
+				try {
+					if (on) {
+						uni.setStorageSync('bpw6_bg_need_bt_reconnect', 1);
+					} else {
+						uni.removeStorageSync('bpw6_bg_need_bt_reconnect');
+					}
+				} catch (e) {}
+				if (on) {
+					this.acquireBpw6BgReconnectWakeLock();
+					this.armBpw6BgBtOnWatchdog();
+					// 后台 Handler/广播常冻：挂原生闹钟唤醒探测蓝牙是否已开
+					try {
+						keepAliveManager.setBpw6BgBtReconnectAlarm(5);
+					} catch (e2) {}
+				} else {
+					this.stopBpw6BgBtOnWatchdog();
+					try {
+						keepAliveManager.clearBpw6BgBtReconnectAlarm();
+					} catch (e3) {}
+				}
+			},
+			hasBpw6BgNeedBtReconnect() {
+				if (this.bpw6BgNeedReconnectAfterAdapterOn) return true;
+				try {
+					const v = uni.getStorageSync('bpw6_bg_need_bt_reconnect');
+					return v === 1 || v === '1' || v === true;
+				} catch (e) {
+					return false;
+				}
+			},
+			isBpw6BgReconnectArmed() {
+				return !!(this._bpw6BgNativeLoopActive || this.bpw6BgOutOfRangeReconnectTimer ||
+					(this._bpw6NativeDelayed && (this._bpw6NativeDelayed.btToggleStart || this
+						._bpw6NativeDelayed.btToggleAfterClose || this._bpw6NativeDelayed
+						.btToggleCloseFallback)));
+			},
+			/** 回连准备卡住（close 不回调等）时允许 watchdog 重启 */
+			resetBpw6BgReconnectIfStalled(maxMs) {
+				if (!this.isBpw6BgReconnectArmed()) return false;
+				const armedAt = this.bpw6BgReconnectArmedAt || 0;
+				if (!armedAt || Date.now() - armedAt < (maxMs || 6000)) return false;
+				console.log('[BPW6] 后台静默回连卡住，重置后重试');
+				this.stopBpw6BgOutOfRangeReconnect();
+				return true;
+			},
+			/** Android 原生：蓝牙是否已开启（比 openBluetoothAdapter 更准） */
+			isAndroidBluetoothEnabled() {
+				// #ifdef APP-PLUS
+				try {
+					if (uni.getSystemInfoSync().platform !== 'android') return null;
+					const BluetoothAdapter = plus.android.importClass('android.bluetooth.BluetoothAdapter');
+					const adapter = BluetoothAdapter.getDefaultAdapter();
+					if (!adapter) return false;
+					return !!adapter.isEnabled();
+				} catch (e) {
+					return null;
+				}
+				// #endif
+				return null;
+			},
+			/**
+			 * 后台收不到 uni available:true 时，靠原生蓝牙开关广播唤醒回连。
+			 * 仅 BPW6 使用，不影响其它设备。
+			 */
+			registerBpw6NativeBtReceiver() {
+				// #ifdef APP-PLUS
+				if (this._bpw6NativeBtReceiver) return;
+				try {
+					if (uni.getSystemInfoSync().platform !== 'android') return;
+					const main = plus.android.runtimeMainActivity();
+					const IntentFilter = plus.android.importClass('android.content.IntentFilter');
+					const filter = new IntentFilter('android.bluetooth.adapter.action.STATE_CHANGED');
+					const self = this;
+					const receiver = plus.android.implements('io.dcloud.android.content.BroadcastReceiver', {
+						onReceive: function(context, intent) {
+							try {
+								plus.android.importClass(intent);
+								const action = intent.getAction();
+								if (action !== 'android.bluetooth.adapter.action.STATE_CHANGED') return;
+								const state = intent.getIntExtra('android.bluetooth.adapter.extra.STATE', -1);
+								// 10 OFF, 11 TURNING_ON, 12 ON, 13 TURNING_OFF
+								// 禁止 setTimeout：后台 JS 定时器常冻，广播里必须同步驱动
+								if (state === 10 || state === 13) {
+									self.onBpw6NativeBtStateChanged(false);
+								} else if (state === 12) {
+									self.onBpw6NativeBtStateChanged(true);
+								}
+							} catch (e) {
+								console.log('[BPW6] 原生蓝牙广播处理异常', e);
+							}
+						}
+					});
+					try {
+						// Android 13+：RECEIVER_EXPORTED=2
+						main.registerReceiver(receiver, filter, 2);
+					} catch (e2) {
+						main.registerReceiver(receiver, filter);
+					}
+					this._bpw6NativeBtReceiver = receiver;
+				} catch (e) {
+					console.log('[BPW6] 注册原生蓝牙广播失败', e);
+				}
+				// #endif
+			},
+			unregisterBpw6NativeBtReceiver() {
+				// #ifdef APP-PLUS
+				if (!this._bpw6NativeBtReceiver) return;
+				try {
+					const main = plus.android.runtimeMainActivity();
+					main.unregisterReceiver(this._bpw6NativeBtReceiver);
+				} catch (e) {
+					console.log('[BPW6] 注销原生蓝牙广播', e);
+				}
+				this._bpw6NativeBtReceiver = null;
+				// #endif
+			},
+			onBpw6NativeBtStateChanged(enabled) {
+				if (!uni.getStorageSync('BPW6devicemac')) return;
+				if (!enabled) {
+					if (isQxBleAppInForeground()) return;
+					// 广播偶发假关闭：再核一次原生开关
+					if (this.isAndroidBluetoothEnabled() !== false) {
+						console.log('[BPW6] 忽略假蓝牙关闭广播（原生仍开）');
+						return;
+					}
+					console.log('[BPW6] 原生广播：蓝牙关闭，标记待回连');
+					this.stopBpw6BgOutOfRangeReconnect();
+					this.markBpw6BgNeedBtReconnect(true);
+					this.bpw6BleLastConnected = false;
+					this.bpw6BgFromBtToggleReconnect = false;
+					this.bpw6BgFakeAlreadyRetries = 0;
+					this.cancelBpw6BlePendingWork();
+					try {
+						markQxBleBpw6AdapterDown();
+					} catch (e) {}
+					if (this.BPW6intervalTimer) {
+						clearInterval(this.BPW6intervalTimer);
+						this.BPW6intervalTimer = null;
+					}
+					return;
+				}
+				// 蓝牙打开
+				if (!this.hasBpw6BgNeedBtReconnect() && !this.isBpw6BgReconnectArmed()) {
+					return;
+				}
+				if (isQxBleAppInForeground()) {
+					// 回前台交还前台回连；待回连标记留给 onShow 清理
+					return;
+				}
+				if (this.shouldDeferBleReconnectForPpg()) {
+					console.log('[BPW6] 原生广播：PPG进行中，暂缓蓝牙恢复回连');
+					return;
+				}
+				console.log('[BPW6] 原生广播：蓝牙已打开，启动静默回连');
+				this.acquireBpw6BgReconnectWakeLock();
+				// 成功前保留待回连标记，避免 close 不回调导致彻底停摆
+				this.startBpw6BgOutOfRangeReconnect('adapter-on-bt-toggle');
+			},
+			triggerBpw6BgBtReconnectIfNeeded(source) {
+				if (isQxBleAppInForeground()) return false;
+				if (!this.hasBpw6BgNeedBtReconnect()) return false;
+				if (!uni.getStorageSync('BPW6devicemac')) return false;
+				if (this.shouldDeferBleReconnectForPpg()) return false;
+				if (this.isBpw6BgReconnectArmed()) {
+					this.resetBpw6BgReconnectIfStalled(6000);
+					if (this.isBpw6BgReconnectArmed()) return true;
+				}
+				const enabled = this.isAndroidBluetoothEnabled();
+				if (enabled === false) return false;
+				if (enabled === true) {
+					console.log('[BPW6] 后台发现蓝牙已可用，启动静默回连', source || '');
+					this.acquireBpw6BgReconnectWakeLock();
+					this.startBpw6BgOutOfRangeReconnect('adapter-on-bt-toggle');
+					return true;
+				}
+				// 无法读原生状态时再试 openBluetoothAdapter
+				if (typeof uni.openBluetoothAdapter === 'function') {
+					uni.openBluetoothAdapter({
+						success: () => {
+							if (isQxBleAppInForeground()) return;
+							if (!this.hasBpw6BgNeedBtReconnect()) return;
+							console.log('[BPW6] 后台 openAdapter 成功，启动静默回连', source || '');
+							this.acquireBpw6BgReconnectWakeLock();
+							this.startBpw6BgOutOfRangeReconnect('adapter-on-bt-toggle');
+						},
+						fail: () => {}
+					});
+				}
+				return false;
+			},
+			/** 仅 GATT 断连 / 后台蓝牙开关恢复 / 后台列表漏报探测 才启后台静默回连 */
+			shouldStartBpw6BgOutOfRangeReconnect(reason) {
+				const r = String(reason || '');
+				if (!r) return false;
+				if (r.indexOf('openBluetoothAdapter') >= 0) return false;
+				if (r.indexOf('adapter-off') >= 0) return false;
+				if (r.indexOf('adapter-unavailable') >= 0) return false;
+				// getConnected*  alone 不可信；改由 bg-poll-miss 显式触发
+				if (r.indexOf('getConnected') >= 0) return false;
+				if (r.indexOf('adapter-on-bt-toggle') >= 0) return true;
+				if (r.indexOf('bg-poll-miss') >= 0) return true;
+				return r.indexOf('onBLEConnectionStateChange') >= 0 || r.indexOf('bg-disconnect') >= 0;
+			},
+			/**
+			 * qxBle / 保活发出的回连请求：已绑定则前后台都直连 MAC，不走 HTTP queryDevices。
+			 * PPG 进行中跳过，避免打断定时/立即测量。
+			 */
+			onBpw6EnsureReconnect(payload) {
+				const mac = (payload && payload.deviceId) || uni.getStorageSync('BPW6devicemac') || '';
+				if (!mac || !uni.getStorageSync('BPW6devicemac')) return;
+				if (this.isDeviceBindingPageActive() || this.isBpw6Unbinding(mac)) return;
+				if (this.shouldDeferBleReconnectForPpg()) {
+					// console.log('[BPW6] PPG进行中，暂缓 ENSURE_RECONNECT');
+					return;
+				}
+				const reason = (payload && payload.reason) || 'BPW6_ENSURE_RECONNECT';
+				if (isQxBleAppInForeground()) {
+					this.startBpw6ForegroundDirectReconnect(reason);
+				} else {
+					this.acquireBpw6BgReconnectWakeLock();
+					this.startBpw6BgOutOfRangeReconnect(
+						reason.indexOf('adapter-on') >= 0 ? reason : 'bg-disconnect');
+				}
+			},
+			/**
+			 * 前台快速回连：直连已绑定 MAC，跳过 queryDevices 网络往返。
+			 */
+			startBpw6ForegroundDirectReconnect(reason) {
+				if (!isQxBleAppInForeground()) return;
+				const mac = uni.getStorageSync('BPW6devicemac');
+				if (!mac) return;
+				if (this.isDeviceBindingPageActive() || this.isBpw6Unbinding(mac)) return;
+				if (this.shouldDeferBleReconnectForPpg()) return;
+				// 蓝牙仍关着时不要狂打 create
+				const r = String(reason || '');
+				if (r.indexOf('adapter-off') >= 0 || r.indexOf('adapter-unavailable') >= 0) {
+					this.bpw6FgNeedReconnectAfterAdapterOn = true;
+					console.log('[BPW6] 前台适配器不可用，跳过直连，等待恢复', reason || '');
+					return;
+				}
+				if (this.isAndroidBluetoothEnabled() === false) {
+					this.bpw6FgNeedReconnectAfterAdapterOn = true;
+					console.log('[BPW6] 前台蓝牙未开，等待恢复后再回连');
+					return;
+				}
+				// console.log('[BPW6] 前台直连回连', reason || '', mac);
+				this.bpw6FgNeedReconnectAfterAdapterOn = false;
+				// adapter 刚恢复：允许立刻 create，不受上一轮节流挡住
+				if (r.indexOf('adapter-on') >= 0) {
+					this.bpw6BleConnecting = false;
+					this.bpw6BleLastConnectAt = 0;
+				}
+				const tick = () => {
+					if (!isQxBleAppInForeground()) return;
+					if (this.shouldDeferBleReconnectForPpg()) return;
+					if (this.isAndroidBluetoothEnabled() === false) return;
+					const m = uni.getStorageSync('BPW6devicemac');
+					if (!m) {
+						this.clearBpw6ReconnectTimersOnly();
+						return;
+					}
+					if (this.bpw6BleLastConnected && this.acktypes6 === 1) {
+						this.clearBpw6ReconnectTimersOnly();
+						return;
+					}
+					this.BLEConnection(m, uni.getStorageSync('BPW6deviceSn') || '');
+				};
+				tick();
+				if (!this.BPW6intervalTimer) {
+					this.setBpw6ReconnectTimer(setInterval(tick, 1000));
+				}
+			},
+			/** 原生 Handler 循环重试（后台 JS setInterval 不可靠） */
+			armBpw6BgReconnectNativeLoop() {
+				if (isQxBleAppInForeground()) return;
+				this._bpw6BgNativeLoopActive = true;
+				this.bpw6BgReconnectArmedAt = Date.now();
+				// 兼容旧判断：非空表示「回连中」（勿用数字 interval id，避免 clearInterval 误伤）
+				if (!this.bpw6BgOutOfRangeReconnectTimer) {
+					this.bpw6BgOutOfRangeReconnectTimer = 'native-loop';
+				}
+				const tick = () => {
+					if (!this._bpw6BgNativeLoopActive) return;
+					if (isQxBleAppInForeground()) {
+						this.stopBpw6BgOutOfRangeReconnect();
+						return;
+					}
+					this.tryBpw6BgOutOfRangeReconnectOnce();
+					if (!this._bpw6BgNativeLoopActive) return;
+					this.postBpw6NativeDelayed('reconnectLoop', tick, 800);
+				};
+				this.tryBpw6BgOutOfRangeReconnectOnce();
+				this.postBpw6NativeDelayed('reconnectLoop', tick, 800);
+			},
+			/**
+			 * 仅处理：App 在后台时 GATT 超距断开，或后台关蓝牙再开后的静默回连。
+			 * 不改展示态、不走 queryDevices/前台断开清理。
+			 */
+			startBpw6BgOutOfRangeReconnect(reason) {
+				if (isQxBleAppInForeground()) return;
+				const mac = uni.getStorageSync('BPW6devicemac');
+				if (!mac) return;
+				if (this.isDeviceBindingPageActive() || this.isBpw6Unbinding(mac)) return;
+				if (this.shouldDeferBleReconnectForPpg()) return;
+				// 蓝牙关着时不要 create（必 10001/10012，拖慢真正恢复后的回连）
+				if (this.isAndroidBluetoothEnabled() === false &&
+					String(reason || '').indexOf('adapter-on') < 0) {
+					console.log('[BPW6] 蓝牙未开，跳过静默回连', reason || '');
+					return;
+				}
+				const r = String(reason || '');
+				const isAdapterResume = r.indexOf('adapter-on') >= 0;
+				const fromBtToggle = r.indexOf('adapter-on-bt-toggle') >= 0;
+				// 已在回连中
+				if (this.isBpw6BgReconnectArmed()) {
+					if (isAdapterResume) {
+						// 蓝牙刚开：丢掉 close 等待，立刻进入 create
+						this.clearBpw6NativeDelayed('btToggleStart');
+						this.clearBpw6NativeDelayed('btToggleAfterClose');
+						this.clearBpw6NativeDelayed('btToggleCloseFallback');
+						this.bpw6BgFromBtToggleReconnect = true;
+						this.bpw6BgFakeAlreadyRetries = 0;
+						this.bpw6BgReconnectArmedAt = Date.now();
+						this.bpw6BgOutOfRangeReconnectBusy = false;
+						if (!this._bpw6BgNativeLoopActive) {
+							this.armBpw6BgReconnectNativeLoop();
+						} else {
+							this.tryBpw6BgOutOfRangeReconnectOnce();
+						}
+						return;
+					}
+					if (this.resetBpw6BgReconnectIfStalled(6000)) {
+						// fall through 重新启动
+					} else {
+						return;
+					}
+				}
+				if (!this.shouldStartBpw6BgOutOfRangeReconnect(reason)) {
+					console.log('[BPW6] 非后台静默回连场景，跳过', reason || '');
+					return;
+				}
+				console.log('[BPW6] 启动后台静默回连', reason || '', mac);
+				this.acquireBpw6BgReconnectWakeLock();
+				this.bpw6BgReconnectArmedAt = Date.now();
+				const armTimer = () => {
+					if (isQxBleAppInForeground()) return;
+					if (this._bpw6BgNativeLoopActive) {
+						this.tryBpw6BgOutOfRangeReconnectOnce();
+						return;
+					}
+					this.armBpw6BgReconnectNativeLoop();
+				};
+				// 后台开蓝牙：短等协议栈后直接 create（先 close 易导致 10012 空等 8s）
+				if (fromBtToggle) {
+					this.bpw6BgFromBtToggleReconnect = true;
+					this.bpw6BgFakeAlreadyRetries = 0;
+					this.postBpw6NativeDelayed('btToggleStart', armTimer, 150);
+					return;
+				}
+				armTimer();
+			},
+			tryBpw6BgOutOfRangeReconnectOnce() {
+				if (isQxBleAppInForeground()) {
+					this.stopBpw6BgOutOfRangeReconnect();
+					return;
+				}
+				const mac = uni.getStorageSync('BPW6devicemac');
+				if (!mac) {
+					this.stopBpw6BgOutOfRangeReconnect();
+					return;
+				}
+				if (this.isDeviceBindingPageActive() || this.isBpw6Unbinding(mac)) return;
+				if (this.shouldDeferBleReconnectForPpg()) return;
+				if (this.isAndroidBluetoothEnabled() === false) {
+					console.log('[BPW6] 后台静默回连：蓝牙未开，等待');
+					return;
+				}
+				if (this.bpw6BgOutOfRangeReconnectBusy) return;
+				const that = this;
+				const sn = uni.getStorageSync('BPW6deviceSn') || '';
+				const finishBusy = () => {
+					that.bpw6BgOutOfRangeReconnectBusy = false;
+				};
+				const doCreate = () => {
+					if (typeof uni.createBLEConnection !== 'function') {
+						finishBusy();
+						return;
+					}
+					// 刷新活跃时间，避免成功前被 stall 误重置
+					that.bpw6BgReconnectArmedAt = Date.now();
+					uni.createBLEConnection({
+						deviceId: mac,
+						timeout: 8000,
+						success: () => {
+							finishBusy();
+							console.log('[BPW6] 后台静默回连成功', mac);
+							that.bpw6BleLastConnected = true;
+							that.markBpw6BgNeedBtReconnect(false);
+							that.bpw6BgFromBtToggleReconnect = false;
+							that.bpw6BgFakeAlreadyRetries = 0;
+							that.registerBpw6BleConnectionMonitor();
+							try {
+								notifyQxBleWatchConnectionState(true, mac);
+							} catch (e) {}
+							that.stopBpw6BgOutOfRangeReconnect();
+							// 已完成过连接后初始化：勿再拉特征值（后台空列表误触发回连时会刷屏同步）
+							if (that.acktypes6 === 1) {
+								return;
+							}
+							that.bpw6PostConnectSetupUntil = Math.max(that.bpw6PostConnectSetupUntil || 0,
+								Date.now() + 14000);
+							that.scheduleBpw6GetCharacteristics(mac, sn, 800);
+						},
+						fail: (err) => {
+							finishBusy();
+							const msg = String((err && err.errMsg) || '');
+							const code = err && (err.errCode != null ? err.errCode : err.code);
+							const already = code === -1 || msg.indexOf('already') >= 0;
+							if (already) {
+								// 关蓝牙后再开常见假 already：强制断开后继续探测
+								if (that.bpw6BgFromBtToggleReconnect) {
+									that.bpw6BgFakeAlreadyRetries = (that.bpw6BgFakeAlreadyRetries || 0) +
+										1;
+									if (that.bpw6BgFakeAlreadyRetries <= 4) {
+										console.log('[BPW6] 后台蓝牙恢复假 already，强制断开后重试', mac,
+											that.bpw6BgFakeAlreadyRetries);
+										let done = false;
+										const retry = () => {
+											if (done) return;
+											done = true;
+											that.clearBpw6NativeDelayed('alreadyRetryFallback');
+											that.postBpw6NativeDelayed('alreadyRetry', () => {
+												that.tryBpw6BgOutOfRangeReconnectOnce();
+											}, 300);
+										};
+										if (typeof uni.closeBLEConnection === 'function') {
+											uni.closeBLEConnection({
+												deviceId: mac,
+												complete: retry
+											});
+											that.postBpw6NativeDelayed('alreadyRetryFallback', retry,
+												500);
+										} else {
+											retry();
+										}
+										return;
+									}
+									console.log('[BPW6] 假 already 次数过多，继续等待真实连接', mac);
+									that.bpw6BgFakeAlreadyRetries = 0;
+									return;
+								}
+								console.log('[BPW6] 后台静默回连确认仍连接', mac);
+								that.bpw6BleLastConnected = true;
+								that.markBpw6BgNeedBtReconnect(false);
+								try {
+									notifyQxBleWatchConnectionState(true, mac);
+								} catch (e2) {}
+								that.stopBpw6BgOutOfRangeReconnect();
+								if (that.acktypes6 !== 1 && !that.shouldDeferBleReconnectForPpg()) {
+									that.bpw6PostConnectSetupUntil = Math.max(
+										that.bpw6PostConnectSetupUntil || 0, Date.now() + 14000);
+									that.scheduleBpw6GetCharacteristics(mac, sn, 800);
+								}
+								return;
+							}
+							console.log('[BPW6] 后台静默回连等待中', code, msg);
+							// 超时后尽快再试，不要空等整轮 loop
+							if (code === 10012 || code === 10001) {
+								that.postBpw6NativeDelayed('reconnectQuick', () => {
+									if (!that._bpw6BgNativeLoopActive) return;
+									that.tryBpw6BgOutOfRangeReconnectOnce();
+								}, 400);
+							}
+						}
+					});
+				};
+				this.bpw6BgOutOfRangeReconnectBusy = true;
+				if (typeof uni.openBluetoothAdapter === 'function') {
+					uni.openBluetoothAdapter({
+						success: doCreate,
+						fail: (err) => {
+							finishBusy();
+							const code = err && (err.errCode != null ? err.errCode : err.code);
+							console.log('[BPW6] 后台静默回连适配器暂不可用，等待恢复', code);
+							if (code === 10001) {
+								// 适配器不可用时停掉空转，等 available:true / watchdog
+								that.stopBpw6BgOutOfRangeReconnect();
+							}
+						}
+					});
+				} else {
+					doCreate();
+				}
+			},
 			cancelBpw6BlePendingWork() {
 				if (this.bpw6BleConnectTimer) {
 					clearTimeout(this.bpw6BleConnectTimer);
+					clearInterval(this.bpw6BleConnectTimer);
 					this.bpw6BleConnectTimer = null;
 				}
 				if (this.bpw6BleCharacteristicsTimer) {
 					clearTimeout(this.bpw6BleCharacteristicsTimer);
 					this.bpw6BleCharacteristicsTimer = null;
 				}
+				this.clearBpw6NativeDelayed('getCharacteristics');
+				this.bpw6BleConnecting = false;
 			},
 			isBleAlreadyDisconnectedError(err) {
 				if (!err) return false;
@@ -2634,8 +3323,10 @@
 				const that = this;
 				if (that.bpw6BleCharacteristicsTimer) {
 					clearTimeout(that.bpw6BleCharacteristicsTimer);
+					that.bpw6BleCharacteristicsTimer = null;
 				}
-				that.bpw6BleCharacteristicsTimer = setTimeout(() => {
+				that.clearBpw6NativeDelayed('getCharacteristics');
+				const run = () => {
 					that.bpw6BleCharacteristicsTimer = null;
 					// 立即测量启动/测量中勿反复 getCharacteristics/重连，否则主链路抢占导致 PPG status=0
 					if ((u16proBLE.isPpgOperationInProgress && u16proBLE.isPpgOperationInProgress()) ||
@@ -2645,7 +3336,13 @@
 						return
 					}
 					that.getBLEDeviceCharacteristics6(deviceId, BPW6SERVICE, deviceSn);
-				}, delayMs);
+				};
+				// 后台 setTimeout 常冻：静默回连后必须用原生 Handler 拉特征值
+				if (!isQxBleAppInForeground()) {
+					that.postBpw6NativeDelayed('getCharacteristics', run, delayMs);
+					return;
+				}
+				that.bpw6BleCharacteristicsTimer = setTimeout(run, delayMs);
 			},
 			async openBluetoothAdapter(row) {
 				let that = this
@@ -2659,13 +3356,16 @@
 							uni.setStorageSync("BPW6deviceSn", row.deviceSn)
 							uni.setStorageSync("BPW6devicemac", row.mac)
 							that.deviceIdwatch6 = row.mac
+							// 必须 setTimeout 单次连接；setInterval 会丢失句柄并叠加狂打 createBLEConnection
 							if (that.bpw6BleConnectTimer) {
 								clearTimeout(that.bpw6BleConnectTimer);
+								clearInterval(that.bpw6BleConnectTimer);
+								that.bpw6BleConnectTimer = null;
 							}
 							that.bpw6BleConnectTimer = setTimeout(() => {
 								that.bpw6BleConnectTimer = null;
 								that.BLEConnection(row.mac, row.deviceSn)
-							}, 2000)
+							}, 500)
 						} else {
 							// BPW1：PPG 进行中不要重启 500ms 扫描心跳，避免反复 connect 打断传数
 							if (that.shouldDeferBleReconnectForPpg()) {
@@ -2691,13 +3391,20 @@
 							uni.setStorageSync("BPW6deviceSn", row.deviceSn)
 							uni.setStorageSync("BPW6devicemac", row.mac)
 							that.deviceIdwatch6 = row.mac
+							// 适配器不可用(10001)：勿排队连接，否则会狂打
+							const code = err && (err.errCode != null ? err.errCode : err.code);
 							if (that.bpw6BleConnectTimer) {
 								clearTimeout(that.bpw6BleConnectTimer);
+								clearInterval(that.bpw6BleConnectTimer);
+								that.bpw6BleConnectTimer = null;
+							}
+							if (code === 10001) {
+								return;
 							}
 							that.bpw6BleConnectTimer = setTimeout(() => {
 								that.bpw6BleConnectTimer = null;
 								that.BLEConnection(row.mac, row.deviceSn)
-							}, 2000)
+							}, 500)
 						} else {
 							if (that.shouldDeferBleReconnectForPpg()) {
 								console.log('【BPW1】PPG进行中，跳过启动蓝牙扫描心跳(fail)')
@@ -2719,68 +3426,139 @@
 			},
 
 			async BLEConnection(deviceId, deviceSn) {
+				console.log(deviceId, deviceSn)
 				let that = this
 				if (that.isDeviceBindingPageActive()) {
 					return;
 				}
+				if (that.shouldDeferBleReconnectForPpg()) {
+					return;
+				}
+				// 已连且已初始化：勿再 create（already 刷屏 + 误拉特征值会打断定时 PPG）
+				if (that.bpw6BleLastConnected && that.acktypes6 === 1 &&
+					that.isAndroidBluetoothEnabled() !== false) {
+					try {
+						notifyQxBleWatchConnectionState(true, deviceId);
+					} catch (e) {}
+					if (that.BPW6intervalTimer) {
+						clearInterval(that.BPW6intervalTimer);
+						that.BPW6intervalTimer = null;
+					}
+					return;
+				}
+				// 防止并发 createBLEConnection 风暴（10012 / already connect 刷屏）
+				const now = Date.now();
+				if (that.bpw6BleConnecting) {
+					return;
+				}
+				if (that.bpw6BleLastConnectAt && now - that.bpw6BleLastConnectAt < 800) {
+					return;
+				}
+				that.bpw6BleConnecting = true;
+				that.bpw6BleLastConnectAt = now;
+				// 无 timeout 时部分机型 create 可挂起 20s+，期间 connecting 锁死无法重试
+				const clearConnectingLock = () => {
+					that.bpw6BleConnecting = false;
+					if (that._bpw6ConnectGuardTimer) {
+						clearTimeout(that._bpw6ConnectGuardTimer);
+						that._bpw6ConnectGuardTimer = null;
+					}
+				};
+				that._bpw6ConnectGuardTimer = setTimeout(() => {
+					if (that.bpw6BleConnecting) {
+						console.log('[BPW6] create 回调超时，释放连接锁以便重试', deviceId);
+						that.bpw6BleConnecting = false;
+					}
+					that._bpw6ConnectGuardTimer = null;
+				}, 5500);
 				uni.createBLEConnection({
 					deviceId: deviceId,
+					timeout: 5000,
 					success: (res) => {
+						clearConnectingLock();
 						console.log("【BPW6】BLEConnection连接成功", deviceId);
 						that.bpw6BleLastConnected = true;
 						that.registerBpw6BleConnectionMonitor();
 						try {
 							notifyQxBleWatchConnectionState(true, deviceId);
 						} catch (e) {}
+						if (that.bpw6BleConnectTimer) {
+							clearTimeout(that.bpw6BleConnectTimer);
+							clearInterval(that.bpw6BleConnectTimer);
+							that.bpw6BleConnectTimer = null;
+						}
 						if (that.BPW6intervalTimer) {
 							console.log("【BPW6】 清除BPW6intervalTimer定时器");
 							clearInterval(that.BPW6intervalTimer)
 							that.BPW6intervalTimer = null
 						}
 						// 即将拉特征值并做连接后初始化，提前占住窗口，避免用户抢先点 PPG
-						that.bpw6PostConnectSetupUntil = Math.max(that.bpw6PostConnectSetupUntil || 0, Date
-							.now() + 14000)
-						that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 2000);
+						// 已初始化完成的回连：不要反复延长 14s，否则 waitBpw6MainSyncIdleForPpg 会卡住
+						if (that.acktypes6 !== 1) {
+							that.bpw6PostConnectSetupUntil = Math.max(that.bpw6PostConnectSetupUntil || 0,
+								Date.now() + 14000)
+							that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 800);
+						} else {
+							// 关开蓝牙后 notify 可能丢，补拉一次通道（不延长 14s 窗口）
+							that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 500);
+						}
 					},
 					fail: (err) => {
+						clearConnectingLock();
 						console.log("【BPW6】BLEConnectionfail】" + deviceId, err);
 						if (err.errCode === -1) {
+							// 仅蓝牙确实关闭时才把 already 当假成功；否则清待回连并按已连接处理
+							if (!isQxBleAppInForeground() && that.hasBpw6BgNeedBtReconnect() &&
+								that.isAndroidBluetoothEnabled() === false) {
+								console.log('[BPW6] 后台关蓝牙中的假 already，忽略', deviceId);
+								if (that.bpw6BleConnectTimer) {
+									clearTimeout(that.bpw6BleConnectTimer);
+									clearInterval(that.bpw6BleConnectTimer);
+									that.bpw6BleConnectTimer = null;
+								}
+								return;
+							}
+							if (that.bpw6BleConnectTimer) {
+								clearTimeout(that.bpw6BleConnectTimer);
+								clearInterval(that.bpw6BleConnectTimer);
+								that.bpw6BleConnectTimer = null;
+							}
 							if (that.BPW6intervalTimer) {
 								console.log("【BPW6】 清除BPW6intervalTimer定时器");
 								clearInterval(that.BPW6intervalTimer)
 								that.BPW6intervalTimer = null
 							}
 							that.bpw6BleLastConnected = true;
+							that.markBpw6BgNeedBtReconnect(false);
 							that.registerBpw6BleConnectionMonitor();
 							try {
 								notifyQxBleWatchConnectionState(true, deviceId);
 							} catch (e) {}
 							// already connect：PPG 启动/测量中勿立刻拉主特征值（会抢占→status=0）
-							// 但仍要延后调度，否则首次绑定可能永远不做连接后初始化
 							if (that.shouldDeferBleReconnectForPpg()) {
 								console.log('【BPW6】PPG进行中，already connect 延后 getCharacteristics')
-								that.bpw6PostConnectSetupUntil = Math.max(
-									that.bpw6PostConnectSetupUntil || 0,
-									Date.now() + 8000
-								)
-								that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 5000)
+								return
+							}
+							// 已初始化：仅确认连接，不重开 14s 初始化窗口
+							if (that.acktypes6 === 1) {
 								return
 							}
 							that.bpw6PostConnectSetupUntil = Math.max(that.bpw6PostConnectSetupUntil || 0,
 								Date.now() + 14000)
-							that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 2000);
+							that.scheduleBpw6GetCharacteristics(deviceId, deviceSn, 800);
 						} else if (err.errCode === 10012) {
-							if (that.BPW6intervalTimer) {
-								console.log("【BPW6】 清除BPW6intervalTimer定时器");
-								clearInterval(that.BPW6intervalTimer)
-								that.BPW6intervalTimer = null
+							// 超时：前台直连重试，不走 HTTP queryDevices
+							if (isQxBleAppInForeground()) {
+								that.startBpw6ForegroundDirectReconnect('10012');
+							} else if (!that.isBpw6BgReconnectArmed()) {
+								that.startBpw6BgOutOfRangeReconnect('bg-disconnect');
 							}
-							that.setBpw6ReconnectTimer(setInterval(() => {
-								console.log('【BPW6】后台心跳检测...')
-								that.queryDevices()
-							}, 2000));
 						} else {
 							console.log("2BLEConnection连接失败", err);
+							if (isQxBleAppInForeground() && uni.getStorageSync('BPW6devicemac') &&
+								!that.shouldDeferBleReconnectForPpg()) {
+								that.startBpw6ForegroundDirectReconnect('create-fail');
+							}
 						}
 					},
 				});
@@ -2809,41 +3587,6 @@
 						this.baoggaodisabled = false //报告按钮
 					} else {
 						this.baoggaodisabled = true //报告按钮
-					}
-				})
-			},
-
-			//血压指标最终表查询
-			get_finalRetVarList(deviceSn) {
-				let that = this
-				let deviceuseridlist = []
-				deviceuseridlist.push(uni.getStorageSync("userid"))
-				let data = {
-					deviceSn: deviceuseridlist,
-					profDate: that.getTimeAllJSON().YMD000000,
-					period: "3D",
-					retVarList: that.finlretVarList1.toLowerCase()
-				}
-				console.log("1血压指标最终表查询" + that.$url_APP_IP, data)
-				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_finalRetVarList", data, {
-					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-					'content-type': 'application/x-www-form-urlencoded'
-				}).then((get_finalRetVarList) => {
-					console.log("2血压指标最终表查询", get_finalRetVarList)
-					if (get_finalRetVarList.code === 200) {
-						if (get_finalRetVarList.data.retVarList !== "") {
-							let resultArray = get_finalRetVarList.data.retVarList.split(";");
-							const checkAndAssign = (value) => {
-								return value >= "999999990.00" ? "NA" : value;
-							};
-							for (let i = 0; i < resultArray.length; i++) {
-								let resultArray1 = resultArray[i].split(",");
-								// 均值
-								that.junzhi_SSY_b = checkAndAssign(resultArray1[7]);
-								that.junzhi_SZY_b = checkAndAssign(resultArray1[8]);
-								that.junzhi_pulse_b = checkAndAssign(resultArray1[9]);
-							}
-						}
 					}
 				})
 			},
@@ -3170,7 +3913,35 @@
 					Vue.prototype.$globalTimers.isUnbinding = null;
 				}
 				this.teardownBpw6BleOnUnbind(mac);
+				// 解绑后释放全局 BLE notify 占用，避免随后绑定 BPW1 时数据包仍走 BPW6/u16pro 链路
+				this.releaseBpw6BleNotifyOwnership('BPW6解绑');
 				this.applyEmotionButtonIdleByBind('BPW6解绑');
+			},
+			/**
+			 * 释放 BPW6 对 uni.onBLECharacteristicValueChange 的占用。
+			 * 仅清路由状态；若本地仍有 BPW1，立即把监听交回 BPW1。
+			 */
+			releaseBpw6BleNotifyOwnership(reason = '') {
+				this.bpw6BleNotifyListenerRegistered = false
+				this._legacyBleNotifyDispatch = null
+				try {
+					if (u16proBLE && typeof u16proBLE.clearForwardNotifyRouting === 'function') {
+						u16proBLE.clearForwardNotifyRouting()
+					} else if (u16proBLE && typeof u16proBLE.setForwardNotifyHandler === 'function') {
+						u16proBLE.setForwardNotifyHandler(null)
+					}
+				} catch (e) {}
+				const bpw1Mac = this.deviceIdwatch || uni.getStorageSync('deviceIdwatch')
+				if (bpw1Mac && this.acktypes === 1) {
+					console.log('[BPW6] 解绑后交回BPW1 BLE监听', reason || '', bpw1Mac)
+					this.onBLECharacteristicValueChange3(
+						bpw1Mac,
+						BPW1serviceId,
+						uni.getStorageSync('deviceSn') || this.shoubiaosn
+					)
+				} else {
+					console.log('[BPW6] 已释放BLE notify占用', reason || '')
+				}
 			},
 			clearBpw6CharacteristicsCacheForDevice(deviceId) {
 				const norm = this.normalizeBpw6BleDeviceId(deviceId);
@@ -3193,6 +3964,14 @@
 						notifyQxBleWatchConnectionState(true, mac);
 					} catch (e) {}
 					this.bpw6BleLastConnected = true;
+					// 仅 GATT 超距断连 / 显式 bg 原因才启独立回连；openBluetoothAdapter-fail(10001) 不启
+					if (this.shouldStartBpw6BgOutOfRangeReconnect(reason)) {
+						this.startBpw6BgOutOfRangeReconnect(reason || 'bg-disconnect');
+					} else if (String(reason || '').indexOf('getConnected') >= 0 ||
+						String(reason || '').indexOf('adapter-unavailable') >= 0) {
+						// 后台空列表不可信：保持展示，同时悄悄探测回连
+						this.startBpw6BgOutOfRangeReconnect('bg-poll-miss');
+					}
 					return;
 				}
 				try {
@@ -3226,11 +4005,17 @@
 					clearInterval(this.BPW6intervalTimer);
 					this.BPW6intervalTimer = null;
 				}
-				if (uni.getStorageSync('BPW6devicemac')) {
-					this.setBpw6ReconnectTimer(setInterval(() => {
-						// console.log('【BPW6】后台心跳检测...', reason || '');
-						this.queryDevices();
-					}, 2000));
+				const r = String(reason || '');
+				// 蓝牙关着时 create 必失败：只清态/记标记，等 available:true 再回连
+				if (r.indexOf('adapter-off') >= 0 || r.indexOf('adapter-unavailable') >= 0) {
+					this.bpw6FgNeedReconnectAfterAdapterOn = true;
+					this.cancelBpw6BlePendingWork();
+					console.log('[BPW6] 前台适配器不可用，等待蓝牙恢复后再回连');
+					return;
+				}
+				// PPG 进行中不抢连；否则前台直连 MAC（跳过 HTTP queryDevices）
+				if (!this.shouldDeferBleReconnectForPpg()) {
+					this.startBpw6ForegroundDirectReconnect(reason || 'fg-disconnect');
 				}
 			},
 			startBpw6BleStatusPoll() {
@@ -3238,7 +4023,7 @@
 				this.bpw6BleStatusPollTimer = setInterval(() => {
 					if (!this.bpw6BleMonitorActive) return;
 					this.refreshBpw6BleConnectionState('poll');
-				}, 3000);
+				}, 2500);
 			},
 			stopBpw6BleStatusPoll() {
 				if (this.bpw6BleStatusPollTimer) {
@@ -3261,31 +4046,37 @@
 				const normMac = that.normalizeBpw6BleDeviceId(mac);
 				// 以 App 前后台为准（勿用页面 QX_HIDE，切页也会 hide）
 				const inBackground = !isQxBleAppInForeground();
-				const hasConnectedHint = () => {
-					try {
-						const flag = uni.getStorageSync('qx_bpw6_ble_connected');
-						if (flag === true || flag === 'true' || flag === 1 || flag === '1') {
-							return true;
-						}
-					} catch (e) {}
-					if (u16proBLE && u16proBLE.isConnected) {
-						if (!u16proBLE.deviceId || that.normalizeBpw6BleDeviceId(u16proBLE.deviceId) ===
-							normMac) {
-							return true;
-						}
-					}
-					return that.acktypes6 === 1;
-				};
+				const recentlyConnected = !!(that.bpw6PostConnectSetupUntil && Date.now() < that
+					.bpw6PostConnectSetupUntil) || !!(that.bpw6BleLastConnectAt && Date.now() - that
+					.bpw6BleLastConnectAt < 12000);
 				const keepConnectedOnMiss = () => {
-					// 后台/熄屏：系统已连接列表常空，一律保持已连接（定时 PPG 实际仍连着）
 					if (inBackground) {
-						console.log('[BPW6] 后台系统列表漏报，保持已连接', reason || '');
+						// 待蓝牙恢复：只探测是否已开，不假报已连接、不在关蓝牙时 create
+						if (that.hasBpw6BgNeedBtReconnect()) {
+							that.triggerBpw6BgBtReconnectIfNeeded('poll');
+							return true;
+						}
+						if (that.isAndroidBluetoothEnabled() === false) {
+							return true;
+						}
 						if (!that.bpw6BleLastConnected) {
 							that.bpw6BleLastConnected = true;
 						}
 						try {
 							notifyQxBleWatchConnectionState(true, mac);
 						} catch (e) {}
+						// 已连且已初始化：空列表不可信，勿再 create/拉特征（会打断链路并误报未连接）
+						if (that.bpw6BleLastConnected && that.acktypes6 === 1) {
+							return true;
+						}
+						if (!that.shouldDeferBleReconnectForPpg() && !that.isBpw6BgReconnectArmed()) {
+							const now = Date.now();
+							if (!that._bpw6BgPollMissReconnectAt || now - that._bpw6BgPollMissReconnectAt >
+								8000) {
+								that._bpw6BgPollMissReconnectAt = now;
+								that.startBpw6BgOutOfRangeReconnect('bg-poll-miss');
+							}
+						}
 						return true;
 					}
 					return false;
@@ -3313,9 +4104,14 @@
 							if (keepConnectedOnMiss()) {
 								return;
 							}
-							// 前台：连续 2 次未命中再断开，避免偶发空列表
+							// 刚连上窗口内系统列表常漏报：勿立刻打成未连接
+							// if (recentlyConnected) {
+							// 	console.log('[BPW6] 连接后窗口内列表未命中，忽略', reason || '');
+							// 	return;
+							// }
+							// 前台：连续 3 次未命中再断开，避免偶发空列表导致「连着却显示未连接」
 							that.bpw6BleMissCount = (that.bpw6BleMissCount || 0) + 1;
-							if (that.bpw6BleLastConnected && that.bpw6BleMissCount < 2) {
+							if (that.bpw6BleLastConnected && that.bpw6BleMissCount < 3) {
 								console.log('[BPW6] 系统列表未命中，等待二次确认', that.bpw6BleMissCount,
 									reason || '');
 								return;
@@ -3331,9 +4127,12 @@
 							if (keepConnectedOnMiss()) {
 								return;
 							}
+							if (recentlyConnected) {
+								return;
+							}
 							if (that.bpw6BleLastConnected) {
 								that.bpw6BleMissCount = (that.bpw6BleMissCount || 0) + 1;
-								if (that.bpw6BleMissCount < 2) {
+								if (that.bpw6BleMissCount < 3) {
 									console.log('[BPW6] 查询已连接设备失败，等待二次确认', err);
 									return;
 								}
@@ -3369,6 +4168,12 @@
 				}
 				this.bpw6BleMonitorActive = true;
 				this.startBpw6BleStatusPoll();
+				this.registerBpw6NativeBtReceiver();
+				try {
+					keepAliveManager.registerBpw6BgBtReconnectCheck(() => {
+						this.triggerBpw6BgBtReconnectIfNeeded('keepalive-alarm');
+					});
+				} catch (e) {}
 				if (!this.bpw6BleMonitorBound) {
 					this.bpw6BleMonitorBound = true;
 					const self = this;
@@ -3387,9 +4192,10 @@
 									notifyQxBleWatchConnectionState(true, change.deviceId);
 								} catch (e) {}
 							} else {
-								// 后台假断开回调很常见：不立刻清连接态，改由前台轮询确认
+								// 后台假断开回调很常见：不立刻清连接态；超距真断则启动独立后台回连
 								if (!isQxBleAppInForeground()) {
-									console.log('[BPW6] 后台忽略断开回调，保持已连接等待前台确认', change);
+									console.log('[BPW6] 后台忽略断开回调，保持已连接并启动超距回连', change);
+									self.startBpw6BgOutOfRangeReconnect('onBLEConnectionStateChange-bg');
 									return;
 								}
 								self.handleBpw6BleDisconnected(change.deviceId, 'onBLEConnectionStateChange');
@@ -3402,13 +4208,61 @@
 							if (!self.bpw6BleMonitorActive || !res) return;
 							console.log('【BPW6】onBluetoothAdapterStateChange', res);
 							if (!res.available) {
-								if (!isQxBleAppInForeground()) {
-									console.log('[BPW6] 后台适配器不可用回调，忽略误报');
+								// 华为等机型切后台常误报 available:false；仅原生确认蓝牙关闭才当真关
+								if (self.isAndroidBluetoothEnabled() !== false) {
+									console.log('[BPW6] 忽略假 available:false（原生蓝牙仍开）');
 									return;
 								}
+								if (!isQxBleAppInForeground()) {
+									// 后台关蓝牙：标记待回连；连接态置为未连接（实时），不空转 create
+									console.log('[BPW6] 后台蓝牙关闭，标记待回连');
+									self.stopBpw6BgOutOfRangeReconnect();
+									self.markBpw6BgNeedBtReconnect(true);
+									self.bpw6BleLastConnected = false;
+									self.bpw6BgFromBtToggleReconnect = false;
+									self.bpw6BgFakeAlreadyRetries = 0;
+									self.cancelBpw6BlePendingWork();
+									try {
+										markQxBleBpw6AdapterDown();
+									} catch (e) {}
+									if (self.BPW6intervalTimer) {
+										clearInterval(self.BPW6intervalTimer);
+										self.BPW6intervalTimer = null;
+									}
+									const gt = Vue.prototype.$globalTimers;
+									if (gt && gt.BPW6intervalTimer) {
+										clearInterval(gt.BPW6intervalTimer);
+										gt.BPW6intervalTimer = null;
+									}
+									return;
+								}
+								// 前台关蓝牙：清连接态，但不立刻 create（等 available:true）
 								self.handleBpw6BleDisconnected(self.getBpw6MonitorDeviceId(), 'adapter-off');
 							} else {
 								self.refreshBpw6BleConnectionState('adapter-on');
+								if (!isQxBleAppInForeground()) {
+									if (self.hasBpw6BgNeedBtReconnect() || self.isBpw6BgReconnectArmed()) {
+										console.log('[BPW6] 后台蓝牙已打开，准备静默回连');
+										self.acquireBpw6BgReconnectWakeLock();
+										// 成功前保留待回连标记；由 create 成功再清
+										self.startBpw6BgOutOfRangeReconnect('adapter-on-bt-toggle');
+									}
+								} else if (self.bpw6FgNeedReconnectAfterAdapterOn) {
+									// 前台蓝牙刚恢复：尽快直连
+									console.log('[BPW6] 前台蓝牙已打开，准备直连回连');
+									self.bpw6FgNeedReconnectAfterAdapterOn = false;
+									self.cancelBpw6BlePendingWork();
+									self.bpw6BleConnecting = false;
+									self.bpw6BleLastConnectAt = 0;
+									if (!self.shouldDeferBleReconnectForPpg()) {
+										self.postBpw6NativeDelayed('fgAdapterOnReconnect', () => {
+											if (!isQxBleAppInForeground()) return;
+											if (self.shouldDeferBleReconnectForPpg()) return;
+											if (self.bpw6BleLastConnected && self.acktypes6 === 1) return;
+											self.startBpw6ForegroundDirectReconnect('adapter-on');
+										}, 80);
+									}
+								}
 							}
 						};
 						uni.onBluetoothAdapterStateChange(this.bpw6BleAdapterStateHandler);
@@ -3419,6 +4273,8 @@
 			unregisterBpw6BleConnectionMonitor() {
 				this.bpw6BleMonitorActive = false;
 				this.stopBpw6BleStatusPoll();
+				this.stopBpw6BgBtOnWatchdog();
+				this.unregisterBpw6NativeBtReceiver();
 				if (this.bpw6BleConnectionHandler && typeof uni.offBLEConnectionStateChange === 'function') {
 					try {
 						uni.offBLEConnectionStateChange(this.bpw6BleConnectionHandler);
@@ -3593,9 +4449,18 @@
 					that.startBpw6EmotionImmediateMeasure()
 					return
 				}
+				// 定时失败残留 sleep_alertdisabled 时，无真实会话则先恢复，避免立即测量点不动
+				if (that.sleep_alertdisabled && !that.isEmotionMeasureBusySession() &&
+					!that.hasLiveBpw1EmotionSession() && !that.bpw1PpgTransferActive &&
+					!that.bpw1PendingEmotionMeasure) {
+					console.log('【BPW1】清理残留置灰后允许立即测量')
+					that.restoreEmotionPageButtons('sleep_alert清残留灰态')
+				}
 				// 防重复点击 / 防 watchtimer3 泄漏导致每秒重复启动 PPG
 				if (that.immediateEmotionMeasure || that.sleep_alertid === 1 ||
-					that.bpw1ImmediatePpgLaunchLock || that.sleep_alertdisabled) {
+					that.bpw1ImmediatePpgLaunchLock || that.bpw1PendingEmotionMeasure ||
+					that.bpw1ImmediateCmdStarted || that.bpw1PpgTransferActive ||
+					(that.sleep_alertdisabled && that.isEmotionMeasureBusySession())) {
 					console.log('【BPW1】立即测量进行中，忽略重复触发')
 					return
 				}
@@ -3605,7 +4470,8 @@
 				uni.setStorageSync('sleep_alertdisabled', true)
 
 				const startImmediatePpgOnce = () => {
-					if (that.immediateEmotionMeasure || that.sleep_alertid === 1) {
+					if (that.immediateEmotionMeasure || that.sleep_alertid === 1 ||
+						that.bpw1ImmediateCmdStarted || that.bpw1PendingEmotionMeasure) {
 						console.log('【BPW1】立即测量已启动，跳过')
 						return
 					}
@@ -3613,9 +4479,8 @@
 						title: that.$t("设置中"),
 						mask: true
 					})
+					// 会话标记等写入成功后再置；过早置位会导致 OTA 设备信息回包被误跳过 ACK
 					that.sendstartheartwatch(that.writeuuid, 1, 'immediate')
-					that.sleep_alertid = 1
-					that.immediateEmotionMeasure = true
 				}
 
 				// 仅历史同步中(blewatch_id===1)需要等待；已空闲则只启动一次
@@ -3641,7 +4506,7 @@
 									that.bpw1ImmediateAfterSyncTimer = null
 									startImmediatePpgOnce()
 								}, 1500)
-							} else if (aaawatchetime >= 20) {
+							} else if (aaawatchetime >= 15) {
 								uni.hideLoading()
 								clearInterval(timerId)
 								if (that.watchtimer3 === timerId) {
@@ -3672,6 +4537,7 @@
 					clearTimeout(this.bpw1ImmediateAfterSyncTimer)
 					this.bpw1ImmediateAfterSyncTimer = null
 				}
+				this.clearBpw1EmotionMeasureWait(reason || 'immediate_start_wait')
 				if (reason) {}
 			},
 			/** 立即测量是否走 BPW6 PPG：已绑 BPW6 即走 BPW6（仅绑 BPW1 时仍走 BPW1） */
@@ -3855,77 +4721,156 @@
 					}
 				}
 				if (source === 'immediate') {
-					if (that.bpw1ImmediateCmdStarted) {
-						console.log('【BPW1】立即测量命令已发送，跳过重复')
+					if (that.bpw1ImmediateCmdStarted || that.bpw1PendingEmotionMeasure) {
+						console.log('【BPW1】立即测量命令已发送/等待中，跳过重复')
 						return
 					}
-					that.bpw1ImmediateCmdStarted = true
 				}
 				// 清掉上次卡片测心率/未完成PPG留下的传输超时，避免误杀本次血压后PPG
 				that.clearBpw1PpgTransferWatchdog('启动PPG-' + source)
-				that.OTAdata(that.deviceIdwatch ? that.deviceIdwatch : uni.getStorageSync("deviceIdwatch"), BPW1serviceId,
-					BPW1write)
-				console.log(uni.getStorageSync("deviceIdwatch"))
-				console.log(that.deviceIdwatch)
-				console.log(BPW1serviceId)
-				console.log(BPW1write)
-				setTimeout(() => {
-					let buffer2 = that.toArrayBuffer("e00006F3060104000101")
-					const otaDataRes = uni.getStorageSync("otadatares");
-					if (OTA_DATA_RES_WATCH_CMD_IDS.has(otaDataRes)) {
-						buffer2 = that.toArrayBuffer("e0000611030125000101") //5.8.5||5.8.7的版本情绪测量命令
-					} else {
-						buffer2 = that.toArrayBuffer("e00006F3060104000101")
+				// 新会话启动前清残留缓存，避免误判传数中/污染本次上报
+				that.bpw1PpgTransferActive = false
+				that.bpw1PpgLastPacketAt = 0
+				that.bpw1PpgTransferDeadline = 0
+				that.bufferPPG = []
+				const deviceId = that.deviceIdwatch ? that.deviceIdwatch : uni.getStorageSync("deviceIdwatch")
+				console.log('【BPW1】启动情绪PPG', source, deviceId, BPW1serviceId, BPW1write)
+				that.clearBpw1EmotionMeasureWait('restart-' + source)
+				const otaBefore = String(uni.getStorageSync('otadatares') || '')
+				that.bpw1PendingEmotionMeasure = {
+					source,
+					otaBefore,
+					startedAt: Date.now()
+				}
+				// 先查设备信息（固件分支命令依赖 otadatares），回包 ACK 后再发测量命令
+				that.OTAdata(deviceId, BPW1serviceId, BPW1write, {
+					delayMs: 300
+				})
+				// 兜底：OTA 回包过慢时仍用缓存 otadatares 下发，避免一直停在「设置中」
+				that.bpw1EmotionMeasureWaitTimer = setTimeout(() => {
+					that.bpw1EmotionMeasureWaitTimer = null
+					that.flushBpw1PendingEmotionMeasure('ota_wait_timeout')
+				}, 4500)
+			},
+			/** 清理 BPW1 情绪测量等待 OTA 回包的定时器/标记 */
+			clearBpw1EmotionMeasureWait(reason = '') {
+				if (this.bpw1EmotionMeasureWaitTimer) {
+					clearTimeout(this.bpw1EmotionMeasureWaitTimer)
+					this.bpw1EmotionMeasureWaitTimer = null
+				}
+				if (this.bpw1OtaReadyFlushTimer) {
+					clearTimeout(this.bpw1OtaReadyFlushTimer)
+					this.bpw1OtaReadyFlushTimer = null
+				}
+				if (reason && this.bpw1PendingEmotionMeasure) {
+					console.log('【BPW1】清理情绪测量等待', reason)
+				}
+				this.bpw1PendingEmotionMeasure = null
+			},
+			/** OTA 设备信息已写入 otadatares：若正在等测量则立即下发 */
+			notifyBpw1OtaInfoReady(reason = '') {
+				if (!this.bpw1PendingEmotionMeasure) {
+					return
+				}
+				const pending = this.bpw1PendingEmotionMeasure
+				const otaNow = String(uni.getStorageSync('otadatares') || '')
+				if (!otaNow) {
+					return
+				}
+				// 有更新，或已有缓存可用：短延迟让 ACK 先发出去再写测量命令
+				const updated = otaNow !== pending.otaBefore
+				if (this.bpw1OtaReadyFlushTimer) {
+					clearTimeout(this.bpw1OtaReadyFlushTimer)
+				}
+				this.bpw1OtaReadyFlushTimer = setTimeout(() => {
+					this.bpw1OtaReadyFlushTimer = null
+					this.flushBpw1PendingEmotionMeasure(reason || 'ota_ready')
+				}, 400)
+			},
+			flushBpw1PendingEmotionMeasure(reason = '') {
+				const pending = this.bpw1PendingEmotionMeasure
+				if (!pending) {
+					return
+				}
+				if (this.bpw1EmotionMeasureWaitTimer) {
+					clearTimeout(this.bpw1EmotionMeasureWaitTimer)
+					this.bpw1EmotionMeasureWaitTimer = null
+				}
+				if (this.bpw1OtaReadyFlushTimer) {
+					clearTimeout(this.bpw1OtaReadyFlushTimer)
+					this.bpw1OtaReadyFlushTimer = null
+				}
+				this.bpw1PendingEmotionMeasure = null
+				console.log('【BPW1】下发情绪测量命令', reason, pending.source)
+				this.writeBpw1EmotionMeasureCmd(pending.source)
+			},
+			writeBpw1EmotionMeasureCmd(source) {
+				const that = this
+				if (source === 'immediate') {
+					if (that.bpw1ImmediateCmdStarted && that.immediateEmotionMeasure) {
+						console.log('【BPW1】立即测量命令已发送，跳过重复写入')
+						return
 					}
-					uni.writeBLECharacteristicValue({
-						deviceId: that.deviceIdwatch ? that.deviceIdwatch : uni
-							.getStorageSync("deviceIdwatch"),
-						serviceId: BPW1serviceId,
-						characteristicId: BPW1write,
-						writeType: 'writeNoResponse',
-						value: buffer2,
-						success(res) {
-							that.sleep_alertdisabled = true
-							uni.setStorageSync("sleep_alertdisabled", true)
-							refreshQxBleKeepAliveNotification()
+				}
+				let buffer2 = that.toArrayBuffer("e00006F3060104000101")
+				const otaDataRes = uni.getStorageSync("otadatares");
+				if (OTA_DATA_RES_WATCH_CMD_IDS.has(otaDataRes)) {
+					buffer2 = that.toArrayBuffer("e0000611030125000101") //5.8.5||5.8.7的版本情绪测量命令
+					console.log('【BPW1】使用新固件情绪命令 e0000611...', String(otaDataRes).slice(0, 20))
+				} else {
+					buffer2 = that.toArrayBuffer("e00006F3060104000101")
+					console.log('【BPW1】使用旧固件情绪命令 e00006F3...', String(otaDataRes || '').slice(0, 20))
+				}
+				uni.writeBLECharacteristicValue({
+					deviceId: that.deviceIdwatch ? that.deviceIdwatch : uni
+						.getStorageSync("deviceIdwatch"),
+					serviceId: BPW1serviceId,
+					characteristicId: BPW1write,
+					writeType: 'writeNoResponse',
+					value: buffer2,
+					success(res) {
+						console.log('【BPW1】情绪测量命令写入成功', source, res)
+						that.sleep_alertdisabled = true
+						uni.setStorageSync("sleep_alertdisabled", true)
+						refreshQxBleKeepAliveNotification()
+						if (source === 'after_bp') {
+							that._bpw1AfterBpCmdAt = Date.now()
+							that._bpw1LastPpgAfterBpAt = that._bpw1LastPpgAfterBpAt || Date.now()
+						}
+						// 仅「立即测量」展示 PPG 测量提示；血压后/定时静默
+						if (source === 'immediate') {
+							that._bpw1ImmediateCmdAt = Date.now()
+							that.immediateEmotionMeasure = true
+							that.sleep_alertid = 1
+							that.bpw1ImmediateCmdStarted = true
+							uni.hideLoading()
+							uni.showLoading({
+								title: that.$t("开始测量"),
+								mask: true
+							})
+						}
+					},
+					fail(err) {
+						console.warn('【BPW1】情绪测量命令写入失败', source, err)
+						if (source === 'immediate') {
+							uni.hideLoading()
+							that.notifyBpw1PpgFailOrInterrupt('BPW1立即测量写入失败', {
+								toastKey: '请检查设备连接'
+							})
+						} else {
+							console.log('【BPW1】PPG启动写入失败(静默)', source, err)
 							if (source === 'after_bp') {
-								that._bpw1AfterBpCmdAt = Date.now()
-								that._bpw1LastPpgAfterBpAt = that._bpw1LastPpgAfterBpAt || Date.now()
-							}
-							// 仅「立即测量」展示 PPG 测量提示；血压后/定时静默
-							if (source === 'immediate') {
-								that._bpw1ImmediateCmdAt = Date.now()
-								that.immediateEmotionMeasure = true
-								that.sleep_alertid = 1
-								that.bpw1ImmediateCmdStarted = true
-								uni.hideLoading()
-								uni.showLoading({
-									title: that.$t("开始测量"),
-									mask: true
+								that.notifyBpw1PpgFailOrInterrupt('BPW1血压后PPG写入失败', {
+									silent: true
+								})
+							} else if (source === 'scheduled') {
+								that.notifyBpw1PpgFailOrInterrupt('BPW1定时PPG写入失败', {
+									silent: true
 								})
 							}
-						},
-						fail(err) {
-							if (source === 'immediate') {
-								uni.hideLoading()
-								that.notifyBpw1PpgFailOrInterrupt('BPW1立即测量写入失败', {
-									toastKey: '请检查设备连接'
-								})
-							} else {
-								console.log('【BPW1】PPG启动写入失败(静默)', source, err)
-								if (source === 'after_bp') {
-									that.notifyBpw1PpgFailOrInterrupt('BPW1血压后PPG写入失败', {
-										silent: true
-									})
-								} else if (source === 'scheduled') {
-									that.notifyBpw1PpgFailOrInterrupt('BPW1定时PPG写入失败', {
-										silent: true
-									})
-								}
-							}
-						},
-					})
-				}, 5000)
+						}
+					},
+				})
 			},
 			swipeIndex(index) {
 				let that = this
@@ -4432,23 +5377,34 @@
 								}
 							});
 							// console.log(`使用缓存的特性值连接设备${that.hasSynced}`, that.acktypes, that.blewatch_id2);
-							if (!that.hasSynced) { // 确保只执行一次
-								that.hasSynced = true; // 标记已同步
+							// 缓存命中时也要夺回全局 notify（BPW6 解绑后短时内可能仍被 u16pro 占用）
+							if (that.acktypes === 1) {
+								uni.notifyBLECharacteristicValueChange({
+									state: true,
+									deviceId: deviceId,
+									serviceId: BPW1serviceId,
+									characteristicId: BPW1notify,
+									success: (notifyres) => {
+										that.onBLECharacteristicValueChange3(
+											that.shoubiaomac || deviceId,
+											BPW1serviceId,
+											that.shoubiaosn || deviceSn);
+									},
+									fail: (notifyerr) => {}
+								})
+							}
+							if (!that.hasSynced) { // 历史同步只执行一次
+								that.hasSynced = true;
 								if (that.acktypes === 1 && that.blewatch_id2 === "1") {
-									that.Sync_historical_data(deviceId)
-									uni.notifyBLECharacteristicValueChange({
-										state: true, // 启用 notify 功能
-										deviceId: deviceId,
-										serviceId: BPW1serviceId,
-										characteristicId: BPW1notify,
-										success: (notifyres) => {
-											that.onBLECharacteristicValueChange3(
-												that.shoubiaomac,
-												BPW1serviceId,
-												that.shoubiaosn);
-										},
-										fail: (notifyerr) => {}
-									})
+									setTimeout(() => {
+										// 初始化链（查询/校时/运动）进行中时勿抢先同步，否则与 ACK/命令撞写时好时坏
+										if (that.bpw1SetupCmdBusy || that.bpw1SportTimer ||
+											that.bpw1SyncTimer || that.bpw1TimeDelayTimer) {
+											console.log('【BPW1】缓存路径跳过抢先同步，交由初始化链')
+											return
+										}
+										that.Sync_historical_data(deviceId)
+									}, 1000)
 								}
 							}
 						},
@@ -4477,52 +5433,49 @@
 							if (that.acktypes === 0) {
 								if (item.properties.write) {
 									let {
-										brand,
-										model
+										brand
 									} = uni.getSystemInfoSync()
+									const writeCharId = item.uuid || BPW1write
 									const buffer = brand === "xiaomi" || brand === "oneplus" ? that
 										.toArrayBuffer("e00006e8000000000101") : that
 										.toArrayBuffer("e00006e7000000000100")
 									uni.writeBLECharacteristicValue({
 										deviceId: deviceId,
 										serviceId: BPW1serviceId,
-										characteristicId: BPW1write,
+										characteristicId: writeCharId,
 										writeType: "writeNoResponse",
 										value: buffer,
 										success: (writeres) => {
-											console.log("【BPW1】发送命令成功。", "e00006e7000000000100");
+											console.log("【BPW1】发送命令成功：", "e00006e7000000000100");
 											that.deviceIdwatch = deviceId
 											that.serviceIdwatch = BPW1serviceId
-											that.writeuuid = BPW1write
+											that.writeuuid = writeCharId
 											uni.setStorageSync("deviceIdwatch", deviceId)
 											uni.setStorageSync("serviceIdwatch", BPW1serviceId)
-											uni.setStorageSync("writeuuid", BPW1write)
-											import('@/pages/api/qxBleAlignedSchedule.js').then((
-												m) => {
-												m.resumeQxBleScheduleIfEnabled().catch(
-													() => {})
-											})
+											uni.setStorageSync("writeuuid", writeCharId)
+											// 调度延后到历史同步命令之后，避免与运动/同步写撞车
+											that.bpw1PendingResumeSchedule = true
+											// 对齐参考工程：查询成功后立刻校时（勿再等 2.5s，易撞 notify/ACK）
+											that.clearBpw1SetupTimers()
+											that.bpw1SetupCmdBusy = true
+											const setupGen = that.bpw1SetupGen
 											that.calculateChecksumsss2(
-												deviceId,
-												BPW1serviceId,
-												BPW1write,
-												deviceSn)
+												deviceId, BPW1serviceId, writeCharId, deviceSn,
+												setupGen)
 										},
 										fail: (writeerr) => {
-											that.writeuuid = BPW1write
+											console.log("【BPW1】发送命令失败：", writeerr);
+											that.writeuuid = writeCharId
 											uni.setStorageSync("deviceIdwatch", deviceId)
-											import('@/pages/api/qxBleAlignedSchedule.js').then((
-												m) => {
-												m.resumeQxBleScheduleIfEnabled().catch(
-													() => {})
-											})
 											uni.setStorageSync("serviceIdwatch", BPW1serviceId)
-											uni.setStorageSync("writeuuid", BPW1write)
+											uni.setStorageSync("writeuuid", writeCharId)
+											that.bpw1PendingResumeSchedule = true
+											that.clearBpw1SetupTimers()
+											that.bpw1SetupCmdBusy = true
+											const setupGen = that.bpw1SetupGen
 											that.calculateChecksumsss2(
-												deviceId,
-												BPW1serviceId,
-												BPW1write,
-												deviceSn)
+												deviceId, BPW1serviceId, writeCharId, deviceSn,
+												setupGen)
 										}
 									});
 									that.setacktypes(1)
@@ -4532,9 +5485,7 @@
 								if (item.properties.notify) {
 									uni.setStorageSync("deviceIdwatch", deviceId)
 									uni.setStorageSync("serviceIdwatch", BPW1serviceId)
-									import('@/pages/api/qxBleAlignedSchedule.js').then((m) => {
-										m.resumeQxBleScheduleIfEnabled().catch(() => {})
-									})
+									that.bpw1PendingResumeSchedule = true
 									uni.setStorageSync("landcharacteristicId", item.uuid)
 									that.notifyUuid = res.characteristics[i].uuid
 									uni.notifyBLECharacteristicValueChange({
@@ -4752,7 +5703,7 @@
 
 					},
 					fail: (failres) => {
-						console.error('getBLEDeviceCharacteristics 失败:', failres);
+						console.error('getBLEDeviceCharacteristics6 失败:', failres);
 						if (Vue.prototype.$globalTimers.heartbeatInterval) {
 							clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
 							Vue.prototype.$globalTimers.heartbeatInterval = null;
@@ -5435,14 +6386,22 @@
 					u16proBLE.cancelPpgMeasurementCompleteWatch()
 				}
 				const isAfterBp = this.isBpw6AfterBpPpgSession()
-				// 测完弹「云端数据计算中」：立即测量/兼容机保持原放宽条件；仅血压后静默排除
+				// 定时会话：绝不可因 bpw6PpgMeasuring 等标志劫持成立即测量（否则不调 end 会话，调度会假「测量进行中」约5分钟）
+				let isScheduledMeasure = false
+				try {
+					const scheduled = uni.getStorageSync('qx_ble_scheduled_measure')
+					isScheduledMeasure = scheduled === 1 || scheduled === '1'
+				} catch (eSched) {}
+				// 测完弹「云端数据计算中」：仅真正立即测量；血压后/定时静默（对齐 0x4B treatStopAsComplete）
+				const alreadyImmediate = !!(this.bpw6EmotionPpgActive || this.immediateEmotionMeasure)
 				const startedAt = this.bpw6EmotionPpgStartedAt || 0
-				const recentImmediate = !isAfterBp && startedAt > 0 &&
+				const recentImmediate = !isAfterBp && !isScheduledMeasure && startedAt > 0 &&
 					(Date.now() - startedAt < 10 * 60 * 1000)
 				const phaseBusy = this.bpw6EmotionPpgPhase === 'measuring' ||
 					this.bpw6EmotionPpgPhase === 'transferring'
-				const shouldCloud = !isAfterBp && !!(this.bpw6EmotionPpgActive ||
-					this.immediateEmotionMeasure || this.sleep_alertid === 1 || recentImmediate ||
+				const shouldCloud = !isAfterBp && !isScheduledMeasure && alreadyImmediate && !!(
+					this.bpw6EmotionPpgActive || this.immediateEmotionMeasure ||
+					this.sleep_alertid === 1 || recentImmediate ||
 					phaseBusy || this.bpw6PpgLoadingActive || this.bpw6PpgTransferStarted ||
 					this.bpw6PpgMeasuring)
 				if (shouldCloud) {
@@ -5550,6 +6509,7 @@
 				if (data.ppgData && data.ppgData.length) {
 					this.bpw6PpgRawBuffer = [...data.ppgData]
 				}
+				console.log('【BPW6】PPG原始数据接收完成, 大小:', data)
 				console.log('【BPW6】PPG原始数据接收完成, 大小:', this.bpw6PpgRawBuffer.length)
 				this.uploadBPW6PPGRawData(deviceId, deviceSn)
 			},
@@ -5579,9 +6539,28 @@
 				}
 				this.ppgUploadInProgress = true
 				this.markBpw6PpgSessionBusy('BPW6 PPG上传中')
-				const rawSamples = [...this.bpw6PpgRawBuffer]
-				console.log('【BPW6】PPG原始数据长度:', rawSamples.length)
-				const binary = this.packInt16(rawSamples)
+				const rawBytes = [...this.bpw6PpgRawBuffer]
+				console.log('【BPW6】PPG原始数据长度:', rawBytes.length)
+				// 长包协议：PPG 为小端 32 位 ADC（200Hz）；仍按 INT16 上传以兼容现有云端接口
+				const samples = U16ProProtocol.parsePpgAdcSamples(rawBytes).samples || []
+				if (!samples.length) {
+					console.warn('【BPW6】PPG字节无法组成Int32采样，跳过上传', rawBytes.length)
+					this.ppgUploadInProgress = false
+					this.bpw6PpgFinishing = false
+					if (this.isBpw6EmotionImmediateUi()) {
+						this.notifyBpw6EmotionImmediateFail('数据解析失败请重新测量', 'BPW6 PPG字节无法组成Int32采样')
+						return
+					}
+					if (this.bpw6PpgTransferStarted || this.bpw6PpgLoadingActive) {
+						this.hideBpw6PpgLoading(true)
+					}
+					this.endBpw6QxScheduledMeasureIfNeeded('BPW6 PPG字节无法组成Int32采样')
+					return
+				}
+				const binary = this.packInt16(rawBytes)
+				// const binary = this.packBpw6PpgInt32(rawBytes)
+				console.log('【BPW6】上传PPG原始数据, bytes:', rawBytes.length, 'samples:', samples.length, 'rate:', BC_PACKET
+					.PPG_SAMPLE_RATE_HZ)
 				this.bpw6PpgRawData(binary, deviceSn, deviceId)
 				this.bpw6PpgRawBuffer = []
 				this.bpw6PpgDataSize = 0
@@ -5594,9 +6573,9 @@
 					patientId: uni.getStorageSync("userid"),
 					deviceSn: deviceSn,
 					deviceModel: "U19M",
-					samplingRate: 100,
+					samplingRate: 200,
 					startTime: this.getTimeAllJSON().YMDHMS,
-					dataFormat: "INT16",
+					dataFormat: "INT32",
 					signalRange: 0,
 					rawData: rawData,
 					dataLength: "",
@@ -5610,7 +6589,7 @@
 					measurementTs: this.UTCdatatime().timestampSec,
 					measurementTimezone: this.getTimeAllJSON().YMDHMS,
 				}
-				console.log("【BPW6】PPG上传", data)
+				console.log("【BPW6】PPG上传", data, rawData.length)
 				// 立即测量：上传阶段显示「云端数据计算中」
 				if (isImmediate) {
 					this.bpw6PpgTransferStarted = true
@@ -5654,17 +6633,25 @@
 					}
 				}).finally(() => {
 					this.ppgUploadInProgress = false
-					// 立即测量成功后等 deviceppgdatalist 结束会话；失败已在上面 restore
-					if (!isImmediate) {
+					// 定时标记仍在：上传结束后必须结束调度会话（防止被误标立即测量后一直「测量进行中」）
+					let stillScheduled = false
+					try {
+						const scheduled = uni.getStorageSync('qx_ble_scheduled_measure')
+						stillScheduled = scheduled === 1 || scheduled === '1'
+					} catch (eSched2) {}
+					if (stillScheduled || !isImmediate) {
 						this.bpw6PpgFinishing = false
 						this.endBpw6QxScheduledMeasureIfNeeded('BPW6定时PPG完成')
-					} else if (!this.bpw6EmotionPpgActive && !this.immediateEmotionMeasure) {
+						return
+					}
+					// 立即测量成功后等 deviceppgdatalist 结束会话；失败已在上面 restore
+					if (!this.bpw6EmotionPpgActive && !this.immediateEmotionMeasure) {
 						// 失败路径已清会话：后台再强制清一次 loading
 						this.bpw6NeedClearLoadingOnShow = true
 						try {
 							uni.hideLoading()
 						} catch (e) {}
-					} else if (isImmediate) {
+					} else {
 						// 上传请求结束但云端仍在算：保持 transferring
 						this.setBpw6EmotionPpgPhase('transferring')
 						this.markBpw6PpgSessionBusy('BPW6云端计算中')
@@ -5823,10 +6810,7 @@
 						// console.log('isNewestRecord:', data);
 						// 设备按新→旧推送，首页只展示最新一条；须比接口新且有网才刷新
 						if (isNewestRecord) {
-							console.log('isNewestRecord:', data.type);
 							let BPW6hexDataupdatewatchtime = that.datatime(data.date.formatted)
-							console.log('BPW6hexDataupdatewatchtime:', BPW6hexDataupdatewatchtime);
-							console.log('2BPW6hexDataupdatewatchtime:', uni.getStorageSync("parseBloodDatatime"));
 							that.runHomeVitalRefreshIfAllowed(BPW6hexDataupdatewatchtime, 'parseBloodDatatime',
 								() => {
 									uni.setStorageSync("parseBloodDatatime", BPW6hexDataupdatewatchtime)
@@ -6052,6 +7036,10 @@
 						break;
 					case 'battery':
 						console.log('【BPW6】手表电量:', data.value);
+						try {
+							const mac = uni.getStorageSync('BPW6devicemac') || ''
+							if (mac) notifyQxBleWatchConnectionState(true, mac);
+						} catch (eBat) {}
 						break;
 					case 'hrAutoInfo':
 						console.log('【BPW6】手表心率自动测量开关:', data.hrAutoEnabled);
@@ -6075,107 +7063,419 @@
 				}
 				return binaryString;
 			},
-			/**
-			 * BPW1同步历史数据并发送天气命令
-			 * @param {Object} deviceId
-			 * 请求同步所有数据：e00006ea010100000101
-			 * 请求同步当天所有数据命令：e00006eb010101000101
-			 */
-			Sync_historical_data(deviceId) {
-				let that = this
-				uni.writeBLECharacteristicValue({
-					deviceId: deviceId,
-					serviceId: BPW1serviceId,
-					characteristicId: BPW1write,
-					writeType: 'writeNoResponse',
-					value: that.toArrayBuffer('e00006ea010100000101'),
-					success() {
-						that.blewatch_id = "1"
-						that.blewatch_id2 = "0"
-						that.beginBpw1HistorySync()
-						uni.getNetworkType({
-							success: function(res) {
-								if (res.networkType === 'none') {
-									console.error("当前无网络，无法同步天气");
-								} else {
-									setTimeout(() => {
-										that.getLocalWeather(
-											deviceId,
-											BPW1serviceId,
-											BPW1write)
-									}, 6000)
-								}
-							},
-							fail: function(err) {
-								console.error('获取网络类型失败：', err);
-							}
-						});
-					},
-					fail() {
-						that.blewatch_id = "0"
-						that.endBpw1HistorySync('sync_cmd_fail')
-						console.log("请求同步所有数据失败：e00006ea010100000101")
-						uni.getNetworkType({
-							success: function(res) {
-								if (res.networkType === 'none') {
-									console.error("当前无网络，无法同步天气");
-								} else {
-									setTimeout(() => {
-										that.getLocalWeather(
-											deviceId,
-											BPW1serviceId,
-											BPW1write)
-									}, 6000)
-								}
-							},
-							fail: function(err) {
-								console.error('获取网络类型失败：', err);
-							}
-						});
+			waitBpw1SetupDeviceReply(key, timeoutMs = 2500) {
+				const that = this
+				if (!that._bpw1SetupSeenReply) {
+					that._bpw1SetupSeenReply = {}
+				}
+				if (!that._bpw1SetupWaiters) {
+					that._bpw1SetupWaiters = {}
+				}
+				return new Promise((resolve) => {
+					if (that._bpw1SetupSeenReply[key]) {
+						delete that._bpw1SetupSeenReply[key]
+						resolve('reply')
+						return
+					}
+					const timer = setTimeout(() => {
+						if (that._bpw1SetupWaiters[key]) {
+							delete that._bpw1SetupWaiters[key]
+							resolve('timeout')
+						}
+					}, timeoutMs)
+					that._bpw1SetupWaiters[key] = (reason) => {
+						clearTimeout(timer)
+						delete that._bpw1SetupWaiters[key]
+						resolve(reason || 'reply')
 					}
 				})
 			},
-			// 定义一个函数来计算校验和
-			calculateChecksumsss2(deviceId, serviceId, writeuuid, deviceSn) {
-				let that = this
-				let plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
-				let {
-					brand,
-					model
-				} = uni.getSystemInfoSync()
-				if (brand === "xiaomi" || brand === "oneplus") {
-					plugin.pairDevice({
-						mac: deviceId
-					}, pairDeviceres => {
-						plugin.enableBluetoothAudio({}, (connectAudioProfiles) => {
-							console.log('connectAudioProfiles:', connectAudioProfiles);
-						});
-					})
-				} else {
-					let result = `0x${deviceId.slice(15, deviceId.length)}` ^ 0x55;
-					plugin.pairDevice({
-						mac: deviceId.slice(0, 15) + result.toString(16)
-							.toUpperCase() //非ios都要把mac最后两位最一位改成例如 0x9f ^ 0x55 = 0xca
-					}, pairDeviceres => {
-						if (pairDeviceres.success === true) {
+			notifyBpw1SetupDeviceReply(key) {
+				if (!this._bpw1SetupSeenReply) {
+					this._bpw1SetupSeenReply = {}
+				}
+				this._bpw1SetupSeenReply[key] = true
+				const finish = this._bpw1SetupWaiters && this._bpw1SetupWaiters[key]
+				if (typeof finish === 'function') {
+					// 勿在 notify 同步栈里立刻写下一条
+					setTimeout(() => finish('reply'), 80)
+				}
+			},
+			/** BPW1：经典蓝牙配对 + 音频配置（连接后初始化写完成再调） */
+			startBpw1PairAudio(deviceId) {
+				if (!deviceId) {
+					return
+				}
+				try {
+					const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
+					const {
+						brand
+					} = uni.getSystemInfoSync()
+					if (brand === "xiaomi" || brand === "oneplus") {
+						plugin.pairDevice({
+							mac: deviceId
+						}, () => {
 							plugin.enableBluetoothAudio({}, (connectAudioProfiles) => {
 								console.log('connectAudioProfiles:', connectAudioProfiles);
 							});
-						} else {
+						})
+					} else {
+						const result = `0x${deviceId.slice(15, deviceId.length)}` ^ 0x55;
+						const mac = deviceId.slice(0, 15) + result.toString(16).toUpperCase()
+						plugin.pairDevice({
+							mac
+						}, (pairDeviceres) => {
+							if (pairDeviceres && pairDeviceres.success === true) {
+								plugin.enableBluetoothAudio({}, (connectAudioProfiles) => {
+									console.log('connectAudioProfiles:', connectAudioProfiles);
+								});
+								return
+							}
 							plugin.pairDevice({
-								mac: deviceId.slice(0, 15) + result.toString(16)
-									.toUpperCase() //非ios都要把mac最后两位最一位改成例如 0x9f ^ 0x55 = 0xca
-							}, pairDeviceres => {
-								console.log('pairDeviceres1：', pairDeviceres)
-								if (pairDeviceres.success === true) {
+								mac
+							}, (pairDeviceres1) => {
+								console.log('pairDeviceres1：', pairDeviceres1)
+								if (pairDeviceres1 && pairDeviceres1.success === true) {
 									plugin.enableBluetoothAudio({}, (connectAudioProfiles) => {
 										console.log('3connectAudioProfiles:',
 											connectAudioProfiles);
 									});
 								}
 							})
+						})
+					}
+				} catch (e) {
+					console.warn('【BPW1】配对/音频启动失败', e)
+				}
+			},
+			/**
+			 * BPW1同步历史数据并发送天气命令
+			 * @param {Object} deviceId
+			 * 请求同步所有数据：e00006ea010100000101
+			 * 请求同步当天所有数据命令：e00006eb010101000101
+			 */
+			Sync_historical_data(deviceId, retryLeft = 1) {
+				let that = this
+				const doSyncWrite = () => {
+					uni.writeBLECharacteristicValue({
+						deviceId: deviceId,
+						serviceId: BPW1serviceId,
+						characteristicId: BPW1write,
+						writeType: 'writeNoResponse',
+						value: that.toArrayBuffer('e00006ea010100000101'),
+						success() {
+							// 初始化阶段积压的查询/运动 ACK 已过期，丢弃勿倒灌
+							that.bpw1SetupCmdBusy = false
+							that._bpw1AckQueue = []
+							that._bpw1AckFlushing = false
+							that.blewatch_id = "1"
+							that.blewatch_id2 = "0"
+							that.beginBpw1HistorySync()
+							console.log("请求同步所有数据成功：e00006ea010100000101")
+							// 天气/定时调度放到历史同步结束（endBpw1HistorySync），勿在收历史包时抢写
+							that.bpw1PendingWeatherAfterHistory = {
+								deviceId,
+								serviceId: BPW1serviceId,
+								writeuuid: BPW1write
+							}
+						},
+						fail(err) {
+							console.log("请求同步所有数据失败：e00006ea010100000101", err)
+							if (retryLeft > 0) {
+								console.log('【BPW1】同步命令2s后重试')
+								setTimeout(() => {
+									that.Sync_historical_data(deviceId, retryLeft - 1)
+								}, 2000)
+								return
+							}
+							that.bpw1SetupCmdBusy = false
+							that._bpw1AckQueue = []
+							that._bpw1AckFlushing = false
+							that.blewatch_id = "0"
+							that.bpw1PendingWeatherAfterHistory = {
+								deviceId,
+								serviceId: BPW1serviceId,
+								writeuuid: BPW1write
+							}
+							// end 内会恢复调度与补发天气
+							that.endBpw1HistorySync('sync_cmd_fail')
 						}
 					})
+				}
+				// 等 ACK 队列空闲再发同步，降低与设备查询 ACK 撞写概率
+				that.whenBpw1AckIdle(doSyncWrite, 8)
+			},
+			/** 等 BPW1 ACK 队列空闲后再写命令 */
+			whenBpw1AckIdle(cb, retryLeft = 6) {
+				// 初始化阶段 ACK 被有意暂存，不应阻塞同步/运动命令
+				if (this.bpw1SetupCmdBusy) {
+					cb()
+					return
+				}
+				const busy = this._bpw1AckFlushing ||
+					(this._bpw1AckQueue && this._bpw1AckQueue.length > 0)
+				if (!busy) {
+					cb()
+					return
+				}
+				if (retryLeft <= 0) {
+					cb()
+					return
+				}
+				setTimeout(() => {
+					this.whenBpw1AckIdle(cb, retryLeft - 1)
+				}, 200)
+			},
+			/** 连接初期暂缓的定时调度，在同步命令结束后再开 */
+			flushBpw1PendingResumeSchedule(delayMs = 1500) {
+				if (!this.bpw1PendingResumeSchedule) {
+					return
+				}
+				this.bpw1PendingResumeSchedule = false
+				setTimeout(() => {
+					import('@/pages/api/qxBleAlignedSchedule.js').then((m) => {
+						m.resumeQxBleScheduleIfEnabled().catch(() => {})
+					}).catch(() => {})
+				}, delayMs)
+			},
+			/**
+			 * 发送绑定命令（对齐 Bind_page_2：CMD 0x08 / KEY 0x00 + SN）
+			 * @param {number} delayMs 延迟；初始化链已等过查询 ACK 时传 0
+			 */
+			sendBindCommand(deviceId, serviceId, charId, sn, delayMs = 0) {
+				const snRaw = String(sn || this.shoubiaosn || uni.getStorageSync('deviceSn') || '')
+					.replace(/^SN:/i, '')
+					.trim()
+				if (!snRaw || snRaw.length < 16) {
+					console.warn('【BPW1】绑定命令跳过，SN无效', snRaw)
+					return
+				}
+				const snBytes = this.snToBytes(snRaw)
+				const command = this.buildBpw1Command(0x08, 0x00, snBytes, 0x00)
+				const run = () => {
+					this.writeBpw1Command(deviceId, serviceId || BPW1serviceId, charId || BPW1write, command)
+				}
+				if (delayMs > 0) {
+					setTimeout(run, delayMs)
+				} else {
+					run()
+				}
+			},
+			/**
+			 * 连接初始化串行：等查询回包 → 绑定 → 间隔 → 校时 → 运动/同步。
+			 * 禁止绑定与校时并行，避免互相抢写导致 10007。
+			 */
+			scheduleBpw1BindAndTime(deviceId, serviceId, writeuuid, deviceSn, extraDelay = 0) {
+				this.clearBpw1InitChainTimer()
+				const gen = (this._bpw1InitGen = (this._bpw1InitGen || 0) + 1)
+				this.bpw1InitChain = {
+					deviceId,
+					serviceId,
+					writeuuid,
+					deviceSn,
+					stage: 'waitQuery',
+					gen
+				}
+				if (!this._bpw1SetupSeenReply) {
+					this._bpw1SetupSeenReply = {}
+				}
+				delete this._bpw1SetupSeenReply.queryAck00
+				console.log('【BPW1】初始化串行启动', {
+					extraDelay,
+					gen
+				})
+				this.runBpw1InitSerial(gen, extraDelay).catch((e) => {
+					console.log('【BPW1】初始化串行异常', e)
+				})
+			},
+			async runBpw1InitSerial(gen, extraDelay = 0) {
+				const that = this
+				const alive = () => that.bpw1InitChain && that.bpw1InitChain.gen === gen
+				const chain = that.bpw1InitChain
+				if (!chain) {
+					return
+				}
+				const {
+					deviceId,
+					serviceId,
+					writeuuid,
+					deviceSn
+				} = chain
+				try {
+					if (extraDelay > 0) {
+						await that.bpw1InitDelay(extraDelay)
+					}
+					if (!alive()) {
+						return
+					}
+					// 冷启动查询 ACK 可能较晚，最多等 5s；到了也继续，避免卡死
+					const queryReply = await that.waitBpw1SetupDeviceReply('queryAck00', 5000)
+					console.log('【BPW1】查询回包', queryReply)
+					if (!alive()) {
+						return
+					}
+					// 回包/超时后再空闲一会，再发绑定（勿与查询 ACK 处理撞写）
+					await that.bpw1InitDelay(1500)
+					if (!alive()) {
+						return
+					}
+
+					// 1) 绑定（可失败，失败也继续校时）
+					chain.stage = 'binding'
+					const snRaw = String(deviceSn || that.shoubiaosn || uni.getStorageSync('deviceSn') || '')
+						.replace(/^SN:/i, '')
+						.trim()
+					if (snRaw && snRaw.length >= 16) {
+						const snBytes = that.snToBytes(snRaw)
+						const bindCmd = that.buildBpw1Command(0x08, 0x00, snBytes, 0x00)
+						let sum = 0
+						for (let i = 0; i < bindCmd.length; i++) {
+							sum += bindCmd[i]
+						}
+						const checksum = sum % 256
+						const finalBind = new Uint8Array(bindCmd.length + 1)
+						finalBind.set(bindCmd.subarray(0, 3), 0)
+						finalBind[3] = checksum
+						finalBind.set(bindCmd.subarray(3), 4)
+						const bindHex = Array.from(finalBind).map(b => b.toString(16).padStart(2, '0')).join('')
+						const bindOk = await that.writeBpw1InitOnce(
+							deviceId, serviceId, writeuuid, that.toArrayBuffer(bindHex), '绑定命令', 1)
+						console.log('【BPW1】绑定结束', bindOk ? 'ok' : 'fail')
+					} else {
+						console.warn('【BPW1】绑定跳过，SN无效', snRaw)
+					}
+					if (!alive()) {
+						return
+					}
+					// 绑定写完后再校时，互不并行
+					await that.bpw1InitDelay(2000)
+					if (!alive()) {
+						return
+					}
+
+					// 2) 校时 → 内部再进运动/同步
+					chain.stage = 'timing'
+					that.calculateChecksumsss2(deviceId, serviceId, writeuuid, deviceSn)
+				} catch (e) {
+					console.log('【BPW1】初始化串行失败，直接校时', e)
+					if (alive()) {
+						that.calculateChecksumsss2(deviceId, serviceId, writeuuid, deviceSn)
+					}
+				}
+			},
+			/** 清掉 BPW1 连接初始化相关定时器（重连/重发前必须调） */
+			clearBpw1SetupTimers() {
+				this.bpw1SetupGen = (this.bpw1SetupGen || 0) + 1
+				if (this.bpw1TimeDelayTimer) {
+					clearTimeout(this.bpw1TimeDelayTimer)
+					this.bpw1TimeDelayTimer = null
+				}
+				if (this.bpw1SportTimer) {
+					clearTimeout(this.bpw1SportTimer)
+					this.bpw1SportTimer = null
+				}
+				if (this.bpw1SyncTimer) {
+					clearTimeout(this.bpw1SyncTimer)
+					this.bpw1SyncTimer = null
+				}
+				this.clearBpw1InitChainTimer()
+				this.bpw1InitChain = null
+				this._bpw1AckQueue = []
+				this._bpw1AckFlushing = false
+				this.bpw1SetupCmdBusy = false
+				this._bpw1LastAckAt = 0
+			},
+			bpw1InitDelay(ms) {
+				return new Promise((resolve) => setTimeout(resolve, ms))
+			},
+			/** 清理连接初始化定时器 */
+			clearBpw1InitChainTimer() {
+				if (this.bpw1InitChainTimer) {
+					clearTimeout(this.bpw1InitChainTimer)
+					this.bpw1InitChainTimer = null
+				}
+			},
+			/** 初始化写：失败 2s 后重试 1 次 */
+			writeBpw1InitOnce(deviceId, serviceId, charId, buffer, label, retryLeft = 1) {
+				const that = this
+				return new Promise((resolve) => {
+					uni.writeBLECharacteristicValue({
+						deviceId,
+						serviceId: serviceId || BPW1serviceId,
+						characteristicId: charId || BPW1write,
+						writeType: 'writeNoResponse',
+						value: buffer,
+						success: () => {
+							console.log(`【BPW1】${label}发送成功`)
+							resolve(true)
+						},
+						fail: async (err) => {
+							console.log(`【BPW1】${label}发送失败`, err)
+							if (retryLeft > 0) {
+								console.log(`【BPW1】${label}2s后重试`)
+								await that.bpw1InitDelay(2000)
+								const ok = await that.writeBpw1InitOnce(
+									deviceId, serviceId, charId, buffer, label, retryLeft - 1)
+								resolve(ok)
+								return
+							}
+							resolve(false)
+						}
+					})
+				})
+			},
+			/** SN 转 8 字节（取前 16 个 hex 字符） */
+			snToBytes(sn) {
+				const hex = String(sn).replace(/[^0-9a-fA-F]/g, '')
+				return new Uint8Array([
+					parseInt(hex.slice(0, 2), 16) || 0,
+					parseInt(hex.slice(2, 4), 16) || 0,
+					parseInt(hex.slice(4, 6), 16) || 0,
+					parseInt(hex.slice(6, 8), 16) || 0,
+					parseInt(hex.slice(8, 10), 16) || 0,
+					parseInt(hex.slice(10, 12), 16) || 0,
+					parseInt(hex.slice(12, 14), 16) || 0,
+					parseInt(hex.slice(14, 16), 16) || 0
+				])
+			},
+			/** 构建 BPW1 协议帧（不含校验位） */
+			buildBpw1Command(cmd, key, data, protocolVersion = 0x00) {
+				const len = data.length
+				const cmdLen = len + 5
+				const command = new Uint8Array(len + 8)
+				command[0] = 0xe0
+				command[1] = (cmdLen >> 8) & 0xFF
+				command[2] = cmdLen & 0xFF
+				command[3] = cmd
+				command[4] = protocolVersion
+				command[5] = key
+				command[6] = (len >> 8) & 0xFF
+				command[7] = len & 0xFF
+				command.set(data, 8)
+				return command
+			},
+			/** 写入带校验和的 BPW1 命令（失败自动重试 1 次） */
+			writeBpw1Command(deviceId, serviceId, charId, command) {
+				let sum = 0
+				for (let i = 0; i < command.length; i++) {
+					sum += command[i]
+				}
+				const checksum = sum % 256
+				const finalCmd = new Uint8Array(command.length + 1)
+				finalCmd.set(command.subarray(0, 3), 0)
+				finalCmd[3] = checksum
+				finalCmd.set(command.subarray(3), 4)
+				const hexStr = Array.from(finalCmd).map(b => b.toString(16).padStart(2, '0')).join('')
+				return this.writeBpw1InitOnce(
+					deviceId, serviceId, charId, this.toArrayBuffer(hexStr), '绑定命令', 0)
+			},
+			// 定义一个函数来计算校验和（先校时；配对延后，避免与运动/同步写撞 10007）
+			calculateChecksumsss2(deviceId, serviceId, writeuuid, deviceSn, setupGen) {
+				let that = this
+				const gen = setupGen != null ? setupGen : that.bpw1SetupGen
+				// 配对/音频放到同步命令之后，连接初期不要抢 GATT
+				that.bpw1PendingPairAudio = {
+					deviceId
 				}
 
 				const ACK_HEADER = 0xe0 // 常量-头部
@@ -6226,25 +7526,73 @@
 				const hexCommand22 = Array.from(modifiedCommand2).map(byte => byte.toString(16)
 					.padStart(2, '0')).join('');
 				const buffer = that.toArrayBuffer(hexCommand22); // 转换为 ArrayBuffer获取设备信息
-				uni.writeBLECharacteristicValue({
-					deviceId: deviceId,
-					serviceId: serviceId,
-					characteristicId: writeuuid,
-					writeType: 'writeNoResponse',
-					value: buffer,
-					success(res) {
-						console.log("【BPW1】时间命令数据回复成功：", hexCommand22)
-						that.getsetp(deviceId, serviceId, writeuuid, BleDeviceConfig.PROTOCOL_VERSION)
-					},
-					fail(err) {
-						console.log("【BPW1】时间命令数据回复失败：", err)
-						that.getsetp(deviceId, serviceId, writeuuid, BleDeviceConfig.PROTOCOL_VERSION)
-					}
-				})
+				if (that.bpw1SetupGen !== gen) {
+					return
+				}
+				const writeTimeOnce = (retryLeft) => {
+					uni.writeBLECharacteristicValue({
+						deviceId: deviceId,
+						serviceId: serviceId,
+						characteristicId: writeuuid,
+						writeType: 'writeNoResponse',
+						value: buffer,
+						success(res) {
+							console.log("【BPW1】时间命令数据回复成功：", hexCommand22)
+							if (that.bpw1SetupGen !== gen) {
+								return
+							}
+							const startSportChain = () => {
+								if (that.bpw1SetupGen !== gen) {
+									return
+								}
+								that.getsetp(deviceId, serviceId, writeuuid, BleDeviceConfig
+									.PROTOCOL_VERSION,
+									gen)
+							}
+							// 等校时 ACK 再进运动：ACK 晚到时按写成功固定 6s 会撞忙通道
+							that.waitBpw1SetupDeviceReply('timeAck08', 5000).then((reason) => {
+								if (that.bpw1SetupGen !== gen) {
+									return
+								}
+								that.bpw1TimeDelayTimer = setTimeout(() => {
+									that.bpw1TimeDelayTimer = null
+									startSportChain()
+								}, 2000)
+							})
+						},
+						fail(err) {
+							console.log("【BPW1】时间命令数据回复失败：", err)
+							if (that.bpw1SetupGen !== gen) {
+								return
+							}
+							if (retryLeft > 0) {
+								console.log('【BPW1】时间命令2s后重试')
+								that.bpw1TimeDelayTimer = setTimeout(() => {
+									that.bpw1TimeDelayTimer = null
+									if (that.bpw1SetupGen !== gen) {
+										return
+									}
+									writeTimeOnce(retryLeft - 1)
+								}, 2000)
+								return
+							}
+							that.getsetp(deviceId, serviceId, writeuuid, BleDeviceConfig.PROTOCOL_VERSION, gen)
+						}
+					})
+				}
+				if (!that._bpw1SetupSeenReply) {
+					that._bpw1SetupSeenReply = {}
+				}
+				delete that._bpw1SetupSeenReply.timeAck08
+				writeTimeOnce(1)
 			},
 
 			sendack(dataList, deviceId, serviceId, writeuuid) {
 				// console.log("发送ACK命令：", dataList, deviceId, serviceId, writeuuid)
+				// 仅对 e0 业务包回 ACK；设备侧 0e 状态/ACK 包不回，避免误写与撞写
+				if (String(dataList || '').slice(0, 2).toLowerCase() !== 'e0') {
+					return
+				}
 				let that = this
 				that.dataBuffer = [];
 				that.xueyapack = 0;
@@ -6328,6 +7676,10 @@
 				}
 			},
 			sendack2(dataList, deviceId, serviceId, writeuuid) {
+				// 仅对 e0 业务包回 ACK；设备侧 0e 状态/ACK 包不回，避免误写与撞写
+				if (String(dataList || '').slice(0, 2).toLowerCase() !== 'e0') {
+					return
+				}
 				let that = this
 				const hexString = dataList
 				// 将十六进制字符串转换为字节数组
@@ -6386,19 +7738,85 @@
 					const hexCommand = Array.from(modifiedCommand).map(byte => byte
 						.toString(16).padStart(2, '0')).join('');
 					const buffer = that.toArrayBuffer(hexCommand); // 转换为 ArrayBuffer获取设备信息
-					uni.writeBLECharacteristicValue({
-						deviceId: deviceId,
-						serviceId: serviceId,
-						characteristicId: writeuuid,
-						value: buffer,
-						success(res) {
-							// console.log("回复ack数据成功", hexCommand)
-						},
-						fail(err) {
-							// console.log("回复ack数据失败", hexCommand)
-						},
+					// 运动数据与紧随的 0e 状态包会连续触发 ACK，并行写易 10007；排队串行写出
+					that.enqueueBpw1AckWrite(buffer, hexCommand)
+				}
+			},
+			/** BPW1 ACK 串行写：离开 notify 栈，且相邻 ACK 间隔开 */
+			enqueueBpw1AckWrite(buffer, hexCommand) {
+				// 初始化命令阶段不回 ACK（手表已继续后续流程），避免同步后倒灌撞历史包
+				if (this.bpw1SetupCmdBusy) {
+					return
+				}
+				if (!this._bpw1AckQueue) {
+					this._bpw1AckQueue = []
+				}
+				// 历史包密集时只保留最新 ACK，避免队列堆积后连写撞通道
+				if (this._bpw1AckQueue.length >= 1) {
+					this._bpw1AckQueue = [{
+						buffer,
+						hexCommand
+					}]
+				} else {
+					this._bpw1AckQueue.push({
+						buffer,
+						hexCommand
 					})
 				}
+				this.flushBpw1AckQueue()
+			},
+			flushBpw1AckQueue() {
+				const that = this
+				if (that._bpw1AckFlushing) {
+					return
+				}
+				if (!that._bpw1AckQueue || that._bpw1AckQueue.length === 0) {
+					return
+				}
+				if (that.bpw1SetupCmdBusy) {
+					return
+				}
+				const next = that._bpw1AckQueue.shift()
+				that._bpw1AckFlushing = true
+				const minGapMs = 500
+				const sinceLast = Date.now() - (that._bpw1LastAckAt || 0)
+				const deferMs = Math.max(80, minGapMs - sinceLast)
+				const writeOnce = (isRetry) => {
+					// writeNoResponse 更快释放通道；仍串行+最小间隔，避免历史包连 ACK 撞 10007
+					uni.writeBLECharacteristicValue({
+						deviceId: uni.getStorageSync("deviceIdwatch"),
+						serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
+						characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
+						writeType: "writeNoResponse",
+						value: next.buffer,
+						success() {
+							that._bpw1LastAckAt = Date.now()
+							// console.log("回复ack数据成功2")
+							that._bpw1AckFlushing = false
+							setTimeout(() => {
+								that.flushBpw1AckQueue()
+							}, minGapMs)
+						},
+						fail(err) {
+							if (!isRetry) {
+								console.log("回复ack数据失败", next.hexCommand, err)
+								setTimeout(() => {
+									writeOnce(true)
+								}, 700)
+							} else {
+								console.log("回复ack数据重试失败", next.hexCommand, err)
+								that._bpw1LastAckAt = Date.now()
+								that._bpw1AckFlushing = false
+								setTimeout(() => {
+									that.flushBpw1AckQueue()
+								}, minGapMs)
+							}
+						}
+					})
+				}
+				setTimeout(() => {
+					writeOnce(false)
+				}, deferMs)
 			},
 
 			calculateQuotient(bufferSize, chunkSize) {
@@ -6490,9 +7908,18 @@
 					Covmamlueand
 				};
 			},
-			// 运动命令
-			getsetp(deviceId, serviceId, writeuuid, PROTOCOL_VERSION) {
+			// 运动命令（校时后 6s 运动、8s 同步；定时器可取消，避免重连旧任务撞车）
+			getsetp(deviceId, serviceId, writeuuid, PROTOCOL_VERSION, setupGen) {
 				let that = this
+				const gen = setupGen != null ? setupGen : that.bpw1SetupGen
+				if (that.bpw1SportTimer) {
+					clearTimeout(that.bpw1SportTimer)
+					that.bpw1SportTimer = null
+				}
+				if (that.bpw1SyncTimer) {
+					clearTimeout(that.bpw1SyncTimer)
+					that.bpw1SyncTimer = null
+				}
 				const ackConfigByteset = new Uint8Array(9);
 				ackConfigByteset[0] = 0xE0;
 				ackConfigByteset[1] = 0x00;
@@ -6508,36 +7935,62 @@
 					ackConfigBytesum2 += ackConfigByteset[i];
 				}
 				ackConfigBytesum2 = ackConfigBytesum2 % 256;
-				// 创建新的数组，将校验和插入到第四个字节中
-				const modifiedCommand2 = new Uint8Array(ackConfigByteset.length +
-					1);
+				const modifiedCommand2 = new Uint8Array(ackConfigByteset.length + 1);
 				modifiedCommand2.set(ackConfigByteset.subarray(0, 3), 0);
 				modifiedCommand2[3] = ackConfigBytesum2;
 				modifiedCommand2.set(ackConfigByteset.subarray(3), 4);
 				const hexCommand2 = Array.from(modifiedCommand2).map(byte => byte
 					.toString(16).padStart(2, '0')).join('');
 				const buffer2 = that.toArrayBuffer(hexCommand2);
-				setTimeout(() => {
+				const writeCharId = writeuuid || BPW1write
+				const scheduleSync = () => {
+					if (that.bpw1SyncTimer) {
+						clearTimeout(that.bpw1SyncTimer)
+					}
+					that.bpw1SyncTimer = setTimeout(() => {
+						that.bpw1SyncTimer = null
+						if (that.bpw1SetupGen !== gen) {
+							return
+						}
+						that.Sync_historical_data(deviceId)
+					}, 2000)
+				}
+				const writeSportOnce = (retryLeft) => {
+					if (that.bpw1SetupGen !== gen) {
+						return
+					}
 					uni.writeBLECharacteristicValue({
-						deviceId: deviceId,
-						serviceId: BPW1serviceId,
-						characteristicId: BPW1write,
-						writeType: 'writeNoResponse',
+						deviceId: uni.getStorageSync("deviceIdwatch"),
+						serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
+						characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
+						writeType: "writeNoResponse",
 						value: buffer2,
 						success(res) {
-							console.log("【BPW1运动数据回复成功】" + hexCommand2)
+							console.log("【BPW1运动数据回复成功】" + hexCommand2, uni.getStorageSync("deviceIdwatch"))
 							that.dataBuffer = []
+							scheduleSync()
 						},
 						fail(err) {
-							console.log("【BPW1运动数据回复失败】")
+							console.log("【BPW1运动数据回复失败】", err, uni.getStorageSync("deviceIdwatch"))
 							that.dataBuffer = []
+							if (retryLeft > 0 && that.bpw1SetupGen === gen) {
+								console.log('【BPW1】运动命令2s后重试')
+								that.bpw1SportTimer = setTimeout(() => {
+									that.bpw1SportTimer = null
+									writeSportOnce(retryLeft - 1)
+								}, 2000)
+								return
+							}
+							// 运动最终失败也继续同步
+							scheduleSync()
 						},
 					})
-				}, 6000)
-
-				setTimeout(() => {
-					that.Sync_historical_data(deviceId)
-				}, 8000)
+				}
+				// 校时 ACK 后再进入本方法；此处再隔 4s 发运动，运动结束再隔 2s 同步
+				that.bpw1SportTimer = setTimeout(() => {
+					that.bpw1SportTimer = null
+					writeSportOnce(1)
+				}, 4000)
 			},
 			weather(deviceId, serviceId, writeuuid) {
 				let that = this;
@@ -6680,8 +8133,9 @@
 				};
 				setTimeout(sendNextPacket, 2000);
 			},
-			OTAdata(deviceId, serviceId, writeuuid) {
+			OTAdata(deviceId, serviceId, writeuuid, options = {}) {
 				let that = this
+				const delayMs = typeof options.delayMs === 'number' ? options.delayMs : 3000
 				const buffer2 = that.toArrayBuffer("e0000609200101000100"); // 转换为 ArrayBuffer获取设备信息
 				setTimeout(() => {
 					uni.writeBLECharacteristicValue({
@@ -6694,10 +8148,14 @@
 							console.log("OTA：e0000609200101000100")
 						},
 						fail(err) {
-							console.log("OTA失败：e0000609200101000100")
+							console.log("OTA失败：e0000609200101000100", err)
+							// 查询失败时仍尝试用缓存固件信息下发测量，避免卡死
+							if (that.bpw1PendingEmotionMeasure) {
+								that.flushBpw1PendingEmotionMeasure('ota_write_fail')
+							}
 						},
 					})
-				}, 3000)
+				}, delayMs)
 			},
 
 			getsetpsin(deviceId, serviceId, writeuuid, PROTOCOL_VERSION) {
@@ -6924,7 +8382,9 @@
 			handleSportProtocol00(dataList, BPW1DeviceId, BPW1serviceId, BPW1write) {
 				const that = this
 				console.log("【BPW1】运动数据", dataList)
-				that.sendack2(dataList, BPW1DeviceId, BPW1serviceId, BPW1write)
+
+				// 通知连接后初始化链：运动回包已到，可发下一条（历史同步）
+				that.notifyBpw1SetupDeviceReply('sportData')
 				const stepheart = dataList.slice(0, 18);
 				const stepbody = dataList.slice(18, dataList.length);
 				const step = stepbody.slice(0, 8)
@@ -6936,6 +8396,7 @@
 				// console.log("卡路里", parseInt(kaluli, 16))
 				const settept1 = parseInt(step, 16);
 				that.jakoblife_fat_scale3(that.shoubiaomac, settept1, that.shoubiaosn, "步数", "");
+				that.sendack2(dataList, BPW1DeviceId, BPW1serviceId, BPW1write)
 				that.resetDataState()
 			},
 			handleProtocol0e(dataList, CMD, ProtocolIdentifierppg, options = {}) {
@@ -6944,6 +8405,18 @@
 				const useQxHide = options.useQxHide !== false
 				let qingxukey = dataList.slice(12, 14)
 				console.log("【BPW1】" + qingxukey, dataList)
+				// 设备查询 ACK：仅放行初始化串行，不在此处写命令
+				if (qingxukey === '00' && CMD === '00') {
+					that.notifyBpw1SetupDeviceReply('queryAck00')
+				}
+				// 绑定 ACK(CMD 08)
+				if (CMD === '08') {
+					that.notifyBpw1SetupDeviceReply('bindAck08')
+				}
+				// 校时 ACK(key 08 / CMD 02)
+				if (qingxukey === '08' && CMD === '02') {
+					that.notifyBpw1SetupDeviceReply('timeAck08')
+				}
 				if (CMD === "06" || (CMD === "03" && qingxukey === "25")) {
 					that.xueya_xinlv = true
 					const isEmotionPpgCmd = (CMD === "03" && qingxukey === "25")
@@ -7136,7 +8609,17 @@
 				console.log("手环信息更新", bytes)
 				uni.setStorageSync("otadatares", bytes.toUpperCase())
 				uni.setStorageSync("otaBP", bytes.toUpperCase())
-				if (that.isBpw1ActivePpgSession()) {
+				// 立即测量待启动：必须 ACK，否则后续情绪命令发不出去
+				if (that.bpw1PendingEmotionMeasure) {
+					that.sendack(formattedData, BPW1DeviceId, BPW1serviceId, BPW1write);
+					that.resetDataState()
+					console.log('【BPW1】待测会话中跳过OTA升级检查，已ACK设备信息')
+					that.notifyBpw1OtaInfoReady('ota_buffer')
+					return
+				}
+				// 已进入测量会话/传数：勿 ACK 设备信息，避免写特征打断 Status01/02
+				if (that.bpw1PpgTransferActive || that.isBpw1ActivePpgSession()) {
+					console.log('【BPW1】测量会话中跳过设备信息ACK，仅更新otadatares')
 					that.resetDataState()
 					return
 				}
@@ -7184,7 +8667,31 @@
 					protocolData.Covmamlueand.length);
 				const heartRateData = that.parseHeartRateData(hexData);
 				let heartRateDatatime = that.datatime(datealltime + " " + heartRateData.time)
-				// console.log("【BPW1】心率数据：", heartRateData)
+				const hrSub = protocolData.Protocolsubcommand
+				if (hrSub === '19') {
+					console.log('【BPW1】血压数据(19)：', {
+						date: datealltime,
+						time: heartRateData.time,
+						highPressure: heartRateData.systolic,
+						lowPressure: heartRateData.diastolic,
+						pulse: heartRateData.bloodPressureType,
+						records: (that.hrResult || []).length
+					})
+				} else {
+					console.log('【BPW1】心率数据：', {
+						date: datealltime,
+						time: heartRateData.time,
+						heartRate: heartRateData.diastolic,
+						records: (that.hrResult || []).length
+					})
+					if (that.isBpw1HistorySyncing() && that.hrResult && that.hrResult.length > 0) {
+						console.log('【BPW1】心率历史记录：', that.hrResult.map(hr => ({
+							date: hr.date,
+							time: hr.time,
+							heartRate: hr.heartRate
+						})))
+					}
+				}
 				switch (protocolData.Protocolsubcommand) {
 					case "00":
 						// 首页展示：有网且比接口更新时才刷新
@@ -7400,6 +8907,21 @@
 				const hexData = Covmamlueand.slice(Covmamlueand.length - 16, Covmamlueand.length);
 				const parseBloodData = that.parseHeartRateData(hexData);
 				let hexDataupdatewatchtime = that.datatime(datealltime + " " + parseBloodData.time)
+				console.log('【BPW1】血压数据：', {
+					date: datealltime,
+					time: parseBloodData.time,
+					highPressure: parseBloodData.systolic,
+					lowPressure: parseBloodData.diastolic,
+					records: (that.bpResult || []).length
+				})
+				if (that.isBpw1HistorySyncing() && that.bpResult && that.bpResult.length > 0) {
+					console.log('【BPW1】血压历史记录：', that.bpResult.map(bp => ({
+						date: bp.date,
+						time: bp.time,
+						highPressure: bp.highPressure,
+						lowPressure: bp.lowPressure
+					})))
+				}
 				// 兜底：把当前包血压写入 bpResult，保证历史合并能拿到本条
 				if (parseBloodData && parseBloodData.systolic > 0 && parseBloodData.diastolic > 0) {
 					const curKey = that.normalizeDateTimeKey(`${datealltime} ${parseBloodData.time}`)
@@ -7539,11 +9061,11 @@
 					protocolData.Covmamlueand.length);
 				const oxygenRateData = that.parseHeartRateData(hexData);
 				let oxygenupdatewatchtime = that.datatime(datealltime + " " + oxygenRateData.time)
-				// console.log("【BPW1】血氧数据", oxygenRateData)
-				// console.log("【BPW1】血氧数据未转时间戳", datealltime + " " + oxygenRateData.time)
-				// if (logOxygenDatatime) {
-				// 	console.log("【BPW1】血氧数据", oxygenupdatewatchtime)
-				// }
+				console.log("【BPW1】血氧数据", oxygenRateData)
+				console.log("【BPW1】血氧数据未转时间戳", datealltime + " " + oxygenRateData.time)
+				if (logOxygenDatatime) {
+					console.log("【BPW1】血氧数据", oxygenupdatewatchtime)
+				}
 				switch (protocolData.Protocolsubcommand) {
 					case "02":
 						that.runHomeVitalRefreshIfAllowed(oxygenupdatewatchtime, 'oxygenDatatime', () => {
@@ -7581,9 +9103,9 @@
 				const result = parser.parse(hardcodedData);
 				// console.log('硬编码数据解析成功', JSON.stringify(result, null, 2));
 				setTimeout(() => {
-					that.sendack(formattedData, BPW1DeviceId, BPW1serviceId, BPW1write)
+					that.sendack2(formattedData, BPW1DeviceId, BPW1serviceId, BPW1write)
+					that.resetDataState()
 				}, 500)
-				that.resetDataState()
 			},
 
 			/**
@@ -7634,6 +9156,14 @@
 						}
 						// console.log("PPG解析之后的数据：", JSON.stringify(jsonppglist.greenValue))
 						that.bufferPPG.push(result.data[i].greenValue)
+					}
+					// 收包续期：避免定时 PPG 超过固定超时后未等 Status02 就清会话
+					that.bpw1PpgLastPacketAt = Date.now()
+					if (that.bpw1PpgTransferActive || uni.getStorageSync('sendwatch') === 1) {
+						that.bpw1PpgTransferDeadline = Date.now() + 120 * 1000
+						try {
+							touchQxPpgXferBusy()
+						} catch (eTouch) {}
 					}
 				} else if (handleParseError) {
 					if (!that.QX_FAIL) {
@@ -7848,6 +9378,9 @@
 									} else {
 										that.xinlvpack = that.calculateQuotient(that.tempBuffer, 80);
 									}
+									console.log(that.ProtocolSubcommand === '19' ?
+										'【BPW1】收到血压包(19)' : '【BPW1】收到心率包',
+										'packs=', that.xinlvpack)
 									break;
 								case "01": // 血压
 									if (dataList.length <= 40) {
@@ -7855,6 +9388,7 @@
 									} else {
 										that.xueyapack = that.calculateQuotient(that.tempBuffer, 80);
 									}
+									console.log('【BPW1】收到血压包(01)', 'packs=', that.xueyapack)
 									break;
 								case "02": //  血氧
 									if (dataList.length <= 40) {
@@ -7905,40 +9439,54 @@
 											that.yalixueyatype = true
 											that.sleep_alertid = 1
 											console.log('【BPW1】Status包前恢复血压后PPG会话标记')
+										} else if (uni.getStorageSync('sendwatch') === 1) {
+											console.log('【BPW1】Status包前按定时sendwatch恢复会话')
 										}
 									}
 									const isActivePpgSession = that.isBpw1ActivePpgSession()
-									if (that.watchtimer2) {
-										clearInterval(that.watchtimer2);
-										that.watchtimer2 = null;
-									}
-									// 仅情绪/压力/定时 PPG 会话才启 80 秒传输超时；
-									// 卡片测心率等误触发的 1d 包不启，避免稍后误杀血压后 PPG
-									if (isActivePpgSession) {
+									// 仅 Status01 启动传输超时；Status02/其它状态勿重置 80s 计时，避免误杀传数
+									if (Status === '01' && isActivePpgSession) {
+										if (that.watchtimer2) {
+											clearInterval(that.watchtimer2);
+											that.watchtimer2 = null;
+										}
 										that._bpw1PpgTransferGen = (that._bpw1PpgTransferGen || 0) + 1
 										const transferGen = that._bpw1PpgTransferGen
-										// 墙钟 80 秒：避免切前后台 setInterval 回补回调导致误超时中断传数
-										const transferDeadline = Date.now() + 80 * 1000
+										// 定时 PPG 常超过 80s；用可刷新截止时间，收包时续期
+										that.bpw1PpgTransferDeadline = Date.now() + 180 * 1000
 										that.watchtimer2 = setInterval(() => {
-											if (Date.now() < transferDeadline) {
+											const deadline = that.bpw1PpgTransferDeadline || 0
+											if (Date.now() < deadline) {
+												return
+											}
+											// 仍在收 PPG：再续 60s，勿在 Status02 前清会话/不上报
+											const lastPkt = that.bpw1PpgLastPacketAt || 0
+											const hasBuf = Array.isArray(that.bufferPPG) && that.bufferPPG
+												.length > 0
+											if (hasBuf && lastPkt > 0 && Date.now() - lastPkt < 25000) {
+												that.bpw1PpgTransferDeadline = Date.now() + 60 * 1000
+												console.log('【BPW1】PPG仍在收数，延长传输等待', that.bufferPPG.length)
 												return
 											}
 											clearInterval(that.watchtimer2);
 											that.watchtimer2 = null;
-											// 旧定时器回调：若已开启新会话则忽略
 											if (transferGen !== that._bpw1PpgTransferGen) {
 												console.log('【BPW1】忽略过期PPG传输超时')
 												return
 											}
 											uni.hideLoading();
 											that.bpw1PpgTransferActive = false
+											console.warn('【BPW1】PPG传输超时(未收到Status02)', {
+												samples: hasBuf ? that.bufferPPG.length : 0,
+												lastPktAgoMs: lastPkt ? (Date.now() - lastPkt) : -1
+											})
 											if (uni.getStorageSync("sendwatch") === 1) {
-												that.notifyQxScheduledMeasureEnd('PPG传输超时80秒')
+												that.notifyQxScheduledMeasureEnd('PPG传输超时未收到02')
 												uni.removeStorageSync("sendwatch")
 											} else if (that.isBpw1ActivePpgSession() || that
 												.yalixueyatype ||
 												that.immediateEmotionMeasure) {
-												that.notifyBpw1PpgFailOrInterrupt('BPW1 PPG传输超时80秒', {
+												that.notifyBpw1PpgFailOrInterrupt('BPW1 PPG传输超时未收到02', {
 													silent: true
 												})
 											} else {
@@ -7946,17 +9494,31 @@
 												that.resetDataState();
 											}
 										}, 1000)
+									} else if (that.watchtimer2 && (Status === '02' || !isActivePpgSession)) {
+										// Status02 由下方 case 清定时器；非会话包不另起超时
 									}
 									that.blewatch_id2 = "1"
 									switch (Status) {
 										case "01": //开始采集ACC/PPG数据
-											that.bufferPPG = []
+											// 仅首次开始清空；传数中重复01勿清 buffer，否则 Status02 时空包无法上报
+											if (!that.bpw1PpgTransferActive) {
+												that.bufferPPG = []
+											} else {
+												console.log('【BPW1】传数中忽略重复Status01清缓存', that.bufferPPG
+													.length)
+											}
 											clearInterval(that.watchtimer);
 											that.watchtimer = null
 											if (isActivePpgSession) {
 												that.bpw1PpgTransferActive = true
+												that.bpw1PpgLastPacketAt = Date.now()
 												that.sleep_alertdisabled = true
 												uni.setStorageSync("sleep_alertdisabled", true)
+												if (uni.getStorageSync('sendwatch') === 1) {
+													try {
+														markQxPpgXferBusy()
+													} catch (eMark) {}
+												}
 												// 含血压后压力PPG(yalixueyatype)：必须 ACK，否则手表不传 PPG 数据
 												setTimeout(() => {
 													that.sendack(hexData, BPW1DeviceId, BPW1serviceId,
@@ -7971,7 +9533,11 @@
 											that.resetDataState();
 											break
 										case "02": //结束采集ACC/PPG数据
-											// console.log("//结束采集ACC/PPG数据", uni.getStorageSync("sendwatch"))
+											console.log('【BPW1】收到Status02传输结束', {
+												samples: Array.isArray(that.bufferPPG) ? that.bufferPPG
+													.length : 0,
+												sendwatch: uni.getStorageSync('sendwatch')
+											})
 											// jakobLifeDebugFileLog('//结束采集ACC/PPG数据', uni.getStorageSync("sendwatch"))
 											that.QX_FAIL = false
 											uni.hideLoading();
@@ -7980,6 +9546,9 @@
 											clearInterval(that.watchtimer2);
 											that.watchtimer2 = null
 											that._bpw1PpgTransferGen = (that._bpw1PpgTransferGen || 0) + 1
+											that.bpw1PpgTransferActive = false
+											that.bpw1PpgLastPacketAt = 0
+											that.bpw1PpgTransferDeadline = 0
 											const ppgSamples = Array.isArray(that.bufferPPG) ? that.bufferPPG.slice() :
 												[]
 											const binary = that.packInt16(ppgSamples)
@@ -8000,6 +9569,7 @@
 											that.resetDataState();
 											// 空包/失败结束：立刻恢复按钮，勿上传空波形导致云端一直分析、按钮卡灰
 											if (emptyPpg) {
+												console.warn('【BPW1】Status02但PPG缓存为空，跳过上报')
 												that.restoreEmotionPageButtons('BPW1 PPG空数据结束')
 												uni.showToast({
 													title: that.$t('测试质量不够好'),
@@ -8070,7 +9640,16 @@
 									.toUpperCase())
 								uni.setStorageSync("otaBP", dataList.slice(18, dataList.length)
 									.toUpperCase())
-								if (that.isBpw1ActivePpgSession()) {
+								// 立即测量待启动：必须 ACK
+								if (that.bpw1PendingEmotionMeasure) {
+									that.sendack(dataList, BPW1DeviceId, BPW1serviceId, BPW1write);
+									that.resetDataState()
+									that.notifyBpw1OtaInfoReady('ota_inline')
+									return
+								}
+								// 已进入测量会话/传数：勿 ACK，避免打断 Status01/02
+								if (that.bpw1PpgTransferActive || that.isBpw1ActivePpgSession()) {
+									console.log('【BPW1】测量会话中跳过设备信息ACK，仅更新otadatares')
 									that.resetDataState()
 									return
 								}
@@ -8104,7 +9683,7 @@
 						if (that.synchronizationpack > 0 && that.dataBuffer.length === that
 							.synchronizationpack) {
 							setTimeout(() => {
-								that.sendack(that.formatData(that.dataBuffer), BPW1DeviceId,
+								that.sendack2(that.formatData(that.dataBuffer), BPW1DeviceId,
 									BPW1serviceId, BPW1write);
 								that.resetDataState()
 							}, 500)
@@ -8115,11 +9694,14 @@
 						}
 						//ACC数据
 						if (that.quotientACC > 0 && that.dataBuffer.length === that.quotientACC) {
+							// console.log("acc数据", that.dataBuffer)
 							that.handleAccBufferData(BPW1DeviceId, BPW1serviceId, BPW1write)
 						}
 						//PPG数据
 						if (that.quotientPPG > 0 && that.dataBuffer.length === that.quotientPPG) {
 							that.handlePpgBufferData(BPW1DeviceId, BPW1serviceId, BPW1write)
+							// 勿整包打印 dataBuffer，控制台序列化会严重拖慢后台收数
+							// console.log("PPG数据", that.bufferPPG.length)
 						}
 						// } else if (res.serviceId === SERVICE_ID) {
 						// 	that.buffer += that.ab2hex(res.value)
@@ -8192,6 +9774,15 @@
 				}
 			},
 			onBLECharacteristicValueChange3(deviceId, serviceId, deviceSn) {
+				// BPW1 接管全局监听：清掉 BPW6/u16pro 转发残留，避免短时内包被 BPW6 链路吞掉
+				this.bpw6BleNotifyListenerRegistered = false
+				try {
+					if (u16proBLE && typeof u16proBLE.clearForwardNotifyRouting === 'function') {
+						u16proBLE.clearForwardNotifyRouting()
+					} else if (u16proBLE && typeof u16proBLE.setForwardNotifyHandler === 'function') {
+						u16proBLE.setForwardNotifyHandler(null)
+					}
+				} catch (e) {}
 				this._legacyBleNotifyDispatch = this.buildLegacyBleNotifyDispatch(deviceSn, deviceId)
 				uni.onBLECharacteristicValueChange(this._legacyBleNotifyDispatch)
 			},
@@ -8322,6 +9913,27 @@
 								"30000");
 							const hasBpw6 = res.rows.some((item) => String(item.deviceModelId) ===
 								"30001");
+							try {
+								uni.setStorageSync('qx_emotion_bind_snapshot', {
+									hasBpw1: !!hasBpw1,
+									hasBpw6: !!hasBpw6,
+									at: Date.now()
+								})
+							} catch (eSnap) {}
+							// 服务端未绑 BPW1：清本地残留 deviceIdwatch，避免情绪定时误走 BPW1
+							if (!hasBpw1) {
+								try {
+									if (uni.getStorageSync('deviceIdwatch')) {
+										console.log('[BLE] 清残留BPW1 deviceIdwatch（服务端未绑定）',
+											uni.getStorageSync('deviceIdwatch'))
+										uni.removeStorageSync('deviceIdwatch')
+									}
+									this.deviceIdwatch = ''
+									if (hasBpw6) {
+										uni.setStorageSync('qx_emotion_bpw6', true)
+									}
+								} catch (eClr) {}
+							}
 							if (!hasBpw1 && !hasBpw6) {
 								// 既无 BPW1 也无 BPW6：立即测量必须灰（测量中除外）
 								if (!this.isEmotionMeasureBusySession()) {
@@ -9530,6 +11142,10 @@
 				}
 			},
 			registerBpw6BleNotifyListener(deviceId, deviceSn) {
+				// 已解绑 BPW6 时禁止再挂转发，避免抢占 BPW1 的全局 notify
+				if (!uni.getStorageSync('BPW6devicemac') && !this.deviceIdwatch6) {
+					return
+				}
 				if (this.bpw6BleNotifyListenerRegistered) {
 					return
 				}
@@ -12450,7 +14066,7 @@
 					deviceId,
 					serviceId: SERVICE_ID,
 					characteristicId: WRITE_UUID,
-					writeType: 'write',
+					writeType: 'writeNoResponse',
 					value: this.toArrayBuffer(hex),
 					success: () => {
 						console.log(`第${this.sendCnt}次写入成功`);
@@ -13381,7 +14997,7 @@
 				// 兜底：设备未回完成包时最长 2 分钟后结束，避免一直抑制实时弹窗
 				this.bpw1HistorySyncEndTimer = setTimeout(() => {
 					this.endBpw1HistorySync('timeout');
-				}, 120000);
+				}, 2 * 60 * 1000);
 				console.log('【BPW1】开始历史同步，抑制弹窗');
 			},
 			endBpw1HistorySync(reason) {
@@ -13404,6 +15020,45 @@
 				}
 				this.bpw1HistorySyncActive = false;
 				this.blewatch_id = "0";
+				// 历史同步结束后再发天气，避免与历史收包抢通道
+				const pendingWeather = this.bpw1PendingWeatherAfterHistory
+				if (pendingWeather && pendingWeather.deviceId) {
+					this.bpw1PendingWeatherAfterHistory = null
+					uni.getNetworkType({
+						success: (res) => {
+							if (res.networkType === 'none') {
+								console.error("当前无网络，无法同步天气");
+								return
+							}
+							setTimeout(() => {
+								this.getLocalWeather(
+									pendingWeather.deviceId,
+									pendingWeather.serviceId || BPW1serviceId,
+									pendingWeather.writeuuid || BPW1write)
+							}, 800)
+						},
+						fail: (err) => {
+							console.error('获取网络类型失败：', err);
+						}
+					})
+				}
+				// 同步命令失败等路径可能未冲配对：结束时再补一次
+				const pendingPair = this.bpw1PendingPairAudio
+				if (pendingPair && pendingPair.deviceId) {
+					this.bpw1PendingPairAudio = null
+					setTimeout(() => {
+						this.startBpw1PairAudio(pendingPair.deviceId)
+					}, 1200)
+				}
+				// 定时调度放到同步结束后，避免连接初期/收历史时抢写
+				if (this.bpw1PendingResumeSchedule) {
+					this.bpw1PendingResumeSchedule = false
+					setTimeout(() => {
+						import('@/pages/api/qxBleAlignedSchedule.js').then((m) => {
+							m.resumeQxBleScheduleIfEnabled().catch(() => {})
+						}).catch(() => {})
+					}, 2000)
+				}
 			},
 			onSubButtonClick(item) {
 				// console.log('📱 页面接收到子按钮点击:', item.text)
@@ -13910,6 +15565,36 @@
 				return base64;
 			},
 
+			/**
+			 * BPW6 PPG：设备侧已是小端 32 位 ADC 字节流，按 INT32 原样打包为 base64（不做 Int16 缩放）
+			 * @param {number[]} bytesOrSamples - 原始字节(0~255)或已解析的 Int32 采样点
+			 */
+			packBpw6PpgInt32(bytesOrSamples) {
+				const list = Array.isArray(bytesOrSamples) ? bytesOrSamples : []
+				if (!list.length) {
+					return uni.arrayBufferToBase64(new ArrayBuffer(0))
+				}
+				// 输入已是原始字节流：对齐到 4 字节后原样上传
+				const looksLikeBytes = list.every((v) => Number.isInteger(v) && v >= 0 && v <= 255)
+				if (looksLikeBytes) {
+					const usable = list.length - (list.length % 4)
+					const ab = new ArrayBuffer(usable)
+					const view = new Uint8Array(ab)
+					for (let i = 0; i < usable; i++) {
+						view[i] = list[i] & 0xFF
+					}
+					return uni.arrayBufferToBase64(ab)
+				}
+				// 输入已是 Int32 采样点：小端写入
+				const n = list.length
+				const ab = new ArrayBuffer(n * 4)
+				const view = new DataView(ab)
+				for (let i = 0; i < n; i++) {
+					view.setInt32(i * 4, list[i] | 0, true)
+				}
+				return uni.arrayBufferToBase64(ab)
+			},
+
 			// 解包Int16数组
 			unpackInt16(base64Str, originalVoltageRange) {
 				const binaryString = atob(base64Str);
@@ -13988,8 +15673,6 @@
 					totalRem: `${Math.floor(Rem / 60)}${"H"}${Rem % 60}${"M"}`,
 				};
 			},
-
-
 		},
 	}
 </script>
