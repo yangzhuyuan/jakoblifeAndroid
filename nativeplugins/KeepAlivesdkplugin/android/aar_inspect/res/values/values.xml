@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="application_running">JakobLife</string>
+    <string name="night_keep_alive_content">Anti-kill protection during night hours</string>
+    <string name="night_keep_alive_title">Night keep-alive active</string>
+    <string name="open">open</string>
+    <string name="running">JakobLife</string>
+    <string name="runningfour">JakobLife</string>
+    <string name="runningone">JakobLife</string>
+    <string name="runningthree">JakobLife</string>
+    <string name="runningtwo">JakobLife</string>
+    <string name="stop">stop</string>
+</resources>

@@ -29,7 +29,7 @@
 				"android.permission.FOREGROUND_SERVICE_DATA_SYNC"
 			],
 			"minSdkVersion": 24,
-			"targetSdkVersion": 34
+			"targetSdkVersion": 35
 		}
 	}
 }

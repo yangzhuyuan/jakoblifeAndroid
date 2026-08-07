@@ -3424,9 +3424,8 @@
 					}
 				})
 			},
-
+			//BPW6设备BLE连接
 			async BLEConnection(deviceId, deviceSn) {
-				console.log(deviceId, deviceSn)
 				let that = this
 				if (that.isDeviceBindingPageActive()) {
 					return;
@@ -3661,19 +3660,15 @@
 							// 检查 deviceList 是否为数组
 							const deviceList = uni.getStorageSync("deviceList");
 							let uniqueArr = Array.isArray(deviceList) ? deviceList.filter((item,
-									index) =>
-								deviceList.indexOf(item) === index) : [];
+								index) => deviceList.indexOf(item) === index) : [];
 							// 检查 devicdsdmac 是否为数组
 							const devicdsdmac = uni.getStorageSync("devicdsdmac");
 							let uniqueArr1 = Array.isArray(devicdsdmac) ? devicdsdmac.filter((
-								item,
-								index) => devicdsdmac.indexOf(item) === index) : [];
+								item, index) => devicdsdmac.indexOf(item) === index) : [];
 							// 检查 devicdsdmac1 是否为数组
 							const devicdsdmac1 = uni.getStorageSync("devicdsdmac1");
 							let uniqueArr2 = Array.isArray(devicdsdmac1) ? devicdsdmac1.filter(
-								(
-									item,
-									index) => devicdsdmac1.indexOf(item) === index) : [];
+								(item, index) => devicdsdmac1.indexOf(item) === index) : [];
 							if (uniqueArr1) {
 								that.connectMultipleDevices(uniqueArr1)
 							}
@@ -3688,8 +3683,8 @@
 							let uniqueArr2
 							if (that.deviceList === undefined) {
 								uniqueArr = uni.getStorageSync("deviceList").filter((item,
-										index) => uni
-									.getStorageSync("deviceList").indexOf(item) === index);
+										index) => uni.getStorageSync("deviceList").indexOf(item) ===
+									index);
 							} else {
 								uniqueArr = that.deviceList.filter((item, index) => that
 									.deviceList
@@ -11168,7 +11163,6 @@
 					that.forwardOtherDeviceBleNotify(res, deviceSn)
 				})
 				this.bpw6BleNotifyListenerRegistered = true
-				console.log('【BPW6】BLE notify 监听已注册')
 			},
 			forwardOtherDeviceBleNotify(res, deviceSn) {
 				this.routeOtherDeviceBleNotify(res, deviceSn)

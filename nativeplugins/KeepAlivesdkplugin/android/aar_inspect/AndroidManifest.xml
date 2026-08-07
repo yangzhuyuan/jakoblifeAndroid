@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.KeepAlivesdkplugin">
+
+	<uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
+
+	<!-- ==================== 基础权限 ==================== -->
+	<!-- 唤醒锁，防止CPU休眠 -->
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+
+	<!-- 定位权限 -->
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+	<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+	<!-- 前台服务权限 -->
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+	<!-- 开机启动权限 -->
+	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+	<!-- 精确闹钟权限（Android 12+） -->
+	<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+	<!-- 请求忽略电池优化 -->
+	<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+	<!-- 网络权限（后台任务可能需要） -->
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+	<!-- ==================== Android 13+ 权限 ==================== -->
+	<!-- 通知权限（Android 13+ 需要动态申请） -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+	<!-- ==================== Android 14+ 前台服务类型权限 ==================== -->
+	<!-- 数据同步类型 -->
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+	<!-- 无声音乐保活 -->
+	<!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" /> -->
+
+	<!-- 健康类型（如果使用运动传感器） -->
+	<!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" /> -->
+	<!-- 远程消息（如果使用FCM推送） -->
+	<!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" /> -->
+
+	<!-- ==================== 可选权限 ==================== -->
+	<!-- 震动权限（通知震动） -->
+	<uses-permission android:name="android.permission.VIBRATE" />
+	<!-- 唤醒屏幕权限 -->
+	<uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+	<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+	<application android:label="JakobLife" android:supportsRtl="true">
+
+		<!-- ==================== 前台服务 ==================== -->
+		<service android:name="com.example.KeepAlivesdkplugin.KeepAliveService" android:enabled="true"
+			android:exported="false" android:foregroundServiceType="dataSync" android:stopWithTask="false" />
+
+		<!-- ==================== JobScheduler 服务 ==================== -->
+		<service android:name="com.example.KeepAlivesdkplugin.KeepAliveJobService" android:exported="false"
+			android:permission="android.permission.BIND_JOB_SERVICE" />
+
+		<!-- ==================== 闹钟接收器 ==================== -->
+		<receiver android:name="com.example.KeepAlivesdkplugin.AlarmReceiver" android:enabled="true"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="com.example.KeepAlivesdkplugin.ALARM_ACTION" />
+				<action android:name="com.example.KeepAlivesdkplugin.ALARM_CLOCK" />
+				<action android:name="com.example.KeepAlivesdkplugin.ALARM_BACKUP" />
+			</intent-filter>
+		</receiver>
+
+		<!-- ==================== 开机启动接收器 ==================== -->
+		<receiver android:name="com.example.KeepAlivesdkplugin.BootReceiver" android:directBootAware="true"
+			android:enabled="true" android:exported="true"
+			android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+			<intent-filter>
+				<action android:name="android.intent.action.BOOT_COMPLETED" />
+				<action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+				<action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+		</receiver>
+
+		<!-- ==================== 通知点击接收器 ==================== -->
+		<receiver android:name="com.example.KeepAlivesdkplugin.NotificationActionReceiver" android:enabled="true"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="com.example.KeepAlivesdkplugin.ACTION_OPEN_APP" />
+				<action android:name="com.example.KeepAlivesdkplugin.ACTION_STOP_SERVICE" />
+			</intent-filter>
+		</receiver>
+
+		<!-- ==================== UniApp 模块注册 ==================== -->
+		<meta-data android:name="UniAppModule" android:value="com.example.KeepAlivesdkplugin.KeepAliveModule" />
+
+		<!-- ==================== UniApp 生命周期代理 ==================== -->
+		<meta-data android:name="UniApp_Hook_Proxy" android:value="com.example.KeepAlivesdkplugin.KeepAliveAppProxy" />
+	</application>
+
+</manifest>

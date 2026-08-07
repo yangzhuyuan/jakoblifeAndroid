@@ -299,7 +299,7 @@
 			},
 			unbindDevice() {
 				if (this.deviceModelId === '30000') {
-					this.setacktypes("0")
+					this.setacktypes(0)
 					this.calculateChecksumsss(this.mac);
 					uni.removeStorageSync('deviceIdwatch');
 					uni.removeStorageSync('serviceIdwatch');
