@@ -754,7 +754,6 @@
 			 * 处理查询响应
 			 */
 			handleQueryResponse(res) {
-				console.log('查询用户已绑定设备结果:', res)
 				if (res.code !== 200) {
 					uni.showToast({
 						title: res.msg,
@@ -764,7 +763,6 @@
 				}
 				// 无设备直接跳转
 				if (!res.rows?.length) {
-					console.log('用户无已绑定设备，直接跳转绑定')
 					this.navigateToBind(this.modelId)
 					return
 				}
@@ -790,7 +788,6 @@
 			 * 跳转到绑定页面
 			 */
 			navigateToBind(modelId) {
-				console.log("modelId", modelId)
 				const routes = {
 					0: () => this.bindDeviceDirectly(this.context_msg1, '', modelId),
 					1: () => this.handleBLEBind(modelId),

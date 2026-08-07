@@ -1233,14 +1233,27 @@ class U16ProBLEManager {
 			case DATA_TYPE.BLOOD_PRESSURE:
 				// 连续/动态测量有新数据：只拉最新1条，避免与历史同步冲突导致无法实时显示上报
 				if (this.readingState.isReadingBPHistory) {
-					if (this.readingState.bpBuffer.length >= (this.readingState.expectedBPCount || 0) &&
-						this.readingState.expectedBPCount > 0) {
+					const expected = this.readingState.expectedBPCount || 0
+					const got = (this.readingState.bpBuffer && this.readingState.bpBuffer.length) || 0
+					if (expected > 0 && got >= expected) {
 						this.readingState.isReadingBPHistory = false
-					} else {
+					} else if (expected === 1) {
+						// 已在拉最新1条，勿打断/重复发
 						break
+					} else {
+						// 大批量历史读未结束时收到测量通知：强制打断，否则会丢本次上报
+						console.warn('【BPW6】血压历史读未结束，强制打断并改读最新1条', {
+							got,
+							expected
+						})
+						this.readingState.isReadingBPHistory = false
+						this.readingState.bpBuffer = []
+						this.readingState.expectedBPCount = 0
 					}
 				}
-				this.readLatestBPHistory(1, deviceId).catch(err => {})
+				this.readLatestBPHistory(1, deviceId).catch(err => {
+					console.warn('【BPW6】DATA_CHANGED 读最新血压失败', err)
+				})
 				break
 			case DATA_TYPE.HEART_RATE:
 				// 通知瞬间冻结基线；新一次测量允许再重读一次

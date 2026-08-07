@@ -5903,6 +5903,38 @@
 					resolve()
 				})
 			},
+			/**
+			 * 血压测量完成后拉最新1条（仅 BPW6）。
+			 * 解决：DATA_CHANGED 时大批量历史读卡住 → 不读 BPdata → 不上报。
+			 */
+			pullBpw6LatestBpAfterMeasure(deviceId) {
+				const that = this
+				const mac = deviceId || uni.getStorageSync('BPW6devicemac')
+				if (!mac || that.bpw6BpSyncing) {
+					return
+				}
+				const now = Date.now()
+				if (that._bpw6PullBpAfterMeasureAt && now - that._bpw6PullBpAfterMeasureAt < 1500) {
+					return
+				}
+				that._bpw6PullBpAfterMeasureAt = now
+				try {
+					const rs = u16proBLE.readingState
+					if (rs && rs.isReadingBPHistory) {
+						// 已在读最新1条：不打断
+						if (rs.expectedBPCount === 1) {
+							return
+						}
+						console.warn('【BPW6】测量后拉血压：打断未完成的历史读')
+						rs.isReadingBPHistory = false
+						rs.bpBuffer = []
+						rs.expectedBPCount = 0
+					}
+				} catch (e) {}
+				u16proBLE.readLatestBPHistory(1, mac).catch(err => {
+					console.warn('【BPW6】测量后拉最新血压失败', err)
+				})
+			},
 
 			/**
 			 * 立即测量前等主链路空闲：连接后初始化窗口 + 历史同步，避免抢通道导致 PPG status=0
@@ -6762,6 +6794,14 @@
 						that.bpw6PendingPpgAfterBp = true
 						that.markBpw6AfterBpPpgBusy('BPW6血压测量后待PPG')
 						that.scheduleBpw6PpgAfterBp(deviceId)
+						// DATA_CHANGED 可能因历史读卡住未拉到数据；测量完成后再强制拉最新1条上报
+						that.pullBpw6LatestBpAfterMeasure(deviceId)
+						break;
+					case 'dataupdate':
+						// dataType=2 血压：兜底拉最新（与 BLE 内 _handleDataChanged 互补）
+						if (Number(data.dataType) === 2) {
+							that.pullBpw6LatestBpAfterMeasure(deviceId)
+						}
 						break;
 					case 'HR_history_empty':
 						that.bpw6HrSyncing = false
@@ -6793,19 +6833,32 @@
 						that.handleBPW6PPGData(data, deviceId, deviceSn)
 						break;
 					case 'BPdata': {
-						const recordTimeKey = data.date && data.date.formatted ?
-							data.date.formatted : that.getTimeAllJSON().YMDHMS;
+						// console.log("BPW6设备，血压数据", data)
+						// 展示/去重键与上报 time 均以设备 timestamp 为准（东八区格式化）
+						// 勿用 date.formatted：本地时区墙钟会与 timestamp 不一致
+						const bpTs = that.normalizeUnixTimestamp(data.timestamp);
+						const recordTimeKey = bpTs != null ?
+							that.formatTimestampKey(bpTs) :
+							(data.date && data.date.formatted ?
+								data.date.formatted : that.getTimeAllJSON().YMDHMS);
 						const isNewestRecord = that.bpw6BpBuffer.length === 0;
+						// 实时测量：丢掉历史残留，保证本条能刷卡/上报（避免 isNewestRecord=false 丢上报）
+						if (!that.bpw6BpSyncing) {
+							that.bpw6BpBuffer = [];
+						}
 						that.bpw6BpBuffer.push({
 							dateTimeKey: recordTimeKey,
+							timestamp: bpTs,
 							highPressure: data.systolic,
 							lowPressure: data.diastolic,
 							heartRate: data.pulse
 						});
+						const shouldRefreshAndUpload = isNewestRecord || !that.bpw6BpSyncing;
 						// console.log('isNewestRecord:', data);
 						// 设备按新→旧推送，首页只展示最新一条；须比接口新且有网才刷新
-						if (isNewestRecord) {
-							let BPW6hexDataupdatewatchtime = that.datatime(data.date.formatted)
+						if (shouldRefreshAndUpload) {
+							let BPW6hexDataupdatewatchtime = bpTs != null ?
+								bpTs : that.datatime(recordTimeKey);
 							that.runHomeVitalRefreshIfAllowed(BPW6hexDataupdatewatchtime, 'parseBloodDatatime',
 								() => {
 									uni.setStorageSync("parseBloodDatatime", BPW6hexDataupdatewatchtime)
@@ -6820,6 +6873,7 @@
 									that.updateBloodPressureStatus(data.diastolic, data.systolic);
 								});
 							// 实时血压：查服务该槽位没有则上报（不要求比首页基线更新）
+							// 去重按 timestamp 派生的东八区键；勿再传 timestamp 做分钟槽（易误伤）
 							if (!that.bpw6BpSyncing) {
 								uni.getNetworkType({
 									success: function(netRes) {
@@ -7794,7 +7848,7 @@
 						},
 						fail(err) {
 							if (!isRetry) {
-								console.log("回复ack数据失败", next.hexCommand, err)
+								// console.log("回复ack数据失败", next.hexCommand, err)
 								setTimeout(() => {
 									writeOnce(true)
 								}, 700)
@@ -8376,8 +8430,6 @@
 			 */
 			handleSportProtocol00(dataList, BPW1DeviceId, BPW1serviceId, BPW1write) {
 				const that = this
-				console.log("【BPW1】运动数据", dataList)
-
 				// 通知连接后初始化链：运动回包已到，可发下一条（历史同步）
 				that.notifyBpw1SetupDeviceReply('sportData')
 				const stepheart = dataList.slice(0, 18);
@@ -9373,9 +9425,6 @@
 									} else {
 										that.xinlvpack = that.calculateQuotient(that.tempBuffer, 80);
 									}
-									console.log(that.ProtocolSubcommand === '19' ?
-										'【BPW1】收到血压包(19)' : '【BPW1】收到心率包',
-										'packs=', that.xinlvpack)
 									break;
 								case "01": // 血压
 									if (dataList.length <= 40) {
@@ -9383,7 +9432,6 @@
 									} else {
 										that.xueyapack = that.calculateQuotient(that.tempBuffer, 80);
 									}
-									console.log('【BPW1】收到血压包(01)', 'packs=', that.xueyapack)
 									break;
 								case "02": //  血氧
 									if (dataList.length <= 40) {
@@ -9408,18 +9456,18 @@
 									const PPGdataarrayall = ACCPPG.slice(8, 10)
 									const Status = ACCPPG.slice(10, ACCPPG.length)
 									const parsePPGConfigdata = that.parsePPGConfigDescOrder(that.PPGdataarray)
-									const dataall = {
-										hexData: hexData,
-										ACCPPG: ACCPPG,
-										date: datealltime,
-										PPGdataarray: 'PPG数据项目定义' + that.PPGdataarray,
-										ACCdataarrayall: 'ACC数据总组数' + ACCdataarrayall,
-										PPGdataarrayall: 'PPG数据总组数' + PPGdataarrayall,
-										Status: '传输状态' + Status,
-										parsePPGConfigdata: '解析PPG数据配置字节:' + JSON.stringify(
-											parsePPGConfigdata)
-									}
-									console.log("蓝牙acc/ppg收到的命令：", JSON.stringify(dataall))
+									// const dataall = {
+									// 	hexData: hexData,
+									// 	ACCPPG: ACCPPG,
+									// 	date: datealltime,
+									// 	PPGdataarray: 'PPG数据项目定义' + that.PPGdataarray,
+									// 	ACCdataarrayall: 'ACC数据总组数' + ACCdataarrayall,
+									// 	PPGdataarrayall: 'PPG数据总组数' + PPGdataarrayall,
+									// 	Status: '传输状态' + Status,
+									// 	parsePPGConfigdata: '解析PPG数据配置字节:' + JSON.stringify(
+									// 		parsePPGConfigdata)
+									// }
+									// console.log("蓝牙acc/ppg收到的命令：", JSON.stringify(dataall))
 									// Status01 前再认一次会话，防止标记被误清后不 ACK
 									if (!that.isBpw1ActivePpgSession()) {
 										if (that.bpw1ImmediateCmdStarted || that.bpw1ImmediatePpgLaunchLock ||
@@ -9427,13 +9475,10 @@
 												120000)) {
 											that.immediateEmotionMeasure = true
 											that.sleep_alertid = 1
-											console.log('【BPW1】Status包前恢复立即测量会话标记')
 										} else if ((that._bpw1AfterBpCmdAt && Date.now() - that._bpw1AfterBpCmdAt <
-												120000) ||
-											!!that._bpw1AfterBpPpgTimer) {
+												120000) || !!that._bpw1AfterBpPpgTimer) {
 											that.yalixueyatype = true
 											that.sleep_alertid = 1
-											console.log('【BPW1】Status包前恢复血压后PPG会话标记')
 										} else if (uni.getStorageSync('sendwatch') === 1) {
 											console.log('【BPW1】Status包前按定时sendwatch恢复会话')
 										}
@@ -9934,7 +9979,6 @@
 								if (!this.isEmotionMeasureBusySession()) {
 									this.sleep_alertdisabled = true
 									uni.setStorageSync("sleep_alertdisabled", true)
-									console.log('【情绪】queryDevices无BPW绑定，立即测量置灰')
 								}
 							} else {
 								// 有 BPW1 或 BPW6：非采集会话中可点
@@ -10330,7 +10374,6 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
-					console.log("res", res)
 					if (res.code === 200) {
 						const kapianlist2 = uni.getStorageSync("kapianlist2") || [];
 						let itelistasd2 = []
@@ -11737,8 +11780,9 @@
 				}
 				const existingHrMap = that.getExistingHeartRateMap();
 				const uploadedKeys = new Set();
+				// 历史上报倒序：最新先报
 				const list = [...hrRecords].sort((a, b) =>
-					that.datatime(`${a.date} ${a.time}`) - that.datatime(`${b.date} ${b.time}`)
+					that.datatime(`${b.date} ${b.time}`) - that.datatime(`${a.date} ${a.time}`)
 				);
 				for (const hr of list) {
 					if (!hr || !that.isValidBpw1HeartRate(hr.heartRate)) {
@@ -11793,9 +11837,12 @@
 					console.warn('【BPW6】拉取血压去重数据失败，仍尝试按已有缓存上报', e);
 				}
 				const existingTimes = that.getExistingBloodPressureTimeSet();
-				const localBpRecords = [...that.bpw6BpBuffer].sort((a, b) =>
-					that.datatime(a.dateTimeKey) - that.datatime(b.dateTimeKey)
-				);
+				// 倒序上报：最新先报（如 18:03 再 18:00）
+				const localBpRecords = [...that.bpw6BpBuffer].sort((a, b) => {
+					const ta = a.timestamp != null ? Number(a.timestamp) : that.datatime(a.dateTimeKey);
+					const tb = b.timestamp != null ? Number(b.timestamp) : that.datatime(b.dateTimeKey);
+					return tb - ta;
+				});
 				const uploadedKeys = new Set();
 
 				for (const bp of localBpRecords) {
@@ -11803,25 +11850,28 @@
 					if (!key || uploadedKeys.has(key)) {
 						continue;
 					}
-					// 查询服务该槽位没有血压 → 必须上报（按槽位多格式匹配）
-					if (that.isBpw6SlotInServerSet(existingTimes, bp.dateTimeKey, bp.timestamp)) {
+					// 去重只按 date.formatted，勿用 timestamp 分钟槽（易与 measurementTs 冲突导致测完不上报）
+					if (that.isBpw6SlotInServerSet(existingTimes, bp.dateTimeKey, null)) {
 						// console.log('【BPW6】血压槽位已存在，跳过', key);
 						continue;
 					}
 					uploadedKeys.add(key);
+					const uploadTs = that.normalizeUnixTimestamp(bp.timestamp);
 					console.log('【BPW6】上传BPW6血压(库中无此槽位)', key, {
 						bp: `${bp.highPressure}/${bp.lowPressure}`,
-						hr: bp.heartRate
+						hr: bp.heartRate,
+						time: uploadTs != null ? uploadTs : that.datatime(key)
 					});
+					// 上报 time 优先用设备 timestamp
 					await that.Watch_Historical_data(
 						deviceId,
 						bp.highPressure,
 						bp.lowPressure,
 						bp.heartRate,
 						deviceSn,
-						that.datatime(key)
+						uploadTs != null ? uploadTs : that.datatime(key)
 					);
-					that.getBpw6SlotMatchKeys(bp.dateTimeKey, bp.timestamp).forEach(k => existingTimes.add(k));
+					that.getBpw6SlotMatchKeys(bp.dateTimeKey, null).forEach(k => existingTimes.add(k));
 				}
 				that.bpw6BpBuffer = [];
 			},
@@ -11873,8 +11923,9 @@
 						localHrMap.set(normalizedKey, hr);
 					}
 				});
+				// 历史上报倒序：最新先报（建 Map 仍正序，同键保留较新）
 				const sortedKeys = [...localHrMap.keys()].sort((a, b) =>
-					that.datatime(a) - that.datatime(b)
+					that.datatime(b) - that.datatime(a)
 				);
 				const uploadedKeys = new Set();
 
@@ -12175,7 +12226,8 @@
 					}
 					slotItemMap.set(slotKey, item);
 				});
-				const sortedSlots = [...slotItemMap.keys()].sort((a, b) => Number(a) - Number(b));
+				// 历史上报倒序：最新槽位先报（建 Map 仍正序，同槽保留较新）
+				const sortedSlots = [...slotItemMap.keys()].sort((a, b) => Number(b) - Number(a));
 				for (const slotKey of sortedSlots) {
 					const item = slotItemMap.get(slotKey);
 					if (!item || item.spO2 == null || item.spO2 === '') {
@@ -12329,7 +12381,11 @@
 					leftoverHr,
 					unmatchedBp
 				} = that.pairBpw1HistoryBpWithHr(pendingBp, hrList, 30);
-				pairs.forEach(p => {
+				// 历史上报倒序：最新先报（仅改上报顺序，不影响配对结果）
+				const uploadPairs = [...(pairs || [])].sort((a, b) =>
+					Number(b.bpTs) - Number(a.bpTs)
+				);
+				uploadPairs.forEach(p => {
 					matchedHrKeys.add(p.hrKey);
 					uploadedBpKeys.add(p.bpKey);
 					that.rememberBpw1BpHrPairUpload(p.bpTs, p.hr);
@@ -14308,7 +14364,6 @@
 										icon: 'none',
 										duration: 2000,
 									})
-									console.log("血压指令发送成功", res)
 									// 仅 BPW1 主动测血压：记录发令时刻，拒绝随后历史同步旧包抢跑 PPG
 									if (type === 1 && that.devicetype === 30000) {
 										that.markBpw1LiveBpMeasureStarted()
@@ -14320,7 +14375,6 @@
 										icon: 'none',
 										duration: 2000,
 									})
-									console.log("血压指令发送失败", err)
 								},
 							})
 						}
@@ -14944,9 +14998,6 @@
 				}
 				this._bpw1LiveBpCmdAt = 0;
 				this._bpw1LiveBpCmdDeviceTs = 0;
-				if (reason) {
-					console.log('【BPW1】清除本次血压测量门禁', reason);
-				}
 			},
 			/**
 			 * 当前血压包是否允许走「实时合并 / 血压后 PPG」。
@@ -15128,7 +15179,7 @@
 					slaveData: aaa,
 					time: resolvedTime,
 					measurementTs: this.UTCdatatime().timestampSec,
-					measurementTimezone: this.formatTimestampKey(resolvedTime) || this.getTimeAllJSON().YMDHMS,
+					measurementTimezone: this.getTimeAllJSON().YMDHMS,
 				}
 				console.log("【Watch_Historical_data】", data)
 				return this.$post(this.$url_APP_IP + this.$url_jakoblife_fat_scale, data, {
@@ -15285,7 +15336,7 @@
 					slaveData: aaa,
 					time: resolvedTime,
 					measurementTs: this.UTCdatatime().timestampSec,
-					measurementTimezone: this.formatTimestampKey(resolvedTime) || this.getTimeAllJSON().YMDHMS,
+					measurementTimezone: this.getTimeAllJSON().YMDHMS,
 				}
 				uni.setStorageSync("xueyadatatype", "1")
 				uni.setStorageSync("xueyadata", data)

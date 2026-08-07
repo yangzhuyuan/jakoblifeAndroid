@@ -3,9 +3,9 @@
  * 切换测试 / 正式环境时只改本文件，并调用 refreshActiveAppBaseUrl 同步到全局。
  */
 // 测试域名
-// export const APP_IP_CN = 'https://jakoblife-qa.jakob-techs.com'
+export const APP_IP_CN = 'https://jakoblife-qa.jakob-techs.com'
 // 正式域名（启用时与上面二选一，并注释掉测试行）
-export const APP_IP_CN = 'https://jakoblife.jakob-techs.com'
+// export const APP_IP_CN = 'https://jakoblife.jakob-techs.com'
 
 // export const APP_IP_US = 'https://jakoblife.us.jakob-techs.com'
 
