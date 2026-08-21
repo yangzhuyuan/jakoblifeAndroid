@@ -40,7 +40,8 @@
 						<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="6"
 							v-model="yanzhengma" />
 					</view>
-					<button class="linear_btn" @tap="huoqu">{{yanzheng ? $t('获取验证码') : codetime + msg}}</button>
+					<button class="linear_btn" :disabled="codeCounting" :style="codeBtnStyle"
+						@tap="huoqu">{{yanzheng ? $t('获取验证码') : codetime + msg}}</button>
 				</view>
 				<view style="margin-top: 20px; display: flex; flex-direction: row; justify-content: space-between;">
 					<view class="text_bg"></view>
@@ -110,7 +111,6 @@
 				</view>
 			</view>
 		</view>
-
 		<GlobalPopup ref="globalPopup" />
 	</view>
 </template>
@@ -135,8 +135,10 @@
 		refreshActiveAppBaseUrl,
 		setActiveAppRegion
 	} from '@/pages/api/appBaseHosts.js';
+	import codeCountdownMixin from '@/pages/api/codeCountdownMixin.js'
 
 	export default {
+		mixins: [codeCountdownMixin],
 		computed: {
 			...mapState(['uuid'])
 		},
@@ -262,7 +264,6 @@
 
 		methods: {
 			...mapMutations(['getImgID', 'other_sign_access_token', 'other_sign_openid', 'other_sign_other_types']),
-
 			// 获取按钮样式
 			getback(name, mm, yzm, cb) {
 				if (this.mm_yzm == true) {
@@ -275,21 +276,18 @@
 					}
 				}
 			},
-
 			//服务协议
 			Service_Agreement() {
 				uni.navigateTo({
 					url: "../service/Service_Agreement?CB=" + this.cb
 				})
 			},
-
 			//忘记密码
 			Forget() {
 				uni.navigateTo({
 					url: '/pages/login/Forget_password'
 				})
 			},
-
 			//注册
 			login_land() {
 				uni.navigateTo({
@@ -359,42 +357,22 @@
 					}
 					return
 				}
-				if (that.codetime > 0) {
+				if (that.codeCounting) {
 					uni.showToast({
 						title: that.$t('不能重复获取'),
 						icon: "none"
 					})
 					return
+				}
+				that.startCodeCountdown()
+				uni.showLoading({
+					title: that.$t('正在发送验证码'),
+					mask: true
+				});
+				if (!that.validateEmail(that.unername)) {
+					that.send_login_code()
 				} else {
-					uni.showLoading({
-						title: that.$t('正在发送验证码'),
-						mask: true
-					});
-					// const checkemailregister = await check_email_register(that.unername, that.$APP_IP1);
-					// console.log("手机号验证码判断当前账号归属哪一个服务器：", checkemailregister);
-					// switch (checkemailregister) {
-					// 	case "Chinese_server":
-					// 		Vue.prototype.$url_APP_IP = that.$APP_IP1;
-					// 		break
-					// 	case "American_server":
-					// 	case "Chinese_American_servers":
-					// 		Vue.prototype.$url_APP_IP = that.$APP_IP2;
-					// 		break
-					// 	default:
-					// 		console.log("手机号验证码" + checkemailregister);
-					// 		const isInChina = await isInChinaByIP();
-					// 		if (isInChina) {
-					// 			Vue.prototype.$url_APP_IP = that.$APP_IP1;
-					// 		} else {
-					// 			Vue.prototype.$url_APP_IP = that.$APP_IP2;
-					// 		}
-					// 		break
-					// }
-					if (!that.validateEmail(that.unername)) {
-						that.send_login_code()
-					} else {
-						that.send_login_code1()
-					}
+					that.send_login_code1()
 				}
 			},
 
@@ -419,33 +397,22 @@
 				}).then(res => {
 					console.log(this.$url_APP_IP, res)
 					uni.hideLoading();
-					if (res.code === 200) {
-						this.yanzheng = 0
-						if (this.codetime > 0) {
+					if (res.code === 200) {} else {
+						this.resetCodeCountdown()
+						if (res.msg === "User does not exist.") {
 							uni.showToast({
-								title: this.$t('不能重复获取'),
-								icon: "none"
+								title: this.$t("此用户不存在") + "/" + this.$t("未绑定"),
+								icon: 'none'
 							})
-							return
 						} else {
-							this.codetime = 120
-							this.msg = this.$t('s后可重发')
-							let timer = setInterval(() => {
-								this.codetime-- + this.msg;
-								if (this.codetime < 1) {
-									clearInterval(timer);
-									this.msg = ''
-									this.codetime = this.$t('重新获取')
-								}
-							}, 1000)
+							uni.showToast({
+								title: this.$t("失败"),
+								icon: 'none'
+							})
 						}
-					} else {
-						uni.showToast({
-							title: this.$t("失败"),
-							icon: 'none'
-						})
 					}
 				}).catch(() => {
+					this.resetCodeCountdown()
 					uni.hideLoading();
 				})
 			},
@@ -457,34 +424,25 @@
 				this.$post(this.$url_APP_IP + this.$url_send_login_code, data, {
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then(res => {
-					uni.hideLoading();
 					if (res.code === 200) {
-						this.yanzheng = 0
-						if (this.codetime > 0) {
-							uni.showToast({
-								title: this.$t('不能重复获取'),
-								icon: "none"
-							})
-							return
-						} else {
-							this.codetime = 120
-							this.msg = this.$t('s后可重发')
-							let timer = setInterval(() => {
-								this.codetime-- + this.msg;
-								if (this.codetime < 1) {
-									clearInterval(timer);
-									this.msg = ''
-									this.codetime = this.$t('重新获取')
-								}
-							}, 1000)
-						}
+						uni.hideLoading();
 					} else {
-						uni.showToast({
-							title: this.$t("失败"),
-							icon: 'none'
-						})
+						this.resetCodeCountdown()
+						uni.hideLoading();
+						if (res.msg === "User does not exist.") {
+							uni.showToast({
+								title: this.$t("此用户不存在") + "/" + this.$t("未绑定"),
+								icon: 'none'
+							})
+						} else {
+							uni.showToast({
+								title: this.$t("失败"),
+								icon: 'none'
+							})
+						}
 					}
 				}).catch(() => {
+					this.resetCodeCountdown()
 					uni.hideLoading();
 				})
 			},
@@ -617,7 +575,6 @@
 					username: this.unername,
 					password: this.passwrod,
 				}
-				console.log("登录参数" + this.$url_APP_IP, data)
 				this.$post(this.$url_APP_IP + "/prod-api/app/user_login", data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
@@ -666,7 +623,6 @@
 					}
 				})
 			},
-
 			//手机验证码登录
 			app_login() {
 				const data = {
@@ -721,14 +677,12 @@
 					smsCode: this.yanzhengma,
 					email: this.unername
 				}
-				console.log(this.$url_APP_IP, "app_email_login", data)
 				this.$post(this.$url_APP_IP + "/prod-api/app/app_email_login", data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					uni.hideLoading()
 					if (res.code == 200) {
 						uni.setStorageSync("URL_APP_IP", this.$url_APP_IP)
-						console.log("注册成功，存储URL_APP_IP：" + this.$url_APP_IP)
 						uni.setStorageSync("token", res.token)
 						uni.setStorageSync("unername", this.unername)
 						uni.showToast({

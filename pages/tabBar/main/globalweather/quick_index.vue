@@ -226,6 +226,30 @@
 				return packet;
 			},
 
+			// 与 Main ACK 撞写时偶发 10007，短暂重试；仅本页 BLE 写使用
+			writeBleWithBusyRetry(value, success, fail, retryLeft = 6) {
+				const that = this;
+				const BUSY_RETRY_MS = 500;
+				uni.writeBLECharacteristicValue({
+					deviceId: that.deviceId,
+					serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
+					characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
+					writeType: 'writeNoResponse',
+					value,
+					success,
+					fail: (err) => {
+						const code = err && (err.errCode != null ? err.errCode : err.code);
+						if (code === 10007 && retryLeft > 0) {
+							setTimeout(() => {
+								that.writeBleWithBusyRetry(value, success, fail, retryLeft - 1);
+							}, BUSY_RETRY_MS);
+							return;
+						}
+						fail && fail(err);
+					}
+				});
+			},
+
 			// 发送数据到设备（与第一个文件保持一致的分包发送逻辑）
 			sendData(packet, resolve, reject, showLoading = true) {
 				let that = this;
@@ -261,15 +285,7 @@
 				};
 
 				if (packet.byteLength <= MTU) {
-					uni.writeBLECharacteristicValue({
-						deviceId: that.deviceId,
-						serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
-						characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
-						writeType: 'writeNoResponse',
-						value: packet,
-						success: onSuccess,
-						fail: onFailure
-					});
+					that.writeBleWithBusyRetry(packet, onSuccess, onFailure);
 					return;
 				}
 
@@ -288,20 +304,65 @@
 						return;
 					}
 					const currentPacket = packets[index];
-					uni.writeBLECharacteristicValue({
-						deviceId: that.deviceId,
-						serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
-						characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
-						writeType: 'writeNoResponse',
-						value: currentPacket.buffer,
-						success: () => {
-							index++;
-							setTimeout(sendNextPacket, 100);
-						},
-						fail: onFailure
-					});
+					that.writeBleWithBusyRetry(currentPacket.buffer, () => {
+						index++;
+						setTimeout(sendNextPacket, 100);
+					}, onFailure);
 				};
 				sendNextPacket();
+			},
+
+			/**
+			 * 等待设备信息校验通过。
+			 * 优先等本次 OTA 回包写入的 otaBP；过早用 otadatares 兜底会在回包/ACK 未完成时立刻发配置，易与 Main sendack 撞写 10007。
+			 * otadatares 仅作接近超时的兜底。
+			 */
+			waitOtaBpVerifyId(timeoutMs = 5000) {
+				return new Promise((resolve) => {
+					const started = Date.now();
+					const OTA_RES_FALLBACK_MS = Math.min(2800, Math.max(0, timeoutMs - 800));
+					const poll = () => {
+						const otaBP = String(uni.getStorageSync("otaBP") || "");
+						const otaRes = String(uni.getStorageSync("otadatares") || "");
+						let candidate = "";
+						if (OTA_BP_VERIFY_OK_IDS.has(otaBP)) {
+							candidate = otaBP;
+						} else if (Date.now() - started >= OTA_RES_FALLBACK_MS && OTA_BP_VERIFY_OK_IDS.has(otaRes)) {
+							candidate = otaRes;
+						}
+						if (candidate) {
+							resolve(candidate);
+							return;
+						}
+						if (Date.now() - started >= timeoutMs) {
+							resolve("");
+							return;
+						}
+						setTimeout(poll, 200);
+					};
+					poll();
+				});
+			},
+
+			/** Main 写完 otaBP 后会 enqueue ACK；等通道空闲再发定时器配置，降低 10007 */
+			waitBleChannelSettle(preferFreshOtaBp = true, settleMs = 700, timeoutMs = 2500) {
+				return new Promise((resolve) => {
+					const started = Date.now();
+					const finish = () => setTimeout(resolve, settleMs);
+					const poll = () => {
+						const otaBP = String(uni.getStorageSync("otaBP") || "");
+						if (!preferFreshOtaBp || OTA_BP_VERIFY_OK_IDS.has(otaBP)) {
+							finish();
+							return;
+						}
+						if (Date.now() - started >= timeoutMs) {
+							finish();
+							return;
+						}
+						setTimeout(poll, 100);
+					};
+					poll();
+				});
 			},
 
 			// OTA数据发送流程（用于开启监测模式）
@@ -310,73 +371,81 @@
 				uni.removeStorageSync("arguments00");
 				// 获取设备信息的命令
 				const buffer2 = that.toArrayBuffer("e0000609200101000100");
+				const gen = (that._otaVerifyGen = (that._otaVerifyGen || 0) + 1);
 				setTimeout(() => {
-					uni.writeBLECharacteristicValue({
-						deviceId: that.deviceId,
-						serviceId: "81EEA001-E735-49EC-8A11-7E32CAE1E14E",
-						characteristicId: "81EEA003-E735-49EC-8A11-7E32CAE1E14E",
-						writeType: 'writeNoResponse',
-						value: buffer2,
-						success(res) {
-							console.log("OTA：e0000609200101000100");
-							setTimeout(() => {
-								console.log("uni.getStorageSync otaBP:", uni.getStorageSync(
-									"otaBP"));
-								const otaBP = uni.getStorageSync("otaBP");
-								if (OTA_BP_VERIFY_OK_IDS.has(otaBP)) {
-									try {
-										const timers = items.map((item, idx) => ({
-											index: idx,
-											enabled: !!item.enabled,
-											startHour: parseInt(item.startHour, 10),
-											startMinute: parseInt(item.startMinute,
-												10),
-											endHour: parseInt(item.endHour, 10),
-											endMinute: parseInt(item.endMinute, 10),
-											interval: parseInt(item.interval, 10)
-										}));
-										const packet = that.buildBloodPressureTimerPacket({
-											maxTimers: that.config.maxCount,
-											timers: timers
-										});
-										that.sendData(packet, resolve, reject, true);
-									} catch (e) {
-										that.sending = false;
-										that.restoreStateOnFailure();
-										uni.showToast({
-											title: that.$t("请检查手表设备"),
-											icon: 'none'
-										});
-										uni.hideLoading();
-										uni.removeStorageSync("otaBP");
-										reject(e);
-									}
-								} else {
+					// 清掉旧 otaBP，避免未收到本次回包就用脏数据通过
+					uni.removeStorageSync("otaBP");
+					that.writeBleWithBusyRetry(buffer2, () => {
+						console.log("OTA：e0000609200101000100");
+						that.waitOtaBpVerifyId(5000).then((verifiedId) => {
+							if (gen !== that._otaVerifyGen) {
+								return;
+							}
+							console.log("【BPW1】otaBP:", uni.getStorageSync("otaBP"),
+								"verified:", verifiedId);
+							if (!OTA_BP_VERIFY_OK_IDS.has(verifiedId)) {
+								that.sending = false;
+								that.restoreStateOnFailure();
+								uni.showToast({
+									title: that.$t("请检查手表设备"),
+									icon: 'none',
+									duration: 2000
+								});
+								uni.hideLoading();
+								uni.removeStorageSync("otaBP");
+								reject(new Error("设备验证失败"));
+								return;
+							}
+							const usedCachedOtaRes = !OTA_BP_VERIFY_OK_IDS.has(
+								String(uni.getStorageSync("otaBP") || "")
+							);
+							that.waitBleChannelSettle(usedCachedOtaRes, 700, 2500).then(() => {
+								if (gen !== that._otaVerifyGen) {
+									return;
+								}
+								try {
+									const timers = items.map((item, idx) => ({
+										index: idx,
+										enabled: !!item.enabled,
+										startHour: parseInt(item.startHour, 10),
+										startMinute: parseInt(item.startMinute,
+											10),
+										endHour: parseInt(item.endHour, 10),
+										endMinute: parseInt(item.endMinute, 10),
+										interval: parseInt(item.interval, 10)
+									}));
+									const packet = that.buildBloodPressureTimerPacket({
+										maxTimers: that.config.maxCount,
+										timers: timers
+									});
+									that.sendData(packet, resolve, reject, true);
+								} catch (e) {
 									that.sending = false;
 									that.restoreStateOnFailure();
 									uni.showToast({
 										title: that.$t("请检查手表设备"),
-										icon: 'none',
-										duration: 2000
+										icon: 'none'
 									});
 									uni.hideLoading();
 									uni.removeStorageSync("otaBP");
-									reject(new Error("设备验证失败"));
+									reject(e);
 								}
-							}, 3000);
-						},
-						fail(err) {
-							that.sending = false;
-							that.restoreStateOnFailure();
-							console.log("OTA失败：e0000609200101000100", err);
-							uni.showToast({
-								title: that.$t("请检查设备连接"),
-								icon: 'none',
-								duration: 2000
 							});
-							uni.hideLoading();
-							reject(err);
-						},
+						});
+					}, (err) => {
+						if (gen !== that._otaVerifyGen) {
+							return;
+						}
+						that.sending = false;
+						that.restoreStateOnFailure();
+						console.log("OTA失败：e0000609200101000100", err);
+						uni.showToast({
+							title: that.$t("请检查设备连接"),
+							icon: 'none',
+							duration: 2000
+						});
+						uni.hideLoading();
+						reject(err);
 					});
 				}, 3000);
 			},

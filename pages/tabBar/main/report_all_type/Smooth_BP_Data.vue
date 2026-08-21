@@ -12,8 +12,8 @@
 			</text>
 		</view>
 
-		<view class="table-tip">{{dataTipText}}</view>
-		<view v-show="modeltips" class="model-tip">{{$t('您的无感血压AI模型正在建立中大概需要2周时间')}}</view>
+		<view v-if="modeltips" class="model-tip">{{$t('您的无感血压AI模型正在建立中大概需要2周时间')}}</view>
+		<view v-else class="model-tip">{{$t('您的AI无感血压模型已经建立')}}</view>
 		<view class="table-header">
 			<text class="col-time">{{$t('测量时间')}}</text>
 			<text class="col-period">{{$t('时段')}}</text>
@@ -43,6 +43,7 @@
 				</text>
 			</view>
 		</scroll-view>
+		<view class="table-tip">{{dataTipText}}</view>
 	</view>
 </template>
 
@@ -91,7 +92,7 @@
 		},
 		onShow() {
 			const modeltipsbool = uni.getStorageSync("temperature")
-			console.log("modeltipsbool", modeltipsbool)
+			// console.log("modeltipsbool", modeltipsbool)
 			uni.setNavigationBarTitle({
 				title: this.$t('无感血压报告')
 			})
@@ -133,8 +134,12 @@
 				this.currentTab = tab
 			},
 			calculateTimeRange() {
-				const endTime = getChinaTimeAllJSON().YMD
-				this.pacitime = endTime
+				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
+				const chinaNow = getChinaTimeAllJSON()
+				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
+				this.pacitime = chinaHour < 1 ?
+					getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD :
+					chinaNow.YMD
 			},
 			// 手机本地日期：只保留「昨天」和「前天」（如今天 18 号 → 16、17 号）
 			getTargetDateSet() {
@@ -273,12 +278,12 @@
 					filterVarList: that.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
 				}
-				console.log('get_retVarLisdata参数：', data)
+				// console.log('get_retVarLisdata参数：', data)
 				that.$post(that.$url_APP_IP + '/prod-api/device_app/get_retVarList', data, {
 					'Authorization': 'Bearer ' + token,
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((res) => {
-					console.log('get_retVarLis：', res)
+					// console.log('get_retVarLis：', res)
 					if (res.code === 200 && res.data && res.data.retVarList) {
 						that.dataList = that.processRetVarList(res.data.retVarList)
 					} else {
@@ -297,7 +302,7 @@
 
 <style scoped>
 	.page {
-		padding: 10px;
+		/* padding: 10px; */
 		height: 100vh;
 		box-sizing: border-box;
 		background: #f5f5f5;
@@ -329,14 +334,12 @@
 	}
 
 	.model-tip {
-		margin-top: 16rpx;
 		padding: 16rpx 20rpx;
 		font-size: 22rpx;
 		line-height: 1.5;
 		color: #c0392b;
-		text-align: left;
+		text-align: center;
 		background: rgba(255, 248, 232, 0.95);
-		border-radius: 12rpx;
 	}
 
 	.tab {
@@ -364,11 +367,10 @@
 	.table-header {
 		align-items: center;
 		flex-shrink: 0;
-		background: #ffffff;
-		border-bottom: 1px solid #e5e5e5;
+		background: #007aff;
 		font-size: 26rpx;
 		font-weight: 600;
-		color: #333;
+		color: #ffffff;
 	}
 
 	.table-row {
@@ -471,7 +473,7 @@
 	.list-scroll {
 		flex: 1;
 		height: 0;
-		padding-bottom: 60rpx;
+		/* padding-bottom: 20px; */
 		box-sizing: border-box;
 	}
 

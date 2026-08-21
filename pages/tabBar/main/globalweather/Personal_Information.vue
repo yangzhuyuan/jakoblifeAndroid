@@ -175,7 +175,6 @@
 			}
 		},
 		onLoad(option) {
-			console.log("onLoad", option)
 			this.type = option.type
 			// 页面加载时读取本地存储的数据
 			this.loadFromStorage()
@@ -314,7 +313,8 @@
 				}).then(res => {
 					if (res.code == 200) {
 						const sleepEntry = this.findRegisterValue(res.data, 'register', 'sleep')
-						const sleepVal = sleepEntry && sleepEntry.registerVal != null ? String(sleepEntry.registerVal).trim() : ''
+						const sleepVal = sleepEntry && sleepEntry.registerVal != null ? String(sleepEntry
+							.registerVal).trim() : ''
 						const invalidValues = ['', '-/-', '--/--', '0H0M', '0h0m']
 						if (!sleepVal || invalidValues.includes(sleepVal)) {
 							this.form.sleepTime = ''

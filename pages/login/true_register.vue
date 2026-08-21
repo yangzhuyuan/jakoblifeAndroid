@@ -263,16 +263,13 @@
 					nickName: '',
 					remark: this.$url_APP_IP
 				}
-				console.log("App用户名密码注册：" + this.$url_APP_IP, requestData)
 				this.$post(this.$url_APP_IP + "/prod-api/app/register", requestData, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(this.handleRegisterResponse).catch(this.handleRegisterError)
 			},
-
 			// 处理注册响应
 			handleRegisterResponse(res) {
 				uni.hideLoading()
-				console.log("App用户名密码注册res：" + JSON.stringify(res))
 				switch (res.code) {
 					case 200:
 						this.handleRegisterSuccess(res)
@@ -299,6 +296,7 @@
 				// 根据地区跳转
 				setTimeout(() => {
 					const navigationTarget = isChina ? '../login/Bind_phone' : "/pages/login/true_register_email"
+					// const navigationTarget = "/pages/login/true_register_email"
 					uni.navigateTo({
 						url: navigationTarget
 					})

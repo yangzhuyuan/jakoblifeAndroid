@@ -1986,7 +1986,7 @@ function qxScheduleLog(...parts) {
 		}
 		return String(a)
 	}).join(' | ')
-	// console.log('[qxBle]', msg)
+	console.log('[qxBle]', msg)
 }
 
 function formatSlotTime(ts) {
@@ -2894,7 +2894,6 @@ async function startBpw6PpgDirectFromSchedule(deviceId) {
 	let result = null
 	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
-			console.log('[qxBle] 调度直发BPW6 PPG', targetDeviceId, 'attempt', attempt)
 			result = await Promise.race([
 				u16proBLE.startPPGMeasurementWithDuration(60, targetDeviceId, true, {
 					forceNotify: false,
@@ -2962,7 +2961,6 @@ async function runOneBpw6QxMeasurement(deviceId) {
 	markSessionBusyEarly(false)
 	console.log('[qxBle] //定时测量-BPW6开始下发', targetDeviceId, qxAppInForeground ? '前台' : '后台')
 	await ensureQxBleBackgroundRuntime('BPW6定时下发前')
-
 	// 后台：直发（与立即测量同 startPPG）；前台可先走 Main
 	if (!qxAppInForeground) {
 		await delayMs(200)
@@ -3398,7 +3396,8 @@ async function executeQxMeasurementOnce() {
 			await runOneQxMeasurement(dev, DEFAULT_SERVICE_ID, DEFAULT_CHAR_ID, useBpw6)
 			const activeSlot = readMeasureSlotAt() || slotAt
 			if (activeSlot > 0) {
-				persistNextFireAt(activeSlot)
+				const next = getNextUnionAlignedSlotDate(new Date(), new Date(activeSlot + 1))
+				persistNextFireAt(next ? next.getTime() : activeSlot)
 			}
 			startQxMeasureWatchdog()
 			refreshKeepAliveNotificationIfNeeded()
@@ -3539,7 +3538,6 @@ async function runQxBleScheduleWakeTickInner(source = 'wake') {
 		return restarted ? 'restarted' : 'dispatch-skipped'
 	}
 	const executed = await executeQxMeasurementOnce()
-	console.log('[qxBle] //定时测量-到点下发', source, executed ? '成功' : '失败')
 	return executed ? 'executed' : 'dispatch-skipped'
 }
 

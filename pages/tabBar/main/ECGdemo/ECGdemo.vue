@@ -91,7 +91,7 @@
 					<button class="btn secondary" :disabled="isMockTesting" @tap="loadBleFullWave">加载BLE全波形</button>
 				</view>
 				<text class="test-hint">BLE测试数据：原始 {{ bleDataPointCount }} 点 @{{ bleTestFs }}Hz
-					≈{{ bleTestSec }}s（已是幅值，无需uV→mV）</text>
+					≈{{ bleTestSec }}s（已是mV；clean±300后INT16；云端滤波）</text>
 
 				<!-- <view class="txt-import-section">
 					<text class="test-title">客户 hex TXT 解析上报</text>
@@ -115,18 +115,13 @@
 		getLocalTimeAllJSON
 	} from '../../../api/unitls/timezone.js';
 	import {
-		jakobLifeDebugFileLog
-	} from '../../../api/jakobLifeDebugFileLog.js';
-	import {
 		bleTestEcgData,
 		bleTestEcgFs,
 		bleTestEcgSeconds,
 		bleTestEcgNeedUvToMv
 	} from './ble-test-data.js';
-
 	const systemInfo = uni.getSystemInfoSync();
 	const windowHeight = systemInfo.windowHeight;
-
 	const SERVICE_ID = '0000FFF0-0000-1000-8000-00805F9B34FB';
 	const WRITE_UUID = '0000FFF6-0000-1000-8000-00805F9B34FB';
 	const NOTIFY_UUID = '0000FFF6-0000-1000-8000-00805F9B34FB';
@@ -319,6 +314,10 @@
 	const CUSTOMER_UPLOAD_POINTS = CUSTOMER_UPLOAD_FS * CUSTOMER_UPLOAD_SECONDS; // 10000
 	/** 对齐 ecg_main.DEFAULT_ECG_STORAGE_VOLTAGE_RANGE_MV */
 	const CUSTOMER_STORAGE_VOLTAGE_RANGE_MV = 500;
+	/** 对齐 ecg_main.CUSTOMER_HEX_TXT_ABS_LIMIT_MV：|x|>300 视为接触异常并插值 */
+	const CUSTOMER_HEX_TXT_ABS_LIMIT_MV = 300;
+	/** 对齐 ecg_main metadata.customer_lowpass_hz（云端特征用；本页入库 raw 不做滤波） */
+	const CUSTOMER_HEX_TXT_LOWPASS_HZ = 12;
 
 	/**
 	 * 仅本页上报用：把采样压成 10000 点 @250Hz，去掉 hold×2 / 成对多采导致的 20000。
@@ -390,8 +389,8 @@
 	}
 
 	/**
-	 * 仅本页实时/全波形显示：mV 转回 uV 量级后差分成连续波（不上报）。
-	 * 上报严格按 PC：uV→mV 后的数值，不做差分解码。
+	 * 仅本页实时/全波形显示：mV 转回显示量级后差分成连续波（不上报）。
+	 * 上报严格按 PC store_data：customer 已是 mV 的 cleaned raw，不做差分解码。
 	 */
 	function customerMvToDisplayWave(mvSignal) {
 		if (!mvSignal || !mvSignal.length) return [];
@@ -446,8 +445,8 @@
 	 * 一个数据点 = 一整帧，例如：
 	 *   23 31 36 31 37 2E 37 37 6B 0A
 	 *   #  1  6  1  7  .  7  7  CS LF
-	 * → 原始值 1617.77（uV）→ ÷1000 → 1.61777 mV → INT16 小端上报（2字节/点）
-	 * （末尾 6B 为校验，0A 为帧尾，不计入采样值）
+	 * → 原始值按已是 mV 保留（禁止 ÷1000）→ clean±300 → INT16 小端上报（2字节/点）
+	 * （末尾校验字节与 0A 帧尾不计入采样值；滤波由云端 processed_data 做）
 	 */
 	function parseCustomerHexTxt(txtContent) {
 		const hexList = String(txtContent || '').match(/[0-9A-Fa-f]{2}/g) || [];
@@ -478,7 +477,7 @@
 		};
 	}
 
-	/** 转换后 mV 最多保留小数点后 6 位 */
+	/** 数值最多保留小数点后 6 位 */
 	function roundMv6(v) {
 		const n = Number(v);
 		if (!Number.isFinite(n)) return 0;
@@ -486,10 +485,94 @@
 	}
 
 	/**
-	 * 对齐 ecg_main.normalize_imported_ecg_units：
+	 * 对齐 ecg_main.clean_customer_hex_txt_ecg：
+	 * 客户确认 hex/# 采样已是 ADC→mV（250Hz），不做 µV→mV。
+	 * |x| > 300 视为接触异常，线性插值替换。
+	 */
+	function cleanCustomerHexTxtEcg(values, absLimitMv = CUSTOMER_HEX_TXT_ABS_LIMIT_MV) {
+		const signal = [];
+		for (let i = 0; i < (values || []).length; i++) {
+			const v = Number(values[i]);
+			signal.push(Number.isFinite(v) ? v : NaN);
+		}
+		const info = {
+			unitMode: 'customer_adc_mV',
+			outlierAbsLimitMv: Number(absLimitMv) || CUSTOMER_HEX_TXT_ABS_LIMIT_MV,
+			outlierCount: 0,
+			outlierRatio: 0
+		};
+		if (!signal.length) {
+			return {
+				signal: [],
+				info
+			};
+		}
+		const limit = info.outlierAbsLimitMv;
+		const invalid = new Array(signal.length);
+		let invalidCount = 0;
+		for (let i = 0; i < signal.length; i++) {
+			const bad = !Number.isFinite(signal[i]) || Math.abs(signal[i]) > limit;
+			invalid[i] = bad;
+			if (bad) invalidCount++;
+		}
+		info.outlierCount = invalidCount;
+		info.outlierRatio = invalidCount / signal.length;
+		if (!invalidCount) {
+			return {
+				signal: signal.map(roundMv6),
+				info
+			};
+		}
+		const validIdx = [];
+		const validVal = [];
+		for (let i = 0; i < signal.length; i++) {
+			if (!invalid[i]) {
+				validIdx.push(i);
+				validVal.push(signal[i]);
+			}
+		}
+		if (validIdx.length < 2) {
+			return {
+				signal: signal.map(() => 0),
+				info
+			};
+		}
+		const cleaned = signal.slice();
+		for (let i = 0; i < cleaned.length; i++) {
+			if (!invalid[i]) continue;
+			// 线性插值（对齐 np.interp）
+			let lo = 0;
+			let hi = validIdx.length - 1;
+			if (i <= validIdx[0]) {
+				cleaned[i] = validVal[0];
+				continue;
+			}
+			if (i >= validIdx[hi]) {
+				cleaned[i] = validVal[hi];
+				continue;
+			}
+			while (hi - lo > 1) {
+				const mid = (lo + hi) >> 1;
+				if (validIdx[mid] <= i) lo = mid;
+				else hi = mid;
+			}
+			const x0 = validIdx[lo];
+			const x1 = validIdx[hi];
+			const y0 = validVal[lo];
+			const y1 = validVal[hi];
+			const t = (i - x0) / (x1 - x0);
+			cleaned[i] = y0 + (y1 - y0) * t;
+		}
+		return {
+			signal: cleaned.map(roundMv6),
+			info
+		};
+	}
+
+	/**
+	 * 对齐 ecg_main.normalize_imported_ecg_units（仅非客户 hex 文本数值用）：
 	 * 绝对值 99 分位 > 20 → 视为 uV，除以 1000 转 mV。
-	 * 例：1617.77 uV → 1.61777 mV；已是 mV 则原样返回。
-	 * 转换后一律最多保留 6 位小数。
+	 * 客户 hex/# 请用 cleanCustomerHexTxtEcg，不要走这里。
 	 */
 	function convertCustomerEcgToMv(ecgValues) {
 		const values = (ecgValues || []).filter(v => Number.isFinite(v));
@@ -645,10 +728,11 @@
 	}
 
 	/**
-	 * 对齐 ecg_main：
-	 * - store_data 入库：仅 uV→mV（p99Abs>20 则 ÷1000），不做首尾裁剪
-	 * - 首尾质量裁剪只用于本地 trimInfo / 特征侧参考，不改写入 rawData 的波形
-	 * 例：1617.77 uV → 1.61777 mV
+	 * 对齐 ecg_main 客户 hex TXT：
+	 * - clean_customer_hex_txt_ecg（已是 mV，|x|>300 插值）
+	 * - store_data 入库：cleaned raw INT16，不做 µV→mV，不做 baseline/lp/notch
+	 * - 首尾质量裁剪只用于本地 trimInfo，不改写入 rawData 的波形
+	 * 滤波（baseline/lp12/notch）由云端对 processed_data 做，与 PC save_processed_signal 一致。
 	 */
 	function applyPcVoltagePipeline(rawValues, fileName) {
 		const rawUv = [];
@@ -656,32 +740,38 @@
 			const v = Number(rawValues[i]);
 			if (Number.isFinite(v)) rawUv.push(v);
 		}
-		const converted = convertCustomerEcgToMv(rawUv);
+		const cleaned = cleanCustomerHexTxtEcg(rawUv);
 		const fs = inferFsFromFileName(fileName) || CUSTOMER_TXT_DEFAULT_FS;
-		const trimResult = trimLowQualityEdges(converted.signal, fs);
+		const trimResult = trimLowQualityEdges(cleaned.signal, fs);
+		const p99Abs = cleaned.signal.length ?
+			customerPercentile(cleaned.signal.map(Math.abs), 99) :
+			0;
 		return {
 			rawUv,
 			samplingRate: fs,
-			/** 与 PC store_data 一致：未裁剪 mV，用于 INT16 上报 */
-			ecgData: converted.signal.slice(),
+			/** 与 PC store_data 一致：cleaned raw（未滤波），用于 INT16 上报 */
+			ecgData: cleaned.signal.slice(),
 			/** 同 ecgData（显式命名，避免误用裁剪结果） */
-			ecgDataFull: converted.signal.slice(),
+			ecgDataFull: cleaned.signal.slice(),
 			/** 仅本地/元数据：裁剪后波形，不上报 */
 			ecgDataTrimmed: trimResult.signal.slice(),
 			trimInfo: trimResult.info,
 			unit: 'mV',
-			unitWasUv: converted.unitWasUv,
-			unitMode: converted.unitMode,
-			p99AbsRaw: converted.p99Abs,
-			rawPointCount: rawUv.length
+			unitWasUv: false,
+			unitMode: cleaned.info.unitMode,
+			p99AbsRaw: p99Abs,
+			rawPointCount: rawUv.length,
+			customerCleanInfo: cleaned.info,
+			customerLowpassHz: CUSTOMER_HEX_TXT_LOWPASS_HZ,
+			skipForceUvConvert: true
 		};
 	}
 
 	/**
-	 * 对齐 PC「导入 TXT ECG」：
-	 * ① hex/# → 原始采样（同 ble-test-data.js，uV）
-	 * ② applyPcVoltagePipeline → 最终 mV
-	 * ③ 调用方再 INT16 编码上报
+	 * 对齐 PC「导入客户 hex TXT ECG」：
+	 * ① hex/# → 原始采样（已是 mV）
+	 * ② clean ±300 → store_data INT16
+	 * ③ 云端再做 baseline/lp/notch（本页不上报前滤波）
 	 */
 	function parseCustomerTxt(txtContent, fileName, preParsedValues) {
 		let ecgValues = [];
@@ -711,8 +801,8 @@
 	}
 
 	/**
-	 * ble-test-data.js：当前为 60s 已是幅值（无需 ÷1000）；历史曾为上千 uV。
-	 * 显示：差分连续波；上报：as-is → INT16（真实 BLE 仍走 uV→mV）。
+	 * ble-test-data.js：60s 已是 mV（对齐 PC customer_adc_mV）。
+	 * 显示：差分连续波；上报：clean±300 → INT16 raw（云端再滤波）。
 	 */
 	const bleContinuousWaveData = prepareBleContinuousWave(bleTestEcgData);
 	/** 按主峰 RR 估出的一屏秒数（钳制在 3～10s） */
@@ -958,11 +1048,11 @@
 				return !!wave.isMeasuring;
 			},
 			/**
-			 * 仅本页全波形/云端数据显示用：按主波峰（P95）把高度拉到约半屏 55%，少数尖峰可略裁。
+			 * 仅本页全波形/云端数据显示用：按峰值把高度压到约半屏 25%，避免顶满画布。
 			 * 不改 ecg-wave 默认逻辑，也不影响实时测量增益（BLE_MEASURE_GAIN）。
 			 * generateApiData 在 voltageRange<=10 时会把 apiDataAmplifyFactor 设为 25，必须在其后覆盖。
 			 */
-			fitEcgDemoWaveGain(wave, data, fillRatio = 0.55) {
+			fitEcgDemoWaveGain(wave, data, fillRatio = 0.25) {
 				if (!wave || !data || !data.length) return 0;
 				const absList = [];
 				let maxAbs = 0;
@@ -976,8 +1066,8 @@
 				absList.sort((a, b) => a - b);
 				const p95 = absList[Math.min(absList.length - 1, Math.floor(absList.length * 0.95))] || maxAbs;
 				const p99 = absList[Math.min(absList.length - 1, Math.floor(absList.length * 0.99))] || maxAbs;
-				// 以 P95 主波峰为准放大；用 P99 托底，避免偶发 maxAbs 把整段压扁
-				const scaleAbs = Math.max(p95 * 1.05, Math.min(p99, maxAbs * 0.55), 0.001);
+				// 用更大 scaleAbs（贴近 maxAbs），降低 amp，避免尖峰顶边、整体显大
+				const scaleAbs = Math.max(p95 * 1.15, p99 * 1.05, maxAbs * 0.75, 0.001);
 				const fixedGain = wave.fixedGain || 50;
 				const marginTB = (wave.margin && (wave.margin.top + wave.margin.bottom)) || 40;
 				const halfH = Math.max(60, ((wave.pxHeight || 280) - marginTB) / 2);
@@ -1021,7 +1111,7 @@
 				const src = (wave.fullDataList && wave.fullDataList.length) ?
 					wave.fullDataList :
 					(wave.apiDataList || []);
-				const amp = this.fitEcgDemoWaveGain(wave, src, 0.55);
+				const amp = this.fitEcgDemoWaveGain(wave, src, 0.25);
 				this.addLog(
 					'全波形',
 					`自适应增益=${(amp || 0).toFixed(4)}, 一屏=${win.toFixed(1)}s / 总${total.toFixed(1)}s, 极性=${BLE_ECG_POLARITY}`
@@ -1192,15 +1282,15 @@
 				this._bleMockData = null;
 				this._bleMockIndex = 0;
 				if (showBleFull && wasBle) {
-					// 内置 ble-test-data：已是幅值(60s)走 as-is；真实 BLE 上千 uV 仍走 uV→mV
+					// 内置 ble-test-data：对齐 PC 客户 hex（已是 mV + ±300 清洁 → INT16）
 					this.uploadMockBleCustomerEcg();
 					setTimeout(() => this.renderBleFullWaveFromPayload('模拟完成'), 50);
 				}
 				this.addLog('模拟测试', '已停止');
 			},
 			/**
-			 * 模拟 / 蓝牙测量共用：① 原始 uV → ② PC 电压 mV → ③ INT16 上报。
-			 * 真实 BLE（上千量级 uV）走此路径；内置 60s 幅值数据请用 uploadAlreadyMvCustomerEcg。
+			 * 对齐 PC 客户 hex/#：已是 mV → clean±300 → INT16（store_data raw）。
+			 * 不做 µV→mV；滤波由云端 processed_data 完成。
 			 */
 			uploadRawUvCustomerEcg(rawUvValues, options = {}) {
 				const raw = (rawUvValues || []).filter(v => Number.isFinite(Number(v))).map(Number);
@@ -1209,24 +1299,27 @@
 				const fileName = options.fileName || '250hz_40s.txt';
 				const rawFormat = options.raw_format || 'customer_ble_raw';
 				if (!raw.length) {
-					this.addLog(logTag, '无原始 uV 采样');
+					this.addLog(logTag, '无原始采样');
 					return;
 				}
 				const result = parseCustomerTxt('', fileName, raw);
 				result.raw_format = rawFormat;
 				result.fileName = fileName;
+				result.skipForceUvConvert = true;
+				const cleanInfo = result.customerCleanInfo || {};
 				const tip =
-					`①原始uV ${result.rawPointCount}点 → ②入库mV ${result.ecgData.length}点(未裁剪,对齐PC), fs=${result.samplingRate}Hz, ` +
-					`unit=${result.unitMode}, ` +
+					`①原始 ${result.rawPointCount}点 → ②clean±${CUSTOMER_HEX_TXT_ABS_LIMIT_MV} ${result.ecgData.length}点(已是mV,无uV→mV), ` +
+					`fs=${result.samplingRate}Hz, unit=${result.unitMode}, outliers=${cleanInfo.outlierCount || 0}, ` +
 					`本地裁剪参考=${result.trimInfo.trim_applied ? `首${result.trimInfo.trim_start_sec.toFixed(1)}s/尾${result.trimInfo.trim_end_sec.toFixed(1)}s` : '无'}`;
 				this.addLog(logTag, tip);
 				this.addLog(logTag, {
-					step1_rawUv_head: (result.rawUv || raw).slice(0, 5),
-					step2_storeMv_head: (result.ecgData || []).slice(0, 5),
+					step1_raw_head: (result.rawUv || raw).slice(0, 5),
+					step2_store_head: (result.ecgData || []).slice(0, 5),
 					sampling_rate: result.samplingRate,
 					unit: result.unit,
 					unit_mode: result.unitMode,
 					raw_format: result.raw_format,
+					customer_clean: cleanInfo,
 					trim_info_local: result.trimInfo,
 					upload_points: result.ecgData.length
 				});
@@ -1236,8 +1329,8 @@
 				});
 			},
 			/**
-			 * 新增：已是幅值（几十量级）直接 INT16 上报，不做 uV→mV。
-			 * 不影响 uploadRawUvCustomerEcg（真实 BLE 上千 uV 仍 ÷1000）。
+			 * 已是 mV 采样（模拟 ble-test-data / 实时 # 帧解析后）：
+			 * 与 PC clean_customer_hex_txt_ecg 同路径 → clean±300 → INT16。
 			 */
 			uploadAlreadyMvCustomerEcg(mvValues, options = {}) {
 				const raw = (mvValues || []).filter(v => Number.isFinite(Number(v))).map(Number);
@@ -1248,11 +1341,12 @@
 				const fileName = options.fileName || `${fs}hz_${sec}s.txt`;
 				const rawFormat = options.raw_format || 'customer_ble_mock';
 				if (!raw.length) {
-					this.addLog(logTag, '无已是幅值采样');
+					this.addLog(logTag, '无已是 mV 采样');
 					return;
 				}
-				const signal = raw.map(roundMv6);
-				const p99Abs = customerPercentile(signal.map(Math.abs), 99);
+				const cleaned = cleanCustomerHexTxtEcg(raw);
+				const signal = cleaned.signal;
+				const p99Abs = signal.length ? customerPercentile(signal.map(Math.abs), 99) : 0;
 				const result = {
 					rawUv: raw.slice(),
 					ecgData: signal.slice(),
@@ -1261,12 +1355,14 @@
 					samplingRate: fs,
 					unit: 'mV',
 					unitWasUv: false,
-					unitMode: 'mV_as_is',
+					unitMode: cleaned.info.unitMode,
 					skipForceUvConvert: true,
 					p99AbsRaw: p99Abs,
 					rawPointCount: raw.length,
 					fileName,
 					raw_format: rawFormat,
+					customerCleanInfo: cleaned.info,
+					customerLowpassHz: CUSTOMER_HEX_TXT_LOWPASS_HZ,
 					trimInfo: {
 						trim_applied: false,
 						trim_start_sec: 0,
@@ -1275,15 +1371,17 @@
 					}
 				};
 				const tip =
-					`①已是幅值 ${result.rawPointCount}点 → ②直接入库(无uV→mV) ${result.ecgData.length}点, fs=${fs}Hz≈${sec}s, unit=${result.unitMode}`;
+					`①已是mV ${result.rawPointCount}点 → ②clean±${CUSTOMER_HEX_TXT_ABS_LIMIT_MV} ${result.ecgData.length}点, ` +
+					`fs=${fs}Hz≈${sec}s, unit=${result.unitMode}, outliers=${cleaned.info.outlierCount}`;
 				this.addLog(logTag, tip);
 				this.addLog(logTag, {
 					step1_raw_head: raw.slice(0, 5),
-					step2_storeMv_head: signal.slice(0, 5),
+					step2_store_head: signal.slice(0, 5),
 					sampling_rate: fs,
 					unit: result.unit,
 					unit_mode: result.unitMode,
 					raw_format: result.raw_format,
+					customer_clean: cleaned.info,
 					upload_points: result.ecgData.length,
 					p99Abs
 				});
@@ -1292,26 +1390,16 @@
 					this.addLog(errTag, err);
 				});
 			},
-			/** 模拟：内置 ble-test-data 按 meta 选 as-is(60s) 或旧 uV→mV */
+			/** 模拟：内置 ble-test-data 一律走客户 hex mV 清洁路径 */
 			uploadMockBleCustomerEcg() {
 				if (!bleTestEcgData || !bleTestEcgData.length) {
 					this.addLog('模拟上报', '无 bleTestEcgData');
 					return;
 				}
-				const opts = {
+				this.uploadAlreadyMvCustomerEcg(bleTestEcgData, {
 					raw_format: 'customer_ble_mock',
 					logTag: '模拟解析上报',
-					errTag: '模拟上报异常'
-				};
-				if (bleTestEcgNeedUvToMv) {
-					this.uploadRawUvCustomerEcg(bleTestEcgData, {
-						...opts,
-						fileName: '250hz_40s.txt'
-					});
-					return;
-				}
-				this.uploadAlreadyMvCustomerEcg(bleTestEcgData, {
-					...opts,
+					errTag: '模拟上报异常',
 					fs: bleTestEcgFs,
 					seconds: bleTestEcgSeconds,
 					fileName: `${bleTestEcgFs}hz_${bleTestEcgSeconds}s.txt`
@@ -1560,8 +1648,8 @@
 			uploadCustomerTxtEcg(result) {
 				return new Promise((resolve, reject) => {
 					// ① 原始采样（优先 rawUv）
-					// ② 默认：强制 uV→mV（p99Abs>20 则 ÷1000）；skipForceUvConvert 时原样（内置60s幅值）
-					// ③ 原上报格式：INT16 小端 2 字节/点（与 Main.saveFinalData 一致）
+					// ② 客户 hex：skipForceUvConvert → clean 后 mV as-is（对齐 PC store_data）
+					// ③ INT16 小端 2 字节/点，voltageRange=500
 					const FORCE_VR = CUSTOMER_STORAGE_VOLTAGE_RANGE_MV;
 					const fileName = (result && result.fileName) ||
 						`upload_${CUSTOMER_UPLOAD_FS}hz.txt`;
@@ -2175,7 +2263,7 @@
 					}
 				}
 				if (!wave.isMeasuring) return;
-				// 缓存原始采样（非 TXT）：与 PC 工具同一套 uV→mV + 首尾裁剪上报
+				// 缓存原始 # 采样（非 TXT）：对齐 PC 客户 hex（已是 mV）
 				if (!this.bleRawEcgValues) this.bleRawEcgValues = [];
 				const rawMax = BLE_MEASURE_SECONDS * CUSTOMER_TXT_DEFAULT_FS;
 				if (this.bleRawEcgValues.length < rawMax) {
@@ -2391,13 +2479,17 @@
 					return;
 				}
 				const raw = this.bleRawEcgValues;
-				// 蓝牙原始 # 采样：与「开始模拟」同一套 uploadRawUvCustomerEcg（uV→mV→INT16）
+				// 实时仅多一步 hex/# 解析；拿到 mV 后与「开始模拟」同一套 uploadAlreadyMvCustomerEcg
 				if (raw && raw.length) {
-					this.uploadRawUvCustomerEcg(raw.slice(), {
-						fileName: '250hz_40s.txt',
+					const fs = CUSTOMER_TXT_DEFAULT_FS || CUSTOMER_UPLOAD_FS || 250;
+					const sec = Math.max(1, Math.round(raw.length / fs)) || BLE_MEASURE_SECONDS;
+					this.uploadAlreadyMvCustomerEcg(raw.slice(), {
 						raw_format: 'customer_ble_raw',
 						logTag: 'BLE解析上报',
-						errTag: 'BLE上报异常'
+						errTag: 'BLE上报异常',
+						fs,
+						seconds: sec,
+						fileName: `${fs}hz_${sec}s.txt`
 					});
 					return;
 				}

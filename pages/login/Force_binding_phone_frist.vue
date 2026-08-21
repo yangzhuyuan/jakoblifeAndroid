@@ -11,7 +11,7 @@
 				<input type="number" :placeholder="$t('请输入验证码')" style="margin-left: 10px;" maxlength="6"
 					v-model="yanzhengma" />
 			</view>
-			<button class="linear_btn" style="background: #3298F7; color: white;"
+			<button class="linear_btn" :disabled="codeCounting" :style="codeBtnStyle"
 				@tap="huoqu">{{yanzheng?$t('获取验证码'): codetime+msg}}</button>
 		</view>
 		<button class="button_back" @tap="btn_next">{{$t('完成')}}</button>
@@ -48,7 +48,9 @@
 		mapState,
 		mapMutations
 	} from 'vuex';
+	import codeCountdownMixin from '@/pages/api/codeCountdownMixin.js'
 	export default {
+		mixins: [codeCountdownMixin],
 		computed: {
 			...mapState(['uuid', 'access_token', 'openid', 'other_types'])
 		},
@@ -91,16 +93,18 @@
 					});
 					return;
 				}
-				if (this.codetime > 0) {
+				if (this.codeCounting) {
 					uni.showToast({
 						title: this.$t('不能重复获取'),
 						icon: 'none'
 					});
 					return;
 				}
-				// this.tanchuang = true;
-				// this.yzm = '';
-				// this.captchaImage();
+				this.startCodeCountdown()
+				uni.showLoading({
+					title: this.$t('发送中'),
+					mask: true
+				})
 				this.send_phone_register_code()
 			},
 
@@ -231,36 +235,22 @@
 				this.$post(this.$url_APP_IP + this.$url_send_phone_register_code, data, {
 					'content-type': 'application/x-www-form-urlencoded' //自定义请求头信息
 				}).then(res => {
+					uni.hideLoading()
 					if (res.code == 200) {
 						uni.showToast({
 							title: this.$t('成功'),
 							icon: "none"
 						})
-						this.yanzheng = 0
-						if (this.codetime > 0) {
-							uni.showToast({
-								title: this.$t('不能重复获取'),
-								icon: "none"
-							})
-							return
-						} else {
-							this.codetime = 120
-							this.msg = this.$t('s后可重发')
-							let timer = setInterval(() => {
-								this.codetime-- + this.msg;
-								if (this.codetime < 1) {
-									clearInterval(timer);
-									this.msg = ''
-									this.codetime = this.$t('重新获取')
-								}
-							}, 1000)
-						}
 					} else {
+						this.resetCodeCountdown()
 						uni.showToast({
 							title: this.$t("该手机号已被绑定"),
 							icon: 'none'
 						})
 					}
+				}).catch(() => {
+					this.resetCodeCountdown()
+					uni.hideLoading()
 				})
 			},
 			//微信使用accessToken和openId登录

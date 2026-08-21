@@ -1,6 +1,21 @@
 <template>
 	<view style="color: #000000;width: 100vw;height: 100vh;">
 		<view style="display: flex; flex-direction: column;">
+
+			<!-- <view class="bp-log-panel">
+				<view class="bp-log-header">
+					<text class="bp-log-title">调试日志</text>
+					<view class="bp-log-header-actions">
+						<text class="bp-log-copy-btn" @click.stop="copyBpLogs">一键复制</text>
+						<text class="bp-log-clear-btn" @click.stop="clearBpLogs">一键清除</text>
+					</view>
+				</view>
+				<scroll-view scroll-y class="bp-log-content" @click="copyBpLogs">
+					<text class="bp-log-text">{{ bpLogText || '暂无日志' }}</text>
+				</scroll-view>
+			</view> -->
+
+
 			<view style="margin: 20px 0 0 20px; font-size: 12px; color: #969799">{{$t('请勿连接名称前有5G的WIFI')}}</view>
 			<view class="shebeistyle">
 				<image style="padding: 20px;" :src="SELECT_TYPE === '0' ? imagess:imagess1"></image>
@@ -63,7 +78,20 @@
 				candidates: [],
 				modelId: '',
 				WIFITYPE: false,
+				bleNotifyTimer: null,
+				bleNotifyRetried: false,
+				bleValueListening: false,
+
+				// bpDebugLogs: [],//日志
 			}
+		},
+
+		computed: {
+			// bpLogText() {
+			// 	return this.bpDebugLogs
+			// 		.map(log => `[${log.time}] ${log.text}`)
+			// 		.join('\n');
+			// },
 		},
 
 		onLoad(res) {
@@ -83,8 +111,79 @@
 			this.wifi()
 		},
 
+		onUnload() {
+			this.clearBleNotifyTimer()
+		},
+
 
 		methods: {
+
+			// copyBpLogs() {
+			// 	const text = this.bpLogText;
+			// 	if (!text) {
+			// 		uni.showToast({
+			// 			title: '暂无日志',
+			// 			icon: 'none'
+			// 		});
+			// 		return;
+			// 	}
+			// 	uni.setClipboardData({
+			// 		data: text,
+			// 		success: () => {
+			// 			uni.showToast({
+			// 				title: '复制成功',
+			// 				icon: 'success'
+			// 			});
+			// 		},
+			// 		fail: () => {
+			// 			uni.showToast({
+			// 				title: '复制失败',
+			// 				icon: 'none'
+			// 			});
+			// 		}
+			// 	});
+			// },
+			// clearBpLogs() {
+			// 	if (!this.bpDebugLogs.length) {
+			// 		uni.showToast({
+			// 			title: '暂无日志',
+			// 			icon: 'none'
+			// 		});
+			// 		return;
+			// 	}
+			// 	this.bpDebugLogs = [];
+			// 	uni.showToast({
+			// 		title: '已清除',
+			// 		icon: 'success'
+			// 	});
+			// },
+			// formatLogMsg(value) {
+			// 	if (value === undefined) return '';
+			// 	if (value === null) return 'null';
+			// 	if (typeof value === 'object') {
+			// 		try {
+			// 			return JSON.stringify(value);
+			// 		} catch (e) {
+			// 			return String(value);
+			// 		}
+			// 	}
+			// 	return String(value);
+			// },
+			// addlog(...args) {
+			// 	const text = args.map(p => this.formatLogMsg(p)).join(' ');
+			// 	const time = new Date().toLocaleTimeString();
+			// 	this.bpDebugLogs.push({
+			// 		time,
+			// 		text
+			// 	});
+			// 	const maxLogs = 300;
+			// 	if (this.bpDebugLogs.length > maxLogs) {
+			// 		this.bpDebugLogs.splice(0, this.bpDebugLogs.length - maxLogs);
+			// 	}
+			// 	console.log(...args);
+			// },
+
+
 			//通过蓝牙发送AT命令的接口
 			sendATCommand(deviceId, serviceId, uuid, senddata, notifyuuid) {
 				let that = this
@@ -101,12 +200,19 @@
 					value: buffer,
 					writeType: "writeNoResponse",
 					success(res) {
+						console.log("1发送AT命令成功", res)
+						console.log("2发送AT命令成功", senddata)
+						uni.showLoading({
+							title: that.$t('连接中'),
+							mask: true
+						})
 						setTimeout(() => {
 							that.notifyBLECharacteristicValueChange(deviceId, serviceId, uuid, notifyuuid)
 						}, 1000)
 					},
 					fail: function(errrore) {
-						console.log('失败', errrore)
+						console.log('1发送AT命令失败', errrore)
+						console.log("2发送AT命令失败", senddata)
 						if (!that.WIFITYPE) {
 							that.WIFITYPE = true
 							that.getunbind(that.sn)
@@ -119,8 +225,12 @@
 					},
 				})
 			},
-
-
+			clearBleNotifyTimer() {
+				if (this.bleNotifyTimer) {
+					clearTimeout(this.bleNotifyTimer)
+					this.bleNotifyTimer = null
+				}
+			},
 			notifyBLECharacteristicValueChange(deviceId, serviceId, uuid, notifyuuid) {
 				let that = this
 				uni.notifyBLECharacteristicValueChange({
@@ -129,18 +239,48 @@
 					serviceId: serviceId,
 					characteristicId: notifyuuid,
 					success: (notifyres) => {
+						console.log('notifyBLECharacteristicValueChange success', notifyres)
+						that.clearBleNotifyTimer()
+						that.bleNotifyTimer = setTimeout(() => {
+							that.bleNotifyTimer = null
+							if (!that.bleNotifyRetried) {
+								that.bleNotifyRetried = true
+								console.log('蓝牙回包超时，重发AT命令')
+								that.sendATCommand(deviceId, serviceId, uuid,
+									'AT+QSTAAPINFODEF=' + that.wifi_name + ',' + that
+									.wifi_password, notifyuuid)
+								return
+							}
+							uni.hideLoading()
+							uni.showToast({
+								title: that.$t('连接超时'),
+								icon: 'none'
+							})
+						}, 20000)
 						that.onBLEValue(deviceId, serviceId, uuid, notifyuuid)
 					},
-					fail: (notifyerr) => {}
+					fail: (notifyerr) => {
+						console.log('notifyBLECharacteristicValueChange notifyerr', notifyerr)
+						that.clearBleNotifyTimer()
+						uni.hideLoading()
+					}
 				})
 			},
 			onBLEValue(deviceId, serviceId, uuid, notifyuuid) {
 				let that = this
+				if (that.bleValueListening) {
+					return
+				}
+				that.bleValueListening = true
 				uni.onBLECharacteristicValueChange((res) => {
+					that.clearBleNotifyTimer()
 					let hexData = that.ab2hex(res.value)
 					let asciiString = that.hexToAscii(hexData)
+					console.log('接收到蓝牙数据:', asciiString)
 					if (asciiString === "+QSTASTAT:WLAN_DISCONNECTED\r\n" || asciiString.includes(
 							"WLAN_DISCONNECTED")) {
+						uni.hideLoading()
+						console.log('2接收到蓝牙数据:', asciiString)
 						if (!that.WIFITYPE) {
 							that.WIFITYPE = true
 							that.getunbind(that.sn)
@@ -151,29 +291,36 @@
 							}, 1000)
 						}
 					} else if (asciiString === "+QSTASTAT:WLAN_CONNECTED\r\n" || asciiString.includes(
-							"WLAN_CONNECTED")) {
+							"WLAN_CONNECTED") || asciiString === "OK" || asciiString.includes("OK")) {
+						console.log('3接收到蓝牙数据:', asciiString)
+						uni.hideLoading()
 						let buffertime = that.toArrayBuffer("74696d6540" + that.getTimeAllJSON().YMDHMSWIFI)
-						uni.writeBLECharacteristicValue({
-							deviceId: deviceId,
-							serviceId: serviceId,
-							characteristicId: uuid,
-							value: buffertime,
-							writeType: "writeNoResponse",
-							success(res) {
-								that.bind_device(that.sn, deviceId, that.modelId)
-							},
-							fail: function(errrore) {
-								if (!that.WIFITYPE) {
-									that.WIFITYPE = true
-									that.getunbind(that.sn)
-									setTimeout(() => {
-										uni.navigateTo({
-											url: "../Bing_page/Bind_fail?bindcode=0"
-										})
-									}, 1000)
+						console.log('4发送的时间数据:', "74696d6540" + that.getTimeAllJSON().YMDHMSWIFI)
+						setTimeout(() => {
+							uni.writeBLECharacteristicValue({
+								deviceId: deviceId,
+								serviceId: serviceId,
+								characteristicId: uuid,
+								value: buffertime,
+								writeType: "writeNoResponse",
+								success(res) {
+									console.log('5接收到蓝牙数据:', res)
+									that.bind_device(that.sn, deviceId, that.modelId)
+								},
+								fail(errrore) {
+									console.log('6接收到蓝牙数据:', errrore)
+									if (!that.WIFITYPE) {
+										that.WIFITYPE = true
+										that.getunbind(that.sn)
+										setTimeout(() => {
+											uni.navigateTo({
+												url: "../Bing_page/Bind_fail?bindcode=0"
+											})
+										}, 1000)
+									}
 								}
-							}
-						})
+							})
+						}, 1000)
 					}
 				})
 			},
@@ -246,9 +393,7 @@
 			wifi() {
 				let that = this
 				uni.startWifi({
-					success(res) {
-						console.log("res", res)
-					}
+					success(res) {}
 				})
 				if (uni.getSystemInfoSync().platform === "android") {
 					that.shouji = true
@@ -334,6 +479,7 @@
 					})
 					return
 				} else {
+					that.bleNotifyRetried = false
 					that.sendATCommand(that.deviceId, that.serviceId, that.uuid,
 						'AT+QSTAAPINFODEF=' + that.wifi_name + ',' + that.wifi_password, that.notifyuuid)
 				}
@@ -427,4 +573,55 @@
 		font-size: 14px;
 		color: #999;
 	}
+
+
+	/* .bp-log-panel {
+		margin: 10px 10px 20px;
+		background: rgba(255, 255, 255, 0.95);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	.bp-log-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 8px 12px;
+		border-bottom: 1px solid #eee;
+	}
+
+	.bp-log-title {
+		font-size: 12px;
+		color: #333;
+		font-weight: 500;
+	}
+
+	.bp-log-header-actions {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.bp-log-copy-btn {
+		font-size: 12px;
+		color: #3298F7;
+	}
+
+	.bp-log-clear-btn {
+		font-size: 12px;
+		color: #F55A5A;
+	}
+
+	.bp-log-content {
+		max-height: 280px;
+		padding: 8px 12px;
+	}
+
+	.bp-log-text {
+		font-size: 10px;
+		color: #666;
+		line-height: 1.5;
+		word-break: break-all;
+		white-space: pre-wrap;
+	} */
 </style>

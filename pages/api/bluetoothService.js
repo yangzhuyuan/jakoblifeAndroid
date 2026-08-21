@@ -91,6 +91,7 @@ export default class BluetoothService {
 				deviceId: that.deviceId,
 				serviceId: serviceId,
 				success: (res) => {
+					// console.log("获取特征值成功", res.characteristics);
 					that.characteristics[serviceId] = res.characteristics;
 					resolve(res.characteristics);
 				},

@@ -5,7 +5,7 @@
 	} from 'vuex'
 	import {
 		checkNotificationPermissions,
-		checkNotificationAgain
+		isDingweiEnabled
 	} from "pages/api/unitls/permission.js";
 	import {
 		isInChinaByIP,
@@ -77,7 +77,6 @@
 			}, 1000)
 			// #endif
 			const activeUrl = refreshActiveAppBaseUrl(Vue)
-			// console.log('【API根地址(已同步appBaseHosts)】', activeUrl)
 			syncTimezoneSignature()
 			startTimezoneWatch(() => {
 				replanQxBleScheduleOnTimezoneChange()
@@ -91,18 +90,12 @@
 			uni.removeStorageSync("dingwei")
 			// #ifdef APP-PLUS
 			if (uni.getSystemInfoSync().platform === 'android') {
-				// this.maybeInitKeepAliveForTimers()
-
 				if (keepAliveManager.shouldKeepAliveForAppTimers()) {
 					this.maybeInitKeepAliveForTimers()
 					keepAliveManager.ensureRunningForAppTimers();
 				}
-
 				const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
-				plugin.acquireWakeLock({}, res => {
-					// console.log('【App.vue】休眠/后台保留运行', res)' '
-				})
-				// keepAliveManager.ensureRunningForAppTimers();
+				plugin.acquireWakeLock({}, res => {})
 				keepAliveManager.onAppHide();
 				onQxBleAppBackground();
 			}
@@ -112,7 +105,6 @@
 		mounted() {
 			this.notifyTriggered = false; // 确保初始值为 false
 		},
-
 		onShow() {
 			let that = this
 			setQxBleAppForegroundState(true)
@@ -129,9 +121,6 @@
 					}, 1500)
 				}
 				onQxBleAppForeground();
-				// setTimeout(() => {
-				// 	that.maybeInitKeepAliveForTimers()
-				// }, 1500)
 			}
 			that.openLocationServiceAndroid();
 			keepAliveManager.onAppShow();
@@ -149,7 +138,7 @@
 			let timesder = setInterval(() => {
 				if (uni.getStorageSync("token")) {
 					clearInterval(timesder)
-					if (uni.getStorageSync("dingwei") === 1) {
+					if (isDingweiEnabled()) {
 						checkNotificationPermissions();
 					}
 				}
@@ -170,7 +159,6 @@
 		globalData: {
 			test: ''
 		},
-
 		methods: {
 			...mapMutations(['setUniverifyErrorMsg', 'setUniverifyLogin', 'setlanyaId']),
 			/** 登录后恢复情绪定时测量（不依赖 dingwei 定位标记） */
@@ -195,24 +183,14 @@
 				}
 				// #endif
 			},
-
-
 			// 测试定位功能
 			async testLocation() {
 				console.log('开始测试定位...');
-
-				// 显示加载中
-				// uni.showLoading({
-				// 	title: '测试定位中...'
-				// });
-
 				try {
 					// 调用测试方法
 					const result = await keepAliveManager.testLocation();
 					console.log('测试结果:', result);
-
 					uni.hideLoading();
-
 					// 显示测试结果
 					let content = `权限状态: ${result.permission.granted ? '已授予 ✅' : '未授予 ❌'}\n`;
 					content += `定位保活: ${result.status.enabled ? '已启动 ✅' : '未启动 ❌'}\n`;
@@ -222,12 +200,6 @@
 							`最后位置: ${result.lastLocation.location.latitude}, ${result.lastLocation.location.longitude}\n`;
 					}
 					content += `启动结果: ${result.startResult.success ? '成功 ✅' : '失败 ❌'}`;
-
-					// uni.showModal({
-					// 	title: '定位测试结果',
-					// 	content: content,
-					// 	confirmText: '知道了'
-					// });
 				} catch (error) {
 					uni.hideLoading();
 					console.error('测试失败:', error);
@@ -237,28 +209,17 @@
 					});
 				}
 			},
-
 			// 手动启动定位保活（带失败提示）
 			async startLocationKeepAlive() {
 				await keepAliveManager.manualStartLocationKeepAlive({
 					silent: false
 				});
 			},
-
 			// 手动获取位置
 			async getLocation() {
-				// uni.showLoading({
-				// 	title: '获取位置中...'
-				// });
 				try {
 					const result = await keepAliveManager.getCurrentLocation(8000);
 					uni.hideLoading();
-
-					// uni.showModal({
-					// 	title: '当前位置',
-					// 	content: `纬度: ${result.location.latitude}\n经度: ${result.location.longitude}\n精度: ${result.location.accuracy}m`,
-					// 	confirmText: '确定'
-					// });
 				} catch (error) {
 					uni.hideLoading();
 					uni.showToast({
@@ -272,19 +233,16 @@
 			showStatus() {
 				const status = keepAliveManager.getStatus();
 				const locationStatus = keepAliveManager.getLocationKeepAliveStatus();
-
 				let content = `保活运行: ${status.isRunning ? '是 ✅' : '否 ❌'}\n`;
 				content += `定位保活: ${locationStatus.enabled ? '已启动 ✅' : '未启动 ❌'}\n`;
 				content += `定位权限: ${locationStatus.permissionGranted ? '已授予 ✅' : '未授予 ❌'}\n`;
 				content += `有位置: ${locationStatus.hasLocation ? '是 ✅' : '否 ❌'}\n`;
 				content += `白名单: ${status.whiteListStatus.isInWhiteList ? '已加入 ✅' : '未加入 ❌'}\n`;
 				content += `通知权限: ${status.notificationEnabled ? '已开启 ✅' : '未开启 ❌'}`;
-
 				if (locationStatus.lastLocation) {
 					content +=
 						`\n\n最后位置:\n经度: ${locationStatus.lastLocation.longitude}\n纬度: ${locationStatus.lastLocation.latitude}`;
 				}
-
 				uni.showModal({
 					title: '保活状态',
 					content: content,

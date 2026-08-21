@@ -525,12 +525,10 @@
 				uni.closeBLEConnection({
 					deviceId: mac,
 					success(res) {
-						console.log('[Equipment] closeBLEConnection ok', mac, res);
 						self.onBleConnectionClosedUi(mac);
 					},
 					fail(erro) {
 						if (self.isBleAlreadyDisconnectedError(erro)) {
-							console.log('[Equipment] closeBLEConnection 已无连接(视为成功)', mac);
 							self.onBleConnectionClosedUi(mac);
 							return;
 						}

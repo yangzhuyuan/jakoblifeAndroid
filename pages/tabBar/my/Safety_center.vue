@@ -254,9 +254,13 @@
 			logout() {
 				const appQX = uni.getStorageSync("appQX")
 				const tongzhi = uni.getStorageSync("tongzhi")
+				const appQXTipShown = uni.getStorageSync("appQXTipShown")
 				uni.clearStorageSync()
 				uni.setStorageSync("appQX", appQX)
 				uni.setStorageSync("tongzhi", tongzhi)
+				if (appQXTipShown) {
+					uni.setStorageSync("appQXTipShown", appQXTipShown)
+				}
 				this.setacktypes(0)
 				uni.setStorageSync("last_app_version", systemInfo.appVersion)
 				uni.setStorageSync('userAgreed', true) // 设置缓存，下次进入应用不再弹出

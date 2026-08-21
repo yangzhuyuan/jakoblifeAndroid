@@ -13,34 +13,57 @@ const API31_PERMISSIONS = [
 	// 'android.permission.BLUETOOTH_SCAN' // 如果以后要用，也一起加进来
 ];
 
+/** 定位开关标记：绑定页写字符串 '1'，App 启动写数字 1 */
+export function isDingweiEnabled() {
+	const v = uni.getStorageSync("dingwei");
+	return v === 1 || v === '1' || v === true;
+}
+
+function getRequestPermissions() {
+	try {
+		const Build = plus.android.importClass('android.os.Build');
+		return permissions.filter(p =>
+			!API31_PERMISSIONS.includes(p) || Build.VERSION.SDK_INT >= 31
+		);
+	} catch (e) {
+		return permissions.filter(p => !API31_PERMISSIONS.includes(p));
+	}
+}
+
 export function checkNotificationPermissions() {
 	const appQX = uni.getStorageSync("appQX");
 	if (appQX === "0") {
-		// console.log("用户已永久拒绝权限，不再重复请求");
-		checkNotificationAgain(permissions)
+		checkNotificationAgain()
 		return;
 	}
-	const main = plus.android.runtimeMainActivity();
-
-	// ✅ 过滤掉系统不支持的权限
-	const Build = plus.android.importClass('android.os.Build');
-	const filteredPermissions = permissions.filter(p =>
-		!API31_PERMISSIONS.includes(p) || Build.VERSION.SDK_INT >= 31
-	);
-	//过滤掉系统不支持的权限将permissions替换成filteredPermissions,否则使用permissions
-	plus.android.requestPermissions(filteredPermissions, (e) => {
-		// console.log("权限", e)
-		if (e.deniedAlways.length > 0) {
-			uni.setStorageSync("appQX", "0");
-			gotoAppSettings(main)
-		} else if (e.deniedPresent.length > 0) {
-			uni.setStorageSync("appQX", "0");
-		} else if (e.granted.length > 0) {
+	try {
+		const main = plus.android.runtimeMainActivity();
+		const filteredPermissions = getRequestPermissions();
+		if (!filteredPermissions.length) {
 			uni.setStorageSync("appQX", "1");
+			return;
 		}
-	}, (e) => {
-		console.error("权限请求失败", e);
-	});
+		plus.android.requestPermissions(filteredPermissions, (e) => {
+			const deniedAlways = (e && e.deniedAlways) || [];
+			const deniedPresent = (e && e.deniedPresent) || [];
+			const granted = (e && e.granted) || [];
+			if (deniedAlways.length > 0) {
+				uni.setStorageSync("appQX", "0");
+				gotoAppSettings(main)
+			} else if (deniedPresent.length > 0) {
+				uni.setStorageSync("appQX", "0");
+			} else if (granted.length > 0) {
+				uni.setStorageSync("appQX", "1");
+			} else {
+				checkNotificationAgain()
+			}
+		}, (e) => {
+			console.error("权限请求失败", e);
+			checkNotificationAgain()
+		});
+	} catch (e) {
+		console.error("权限请求异常", e);
+	}
 }
 
 function gotoAppSettings(main) {
@@ -74,23 +97,23 @@ function gotoNotificationSettings(main) {
 	main.startActivity(intent);
 }
 
-function checkNotificationAgain(permissions) {
-	const main = plus.android.runtimeMainActivity();
-	const PackageManager = plus.android.importClass('android.content.pm.PackageManager');
-	const Context = plus.android.importClass('android.content.Context');
-	const Build = plus.android.importClass('android.os.Build');
-	let allGranted = true;
-	for (let permission of permissions) {
-		const result = main.checkSelfPermission(permission);
-		if (result !== PackageManager.PERMISSION_GRANTED) {
-			allGranted = false;
-			break;
+export function checkNotificationAgain() {
+	try {
+		const main = plus.android.runtimeMainActivity();
+		const PackageManager = plus.android.importClass('android.content.pm.PackageManager');
+		const checkList = getRequestPermissions();
+		let allGranted = checkList.length > 0;
+		for (let permission of checkList) {
+			const result = main.checkSelfPermission(permission);
+			if (result !== PackageManager.PERMISSION_GRANTED) {
+				allGranted = false;
+				break;
+			}
 		}
-	}
-	if (allGranted) {
-		uni.setStorageSync("appQX", "1");
-		// console.log("用户已手动开启权限，appQX 已更新为 1");
-	} else {
-		// console.log("用户仍未开启权限，保持 appQX = 0");
+		if (allGranted) {
+			uni.setStorageSync("appQX", "1");
+		}
+	} catch (e) {
+		console.error("权限复查失败", e);
 	}
 }

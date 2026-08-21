@@ -303,7 +303,6 @@
 					this.swipeList = [];
 				} finally {
 					this.loading = false;
-					console.log("【最终数据】:", this.swipeList);
 				}
 			},
 
@@ -361,12 +360,10 @@
 					startTime,
 					endTime,
 				};
-				console.log("【原始血压数据传参】" + this.$url_APP_IP, data);
 				const res = await this.$post(this.$url_APP_IP + this.$url_query_log_v2, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				});
-				console.log("【原始血压数据】:", res);
 				if (res.code === 200) {
 					this.processBloodPressureData(res.data || []);
 				} else {
@@ -422,7 +419,6 @@
 
 			// 处理血压数据
 			processBloodPressureData(data) {
-				console.log("【原始血压数据】", data);
 				if (!data || data.length === 0) {
 					this.swipeList = [];
 					return;
@@ -448,7 +444,10 @@
 			normalizeOxygenSummary(summary, details) {
 				const avg = this.getOxygenValue(summary);
 				if (avg != null) {
-					return { ...summary, oxygenAvg: avg };
+					return {
+						...summary,
+						oxygenAvg: avg
+					};
 				}
 				if (!details || !details.length) {
 					return summary;
@@ -459,7 +458,10 @@
 					return summary;
 				}
 				const oxygenAvg = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-				return { ...summary, oxygenAvg };
+				return {
+					...summary,
+					oxygenAvg
+				};
 			},
 
 			// 处理血氧数据
@@ -881,7 +883,8 @@
 									detail.dateTime = res.data.data[index].dateTime
 									detail.modelName = res.data.data[index].modelName
 									detail.deviceSn = res.data.data[index].deviceSn
-									detail.oxygenAvg = res.data.data[index].object.summary.oxygenAvg
+									detail.oxygenAvg = res.data.data[index].object.summary
+										.oxygenAvg
 									detail.time1 = detail.time
 									detail.oxygen1 = detail.oxygen
 									that.$delete(detail, "time")

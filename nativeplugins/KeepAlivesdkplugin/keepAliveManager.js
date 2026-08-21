@@ -66,7 +66,7 @@ class KeepAliveManager {
 		this.nightMode = false;
 		this.alarmInterval = 30; // 默认30秒
 		this.checkTimer = null;
-		this.silentMusicEnabled = true; // 是否启用无声音乐保活
+		this.silentMusicEnabled = false; // 无声音乐暂时关闭
 		this._initInProgress = false;
 		this.whiteListStatus = {
 			isInWhiteList: false,
@@ -75,8 +75,6 @@ class KeepAliveManager {
 			model: ''
 		};
 		this.notificationEnabled = false; // 通知权限状态
-		/** 防止通知权限说明/引导弹窗重入叠弹 */
-		this._notificationPermissionPrompting = false;
 		/** 跳转厂商白名单/系统设置前已暂停前台服务，回到 App 后需恢复 */
 		this._suspendedForWhitelistUi = false;
 		this._alarmListenerBound = false;
@@ -149,11 +147,19 @@ class KeepAliveManager {
 			console.log('[KeepAlive] 保存定位配置失败:', e);
 		}
 	}
+
+	/**
+	 * 情绪定时（switchHER）或血压定时开启时，才需要为 App 定时任务拉起保活。
+	 * 供 App.vue onHide/onShow 门闩使用，逻辑与 onAppHide 内部判断一致。
+	 */
+	shouldKeepAliveForAppTimers() {
+		return shouldKeepAliveForAppTimersFromStorage();
+	}
+
 	/**
 	 * 应用进入后台时调用（在 App.vue onHide 中调用）
 	 */
 	onAppHide() {
-		// console.log('【KeepAlive】 应用进入后台');
 		if (shouldKeepAliveForAppTimersFromStorage()) {
 			this.ensureAlarmListener();
 			this.ensureRunningForAppTimers();
@@ -180,7 +186,6 @@ class KeepAliveManager {
 	 * 应用进入前台时调用（在 App.vue onShow 中调用）
 	 */
 	onAppShow() {
-		// console.log('【KeepAlive】 应用进入前台');
 		this._bgWhileInUseGuideShownThisLaunch = false;
 		setTimeout(() => {
 			this._promptBackgroundLocationWhileInUseOnAppShow();
@@ -359,15 +364,16 @@ class KeepAliveManager {
 		});
 	}
 
-	/** 情绪槽位 / 日间闹钟：在原生主链就绪后调用 */
+	/** 情绪槽位 / 日间闹钟：在原生主链就绪后调用（闹钟暂时关闭） */
 	_scheduleAppTimerAlarms() {
-		if (getQxBleKeepAliveAlarmIntervalSecFromStorage() != null) {
-			this.scheduleQxBleAlarmFromStorage();
-			return;
-		}
-		if (!this._nativeNightKeepAliveActive) {
-			this.setAlarmTimer();
-		}
+		return;
+		// if (getQxBleKeepAliveAlarmIntervalSecFromStorage() != null) {
+		// 	this.scheduleQxBleAlarmFromStorage();
+		// 	return;
+		// }
+		// if (!this._nativeNightKeepAliveActive) {
+		// 	this.setAlarmTimer();
+		// }
 	}
 
 	/**
@@ -501,19 +507,26 @@ class KeepAliveManager {
 				};
 			}
 		}
+
+		// console.log('[KeepAlive] 步骤2: 调用原生层 startLocationKeepAlive...');
+
 		return new Promise((resolve) => {
 			// 调用原生层启动定位保活
 			keepAlive.startLocationKeepAlive((res) => {
 				// console.log('[KeepAlive] 原生层返回结果:', JSON.stringify(res));
+
 				if (res.code === 0) {
 					this.locationKeepAliveEnabled = true;
 					this.locationUpdateInterval = interval;
 					this._saveLocationConfig();
+
 					// 仅保活：不在 JS 层定时 getCurrentLocation，由原生侧维持保活
+
 					// 触发事件
 					this._emitLocationEvent('locationKeepAliveStarted', {
 						interval: interval
 					});
+
 					this.updateNotification();
 					// console.log('【KeepAlive】定位保活启动成功 ✅');
 					resolve({
@@ -1852,16 +1865,8 @@ class KeepAliveManager {
 
 	/**
 	 * Android 13+：在系统「允许通知」对话框前先说明用途
-	 * 展示即标记已引导，避免 onShow/recheck/异步回调叠弹；手动 request 仍可再次申请
 	 */
 	showAndroidRuntimeNotificationPurposeModal(onContinue) {
-		if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
-			console.log('[KeepAlive] 跳过通知用途说明弹窗（已引导或进行中）');
-			return;
-		}
-		this._notificationPermissionPrompting = true;
-		// 一展示即落盘，防止冷启动/前台回调在用户未点选前再次自动弹窗
-		this._markNotificationUserResponded();
 		const isZh = this.getLocale();
 		const purpose = this.getNotificationPermissionPurposeBlock();
 		const tail = isZh ?
@@ -1873,13 +1878,11 @@ class KeepAliveManager {
 			confirmText: isZh ? '继续' : 'Continue',
 			cancelText: isZh ? '稍后' : 'Later',
 			success: (res) => {
-				this._notificationPermissionPrompting = false;
 				if (res.confirm && typeof onContinue === 'function') {
 					onContinue();
+				} else {
+					this._markNotificationUserResponded();
 				}
-			},
-			fail: () => {
-				this._notificationPermissionPrompting = false;
 			}
 		});
 	}
@@ -1902,14 +1905,18 @@ class KeepAliveManager {
 		keepAlive.init({}, (res) => {
 			// console.log('【KeepAlive】 初始化结果:', res);
 			this._initInProgress = false;
+
 			if (res.code !== 0) return;
-			this.checkAndGuideWhiteList();
+
+			// 白名单引导暂时关闭
+			// this.checkAndGuideWhiteList();
 			this.checkAndGuideNotificationPermission();
-			this.startSilentMusic();
+
+			// 无声音乐暂时关闭
+			// this.startSilentMusic();
 			this.startNightModeCheck();
 			// 前台服务 + 原生保活链（日间/夜间 API + 业务闹钟）
 			this._syncNativeKeepAliveMode();
-
 			if (this.locationKeepAliveEnabled) {
 				setTimeout(() => {
 					this.ensureLocationRunning({
@@ -1921,11 +1928,9 @@ class KeepAliveManager {
 					});
 				}, 5000);
 			}
-
 			this.isRunning = true;
 		});
 	}
-
 	/**
 	 * 绑定原生闹钟唤醒（plus.globalEvent + uni.$on，后台/熄屏依赖此回调执行 JS）
 	 */
@@ -1941,48 +1946,6 @@ class KeepAliveManager {
 		this._qxBleMeasuringFn = typeof fn === 'function' ? fn : null;
 	}
 
-	/**
-	 * BPW6 后台关蓝牙再开：挂到原生闹钟唤醒链（Handler/implements 广播在后台常失效）
-	 * 仅在有回调时执行，不影响情绪定时主逻辑
-	 */
-	registerBpw6BgBtReconnectCheck(fn) {
-		this._bpw6BgBtReconnectCheck = typeof fn === 'function' ? fn : null;
-	}
-
-	/** 临时缩短原生闹钟间隔（秒），用于等待蓝牙再开 */
-	setBpw6BgBtReconnectAlarm(intervalSec = 5) {
-		this._bpw6BgBtNeedShortAlarm = true;
-		this.ensureAlarmListener();
-		if (!this.isRunning) {
-			try {
-				this.ensureRunningForAppTimers();
-			} catch (e) {}
-		}
-		const sec = Math.max(3, Math.min(15, Number(intervalSec) || 5));
-		const isNight = this._isNightHour();
-		keepAlive.setAlarmTimer({
-			interval: sec,
-			exact: true,
-			nightMode: isNight
-		}, (res) => {
-			this.nightMode = isNight;
-			this.alarmInterval = sec;
-			console.log('[KeepAlive] BPW6蓝牙回连闹钟', sec, '秒', res);
-		});
-	}
-
-	clearBpw6BgBtReconnectAlarm() {
-		if (!this._bpw6BgBtNeedShortAlarm) return;
-		this._bpw6BgBtNeedShortAlarm = false;
-		try {
-			if (getQxBleKeepAliveAlarmIntervalSecFromStorage() != null) {
-				this.scheduleQxBleAlarmFromStorage();
-			} else if (this.isRunning) {
-				this.setAlarmTimer();
-			}
-		} catch (e) {}
-	}
-
 	ensureAlarmListener() {
 		if (this._alarmListenerBound) return;
 		this._alarmListenerBound = true;
@@ -1993,11 +1956,10 @@ class KeepAliveManager {
 				return;
 			}
 			this._lastAlarmEventAt = now;
-			// console.log('[KeepAlive] 收到唤醒事件 onAlarmTrigger:', data);
-			// 情绪定时：立即链式重挂下一次原生闹钟（仅此处设一次，避免与 planNext/onWakeUp 连设三次）
-			if (getQxBleKeepAliveAlarmIntervalSecFromStorage() != null) {
-				this.scheduleQxBleAlarmFromStorage();
-			}
+			// 闹钟暂时关闭，不链式重挂
+			// if (getQxBleKeepAliveAlarmIntervalSecFromStorage() != null) {
+			// 	this.scheduleQxBleAlarmFromStorage();
+			// }
 			this.onWakeUp(data);
 		};
 		uni.$on('onAlarmTrigger', onAlarm);
@@ -2094,7 +2056,7 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 检查 Android 通知权限（自动引导入口；已引导过则只同步状态不弹窗）
+	 * 检查 Android 通知权限
 	 */
 	checkAndroidNotificationPermission() {
 		// #ifdef APP-PLUS
@@ -2105,7 +2067,7 @@ class KeepAliveManager {
 		}
 
 		try {
-			if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
+			if (this._isNotificationUserResponded()) {
 				this._silentRefreshAndroidNotificationState();
 				return;
 			}
@@ -2117,13 +2079,6 @@ class KeepAliveManager {
 			this.createNotificationChannel();
 
 			plus.android.checkPermission('android.permission.POST_NOTIFICATIONS', (permRes) => {
-				// 异步回调期间可能已被其它入口引导过，避免叠弹
-				if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
-					const runtimeGrantedQuiet = permRes && permRes.checkResult === 0;
-					this.notificationEnabled = runtimeGrantedQuiet && areNotificationsEnabled;
-					return;
-				}
-
 				const runtimeGranted = permRes && permRes.checkResult === 0;
 				this.notificationEnabled = runtimeGranted && areNotificationsEnabled;
 				console.log('[KeepAlive] POST_NOTIFICATIONS:', runtimeGranted,
@@ -2158,7 +2113,9 @@ class KeepAliveManager {
 				}
 
 				if (!areNotificationsEnabled) {
-					this.showNotificationPermissionGuide();
+					if (!this._isNotificationUserResponded()) {
+						this.showNotificationPermissionGuide();
+					}
 				} else {
 					console.log('[KeepAlive] 通知权限已开启');
 					this._markNotificationUserResponded();
@@ -2184,7 +2141,7 @@ class KeepAliveManager {
 		this.notificationEnabled = isEnabled;
 		console.log('[KeepAlive] iOS通知权限状态:', isEnabled);
 
-		if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
+		if (this._isNotificationUserResponded()) {
 			return;
 		}
 
@@ -2201,7 +2158,7 @@ class KeepAliveManager {
 	 * 显示通知权限引导
 	 */
 	showNotificationPermissionGuide() {
-		if (this._isNotificationUserResponded() || this._notificationPermissionPrompting) {
+		if (this._isNotificationUserResponded()) {
 			console.log('[KeepAlive] 用户已处理过通知权限，不再弹窗');
 			return;
 		}
@@ -2209,14 +2166,8 @@ class KeepAliveManager {
 		const hasShownGuide = uni.getStorageSync(storageKey);
 		if (hasShownGuide) {
 			console.log('[KeepAlive] 通知权限引导已显示过，跳过');
-			this._markNotificationUserResponded();
 			return;
 		}
-
-		this._notificationPermissionPrompting = true;
-		// 展示即落盘，避免重复自动引导
-		uni.setStorageSync(storageKey, true);
-		this._markNotificationUserResponded();
 
 		const isZh = this.getLocale();
 
@@ -2240,13 +2191,11 @@ class KeepAliveManager {
 			confirmText: isZh ? '去开启' : 'Go Setting',
 			cancelText: isZh ? '稍后' : 'Later',
 			success: (res) => {
-				this._notificationPermissionPrompting = false;
 				if (res.confirm) {
 					this.requestNotificationPermission();
+				} else {
+					this._markNotificationUserResponded();
 				}
-			},
-			fail: () => {
-				this._notificationPermissionPrompting = false;
 			}
 		});
 	}
@@ -2278,11 +2227,16 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 请求 Android 通知权限（用户主动触发；不受自动引导标记拦截）
+	 * 请求 Android 通知权限
 	 */
 	requestAndroidNotificationPermission() {
 		// #ifdef APP-PLUS
 		const isZh = this.getLocale();
+
+		if (this._isNotificationUserResponded()) {
+			this._silentRefreshAndroidNotificationState();
+			return;
+		}
 
 		if (this.notificationEnabled) {
 			uni.showToast({
@@ -2333,8 +2287,10 @@ class KeepAliveManager {
 					}
 
 					if (!areNotificationsEnabled) {
-						this.goToNotificationSettings();
-						this._markNotificationUserResponded();
+						if (!this._isNotificationUserResponded()) {
+							this.goToNotificationSettings();
+							this._markNotificationUserResponded();
+						}
 					} else {
 						this.notificationEnabled = true;
 						uni.showToast({
@@ -2392,11 +2348,15 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 请求 iOS 通知权限（用户主动触发；不受自动引导标记拦截）
+	 * 请求 iOS 通知权限
 	 */
 	requestIOSNotificationPermission() {
 		// #ifdef APP-PLUS
 		const isZh = this.getLocale();
+
+		if (this._isNotificationUserResponded()) {
+			return;
+		}
 
 		if (this.notificationEnabled) {
 			uni.showToast({
@@ -2575,23 +2535,10 @@ class KeepAliveManager {
 	}
 
 	/**
-	 * 重新检查通知权限（仅同步状态，不弹窗，避免与自动引导叠弹）
+	 * 重新检查通知权限
 	 */
 	recheckNotificationPermission() {
-		// #ifdef APP-PLUS
-		if (plus.os.name === 'Android') {
-			this._silentRefreshAndroidNotificationState();
-		} else if (plus.os.name === 'iOS') {
-			try {
-				const UIApplication = plus.ios.importClass('UIApplication');
-				const app = UIApplication.sharedApplication();
-				const currentSettings = app.currentUserNotificationSettings();
-				this.notificationEnabled = currentSettings.types() !== 0;
-			} catch (e) {
-				console.log('[KeepAlive] iOS 静默刷新通知状态失败:', e);
-			}
-		}
-		// #endif
+		this.checkNotificationPermission();
 		console.log('[KeepAlive] 重新检查通知权限结果:', this.notificationEnabled);
 		return this.notificationEnabled;
 	}
@@ -2693,17 +2640,19 @@ class KeepAliveManager {
 		// #ifdef APP-PLUS
 		if (plus.os.name === 'Android') {
 			this._syncNativeKeepAliveMode();
-			this.startSilentMusic();
+			// 无声音乐暂时关闭
+			// this.startSilentMusic();
 			console.log('[KeepAlive] 已从白名单设置返回，恢复前台保活');
 		}
 		// #endif
 	}
 
 	/**
-	 * 检查并引导白名单设置
+	 * 检查并引导白名单设置（暂时关闭，不弹窗、不跳转）
 	 */
 	checkAndGuideWhiteList() {
-		this.refreshWhiteListStatus();
+		return;
+		// this.refreshWhiteListStatus();
 	}
 
 	/**
@@ -2743,9 +2692,10 @@ class KeepAliveManager {
 	}
 
 	checkNeedGuide() {
-		if (!this._needsWhiteListGuide()) {
-			return;
-		}
+		return;
+		// if (!this._needsWhiteListGuide()) {
+		// 	return;
+		// }
 		// setTimeout(() => {
 		// 	this.showWhiteListGuideDialog();
 		// }, 3000);
@@ -3033,18 +2983,19 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	}
 
 	/**
-	 * 启动无声音乐保活
+	 * 启动无声音乐保活（暂时关闭）
 	 */
 	startSilentMusic() {
-		if (!this.silentMusicEnabled) {
-			console.log('[KeepAlive] 无声音乐保活未启用');
-			return;
-		}
-		keepAlive.startSilentMusic({
-			silent: true
-		}, (res) => {
-			// console.log('[KeepAlive] 无声音乐启动结果:', res);
-		});
+		return;
+		// if (!this.silentMusicEnabled) {
+		// 	console.log('[KeepAlive] 无声音乐保活未启用');
+		// 	return;
+		// }
+		// keepAlive.startSilentMusic({
+		// 	silent: true
+		// }, (res) => {
+		// 	// console.log('[KeepAlive] 无声音乐启动结果:', res);
+		// });
 	}
 
 	/**
@@ -3069,93 +3020,95 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	}
 
 	/**
-	 * 设置定时唤醒闹钟（固定间隔轮询，非情绪定时用）
+	 * 设置定时唤醒闹钟（暂时关闭）
 	 */
 	setAlarmTimer() {
-		if (this._nativeNightKeepAliveActive) {
-			return;
-		}
-		this._queryIsNightHour((isNight) => {
-			const interval = resolveKeepAliveAlarmIntervalSec(isNight);
-			keepAlive.setAlarmTimer({
-				interval: interval,
-				exact: true,
-				nightMode: isNight
-			}, (res) => {
-				const hour = new Date().getHours();
-				// console.log('[KeepAlive] 定时器设置:', res,
-				// 	`js interval=${interval}s hour=${hour} isNight=${isNight}`);
-				this.nightMode = isNight;
-				this.alarmInterval = interval;
-			});
-		});
+		return;
+		// if (this._nativeNightKeepAliveActive) {
+		// 	return;
+		// }
+		// this._queryIsNightHour((isNight) => {
+		// 	const interval = resolveKeepAliveAlarmIntervalSec(isNight);
+		// 	keepAlive.setAlarmTimer({
+		// 		interval: interval,
+		// 		exact: true,
+		// 		nightMode: isNight
+		// 	}, (res) => {
+		// 		this.nightMode = isNight;
+		// 		this.alarmInterval = interval;
+		// 	});
+		// });
 	}
 
 	/**
 	 * 情绪定时：原生单次闹钟，每次 onAlarmTrigger 后须重挂；间隔 min(15秒, 距下一槽位秒数)
 	 * @param {number} [nextAtMs] 下一对齐槽位时间戳（毫秒）
 	 */
+	/**
+	 * 情绪定时：原生单次闹钟（暂时关闭）
+	 * @param {number} [nextAtMs] 下一对齐槽位时间戳（毫秒）
+	 */
 	setAlarmForQxNextSlot(nextAtMs) {
-		const isNight = this._isNightHour();
-		const qxSec = getQxBleKeepAliveAlarmIntervalSecFromStorage();
-		if (qxSec == null) {
-			this.setAlarmTimer();
-			return;
-		}
-		let intervalSec = qxSec;
-		let nextAt = Number(nextAtMs);
-		if (!Number.isFinite(nextAt) || nextAt <= 0) {
-			nextAt = Number(uni.getStorageSync('qx_ble_next_fire_at'));
-		}
-		if (Number.isFinite(nextAt) && nextAt > 0) {
-			const secUntil = Math.ceil((nextAt - Date.now()) / 1000);
-			if (secUntil <= 0) {
-				intervalSec = 1;
-			} else if (secUntil <= 45) {
-				intervalSec = Math.max(1, Math.min(5, secUntil));
-			} else if (secUntil < qxSec) {
-				intervalSec = Math.max(1, secUntil);
-			}
-		}
-		keepAlive.setAlarmTimer({
-			interval: intervalSec,
-			exact: true,
-			nightMode: isNight
-		}, (res) => {
-			// console.log('[KeepAlive] 情绪定时槽位闹钟', intervalSec, '秒',
-			// 	nextAt > 0 ? `下一槽位${new Date(nextAt).toLocaleString()}` : '', res);
-			this.nightMode = isNight;
-			this.alarmInterval = intervalSec;
-		});
+		return;
+		// const isNight = this._isNightHour();
+		// const qxSec = getQxBleKeepAliveAlarmIntervalSecFromStorage();
+		// if (qxSec == null) {
+		// 	this.setAlarmTimer();
+		// 	return;
+		// }
+		// let intervalSec = qxSec;
+		// let nextAt = Number(nextAtMs);
+		// if (!Number.isFinite(nextAt) || nextAt <= 0) {
+		// 	nextAt = Number(uni.getStorageSync('qx_ble_next_fire_at'));
+		// }
+		// if (Number.isFinite(nextAt) && nextAt > 0) {
+		// 	const secUntil = Math.ceil((nextAt - Date.now()) / 1000);
+		// 	if (secUntil <= 0) {
+		// 		intervalSec = 1;
+		// 	} else if (secUntil <= 45) {
+		// 		intervalSec = Math.max(1, Math.min(5, secUntil));
+		// 	} else if (secUntil < qxSec) {
+		// 		intervalSec = Math.max(1, secUntil);
+		// 	}
+		// }
+		// keepAlive.setAlarmTimer({
+		// 	interval: intervalSec,
+		// 	exact: true,
+		// 	nightMode: isNight
+		// }, (res) => {
+		// 	this.nightMode = isNight;
+		// 	this.alarmInterval = intervalSec;
+		// });
 	}
 
-	/** 读取本地下一槽位并设置精确闹钟（2 秒内多次调用合并，首次立即设置） */
+	/** 读取本地下一槽位并设置精确闹钟（暂时关闭） */
 	scheduleQxBleAlarmFromStorage() {
-		if (getQxBleKeepAliveAlarmIntervalSecFromStorage() == null) {
-			this.setAlarmTimer();
-			return;
-		}
-		const nextAt = Number(uni.getStorageSync('qx_ble_next_fire_at'));
-		const now = Date.now();
-		const apply = () => {
-			this._qxAlarmLastSetAt = Date.now();
-			this.setAlarmForQxNextSlot(nextAt);
-		};
-		if (!this._qxAlarmLastSetAt || now - this._qxAlarmLastSetAt > 2000) {
-			if (this._qxAlarmDebounceTimer) {
-				clearTimeout(this._qxAlarmDebounceTimer);
-				this._qxAlarmDebounceTimer = null;
-			}
-			apply();
-			return;
-		}
-		if (this._qxAlarmDebounceTimer) {
-			clearTimeout(this._qxAlarmDebounceTimer);
-		}
-		this._qxAlarmDebounceTimer = setTimeout(() => {
-			this._qxAlarmDebounceTimer = null;
-			apply();
-		}, 300);
+		return;
+		// if (getQxBleKeepAliveAlarmIntervalSecFromStorage() == null) {
+		// 	this.setAlarmTimer();
+		// 	return;
+		// }
+		// const nextAt = Number(uni.getStorageSync('qx_ble_next_fire_at'));
+		// const now = Date.now();
+		// const apply = () => {
+		// 	this._qxAlarmLastSetAt = Date.now();
+		// 	this.setAlarmForQxNextSlot(nextAt);
+		// };
+		// if (!this._qxAlarmLastSetAt || now - this._qxAlarmLastSetAt > 2000) {
+		// 	if (this._qxAlarmDebounceTimer) {
+		// 		clearTimeout(this._qxAlarmDebounceTimer);
+		// 		this._qxAlarmDebounceTimer = null;
+		// 	}
+		// 	apply();
+		// 	return;
+		// }
+		// if (this._qxAlarmDebounceTimer) {
+		// 	clearTimeout(this._qxAlarmDebounceTimer);
+		// }
+		// this._qxAlarmDebounceTimer = setTimeout(() => {
+		// 	this._qxAlarmDebounceTimer = null;
+		// 	apply();
+		// }, 300);
 	}
 
 	/**
@@ -3251,25 +3204,14 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 		}
 		this.sendHeartbeat();
 		this.checkPendingTasks();
-		// 情绪定时已在 onAlarmTrigger 链式重挂；夜间原生链自带 15s 闹钟，避免重复 setAlarm
-		if (getQxBleKeepAliveAlarmIntervalSecFromStorage() == null && !this._nativeNightKeepAliveActive) {
-			if (this._bpw6BgBtNeedShortAlarm) {
-				this.setBpw6BgBtReconnectAlarm(5);
-			} else {
-				this.setAlarmTimer();
-			}
-		}
-		// BPW6 后台蓝牙开关回连：放在重挂闹钟之后，仍需短闹钟时再压回 5s
-		if (typeof this._bpw6BgBtReconnectCheck === 'function') {
-			try {
-				this._bpw6BgBtReconnectCheck();
-			} catch (e) {
-				console.warn('[KeepAlive] BPW6 bt reconnect check', e);
-			}
-		}
-		if (Math.random() < 0.1) {
-			this.refreshWhiteListStatus();
-		}
+		// 闹钟暂时关闭
+		// if (getQxBleKeepAliveAlarmIntervalSecFromStorage() == null && !this._nativeNightKeepAliveActive) {
+		// 	this.setAlarmTimer();
+		// }
+		// 白名单引导暂时关闭
+		// if (Math.random() < 0.1) {
+		// 	this.refreshWhiteListStatus();
+		// }
 	}
 
 	/**
@@ -3307,18 +3249,14 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	}
 
 	/** 情绪/血压定时开启时：确保前台服务与闹钟监听已就绪（进后台前调用） */
-	shouldKeepAliveForAppTimers() {
-		return shouldKeepAliveForAppTimersFromStorage()
-	}
-
 	ensureRunningForAppTimers() {
-		// if (!shouldKeepAliveForAppTimersFromStorage()) return
 		this.ensureAlarmListener();
 		if (!this.isRunning) {
 			this.init();
 			return;
 		}
-		this.startSilentMusic();
+		// 无声音乐暂时关闭
+		// this.startSilentMusic();
 		// 采集中勿整链 restartKeepAlive，否则通知会被「后台服务正常运行」盖掉
 		if (this._isQxBleMeasuringForNotification()) {
 			this.updateNotification();
@@ -3383,7 +3321,8 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	 * 手动触发唤醒
 	 */
 	testWakeUp() {
-		this.setAlarmTimer();
+		// 闹钟暂时关闭
+		// this.setAlarmTimer();
 		const isZh = this.getLocale();
 		uni.showToast({
 			title: isZh ? '已设置20秒后唤醒' : 'Wakeup set after 20 seconds',
@@ -3428,7 +3367,7 @@ try {
 		keepAliveManagerInstance.ensureAlarmListener();
 	}
 } catch (e) {
-	console.log('[KeepAlive] 预注册闹钟监听失败', e);
+	console.warn('[KeepAlive] 预注册闹钟监听失败', e);
 }
 // #endif
 export default keepAliveManagerInstance;

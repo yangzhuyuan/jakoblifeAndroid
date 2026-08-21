@@ -988,8 +988,6 @@
 				this.isMeasuring = false;
 				this.stopAnimation();
 				this.dataSourceTip = this.dataList.length === 0 ? this.$t("云端数据") : this.$t("测量数据");
-				console.log('停止测量，数据点数:', this.fullDataList.length);
-				console.log('返回正常显示模式，放大倍数:', this.amplifyFactor);
 			},
 			clearTestWaveTimer() {
 				if (this.testWaveTimer) {
@@ -1059,7 +1057,6 @@
 						this.pushData(batch);
 					}
 				}, interval);
-				console.log(`开始测试波形: ${tipName}`);
 			},
 			nextTestWaveBatch(batchSize) {
 				const batch = [];

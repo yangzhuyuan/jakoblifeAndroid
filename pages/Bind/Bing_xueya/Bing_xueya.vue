@@ -34,7 +34,6 @@
 		},
 
 		onLoad(opt) {
-			console.log("上个页面带过来的数据", opt)
 			this.sn = opt.sn
 			this.modelId = opt.modelId
 			this.SELECT_TYPE = opt.SELECT_TYPE

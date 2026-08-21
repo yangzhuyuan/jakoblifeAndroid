@@ -1112,9 +1112,15 @@
 
 			// ==================== API 请求 ====================
 			get_retVarList() {
+				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
+				const chinaNow = getChinaTimeAllJSON()
+				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
+				const profYmd = chinaHour < 1
+					? getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD
+					: chinaNow.YMD
 				const data = {
 					userId: uni.getStorageSync("userid"),
-					profDate: getChinaTimeAllJSON().YMD + ' 07:00:00',
+					profDate: profYmd + ' 00:00:00',
 					filterVarList: this.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
 				};

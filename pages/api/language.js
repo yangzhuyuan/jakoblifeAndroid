@@ -1,5 +1,7 @@
 export default {
 	'zh-CN': {
+		验证码不正确: '验证码不正确',
+		您的AI无感血压模型已经建立: '您的AI无感血压模型已经建立',
 		ECG模板: 'ECG',
 		连续血压监控详细风险报告: '连续血压监控详细风险报告',
 		无感血压报告: '无感血压报告',
@@ -1465,6 +1467,8 @@ export default {
 
 	},
 	'en-US': {
+		验证码不正确: 'Verification code is incorrect.',
+		您的AI无感血压模型已经建立: 'Your personal AI inflation-free blood pressure model is now ready.',
 		ECG模板: 'ECG',
 		连续血压监控详细风险报告: "Detailed Risk Report for Continuous Blood Pressure Monitoring",
 		无感血压报告: 'inflation free blood pressure report',

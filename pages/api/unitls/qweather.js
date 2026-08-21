@@ -144,7 +144,6 @@ function mapAirQuality(level, aqi) {
 				return 0x05; // 严重污染
 		}
 	}
-
 	// 如果没有等级，使用AQI值
 	if (aqi) {
 		const aqiNum = Number(aqi);
@@ -155,7 +154,6 @@ function mapAirQuality(level, aqi) {
 		if (aqiNum <= 300) return 0x04; // 重度污染
 		return 0x05; // 严重污染
 	}
-
 	return 0x01; // 默认良
 }
 
@@ -164,8 +162,6 @@ function mapAirQuality(level, aqi) {
  */
 export async function searchCity(cityName, adm) {
 	try {
-		// console.log('搜索城市:', cityName);
-		// console.log('搜索城市:', adm);
 		const [err, res] = await uni.request({
 			url: GEO_URL + '/city/lookup',
 			method: 'GET',
@@ -228,10 +224,7 @@ export async function searchCityWeather(cityName, adm) {
 				error: cityResult.error || '未找到城市'
 			};
 		}
-
 		const city = cityResult.data[0];
-		// console.log('找到城市:', city);
-
 		// 2. 获取实时天气
 		const [weatherErr, weatherRes] = await uni.request({
 			url: WEATHER_URL + '/weather/now',
@@ -361,17 +354,6 @@ export async function searchCityWeather(cityName, adm) {
  */
 export async function getGlobalLocalWeather() {
 	return new Promise((resolve) => {
-		// 先尝试读取缓存
-		// const cached = getCachedWeather();
-		// if (cached) {
-		// 	console.log('使用缓存数据');
-		// 	resolve({
-		// 		success: true,
-		// 		data: cached,
-		// 		fromCache: true
-		// 	});
-		// 	return;
-		// }
 		// 使用 ip-api.com（无需Key，免费）
 		uni.request({
 			url: 'http://ip-api.com/json/?lang=zh-CN',
@@ -426,14 +408,9 @@ export async function getGlobalLocalWeather() {
 				}
 			},
 			fail: (err) => {
-				console.error('IP定位请求失败:', err);
 				reject(err);
 			}
 		});
-
-
-
-
 	});
 }
 

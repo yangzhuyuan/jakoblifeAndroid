@@ -453,6 +453,7 @@
 				});
 			},
 			bind_devicetz(sn, MACdeviceID) {
+				console.log("绑定设备", sn, MACdeviceID);
 				const url = this.$url_APP_IP + this.$url_bind_device;
 				const data = {
 					deviceSn: sn,
@@ -494,9 +495,9 @@
 			},
 			handleWeightData(data) {
 				if (data.weightUnit === 0) {
-					uni.setStorageSync("newweight", this.$("千克1"));
+					uni.setStorageSync("newweight", this.$t("千克1"));
 				} else {
-					uni.setStorageSync("newweight", this.$("英镑"));
+					uni.setStorageSync("newweight", this.$t("英镑"));
 				}
 				if (data.weight !== "0.00") {
 					this.jakoblife_fat_scale1(this.MACdeviceID, data, "");
@@ -505,9 +506,9 @@
 			handleIOSWeightData(data) {
 				this.arrrylist.push(data);
 				if (data.weightUnit === 0) {
-					uni.setStorageSync("newweight", this.$("千克1"));
+					uni.setStorageSync("newweight", this.$t("千克1"));
 				} else {
-					uni.setStorageSync("newweight", this.$("英镑"));
+					uni.setStorageSync("newweight", this.$t("英镑"));
 				}
 				if (data.weight !== "0.00") {
 					this.jakoblife_fat_scale1(this.MACdeviceID, data, this.arrrylist.length);
@@ -577,7 +578,7 @@
 			connectBluetooth() {
 				this.idList = [];
 				uni.startBluetoothDevicesDiscovery({
-					allowDuplicatesKey: false,
+					allowDuplicatesKey: true,
 					success: (startBluetoothDevicesDiscovery) => {
 						if (this.isOPPO()) {
 							this.updateInterval = 800; // OPPO 延长节流

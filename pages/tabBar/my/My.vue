@@ -84,10 +84,10 @@
 					title: '生成健康报告',
 					url: '/pages/tabBar/tendency/supplement'
 				},
-				{
-					title: 'ECG模板',
-					url: '/pages/tabBar/main/ECGdemo/ECGdemo'
-				},
+				// {
+				// 	title: 'ECG模板',
+				// 	url: '/pages/tabBar/main/ECGdemo/ECGdemo'
+				// },
 				...(isChinese ? [{
 					title: '脉诊健康管理',
 					url: '/pages/tabBar/main/Pulsediagnosis'

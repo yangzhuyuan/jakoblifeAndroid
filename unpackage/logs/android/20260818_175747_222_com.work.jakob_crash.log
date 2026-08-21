@@ -1,0 +1,28 @@
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: FATAL EXCEPTION: main
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: Process: com.work.jakob, PID: 1408
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: java.lang.RuntimeException: Unable to destroy activity {com.work.jakob/io.dcloud.PandoraEntryActivity}: java.lang.NullPointerException
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.ActivityThread.performDestroyActivity(ActivityThread.java:6333)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.ActivityThread.handleDestroyActivity(ActivityThread.java:6367)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.servertransaction.DestroyActivityItem.execute(DestroyActivityItem.java:47)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.servertransaction.ActivityTransactionItem.execute(ActivityTransactionItem.java:45)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:190)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:105)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2845)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:114)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:206)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:296)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.ActivityThread.main(ActivityThread.java:9205)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at java.lang.reflect.Method.invoke(Native Method)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:591)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1027)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: Caused by: java.lang.NullPointerException
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at uts.sdk.modules.uniWifi.IndexKt.startWifiImpl$lambda$1(index.kt:351)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at uts.sdk.modules.uniWifi.IndexKt.$r8$lambda$lUY3LwrvH0o171pR_7QSTkU2_v4(Unknown Source:0)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at uts.sdk.modules.uniWifi.IndexKt$$ExternalSyntheticLambda21.invoke(D8$$SyntheticClass:0)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at io.dcloud.uts.android.AndroidUTSContext$initApp$1.handleMessage(AndroidUTSContext.kt:287)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at io.dcloud.common.DHInterface.message.ActionBus.sendToBus(r8-map-id-2a35bbd20c093af9f4debb3b68893e846470d11c9025af0b4415494c90b76e98:15)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at io.dcloud.WebAppActivity.onDestroy(r8-map-id-2a35bbd20c093af9f4debb3b68893e846470d11c9025af0b4415494c90b76e98:1)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.Activity.performDestroy(Activity.java:8961)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.Instrumentation.callActivityOnDestroy(Instrumentation.java:1433)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	at android.app.ActivityThread.performDestroyActivity(ActivityThread.java:6320)
+08-18 17:57:49.005  1408  1408 E AndroidRuntime: 	... 13 more

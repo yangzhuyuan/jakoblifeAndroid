@@ -101,7 +101,7 @@
 					if (res.keys.includes("listdadsa")) {
 						// 假设我们要根据 'id' 属性去重
 						let uniqueArr = uni.getStorageSync("listdadsa").filter((item, index, self) => {
-							return self.findIndex(t => t.name === item.name) === index;
+							return self.findIndex(t => t.deviceId === item.deviceId) === index;
 						});
 						that.bluetoothList1 = uniqueArr
 					} else {
@@ -511,19 +511,21 @@
 				console.log('开始搜索蓝牙')
 				let that = this;
 				uni.startBluetoothDevicesDiscovery({
+					allowDuplicatesKey: true,
 					success() {
 						uni.onBluetoothDeviceFound(res => {
 							var deviceArray = res.devices;
 							for (let item of deviceArray) {
+								if (!item.name) {
+									continue
+								}
 								that.idList.push(item)
 								let uniqueArr = that.idList.filter((item, index, self) => {
-									return self.findIndex(t => t.deviceId === item.deviceId) ===
+									return item.name && self.findIndex(t => t.deviceId === item
+											.deviceId) ===
 										index;
 								});
-								let uniqueArr1 = uniqueArr.filter((item, index, self) => {
-									return self.findIndex(t => t.name === item.name) === index;
-								});
-								that.bluetoothList = uniqueArr1
+								that.bluetoothList = uniqueArr
 							}
 							if (that.checked == true) {
 								// 5秒后停止搜索释放系统资源

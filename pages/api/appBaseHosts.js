@@ -3,14 +3,11 @@
  * 切换测试 / 正式环境时只改本文件，并调用 refreshActiveAppBaseUrl 同步到全局。
  */
 // 测试域名
-export const APP_IP_CN = 'https://jakoblife-qa.jakob-techs.com'
+// export const APP_IP_CN = 'https://jakoblife-qa.jakob-techs.com'
 // 正式域名（启用时与上面二选一，并注释掉测试行）
-// export const APP_IP_CN = 'https://jakoblife.jakob-techs.com'
-
+export const APP_IP_CN = 'https://jakoblife.jakob-techs.com'
 // export const APP_IP_US = 'https://jakoblife.us.jakob-techs.com'
-
 export const APP_IP_US = APP_IP_CN
-
 export const URL_APP_IP_STORAGE_KEY = 'URL_APP_IP'
 /** 登录后记录的区域：cn | us，改域名后仍按区域映射到最新 APP_IP_CN / APP_IP_US */
 export const URL_APP_REGION_STORAGE_KEY = 'URL_APP_REGION'
@@ -19,7 +16,6 @@ function isUsHost(url) {
 	if (!url || typeof url !== 'string') return false
 	return url.includes('.us.jakob') || url.includes('jakoblife.us.')
 }
-
 /** 将 appBaseHosts 最新值写入 Vue.prototype.$APP_IP1 / $APP_IP2 */
 export function syncVueAppHosts(Vue) {
 	if (!Vue || !Vue.prototype) return
@@ -39,7 +35,6 @@ function resolveRegionFromStorage() {
 function urlForRegion(region) {
 	return region === 'us' ? APP_IP_US : APP_IP_CN
 }
-
 /**
  * 登录/切换区域时调用，写入区域并同步当前配置下的根地址
  */
@@ -54,7 +49,6 @@ export function setActiveAppRegion(region, Vue) {
 	}
 	return url
 }
-
 /**
  * 按已选区域刷新为 appBaseHosts 中最新的 CN/US 地址（改域名后即时生效）
  */
@@ -69,7 +63,6 @@ export function refreshActiveAppBaseUrl(Vue) {
 	}
 	return active
 }
-
 export function getActiveAppBaseUrl(Vue) {
 	return refreshActiveAppBaseUrl(Vue)
 }

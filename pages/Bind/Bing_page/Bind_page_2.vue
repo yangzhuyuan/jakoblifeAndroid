@@ -191,7 +191,6 @@
 			this.SELECT_TYPE = options.SELECT_TYPE
 			this.modelConnectType = options.modelConnectType
 			this.modelname = options.name
-
 			uni.setNavigationBarTitle({
 				title: this.$t('绑定设备')
 			})
@@ -652,7 +651,7 @@
 			 * 处理设备信息响应
 			 */
 			handleDeviceInfoResponse(res) {
-				console.log('设备信息查询结果:', res)
+				// console.log('设备信息响应:', res)
 				if (res.code !== 200 || res.data.model !== this.modelname) {
 					this.showDeviceMismatch()
 					return
@@ -690,6 +689,12 @@
 				if (data.model === 'BPW6' && data.mac && !this.BPW6deviceId) {
 					this.BPW6deviceId = data.mac
 				}
+				// if (data.model === 'JL-BP68W' && data.deviceSn && data.deviceSn === '1000103200000010') {
+				// 	this.modelConnectType = 1
+				// }
+				// if (data.model === 'JL-BP67W' && data.deviceSn && data.deviceSn === '1000203200000019') {
+				// 	this.modelConnectType = 1
+				// }
 				this.updateScanImage(data.picturePath)
 			},
 			/**
@@ -744,7 +749,7 @@
 					}).then(res => this.handleQueryResponse(res))
 					.catch(err => {
 						uni.showToast({
-							title: this.$("失败"),
+							title: this.$t("失败"),
 							icon: 'none'
 						})
 					})
@@ -832,7 +837,6 @@
 			 * 处理蓝牙绑定
 			 */
 			handleBLEBind(modelId) {
-				console.log(modelId)
 				if (this.modelname === 'BPW1') {
 					this.BPW1model = modelId
 					this.bindBPW1Device(this.context_msg1, this.BPW1deviceId, modelId)
