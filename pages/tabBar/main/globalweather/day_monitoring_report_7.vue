@@ -732,8 +732,6 @@
 			try {
 				const request = JSON.parse(decodeURIComponent(options.request));
 				const form = JSON.parse(decodeURIComponent(options.form));
-				console.log('request:', request);
-				console.log('form:', form);
 				this.userInfo = {
 					...this.userInfo,
 					...form
@@ -1032,12 +1030,10 @@
 				this.calculateExtremesFromData(bpData);
 			},
 			calculateDailyStats(data) {
-				console.log('计算每日统计数据，原始数据:', data);
 				if (!data.length) {
 					this.dailyStats = [];
 					return;
 				}
-
 				const dayMap = {};
 				for (const item of data) {
 					if (item.heartRateOnly) continue;
@@ -1115,21 +1111,19 @@
 				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
 				const chinaNow = getChinaTimeAllJSON()
 				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
-				const profYmd = chinaHour < 1
-					? getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD
-					: chinaNow.YMD
+				const profYmd = chinaHour < 1 ?
+					getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD :
+					chinaNow.YMD
 				const data = {
 					userId: uni.getStorageSync("userid"),
 					profDate: profYmd + ' 00:00:00',
 					filterVarList: this.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
 				};
-				console.log('get_retVarList data:', data);
 				this.$post(this.$url_APP_IP + '/prod-api/device_app/get_retVarList', data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((res) => {
-					console.log('get_retVarList response:', res);
 					if (res.code === 200 && res.data && res.data.retVarList) {
 						this.monitorData = this.processRetVarList(res.data.retVarList);
 						this.updateStatistics(this.monitorData);
@@ -1164,17 +1158,14 @@
 					endTime: this.monitorInfo.endTime,
 					aggregateType: "average"
 				}
-				console.log("get_trend_data", data)
 				this.$post(this.$url_APP_IP + this.$url_get_trend_data, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
-					console.log("get_trend_datares", res)
 					if (res.code == 200) {
 						this.chartData.categories = []
 						this.chartData.series[0].data = []
 						this.chartData.series[1].data = []
-
 						const timestampToDateStr = (timestamp) => {
 							let date = new Date(parseInt(timestamp))
 							let year = date.getFullYear()

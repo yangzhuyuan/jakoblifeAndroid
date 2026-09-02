@@ -132,7 +132,6 @@
 		},
 		onLoad(options) {
 			this.devicetype = options.devicetype
-			console.log("devicetype", this.devicetype)
 		},
 		created() {
 			this.loadCurrentMode();
@@ -327,7 +326,8 @@
 						let candidate = "";
 						if (OTA_BP_VERIFY_OK_IDS.has(otaBP)) {
 							candidate = otaBP;
-						} else if (Date.now() - started >= OTA_RES_FALLBACK_MS && OTA_BP_VERIFY_OK_IDS.has(otaRes)) {
+						} else if (Date.now() - started >= OTA_RES_FALLBACK_MS && OTA_BP_VERIFY_OK_IDS.has(
+								otaRes)) {
 							candidate = otaRes;
 						}
 						if (candidate) {
@@ -407,11 +407,13 @@
 									const timers = items.map((item, idx) => ({
 										index: idx,
 										enabled: !!item.enabled,
-										startHour: parseInt(item.startHour, 10),
+										startHour: parseInt(item.startHour,
+											10),
 										startMinute: parseInt(item.startMinute,
 											10),
 										endHour: parseInt(item.endHour, 10),
-										endMinute: parseInt(item.endMinute, 10),
+										endMinute: parseInt(item.endMinute,
+											10),
 										interval: parseInt(item.interval, 10)
 									}));
 									const packet = that.buildBloodPressureTimerPacket({

@@ -38,73 +38,73 @@
 			</view>
 		</view>
 		<button class="buttonstyle" @click="clickset()">{{$t("设置新的正常范围")}}</button>
-		<view style="margin-top: 20px;font-size: 14px; font-weight: 400;color: gray;">{{$t("警报使用提示1")}}</view>
-		<view style="margin-top: 5px;font-size: 14px; font-weight: 400;color: gray;">{{$t("警报使用提示2")}}</view>
-		<view style="background: gainsboro;height: 1px; margin-top: 10px;"></view>
-		<view style="background: white;box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);">
-			<view
-				style="display: flex;justify-content: space-between; align-items: center; padding: 10px;margin: 0 15px 0 15px;">
-				<image :src="avatar"
-					style="border-radius: 20px; width: 40px; height: 40px; border: 1px solid gainsboro;">
-				</image>
-				<view style="flex: 2;margin-left: 20px;">
-					<view style="font-weight: 600;font-size: 16px; color: black;">
+		<view class="tip-box">
+			<image class="tip-icon" src="/static/image/app_icon_all.jpg" mode="aspectFit"></image>
+			<view class="tip-content">
+				<view class="tip-text tip-text-first">{{$t("警报使用提示1")}}</view>
+				<view class="tip-text tip-text-second">{{$t("警报使用提示2")}}</view>
+			</view>
+		</view>
+		<view class="divider-gap"></view>
+		<view class="user-card">
+			<view class="user-row">
+				<image class="user-avatar" :src="avatar"></image>
+				<view class="user-info">
+					<view class="user-name">
 						{{$t("用户1")+'：'+ name}}
 					</view>
 				</view>
-				<switch @change="switch1Change1" style="transform:scale(0.6);" :checked="swicth" color="#0686CC" />
+				<switch class="user-switch" @change="switch1Change1" :checked="swicth" color="#3298F7" />
 			</view>
 			<view class="container" v-show="jingbaoshow2">
-				<view style="font-size: 16px; font-weight: 600;">{{$t("收缩压")}}{{$t("警报")}}:</view>
-				<view style="font-size: 14px; font-weight: 400;">{{jingbao2}}</view>
+				<view class="alarm-label">{{$t("收缩压")}}{{$t("警报")}}:</view>
+				<view class="alarm-value">{{jingbao2}}</view>
 			</view>
 			<view class="container" v-show="jingbaoshow1">
-				<view style="font-size: 16px; font-weight: 600;">{{$t("舒张压")}}{{$t("警报")}}:</view>
-				<view style="font-size: 14px; font-weight: 400;">{{jingbao1}}</view>
+				<view class="alarm-label">{{$t("舒张压")}}{{$t("警报")}}:</view>
+				<view class="alarm-value">{{jingbao1}}</view>
 			</view>
 			<view class="container" v-show="jingbaoshow3">
-				<view style="font-size: 16px; font-weight: 600;">{{$t("脉搏")}}{{$t("警报")}}:</view>
-				<view style="font-size: 14px; font-weight: 400;">{{jingbao3}}</view>
+				<view class="alarm-label">{{$t("脉搏")}}{{$t("警报")}}:</view>
+				<view class="alarm-value">{{jingbao3}}</view>
 			</view>
 			<view class="container" v-show="jingbaoshow4">
-				<view style="font-size: 16px; font-weight: 600;">{{$t("血氧")}}{{$t("警报")}}:</view>
-				<view style="font-size: 14px; font-weight: 400;">{{jingbao4}}</view>
+				<view class="alarm-label">{{$t("血氧")}}{{$t("警报")}}:</view>
+				<view class="alarm-value">{{jingbao4}}</view>
 			</view>
-			<view style="background: gainsboro;height: 1px;"></view>
+			<view class="divider"></view>
 		</view>
-		<view style="padding-bottom: 80px;">
-			<view style="background: white;" v-for="(item,index) in filterList" :key="item.id">
-				<view
-					style="display: flex;justify-content: space-between; align-items: center; padding: 10px;margin: 0 15px 0 15px;">
-					<image
-						:src="item.shareAvatar==='' || item.shareAvatar===null? '/static/icons/80x80.png':item.shareAvatar"
-						style="border-radius: 20px; width: 40px; height: 40px; border: 1px solid gainsboro;">
+		<view class="share-list">
+			<view class="share-item" v-for="(item,index) in filterList" :key="item.id">
+				<view class="user-row">
+					<image class="user-avatar"
+						:src="item.shareAvatar==='' || item.shareAvatar===null? '/static/icons/80x80.png':item.shareAvatar">
 					</image>
-					<view style="flex: 2;margin-left: 20px;">
-						<view style="font-weight: 600;font-size: 16px; color: black;">
+					<view class="user-info">
+						<view class="user-name">
 							{{$t("用户")+'：'+ (item.shareName === null ? item.sharePhone:item.shareName)}}
 						</view>
 					</view>
-					<switch @change="switch1Change(item.swicth,index)" style="transform:scale(0.6);"
-						:checked="item.swicth" color="#0686CC" />
+					<switch class="user-switch" @change="switch1Change(item.swicth,index)" :checked="item.swicth"
+						color="#3298F7" />
 				</view>
 				<view class="container" v-show="item.jingbaoshow2">
-					<view style="font-size: 16px; font-weight: 600;">{{$t("收缩压")}}{{$t("警报")}}:</view>
-					<view style="font-size: 14px; font-weight: 400;">{{item.jingbao2}}</view>
+					<view class="alarm-label">{{$t("收缩压")}}{{$t("警报")}}:</view>
+					<view class="alarm-value">{{item.jingbao2}}</view>
 				</view>
 				<view class="container" v-show="item.jingbaoshow1">
-					<view style="font-size: 16px; font-weight: 600;">{{$t("舒张压")}}{{$t("警报")}}:</view>
-					<view style="font-size: 14px; font-weight: 400;">{{item.jingbao1}}</view>
+					<view class="alarm-label">{{$t("舒张压")}}{{$t("警报")}}:</view>
+					<view class="alarm-value">{{item.jingbao1}}</view>
 				</view>
 				<view class="container" v-show="item.jingbaoshow3">
-					<view style="font-size: 16px; font-weight: 600;">{{$t("脉搏")}}{{$t("警报")}}:</view>
-					<view style="font-size: 14px; font-weight: 400;">{{item.jingbao3}}</view>
+					<view class="alarm-label">{{$t("脉搏")}}{{$t("警报")}}:</view>
+					<view class="alarm-value">{{item.jingbao3}}</view>
 				</view>
 				<view class="container" v-show="item.jingbaoshow4">
-					<view style="font-size: 16px; font-weight: 600;">{{$t("血氧")}}{{$t("警报")}}:</view>
-					<view style="font-size: 14px; font-weight: 400;">{{item.jingbao4}}</view>
+					<view class="alarm-label">{{$t("血氧")}}{{$t("警报")}}:</view>
+					<view class="alarm-value">{{item.jingbao4}}</view>
 				</view>
-				<view style="background: gainsboro;height: 1px;"></view>
+				<view class="divider"></view>
 			</view>
 		</view>
 		<view>
@@ -274,7 +274,6 @@
 		},
 
 		onUnload() {
-			console.log("onUnload")
 			this.clearIntervalTimer()
 			if (this.listletnewtimers) {
 				clearInterval(this.listletnewtimers);
@@ -282,7 +281,6 @@
 			}
 		},
 		beforeDestroy() {
-			console.log("beforeDestroy")
 			this.clearIntervalTimer()
 			if (this.listletnewtimers) {
 				clearInterval(this.listletnewtimers);
@@ -297,7 +295,6 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json'
 				}).then(get_user_alarm_listres => {
-					console.log("get_user_alarm_listres", get_user_alarm_listres)
 					if (get_user_alarm_listres.code === 200) {
 						if (get_user_alarm_listres.total > 0) {
 							for (let i = 0; get_user_alarm_listres.rows.length > i; i++) {
@@ -744,7 +741,6 @@
 						'content-type': 'application/x-www-form-urlencoded;' //自定义请求头信息
 					},
 					success(pending) {
-						console.log("pending", pending)
 						if (pending.data.code === 200 && pending.data.data && pending.data.data.length > 0) {
 							that.filterList = []
 							const pendingdata = pending.data.data
@@ -1010,52 +1006,72 @@
 
 <style>
 	.pagestyle {
-		padding: 20px;
+		min-height: 100vh;
+		padding: 20px 16px 40px;
+		box-sizing: border-box;
+		background: linear-gradient(180deg, #dceefc 0%, #f4f7fb 42%, #f4f7fb 100%);
+		color: #1a2b4a;
 	}
 
 	.pagestyle_1 {
 		display: flex;
 		justify-content: center;
 		flex-direction: column;
-		background: white;
-		border-radius: 20px;
+		background: #ffffff;
+		border-radius: 16px;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		overflow: hidden;
+		padding: 4px 0;
 	}
 
 	.viewstyle {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 20px;
+		padding: 16px 18px;
+		min-height: 56px;
+		box-sizing: border-box;
 	}
 
 	.titlestyle {
-		font-size: 17px;
+		font-size: 15px;
 		font-weight: 600;
-		color: black;
+		color: #1a2b4a;
+		flex-shrink: 0;
 	}
 
 	.titlestyle_1 {
 		display: flex;
-		justify-content: space-between;
+		justify-content: flex-end;
 		align-items: center;
 		flex-direction: row;
 	}
 
 	.inputstyles {
-		width: 80px;
+		width: 72px;
+		height: 36px;
 		text-align: center;
+		font-size: 14px;
+		color: #1a2b4a;
+		background: #f4f7fb;
+		border-radius: 10px;
+		padding: 0 6px;
+		box-sizing: border-box;
 	}
 
 	.linestyle1 {
-		background: black;
+		background: #3298F7;
 		height: 2px;
-		width: 10px;
+		width: 12px;
+		margin: 0 8px;
+		border-radius: 1px;
+		flex-shrink: 0;
 	}
 
 	.linestyle {
-		background: gainsboro;
+		background: #eef1f5;
 		height: 1px;
+		margin: 0 18px;
 	}
 
 	.buttonstyle {
@@ -1065,33 +1081,172 @@
 		font-size: 16px;
 		font-weight: 600;
 		height: 48px;
-		margin-top: 40px;
+		margin-top: 28px;
 		border-radius: 50px;
 		background: #3298F7;
-		color: white;
+		color: #ffffff;
+		box-shadow: 0 4px 14px rgba(50, 152, 247, 0.35);
+		border: none;
+	}
+
+	.buttonstyle::after {
+		border: none;
+	}
+
+	.buttonstyle:active {
+		opacity: 0.9;
+		transform: scale(0.98);
+	}
+
+	.tip-box {
+		margin-top: 20px;
+		padding: 14px 16px;
+		background: #ebf3ff;
+		border: 1px solid #cfe3ff;
+		border-radius: 14px;
+		box-sizing: border-box;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.tip-icon {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		margin-right: 12px;
+		object-fit: contain;
+	}
+
+	.tip-content {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.tip-text {
+		font-size: 13px;
+		font-weight: 500;
+		color: #3b7dd8;
+		line-height: 1.5;
+	}
+
+	.tip-text-first {
+		margin-top: 0;
+	}
+
+	.tip-text-second {
+		margin-top: 8px;
+	}
+
+	.divider-gap {
+		height: 1px;
+		background: transparent;
+		margin-top: 16px;
+	}
+
+	.user-card {
+		background: #ffffff;
+		border-radius: 16px;
+		box-shadow: 0 2px 12px rgba(50, 152, 247, 0.08);
+		overflow: hidden;
+		padding: 4px 0;
+	}
+
+	.share-list {
+		padding-bottom: 80px;
+		margin-top: 12px;
+	}
+
+	.share-item {
+		background: #ffffff;
+		border-radius: 16px;
+		box-shadow: 0 2px 12px rgba(50, 152, 247, 0.08);
+		overflow: hidden;
+		padding: 4px 0;
+		margin-bottom: 12px;
+	}
+
+	.user-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 12px 16px;
+	}
+
+	.user-avatar {
+		width: 44px;
+		height: 44px;
+		border-radius: 22px;
+		border: 2px solid #e8f0fe;
+		background: #f4f7fb;
+		flex-shrink: 0;
+	}
+
+	.user-info {
+		flex: 2;
+		margin-left: 14px;
+		min-width: 0;
+	}
+
+	.user-name {
+		font-weight: 600;
+		font-size: 15px;
+		color: #1a2b4a;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.user-switch {
+		transform: scale(0.72);
+		transform-origin: center right;
+		flex-shrink: 0;
+	}
+
+	.divider {
+		background: #eef1f5;
+		height: 1px;
+		margin: 0 16px;
 	}
 
 	.container {
-		color: red;
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		/* 允许换行 */
 		justify-content: flex-start;
-		/* 子元素左对齐 */
-		gap: 10px;
-		/* 子元素之间的间距 */
-		margin: 10px 20px 20px 20px;
+		gap: 8px;
+		margin: 4px 16px 14px;
+		padding: 10px 12px;
+		background: #fff5f5;
+		border-radius: 10px;
+		border: 1px solid #ffe0e0;
 	}
 
-	/* 弹窗内容样式 */
+	.alarm-label {
+		font-size: 14px;
+		font-weight: 600;
+		color: #e54d42;
+	}
+
+	.alarm-value {
+		font-size: 14px;
+		font-weight: 500;
+		color: #e54d42;
+	}
+
 	.popup-content {
-		background: #fff;
-		border-radius: 20px;
-		padding: 20px;
+		background: #ffffff;
+		border-radius: 16px;
+		padding: 24px 20px;
 		margin: 20px;
 		text-align: center;
 		box-sizing: border-box;
+		color: #1a2b4a;
+		font-size: 15px;
+		font-weight: 500;
+		line-height: 1.5;
+		box-shadow: 0 4px 20px rgba(26, 43, 74, 0.12);
 	}
 </style>

@@ -70,7 +70,7 @@
 				</view>
 				<view class="charts-box">
 					<qiun-data-charts :canvas2d="true" type="line" canvas-id="10086" :opts="xeuyaopts"
-						:chartData="chartData" />
+						:chartData="chartData" :optsWatch="true" :reshow="bpChartReshow" />
 				</view>
 			</view>
 			<view class="icon_item_bgsdsadsa">
@@ -190,7 +190,7 @@
 			<view class="table_bg">
 				<view class="text_title_types_1">
 					<view style="display: flex;flex-direction: column; align-items: center;">
-						<text class="text_title_types_2">{{$t('最近7天平均体重')}}/kg</text>
+						<text class="text_title_types_2">{{$t('最近7天平均体重')}}/{{ newweightKG }}</text>
 						<view style="font-size: 16px; font-weight: 600; color: #1A1A1A; ">{{Mean_value}}</view>
 					</view>
 					<view style="display: flex;flex-direction: column; align-items: center;width: 33%;">
@@ -205,7 +205,7 @@
 				</view>
 				<view class="charts-box">
 					<qiun-data-charts :canvas2d="true" type="line" canvas-id="10011" :opts="tizhonngopts"
-						:chartData="chartData2" />
+						:chartData="chartData2" :optsWatch="true" :reshow="weightChartReshow" />
 				</view>
 			</view>
 			<view class="icon_item_bg">
@@ -243,24 +243,26 @@
 		<view>
 			<uni-popup ref="tizhong_popup" :mask-click="false">
 				<view class="popupsdind">
-					<view style="display: flex;justify-content: space-between; padding: 15px;">
-						<text @click="tz_closess()" style="font-size: 22px;">✖</text>
-						<view style="display: flex; flex-direction: row;">
+					<view class="popupsdind-header">
+						<view class="popupsdind-header-side" @click="tz_closess()">
+							<text class="popupsdind-close">✖</text>
+						</view>
+						<view class="popupsdind-header-center">
 							<picker fields="day" mode="date" :value="birthday2" @change="bindDateChange2s"
 								:end='endtimesss'>
-								<view style="display: flex;flex-direction: row;">
-									<view style="font-size: 16px;color: black;">{{birthday2}}</view>
-									<uni-icons type="bottom" size="18" style="margin-left: 5px;"></uni-icons>
+								<view class="popupsdind-date">
+									<text class="popupsdind-date-text">{{birthday2}}</text>
+									<uni-icons type="bottom" size="16"></uni-icons>
 								</view>
 							</picker>
 						</view>
-						<view style="color: #3298F7;"></view>
+						<view class="popupsdind-header-side"></view>
 					</view>
-					<view style="padding: 20px;width: 75vw;">
+					<view class="popupsdind-body">
 						<view class="popupsdind_1">
 							<input type="number" v-model="tizhong" :placeholder="$t('请输入体重')"
-								style="text-align: center;width: 80vw;" />
-							<text>kg</text>
+								class="popupsdind-input" />
+							<text class="popupsdind-unit">kg</text>
 						</view>
 					</view>
 					<button @tap="jitizhong_tc()" class="butonsd">{{$t('确认')}}</button>
@@ -270,44 +272,51 @@
 		<view class="showTotal" v-show="fillOut">
 			<view class="over">
 				<view class="show">
-					<view style="margin-top: 140px;">
-						<view style="color: black;font-size: 38px; font-weight: bold;">{{showTotal_date}}</view>
-						<view style="background: black; width: 50%; height: 1px;margin-top: 20px;"></view>
-						<view style="color: #2595D3;margin-top: 5px;">{{$t('确保每天摄入足够的水')}}</view>
-					</view>
-					<view style="display: flex; flex-direction: row;  margin-top: 180px;margin-left: 10px;">
-						<view style="display: flex;flex-direction: column; align-items: center;" @click="Keep()">
-							<image lazy-load src="../../../static/icons/6.png" mode="aspectFit"
-								style="width: 50px; height: 50px;border-radius: 40px;object-fit: contain;">
-							</image>
-							<text
-								style="margin-top: 5px;font-weight: bold;text-align:center;width: 80px;">{{$t('记体重')}}</text>
-						</view>
-						<view style="display: flex;flex-direction: column;  align-items: center;margin-left: 10px;"
-							@click="Body_circumference()">
-							<image lazy-load src="../../../static/icons/7.png" mode="aspectFit"
-								style="width: 50px; height: 50px;border-radius: 40px;object-fit: contain;">
-							</image>
-							<text
-								style="margin-top: 5px;font-weight: bold;text-align:center;width: 80px;">{{$t('记体围')}}</text>
+					<view class="showTotal-header">
+						<view class="showTotal-date">{{showTotal_date}}</view>
+						<view class="showTotal-tip-row">
+							<view class="showTotal-divider"></view>
+							<view class="showTotal-tip">{{$t('确保每天摄入足够的水')}}</view>
 						</view>
 					</view>
-					<view style="display: flex;justify-content: center;margin-top: 60px;" @click="ddclosess()">
-						<uni-icons size="30" type="closeempty"></uni-icons>
+					<view class="showTotal-actions">
+						<view class="showTotal-action-item" @click="Keep()">
+							<view class="showTotal-action-icon">
+								<image lazy-load src="../../../static/icons/6.png" mode="aspectFit"
+									class="showTotal-icon-img"></image>
+							</view>
+							<text class="showTotal-action-label">{{$t('记体重')}}</text>
+						</view>
+						<view class="showTotal-action-item" @click="Body_circumference()">
+							<view class="showTotal-action-icon">
+								<image lazy-load src="../../../static/icons/7.png" mode="aspectFit"
+									class="showTotal-icon-img"></image>
+							</view>
+							<text class="showTotal-action-label">{{$t('记体围')}}</text>
+						</view>
+					</view>
+					<view class="showTotal-close" @click="ddclosess()">
+						<uni-icons size="24" type="closeempty" color="#3298F7"></uni-icons>
 					</view>
 				</view>
 			</view>
 		</view>
 		<view>
-			<uni-popup ref="tihzi_popup_hd" :mask-click="false">
+			<uni-popup ref="tihzi_popup_hd" :mask-click="false" @change="onTihziPopupHdChange">
 				<view class="uni_popup_bg">
-					<view style="display: flex;justify-content: space-between;align-items: center; padding:15px;">
-						<view @click="hd_closess()">✖</view>
-						<view style=" margin-left: 50px;">
-							<text @click="dataclick1()">{{birthday1}}</text>
-							<uni-icons type="bottom" size="16"></uni-icons>
+					<view class="popupsdind-header">
+						<view class="popupsdind-header-side" @click="hd_closess()">
+							<text class="popupsdind-close">✖</text>
 						</view>
-						<view style="color: #3298F7;" @click="sdsr()">{{$t('手动输入')}}</view>
+						<view class="popupsdind-header-center">
+							<view class="popupsdind-date" @click="dataclick1()">
+								<text class="popupsdind-date-text">{{birthday1}}</text>
+								<uni-icons type="bottom" size="16"></uni-icons>
+							</view>
+						</view>
+						<view class="popupsdind-header-side" style="justify-content: flex-end;" @click="sdsr()">
+							<text class="popupsdind-link">{{$t('手动输入')}}</text>
+						</view>
 					</view>
 					<scroll-view scroll-y="true" class="scroll-Y">
 						<view>
@@ -319,7 +328,7 @@
 								</view>
 								<text></text>
 							</view>
-							<view style="width: 90vw;margin-top: 10px;">
+							<view style="width: 90vw;margin-top: 10px;" v-if="tihziRulerReady >= 1">
 								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
 									:defaultValue="1000" @change="xw_handleChange"></select-ruler>
 							</view>
@@ -331,7 +340,7 @@
 								</view>
 								<text></text>
 							</view>
-							<view style="width: 90vw;padding: 10px;">
+							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 2">
 								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
 									:defaultValue="1000" @change="yw_handleChange"></select-ruler>
 							</view>
@@ -343,7 +352,7 @@
 								</view>
 								<text></text>
 							</view>
-							<view style="width: 90vw;padding: 10px;">
+							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 3">
 								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
 									:defaultValue="1000" @change="tw_handleChange"></select-ruler>
 							</view>
@@ -355,7 +364,7 @@
 								</view>
 								<text></text>
 							</view>
-							<view style="width: 90vw;padding: 10px;">
+							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 4">
 								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
 									:defaultValue="1000" @change="stw_handleChange"></select-ruler>
 							</view>
@@ -367,7 +376,7 @@
 								</view>
 								<text></text>
 							</view>
-							<view style="width: 90vw;padding: 10px;">
+							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 5">
 								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
 									:defaultValue="1000" @change="dtw_handleChange"></select-ruler>
 							</view>
@@ -379,7 +388,7 @@
 								</view>
 								<text></text>
 							</view>
-							<view style="width: 90vw;padding: 10px;">
+							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 6">
 								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
 									:defaultValue="1000" @change="xtw_handleChange"></select-ruler>
 							</view>
@@ -393,57 +402,55 @@
 		<view>
 			<uni-popup ref="tihzi_popup_sd" :mask-click="false">
 				<view class="uni_popup_bg">
-					<view style="display: flex;justify-content: space-between; padding: 10px;">
-						<text @click="sd_closess()">✖</text>
-						<view style="display: flex; flex-direction: row; margin-left: 50px;">
-							<text @click="dataclick()">{{birthday111}}</text>
-							<uni-icons type="bottom" size="16"></uni-icons>
+					<view class="popupsdind-header">
+						<view class="popupsdind-header-side" @click="sd_closess()">
+							<text class="popupsdind-close">✖</text>
 						</view>
-						<view style="color: #3298F7;" @click="hdsr()">{{$t('滑动输入')}}</view>
+						<view class="popupsdind-header-center">
+							<view class="popupsdind-date" @click="dataclick()">
+								<text class="popupsdind-date-text">{{birthday111}}</text>
+								<uni-icons type="bottom" size="16"></uni-icons>
+							</view>
+						</view>
+						<view class="popupsdind-header-side" style="justify-content: flex-end;" @click="hdsr()">
+							<text class="popupsdind-link">{{$t('滑动输入')}}</text>
+						</view>
 					</view>
 					<scroll-view scroll-y="true" class="scroll-Y">
-						<view style="padding-bottom: 10px;align-items: center;">
+						<view style="padding-bottom: 10px;">
 							<view style="padding: 10px;">
-								<view
-									style="display: flex;flex-direction: row;background: #F7F7F7;padding: 15px;border-radius: 10px;">
+								<view class="popupsdind_1">
 									<input type="number" v-model="xiongwei" :placeholder="$t('请输入胸围')"
-										style="text-align: center;width: 80vw;" />
-									<text>cm</text>
+										class="popupsdind-input" />
+									<text class="popupsdind-unit">cm</text>
 								</view>
-								<view
-									style="display: flex;flex-direction: row;background: #F7F7F7;margin-top: 20px; padding: 15px;border-radius: 10px;">
+								<view class="popupsdind_1" style="margin-top: 20px;">
 									<input type="number" v-model="yaowei" :placeholder="$t('请输入腰围')"
-										style="text-align: center;width: 80vw;" />
-									<text>cm</text>
+										class="popupsdind-input" />
+									<text class="popupsdind-unit">cm</text>
 								</view>
-								<view
-									style="display: flex;flex-direction: row;background: #F7F7F7;margin-top: 20px; padding: 15px;border-radius: 10px;">
+								<view class="popupsdind_1" style="margin-top: 20px;">
 									<input type="number" v-model="tunwei" :placeholder="$t('请输入臀围')"
-										style="text-align: center;width: 80vw;" />
-									<text>cm</text>
+										class="popupsdind-input" />
+									<text class="popupsdind-unit">cm</text>
 								</view>
-								<view
-									style="display: flex;flex-direction: row;background: #F7F7F7;margin-top: 20px; padding: 15px;border-radius: 10px;">
+								<view class="popupsdind_1" style="margin-top: 20px;">
 									<input type="number" v-model="shangtunwei" :placeholder="$t('请输入上臂围')"
-										style="text-align: center;width: 80vw;" />
-									<text>cm</text>
+										class="popupsdind-input" />
+									<text class="popupsdind-unit">cm</text>
 								</view>
-								<view
-									style="display: flex;flex-direction: row;background: #F7F7F7;margin-top: 20px; padding: 15px;border-radius: 10px;">
+								<view class="popupsdind_1" style="margin-top: 20px;">
 									<input type="number" v-model="datuiwei" :placeholder="$t('请输入大腿围')"
-										style="text-align: center;width: 80vw;" />
-									<text>cm</text>
+										class="popupsdind-input" />
+									<text class="popupsdind-unit">cm</text>
 								</view>
-								<view
-									style="display: flex;flex-direction: row;background: #F7F7F7;margin-top: 20px; padding: 15px;border-radius: 10px;">
+								<view class="popupsdind_1" style="margin-top: 20px;">
 									<input type="number" v-model="xiaotuiwei" :placeholder="$t('请输入小腿围')"
-										style="text-align: center;width: 80vw;" />
-									<text>cm</text>
+										class="popupsdind-input" />
+									<text class="popupsdind-unit">cm</text>
 								</view>
-
 							</view>
-							<button @tap="popup_sd()"
-								style="margin: 40px 50px 20px 50px; border-radius: 30px;background: #3298F7;color: white;">{{$t('确认')}}</button>
+							<button @tap="popup_sd()" class="butonsd">{{$t('确认')}}</button>
 						</view>
 					</scroll-view>
 				</view>
@@ -552,43 +559,6 @@
 			</uni-popup>
 		</view>
 		<view>
-			<uni-popup ref="qs_popup" :mask-click="true">
-				<view style="border-radius: 20px;background:#fff; padding-bottom: 10px;align-items: center;">
-					<view style="display: flex;justify-content: center; padding: 10px;">
-						<picker fields="day" mode="date" @change="bindDateChange" :end='endtimesss'>
-							<view style="display: flex;flex-direction: row;">
-								<view style="font-size: 16px;color: black;">{{birthday}}</view>
-								<uni-icons type="bottom" size="18" style="margin-left: 5px;"></uni-icons>
-							</view>
-						</picker>
-					</view>
-					<view style="padding: 10px;width: 80vw;">
-						<view
-							style="margin:0 20px 0 20px; display: flex;flex-direction: row;background: #F7F7F7;padding: 15px;border-radius: 10px;">
-							<input type="number" v-model="shousuoya" :placeholder="$t('请输入收缩压')"
-								style="text-align: center;" />
-							<text style="margin-left: 5px;">{{Blood}}</text>
-						</view>
-						<view
-							style="margin:20px 20px 0 20px; display: flex;flex-direction: row;background: #F7F7F7;padding: 15px;border-radius: 10px;">
-							<input type="number" v-model="shuzhangya" :placeholder="$t('请输入舒张压')"
-								style="text-align: center;" />
-							<text style="margin-left: 5px;">{{Blood}}</text>
-						</view>
-						<view
-							style="margin:20px 20px 0 20px; display: flex;flex-direction: row;background: #F7F7F7;padding: 15px;border-radius: 10px;">
-							<input type="number" v-model="maibo" :placeholder="$t('请输入脉搏')"
-								style="text-align: center;" />
-							<text style="margin-left: 5px;">BPM</text>
-						</view>
-
-					</view>
-					<button @tap="truesss()"
-						style="margin: 20px 50px 20px 50px; border-radius: 30px;background: #3298F7;color: white;">{{$t("确认")}}</button>
-				</view>
-			</uni-popup>
-		</view>
-		<view>
 			<yt-dateTimePicker ref="myPicker" @submit="handleSubmit" :start-year="2000" :end-year="2099"
 				:time-init="datass" :time-hide="[true, true, true, true, true, false]"
 				:time-label="[$t('年'), $t('月'), $t('日'), $t('时'), $t('分'), $t('周')]" />
@@ -598,7 +568,6 @@
 				:time-init="datass" :time-hide="[true, true, true, true, true, false]"
 				:time-label="[$t('年'), $t('月'), $t('日'), $t('时'), $t('分'), $t('周')]" />
 		</view>
-
 	</view>
 </template>
 <script>
@@ -616,7 +585,6 @@
 	const year = now.getFullYear();
 	const month = (now.getMonth() + 1).toString().padStart(2, '0');
 	const day = now.getDate().toString().padStart(2, '0');
-
 	// 格式：yyyy/mm/dd
 	const dateSlash = `${year}/${month}/${day}`;
 	// 格式：yyyy/mm
@@ -654,6 +622,7 @@
 				datass: `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`,
 				showTotal_date: `${month}/${day}`,
 				fillOut: false,
+				tihziRulerReady: 0,
 				Blood: uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" : "kPa",
 				tizhong: "",
 				xiongwei: "",
@@ -798,8 +767,8 @@
 						splitNumber: 5,
 						gridType: "dash",
 						data: [{
-							min: 5,
-							max: 150,
+							min: 0,
+							max: 200,
 							position: "left",
 							fontSize: 10,
 							textAlign: "left",
@@ -838,7 +807,24 @@
 				writeuuid: '',
 				tendtimer: null,
 				slaveSn: '3',
+				bloodUnitIndex: 0,
+				weightUnitIndex: 0,
+				bpMinMaxRaw: null,
+				bpMonthAvgRaw: null,
+				weightDayRaw: null,
+				weightAvgRaw: null,
+				trendRawCache: null,
+				bpChartReshow: true,
+				weightChartReshow: true,
 			};
+		},
+
+		onLoad() {
+			uni.$on('UNIT_SETTINGS_CHANGED', this.syncUnitSettings);
+		},
+
+		onUnload() {
+			uni.$off('UNIT_SETTINGS_CHANGED', this.syncUnitSettings);
 		},
 
 		onNavigationBarButtonTap(e) {
@@ -854,7 +840,7 @@
 			uni.setNavigationBarTitle({
 				title: this.$t('趋势')
 			})
-			this.Blood = uni.getStorageSync("Blood") === 0 || uni.getStorageSync("Blood") === "" ? "mmHg" : "kPa"
+			this.syncUnitSettings()
 			switch (this.types_index) {
 				case 0:
 					this.slaveSn = "3"
@@ -875,7 +861,6 @@
 			}
 			isInChinaByIP().then(isInChina => {
 				const location = isInChina ? "境内" : "境外";
-				this.newweightKG = uni.getStorageSync("danwei2") === 1 ? this.$t("英镑") : this.$t("千克");
 				this.loact = location;
 				this.messs()
 				this.tendtimer = setInterval(res => {
@@ -888,7 +873,263 @@
 		},
 
 		methods: {
+
 			...mapMutations(['getInfo', 'setbanhua', 'setTenddeviceSn']),
+
+			normalizeUnitIndex(val) {
+				if (val === '' || val == null) return 0;
+				return Number(val) === 1 ? 1 : 0;
+			},
+			syncUnitSettings() {
+				this.bloodUnitIndex = this.normalizeUnitIndex(uni.getStorageSync('Blood'));
+				this.weightUnitIndex = this.normalizeUnitIndex(uni.getStorageSync('danwei2'));
+				this.Blood = this.bloodUnitIndex === 0 ? 'mmHg' : 'kPa';
+				this.newweightKG = this.weightUnitIndex === 1 ? this.$t('英镑') : this.$t('千克');
+				this.xeuyaopts = Object.assign({}, this.xeuyaopts, {
+					yAxis: Object.assign({}, this.xeuyaopts.yAxis, {
+						data: [Object.assign({}, this.xeuyaopts.yAxis.data[0], {
+							min: 0,
+							max: this.Blood === 'kPa' ? 50 : 200
+						})]
+					})
+				});
+				this.tizhonngopts = Object.assign({}, this.tizhonngopts, {
+					yAxis: Object.assign({}, this.tizhonngopts.yAxis, {
+						data: [Object.assign({}, this.tizhonngopts.yAxis.data[0], {
+							min: 0,
+							max: this.isKgWeightUnit() ? 200 : 400
+						})]
+					})
+				});
+				this.applyUnitDisplay();
+			},
+			formatBpValue(val) {
+				if (val == null || val === '') return '-';
+				if (this.Blood === 'mmHg') return val;
+				return (Number(val) * 0.133).toFixed(1);
+			},
+			formatBpChartValue(val) {
+				if (val == null || val === '') return null;
+				const display = this.formatBpValue(val);
+				if (display === '-' || display == null || display === '') return null;
+				const num = Number(display);
+				return Number.isFinite(num) ? num : null;
+			},
+			formatWeightChartValue(kg) {
+				if (kg == null || kg === '') return null;
+				const display = this.formatWeightValue(kg);
+				if (display == null || display === '' || display === '--') return null;
+				const num = Number(display);
+				return Number.isFinite(num) ? num : null;
+			},
+			isKgWeightUnit() {
+				return this.weightUnitIndex === 0;
+			},
+			formatWeightValue(kg) {
+				if (kg == null || kg === '' || kg === '--') return kg;
+				const value = Number(kg);
+				if (!Number.isFinite(value)) return kg;
+				if (this.isKgWeightUnit()) {
+					return Number(value.toFixed(1));
+				}
+				return WeightConverter.kgToLb(value, 1);
+			},
+			applyUnitDisplay() {
+				if (this.bpMinMaxRaw) this.applyBpMinMaxDisplay(this.bpMinMaxRaw);
+				if (this.bpMonthAvgRaw) this.applyBpMonthAvgDisplay(this.bpMonthAvgRaw);
+				if (this.weightDayRaw) this.applyWeightDayDisplay(this.weightDayRaw);
+				if (this.weightAvgRaw) this.applyWeightAvgDisplay(this.weightAvgRaw);
+				if (this.trendRawCache) this.renderTrendCharts(this.trendRawCache);
+			},
+			applyBpMinMaxDisplay(data) {
+				if (!data) return;
+				this.lately_Blood_pressure = this.bgaaa(data.last.lowPressure, data.last.highPressure);
+				this.lately_Systolic_blood_pressure = data.last.highPressure === null ? '-' :
+					this.formatBpValue(data.last.highPressure);
+				this.lately_Diastolic_blood_pressure = data.last.lowPressure === null ? '-' :
+					this.formatBpValue(data.last.lowPressure);
+				this.lately_pulse = data.last.heartrate === null ? '-' : data.last.heartrate;
+				this.average_Blood_pressure = this.bgaaa(data.avg.lowPressure, data.avg.highPressure);
+				this.average_Systolic_blood_pressure = this.formatBpValue(data.avg.highPressure);
+				this.average_Diastolic_blood_pressure = this.formatBpValue(data.avg.lowPressure);
+				this.average_pulse = data.avg.heartrate;
+				this.Maximum_Blood_pressure = this.bgaaa(data.max.lowPressure, data.max.highPressure);
+				this.Maximum_Systolic_blood_pressure = this.formatBpValue(data.max.highPressure);
+				this.Maximum_Diastolic_blood_pressure = this.formatBpValue(data.max.lowPressure);
+				this.Maximum_pulse = data.max.heartrate === null ? '-' : data.max.heartrate;
+				this.Minimum_Blood_pressure = this.bgaaa(data.min.lowPressure, data.min.highPressure);
+				this.Minimum_Systolic_blood_pressure = data.min.highPressure == null ? '-' :
+					this.formatBpValue(data.min.highPressure);
+				this.Minimum_Diastolic_blood_pressure = data.min.lowPressure == null ? '-' :
+					this.formatBpValue(data.min.lowPressure);
+				this.Minimum_pulse = data.min.heartrate == null ? '-' : data.min.heartrate;
+			},
+			applyBpMonthAvgDisplay(data) {
+				if (!data || !data.avg) return;
+				this.Systolic_blood_pressure = this.formatBpValue(data.avg.highPressure);
+				this.Diastolic_blood_pressure = this.formatBpValue(data.avg.lowPressure);
+			},
+			applyWeightDayDisplay(data) {
+				if (!data) return;
+				this.level_weight = data.level;
+				this.max_weight = this.formatWeightValue(data.max);
+				this.min_weight = this.formatWeightValue(data.min);
+				this.avg_weight = this.formatWeightValue(data.avg);
+			},
+			applyWeightAvgDisplay(data) {
+				if (!data) return;
+				this.Mean_value = this.formatWeightValue(data.avgWeight);
+				this.bmi = data.bmi;
+				this.weight_value = data.change;
+			},
+			mapToPlain(mapObj) {
+				const plain = {};
+				if (!mapObj || !mapObj.forEach) return plain;
+				mapObj.forEach((value, key) => {
+					plain[key] = value;
+				});
+				return plain;
+			},
+			plainToBpMap(plain) {
+				const map = new Map();
+				Object.keys(plain || {}).forEach((key) => {
+					map.set(key, plain[key]);
+				});
+				return map;
+			},
+			plainToWeightMap(plain) {
+				const map = new Map();
+				Object.keys(plain || {}).forEach((key) => {
+					map.set(key, plain[key]);
+				});
+				return map;
+			},
+			buildTrendCategories(dateList) {
+				const categories = [];
+				if (!dateList || !dateList.length) return categories;
+				if (this.WEEK) {
+					const startLabel = `${dateList[0].month}/${dateList[0].day}`;
+					const endLabel = `${dateList[dateList.length - 1].month}/${dateList[dateList.length - 1].day}`;
+					dateList.forEach((item, index) => {
+						if (index === 0) categories.push(startLabel);
+						else if (index === dateList.length - 1) categories.push(endLabel);
+						else categories.push('');
+					});
+					return categories;
+				}
+				if (this.MON) {
+					const startLabel = `${dateList[0].month}/${dateList[0].day}`;
+					const today = new Date();
+					const queryEndYear = dateList[dateList.length - 1].year;
+					const queryEndMonth = dateList[dateList.length - 1].month;
+					const queryEndDay = dateList[dateList.length - 1].day;
+					let endLabel;
+					if (queryEndYear === today.getFullYear() && queryEndMonth === (today.getMonth() + 1)) {
+						endLabel = `${today.getMonth() + 1}/${today.getDate()}`;
+					} else {
+						endLabel = `${queryEndMonth}/${queryEndDay}`;
+					}
+					dateList.forEach((item, index) => {
+						if (index === 0) categories.push(startLabel);
+						else if (index === dateList.length - 1) categories.push(endLabel);
+						else categories.push('');
+					});
+					return categories;
+				}
+				const startYear = dateList[0].year;
+				const startMonth = dateList[0].month.toString().padStart(2, '0');
+				const today = new Date();
+				const queryEndYear = dateList[dateList.length - 1].year;
+				const queryEndMonth = dateList[dateList.length - 1].month.toString().padStart(2, '0');
+				let endLabel;
+				if (queryEndYear === today.getFullYear() && queryEndYear === startYear) {
+					endLabel = `${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+				} else {
+					endLabel = `${queryEndMonth}`;
+				}
+				const startLabel = `${startYear}/${startMonth}`;
+				dateList.forEach((item, index) => {
+					if (index === 0) categories.push(startLabel);
+					else if (index === dateList.length - 1) categories.push(endLabel);
+					else categories.push('');
+				});
+				return categories;
+			},
+			updateTrendChartYAxis(highData, lowData, weightData) {
+				const bpMin = 0;
+				const bpMax = this.Blood === 'kPa' ? 50 : 200;
+				this.xeuyaopts = Object.assign({}, this.xeuyaopts, {
+					yAxis: Object.assign({}, this.xeuyaopts.yAxis, {
+						data: [Object.assign({}, this.xeuyaopts.yAxis.data[0], {
+							min: bpMin,
+							max: bpMax
+						})]
+					})
+				});
+				const weightMin = 0;
+				const weightMax = this.isKgWeightUnit() ? 200 : 400;
+				this.tizhonngopts = Object.assign({}, this.tizhonngopts, {
+					yAxis: Object.assign({}, this.tizhonngopts.yAxis, {
+						data: [Object.assign({}, this.tizhonngopts.yAxis.data[0], {
+							min: weightMin,
+							max: weightMax
+						})]
+					})
+				});
+			},
+			nudgeTrendCharts() {
+				this.bpChartReshow = false;
+				this.weightChartReshow = false;
+				this.$nextTick(() => {
+					this.bpChartReshow = true;
+					this.weightChartReshow = true;
+				});
+			},
+			renderTrendCharts(cache) {
+				if (!cache || !cache.dateList) return;
+				const dataMap = this.plainToBpMap(cache.dataMap);
+				const weightMap = this.plainToWeightMap(cache.weightMap);
+				const dateList = cache.dateList;
+				const categories = this.buildTrendCategories(dateList);
+				const highData = [];
+				const lowData = [];
+				const weightData = [];
+				dateList.forEach((item) => {
+					const dayData = dataMap.get(item.dateStr);
+					highData.push(dayData && dayData.high !== null ? this.formatBpChartValue(dayData.high) : null);
+					lowData.push(dayData && dayData.low !== null ? this.formatBpChartValue(dayData.low) : null);
+					const weightKg = weightMap.get(item.dateStr);
+					weightData.push(weightKg != null ? this.formatWeightChartValue(weightKg) : null);
+				});
+				this.chartData = {
+					categories: categories.slice(),
+					series: [{
+						legendShape: '#FC7F41',
+						name: this.$t('收缩压'),
+						data: highData.slice(),
+						connectNulls: true,
+						pointShape: 'circle',
+						showSymbol: true
+					}, {
+						legendShape: '#7AE545',
+						name: this.$t('舒张压'),
+						data: lowData.slice(),
+						connectNulls: true,
+						pointShape: 'circle',
+						showSymbol: true
+					}]
+				};
+				this.chartData2 = {
+					categories: categories.slice(),
+					series: [{
+						legendShape: '#3298F7',
+						name: this.$t('体重'),
+						data: weightData.slice()
+					}]
+				};
+				this.updateTrendChartYAxis(highData, lowData, weightData);
+				this.nudgeTrendCharts();
+			},
 			clearTimer() {
 				if (this.tendtimer) {
 					clearInterval(this.tendtimer);
@@ -908,21 +1149,12 @@
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code !== 200) return;
-					// if (this.loact === "境内") {
-					// 	if (!res.data.phonenumber && !res.data.email) {
-					// 		uni.navigateTo({
-					// 			url: '../../login/Force_binding_phone'
-					// 		});
-					// 		return;
-					// 	}
-					// } else if (this.loact === "境外") {
 					if (!res.data.email && !res.data.phonenumber) {
 						uni.reLaunch({
 							url: "/pages/login/true_register_email"
 						});
 						return;
 					}
-					// }
 					this.getInfo(res.data);
 					this.queryDevices();
 				});
@@ -949,7 +1181,28 @@
 
 			Body_circumference() {
 				this.fillOut = false
-				this.$refs.tihzi_popup_hd.open("center")
+				this.$nextTick(() => {
+					this.$refs.tihzi_popup_hd.open("center")
+				})
+			},
+
+			onTihziPopupHdChange(e) {
+				if (this._tihziRulerTimer) {
+					clearTimeout(this._tihziRulerTimer)
+					this._tihziRulerTimer = null
+				}
+				if (e.show) {
+					this.tihziRulerReady = 0
+					const mountNext = () => {
+						if (this.tihziRulerReady < 6) {
+							this.tihziRulerReady++
+							this._tihziRulerTimer = setTimeout(mountNext, 32)
+						}
+					}
+					this._tihziRulerTimer = setTimeout(mountNext, 40)
+				} else {
+					this.tihziRulerReady = 0
+				}
 			},
 
 			Keep() {
@@ -1059,39 +1312,36 @@
 				let timestamp = Math.floor(new Date(that.birthday2 == that.$t('今天') ?
 					`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}` :
 					that.birthday2).getTime() / 1000);
-				uni.request({
-					url: that.$url_APP_IP + that.$url_fat_scale,
-					method: 'POST',
-					data: {
-						deviceSn: uni.getStorageSync("deviceSn"),
-						slaveSn: "0",
-						slaveData: {
-							weight: that.tizhong
-						},
-						time: timestamp
+				let data = {
+					deviceSn: uni.getStorageSync("deviceSn"),
+					slaveSn: "0",
+					slaveData: {
+						weight: that.tizhong
 					},
-					header: {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json' //自定义请求头信息
-					},
-					success: function(res) {
-						if (res.data.code == 200) {
-							that.tizhong = ''
-							that.birthday2 = that.$t('今天')
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
-							that.$refs.tizhong_popup.close()
-							let str = localDate + ' 00:00:00'
-							let end = localDate + " 23:59:59"
-							that.query_weight_day(str, end)
-						} else {
-							uni.showToast({
-								title: res.data.msg,
-								icon: 'none'
-							})
-						}
+					time: timestamp
+				}
+				console.log("手动上报体重数据", data)
+				that.$post(that.$url_APP_IP + that.$url_fat_scale, data, {
+					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
+					'content-type': 'application/json'
+				}).then((res) => {
+					console.log("手动上报体重数据", res)
+					if (res.code === 200) {
+						that.tizhong = ''
+						that.birthday2 = that.$t('今天')
+						uni.showToast({
+							title: that.$t("成功"),
+							icon: 'none'
+						})
+						that.$refs.tizhong_popup.close()
+						let str = localDate + ' 00:00:00'
+						let end = localDate + " 23:59:59"
+						that.query_weight_day(str, end)
+					} else {
+						uni.showToast({
+							title: that.$t("失败"),
+							icon: 'none'
+						})
 					}
 				})
 			},
@@ -1265,24 +1515,21 @@
 						if (!res.rows || res.rows.length === 0) {
 							uni.getStorageInfo({
 								success(types_index) {
-									const typesIndex = types_index.keys.includes("types_index") ?
-										uni.getStorageSync("types_index") : 0;
+									const typesIndex = types_index.keys.includes("types_index") ? uni
+										.getStorageSync("types_index") : 0;
 									this.tendentypes = typesIndex === 0 || typesIndex === 1;
 									if (!types_index.keys.includes("types_index")) {
 										uni.setStorageSync("types_index", 0);
 									}
 								}
 							});
-
 							switch (this.types_index) {
 								case 0:
-									// this.slaveSn = "3"
 									this.get_trend_data(this.startTime, this.endTime)
 									this.query_month_avg(this.startTime, this.endTime)
 									this.query_minmax(this.startTime, this.endTime)
 									break
 								case 1:
-									// this.slaveSn = "2"
 									this.get_trend_data(this.startTime, this.endTime)
 									this.query_month_avg(this.startTime, this.endTime)
 									this.query_minmax(this.startTime, this.endTime)
@@ -1718,8 +1965,6 @@
 
 						// 计算时间跨度（天数）
 						let timeSpan = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1
-
-
 						// 3. 生成日期数组
 						let dateList = []
 						let currentDate = new Date(startDate)
@@ -1742,106 +1987,6 @@
 							currentDate.setDate(currentDate.getDate() + 1)
 						}
 
-						// 4. 填充数据
-						dateList.forEach((item, index) => {
-							let dayData = dataMap.get(item.dateStr)
-							this.chartData.series[0].data.push(dayData && dayData.high !== null ? dayData
-								.high : null)
-							this.chartData.series[1].data.push(dayData && dayData.low !== null ? dayData
-								.low : null)
-						})
-						// 5. 设置X轴标签
-						if (this.WEEK) {
-							// ========== 一周视图 ==========
-							let startLabel = `${dateList[0].month}/${dateList[0].day}`
-							let endLabel =
-								`${dateList[dateList.length - 1].month}/${dateList[dateList.length - 1].day}`
-
-							dateList.forEach((item, index) => {
-								if (index === 0) {
-									this.chartData.categories.push(startLabel)
-								} else if (index === dateList.length - 1) {
-									this.chartData.categories.push(endLabel)
-								} else {
-									this.chartData.categories.push('')
-								}
-							})
-						} else if (this.MON) {
-							// ========== 月视图（31天以内）==========
-							let startLabel = `${dateList[0].month}/${dateList[0].day}` // 2/1
-
-							// 获取今天日期
-							let today = new Date()
-							let todayYear = today.getFullYear()
-							let todayMonth = today.getMonth() + 1
-							let todayDay = today.getDate()
-
-							// 查询的结束日期
-							let queryEndYear = dateList[dateList.length - 1].year
-							let queryEndMonth = dateList[dateList.length - 1].month
-							let queryEndDay = dateList[dateList.length - 1].day
-
-							let endLabel
-
-							// 判断是否是当前月份
-							if (queryEndYear === todayYear && queryEndMonth === todayMonth) {
-								// 查询的是当前月，显示到今天
-								endLabel = `${todayMonth}/${todayDay}` // 2/28（或当前日期）
-							} else {
-								// 查询的是其他月，显示实际结束日期
-								endLabel = `${queryEndMonth}/${queryEndDay}` // 2/28
-							}
-
-							// 生成X轴标签
-							dateList.forEach((item, index) => {
-								if (index === 0) {
-									this.chartData.categories.push(startLabel) // 2/1
-								} else if (index === dateList.length - 1) {
-									this.chartData.categories.push(endLabel) // 2/28
-								} else {
-									this.chartData.categories.push('')
-								}
-							})
-						} else {
-							// ========== 年度视图 ==========
-							let startYear = dateList[0].year
-							let startMonth = dateList[0].month.toString().padStart(2, '0')
-
-							// 获取今天日期
-							let today = new Date()
-							let todayYear = today.getFullYear()
-							let todayMonth = (today.getMonth() + 1).toString().padStart(2, '0')
-
-							// 查询的结束日期
-							let queryEndYear = dateList[dateList.length - 1].year
-							let queryEndMonth = dateList[dateList.length - 1].month.toString().padStart(2, '0')
-
-							let endLabel
-
-							// 如果查询的是今年，且结束日期大于今天，则显示到当前月份
-							if (queryEndYear === todayYear && queryEndYear === startYear) {
-								// 查询的是今年全年，显示到当前月份
-								endLabel = `${todayMonth}`
-							} else {
-								// 查询的是往年，显示实际结束月份
-								endLabel = `${queryEndMonth}`
-							}
-
-							let startLabel = `${startYear}/${startMonth}`
-
-							// 生成X轴标签
-							dateList.forEach((item, index) => {
-								if (index === 0) {
-									this.chartData.categories.push(startLabel) // 2026/01
-								} else if (index === dateList.length - 1) {
-									this.chartData.categories.push(endLabel) // 2026/03（当前月份）
-								} else {
-									this.chartData.categories.push('')
-								}
-							})
-						}
-
-						// ========== 处理体重数据（同样的逻辑）==========
 						let weightMap = new Map()
 						if (res.data.weight && res.data.weight.length > 0) {
 							res.data.weight.forEach(item => {
@@ -1850,88 +1995,15 @@
 							})
 						}
 
-						dateList.forEach((item, index) => {
-							let weightValue = weightMap.get(item.dateStr) || null
-							this.chartData2.series[0].data.push(weightValue)
-						})
-
-						// 体重X轴标签
-						if (this.WEEK) {
-							let startLabel = `${dateList[0].month}/${dateList[0].day}`
-							let endLabel =
-								`${dateList[dateList.length - 1].month}/${dateList[dateList.length - 1].day}`
-							dateList.forEach((item, index) => {
-								if (index === 0) {
-									this.chartData2.categories.push(startLabel)
-								} else if (index === dateList.length - 1) {
-									this.chartData2.categories.push(endLabel)
-								} else {
-									this.chartData2.categories.push('')
-								}
-							})
-						} else if (this.MON) {
-							// ========== 月视图（31天以内）==========
-							let startLabel = `${dateList[0].month}/${dateList[0].day}` // 2/1
-							// 获取今天日期
-							let today = new Date()
-							let todayYear = today.getFullYear()
-							let todayMonth = today.getMonth() + 1
-							let todayDay = today.getDate()
-							// 查询的结束日期
-							let queryEndYear = dateList[dateList.length - 1].year
-							let queryEndMonth = dateList[dateList.length - 1].month
-							let queryEndDay = dateList[dateList.length - 1].day
-							let endLabel
-							// 判断是否是当前月份
-							if (queryEndYear === todayYear && queryEndMonth === todayMonth) {
-								// 查询的是当前月，显示到今天
-								endLabel = `${todayMonth}/${todayDay}` // 2/28（或当前日期）
-							} else {
-								// 查询的是其他月，显示实际结束日期
-								endLabel = `${queryEndMonth}/${queryEndDay}` // 2/28
-							}
-							// 生成X轴标签
-							dateList.forEach((item, index) => {
-								if (index === 0) {
-									this.chartData2.categories.push(startLabel) // 2/1
-								} else if (index === dateList.length - 1) {
-									this.chartData2.categories.push(endLabel) // 2/28
-								} else {
-									this.chartData2.categories.push('')
-								}
-							})
-
-						} else {
-							let startYear = dateList[0].year
-							let startMonth = dateList[0].month.toString()
-
-							let today = new Date()
-							let todayYear = today.getFullYear()
-							let todayMonth = (today.getMonth() + 1).toString()
-
-							let queryEndYear = dateList[dateList.length - 1].year
-							let queryEndMonth = dateList[dateList.length - 1].month.toString()
-
-							let endLabel
-							if (queryEndYear === todayYear && queryEndYear === startYear) {
-								endLabel = `${todayYear}/${todayMonth}`
-							} else {
-								endLabel = `${queryEndYear}/${queryEndMonth}`
-							}
-
-							let startLabel = `${startYear}/${startMonth}`
-
-							dateList.forEach((item, index) => {
-								if (index === 0) {
-									this.chartData2.categories.push(startLabel)
-								} else if (index === dateList.length - 1) {
-									this.chartData2.categories.push(endLabel)
-								} else {
-									this.chartData2.categories.push('')
-								}
-							})
-						}
+						// 4. 缓存原始数据并按当前单位渲染
+						this.trendRawCache = {
+							dataMap: this.mapToPlain(dataMap),
+							weightMap: this.mapToPlain(weightMap),
+							dateList: dateList.slice()
+						};
+						this.renderTrendCharts(this.trendRawCache);
 					} else if (res.code == 500) {
+						this.trendRawCache = null
 						this.setDefaultData()
 						return
 					} else {
@@ -1939,20 +2011,42 @@
 							title: res.msg,
 							icon: 'none'
 						})
+						this.trendRawCache = null
 						this.setDefaultData()
 						return
 					}
-
-					this.$nextTick(() => this.$forceUpdate())
 				})
 			},
 
 			setDefaultData() {
-				this.chartData.categories = ["0"]
-				this.chartData.series[0].data = [null]
-				this.chartData.series[1].data = [null]
-				this.chartData2.categories = ["0"]
-				this.chartData2.series[0].data = [null]
+				this.trendRawCache = null
+				this.chartData = {
+					categories: ['0'],
+					series: [{
+						legendShape: '#FC7F41',
+						name: this.$t('收缩压'),
+						data: [null],
+						connectNulls: true,
+						pointShape: 'circle',
+						showSymbol: true
+					}, {
+						legendShape: '#7AE545',
+						name: this.$t('舒张压'),
+						data: [null],
+						connectNulls: true,
+						pointShape: 'circle',
+						showSymbol: true
+					}]
+				}
+				this.chartData2 = {
+					categories: ['0'],
+					series: [{
+						legendShape: '#3298F7',
+						name: this.$t('体重'),
+						data: [null]
+					}]
+				}
+				this.nudgeTrendCharts()
 			},
 
 
@@ -1975,17 +2069,10 @@
 				}).then(res => {
 					// console.log("【血压计统计每日平均值计算总最大最小值res】", res)
 					if (res.code == 200) {
-						// this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.high.min + "-" + res.data
-						// 	.high.max : (Number(res.data.high.min) * 0.133).toFixed(1) + "-" + (Number(res.data
-						// 		.high.max) * 0.133).toFixed(1)
-						// this.Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.low.min + "-" + res.data
-						// 	.low.max : (Number(res.data.low.min) * 0.133).toFixed(1) + "-" + (Number(res.data.low
-						// 		.max) * 0.133).toFixed(1)
-						this.Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.highPressure : (Number(
-							res.data.avg.highPressure) * 0.133).toFixed(1)
-						this.Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.lowPressure : (Number(
-							res.data.avg.lowPressure) * 0.133).toFixed(1)
+						this.bpMonthAvgRaw = res.data
+						this.applyBpMonthAvgDisplay(res.data)
 					} else if (res.code == 500) {
+						this.bpMonthAvgRaw = null
 						this.Systolic_blood_pressure = "--"
 						this.Diastolic_blood_pressure = "--"
 						return
@@ -2014,45 +2101,10 @@
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code == 200) {
-						//最近
-						this.lately_Blood_pressure = this.bgaaa(res.data.last.lowPressure, res.data.last
-							.highPressure)
-						this.lately_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.last
-							.highPressure === null ? "-" : res.data.last.highPressure : (Number(res.data.last
-								.highPressure) * 0.133).toFixed(1)
-						this.lately_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.last
-							.lowPressure === null ? "-" : res.data
-							.last.lowPressure : (Number(res.data.last.lowPressure) * 0.133).toFixed(1)
-						this.lately_pulse = res.data.last.heartrate === null ? "-" : res.data.last.heartrate
-						//平均
-						this.average_Blood_pressure = this.bgaaa(res.data.avg.lowPressure, res.data.avg
-							.highPressure)
-						this.average_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.highPressure :
-							(Number(res.data.avg.highPressure) * 0.133).toFixed(1)
-						this.average_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.avg.lowPressure :
-							(Number(res.data.avg.lowPressure) * 0.133).toFixed(1)
-						this.average_pulse = res.data.avg.heartrate
-						//最高
-						this.Maximum_Blood_pressure = this.bgaaa(res.data.max.lowPressure, res.data.max
-							.highPressure)
-						this.Maximum_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.max.highPressure :
-							(Number(res.data.max.highPressure) * 0.133).toFixed(1)
-						this.Maximum_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.max.lowPressure :
-							(Number(res.data.max.lowPressure) * 0.133).toFixed(1)
-						this.Maximum_pulse = res.data.max.heartrate === null ? '-' : res.data.max.heartrate
-						//最低
-						this.Minimum_Blood_pressure = this.bgaaa(res.data.min.lowPressure, res.data.min
-							.highPressure)
-						this.Minimum_Systolic_blood_pressure = this.Blood === "mmHg" ? res.data.min.highPressure ==
-							null ? "-" : res.data
-							.min.highPressure :
-							(Number(res.data.min.highPressure) * 0.133).toFixed(1)
-						this.Minimum_Diastolic_blood_pressure = this.Blood === "mmHg" ? res.data.min.lowPressure ==
-							null ? "-" : res.data
-							.min.lowPressure :
-							(Number(res.data.min.lowPressure) * 0.133).toFixed(1)
-						this.Minimum_pulse = res.data.min.heartrate == null ? "-" : res.data.min.heartrate
+						this.bpMinMaxRaw = res.data
+						this.applyBpMinMaxDisplay(res.data)
 					} else if (res.code == 500) {
+						this.bpMinMaxRaw = null
 						//最近
 						this.lately_Blood_pressure = "--"
 						this.lately_Systolic_blood_pressure = "--"
@@ -2084,7 +2136,6 @@
 			//体脂秤统计最近1周/月平均体重、bmi、变化速度
 			query_weight_avg(startTime, endTime) {
 				let data = {
-					// deviceSn: this.TenddeviceSn,
 					deviceSn: uni.getStorageSync("userid"),
 					startTime: startTime,
 					endTime: endTime,
@@ -2094,10 +2145,10 @@
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code == 200) {
-						this.Mean_value = res.data.avgWeight
-						this.bmi = res.data.bmi
-						this.weight_value = res.data.change
+						this.weightAvgRaw = res.data
+						this.applyWeightAvgDisplay(res.data)
 					} else if (res.code == 500) {
+						this.weightAvgRaw = null
 						this.Mean_value = "--"
 						this.bmi = "--"
 						this.weight_value = "--"
@@ -2112,7 +2163,6 @@
 			//体脂秤计算当天最高/最低/平均体重和肥胖等级
 			query_weight_day(startTime, endTime) {
 				let data = {
-					// deviceSn: this.TenddeviceSn,
 					deviceSn: uni.getStorageSync("userid"),
 					startTime: startTime,
 					endTime: endTime,
@@ -2122,17 +2172,10 @@
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
 					if (res.code == 200) {
-						this.level_weight = res.data.level
-						this.max_weight = (this.newweightKG === "KG" || this.newweightKG === "千克") ? res.data.max :
-							WeightConverter.kgToLb(res
-								.data.max)
-						this.min_weight = (this.newweightKG === "KG" || this.newweightKG === "千克") ? res.data.min :
-							WeightConverter.kgToLb(res
-								.data.min)
-						this.avg_weight = (this.newweightKG === "KG" || this.newweightKG === "千克") ? res.data.avg :
-							WeightConverter.kgToLb(res
-								.data.avg)
+						this.weightDayRaw = res.data
+						this.applyWeightDayDisplay(res.data)
 					} else if (res.code == 500) {
+						this.weightDayRaw = null
 						this.level_weight = "--"
 						this.max_weight = "--"
 						this.min_weight = "--"
@@ -2163,71 +2206,6 @@
 					formattedTime = `${month}`;
 				}
 				return formattedTime;
-			},
-			//弹窗数据提交按钮
-			truesss() {
-				let that = this;
-				const validateInput = (value, message) => {
-					if (!value) {
-						uni.showToast({
-							title: that.$t(message),
-							icon: "none"
-						});
-						return false;
-					}
-					return true;
-				};
-				if (
-					!validateInput(that.shuzhangya, '请输入收缩压') ||
-					!validateInput(that.shousuoya, '请输入舒张压') ||
-					!validateInput(that.maibo, '请输入脉搏')
-				) {
-					return;
-				}
-				that.pressure_data();
-			},
-			//用户在app手动上报血压数据
-			pressure_data() {
-				const now = new Date();
-				const timestamp = Math.floor(new Date(
-					this.birthday == this.$t('今天') ?
-					`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}` :
-					`${this.birthday} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`
-				).getTime() / 1000);
-				const data = {
-					deviceSn: this.TenddeviceSn,
-					slaveSn: "0",
-					slaveData: {
-						lowPressure: this.shuzhangya,
-						highPressure: this.shousuoya,
-						heartrate: this.maibo
-					},
-					time: timestamp
-				}
-				this.$post(this.$url_APP_IP + this.$url_pressure_data, data, {
-					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-					'content-type': 'application/json;charset=UTF-8'
-				}).then(res => {
-					if (res.code == 200) {
-						this.$refs.qs_popup.close()
-						this.birthday = this.$t('今天')
-						this.shousuoya = ''
-						this.shuzhangya = ''
-						this.maibo = ''
-						uni.showToast({
-							title: res.msg,
-							icon: 'none'
-						})
-						this.query_minmax(this.startTime, this.endTime)
-					} else if (res.code == 500) {
-						return
-					} else {
-						uni.showToast({
-							title: res.msg,
-							icon: 'none'
-						})
-					}
-				})
 			},
 			bg(bg) {
 				const bloodPressureColors = {
@@ -2404,20 +2382,13 @@
 			},
 			//悬浮框点击按钮
 			fabClick() {
-				if (this.types == true) {
-					this.$refs.qs_popup.open("center")
-				} else {
-					this.fillOut = true
-				}
+				this.fillOut = true
 			},
 			BMI_tap() {
 				this.$refs.popup.open("center")
 			},
 			BMI_tap2() {
 				this.$refs.popup1.open("center")
-			},
-			closess() {
-				this.$refs.qs_popup.close()
 			},
 		}
 	};
@@ -2649,14 +2620,96 @@
 		margin-top: 60px;
 		padding-bottom: 10px;
 		align-items: center;
+		width: 85vw;
+		box-sizing: border-box;
+	}
+
+	.popupsdind-header {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 15px;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.popupsdind-header-side {
+		min-width: 72px;
+		height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		flex-shrink: 0;
+	}
+
+	.popupsdind-header-side:last-child {
+		justify-content: flex-end;
+	}
+
+	.popupsdind-header-center {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 0;
+	}
+
+	.popupsdind-close {
+		font-size: 22px;
+		line-height: 22px;
+		color: #333;
+	}
+
+	.popupsdind-link {
+		color: #3298F7;
+		font-size: 14px;
+		white-space: nowrap;
+	}
+
+	.popupsdind-date {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.popupsdind-date-text {
+		font-size: 16px;
+		color: #000;
+		line-height: 22px;
+		margin-right: 4px;
+	}
+
+	.popupsdind-body {
+		padding: 20px;
+		width: 100%;
+		box-sizing: border-box;
 	}
 
 	.popupsdind_1 {
 		display: flex;
 		flex-direction: row;
+		align-items: center;
 		background: #F7F7F7;
-		padding: 15px;
+		padding: 15px 20px;
 		border-radius: 10px;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.popupsdind-input {
+		flex: 1;
+		min-width: 0;
+		width: 0;
+		text-align: center;
+	}
+
+	.popupsdind-unit {
+		flex-shrink: 0;
+		margin-left: 12px;
+		min-width: 36px;
+		text-align: right;
+		white-space: nowrap;
 	}
 
 	.butonsd {
@@ -2665,8 +2718,6 @@
 		background: #3298F7;
 		color: white;
 	}
-
-
 
 	.icon_item_bg_1 {
 		flex: 1;
@@ -2788,6 +2839,16 @@
 	}
 
 	.showTotal {
+		.over {
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(180deg, #dceefc 0%, #eef6fc 45%, #f4f7fb 100%);
+			position: fixed;
+			top: 0;
+			left: 0;
+			z-index: 999;
+		}
+
 		.show {
 			width: 100vw;
 			height: 100vh;
@@ -2796,22 +2857,122 @@
 			right: 0;
 			top: 0;
 			bottom: 0;
-			padding-top: 120px;
-			padding-left: 10px;
+			padding: 120px 32px 0;
 			margin: auto;
 			z-index: 10000;
+			display: flex;
+			flex-direction: column;
+			align-items: stretch;
+			justify-content: flex-start;
+			box-sizing: border-box;
 		}
 
-
-		.over {
+		.showTotal-header {
+			text-align: left;
 			width: 100%;
-			height: 100%;
-			background-color: #FFFFFF;
-			opacity: 0.9;
-			position: fixed;
-			top: 0;
-			left: 0;
-			z-index: 999;
+		}
+
+		.showTotal-date {
+			color: #1a1a1a;
+			font-size: 52px;
+			font-weight: 700;
+			letter-spacing: 1px;
+			line-height: 1.2;
+		}
+
+		.showTotal-tip-row {
+			display: flex;
+			flex-direction: row;
+			align-items: stretch;
+			margin-top: 20px;
+			width: 100%;
+		}
+
+		.showTotal-divider {
+			width: 3px;
+			flex-shrink: 0;
+			margin-right: 14px;
+			border-radius: 2px;
+			background: linear-gradient(180deg, #2595D3, #3298F7);
+		}
+
+		.showTotal-tip {
+			flex: 1;
+			color: #2595D3;
+			font-size: 15px;
+			line-height: 1.6;
+		}
+
+		.showTotal-actions {
+			display: flex;
+			flex-direction: row;
+			justify-content: flex-start;
+			margin-top: 32px;
+			width: 100%;
+		}
+
+		.showTotal-action-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			padding: 24px 28px;
+			border-radius: 20px;
+			background: #f8fbff;
+			box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		}
+
+		.showTotal-action-item+.showTotal-action-item {
+			margin-left: 32px;
+		}
+
+		.showTotal-action-item:active {
+			opacity: 0.85;
+			transform: scale(0.97);
+		}
+
+		.showTotal-action-icon {
+			width: 68px;
+			height: 68px;
+			border-radius: 50%;
+			background: linear-gradient(145deg, #eef6fc 0%, #ffffff 100%);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-shadow: 0 4px 12px rgba(37, 149, 211, 0.12);
+		}
+
+		.showTotal-icon-img {
+			width: 46px;
+			height: 46px;
+			border-radius: 50%;
+			object-fit: contain;
+		}
+
+		.showTotal-action-label {
+			margin-top: 12px;
+			font-weight: 600;
+			font-size: 14px;
+			text-align: center;
+			color: #333333;
+			width: 80px;
+		}
+
+		.showTotal-close {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			align-self: center;
+			margin-top: auto;
+			margin-bottom: 80px;
+			width: 52px;
+			height: 52px;
+			border-radius: 50%;
+			background: #ffffff;
+			box-shadow: 0 2px 10px rgba(50, 152, 247, 0.18);
+		}
+
+		.showTotal-close:active {
+			background: #e8f0fe;
 		}
 	}
 

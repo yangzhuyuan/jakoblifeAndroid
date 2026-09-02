@@ -1,101 +1,144 @@
 <template>
-	<view style="padding: 20px 20px 500px 20px; background: #F7F7F7; color: black;height: 100vh;background: #EFEFF4;">
-		<view class="app-manage-tips">
-			<view style="display: flex;align-items: center; flex-direction: column; margin-top: 15px;">
-				<image src="../../../static/icons/96x96.png" mode="aspectFit"
-					style="width: 80px; height: 80px;border: 1px gainsboro solid;object-fit: contain;border-radius: 10px;">
-				</image>
-				<text style="margin-top: 20px;font-size: 18px; font-weight: bold;">JakobLife</text>
-				<text style="margin-top: 10px;font-size: 12px; color: gray;">{{version}}</text>
-				<text style="font-size: 12px; color: gray;" @click="beiandianji()">{{Record_number}}</text>
-				<text v-if="$url_APP_IP==='https://jakoblife-qa.jakob-techs.com'"
-					style="font-size: 12px; color: gray;">{{$t("测试服")}}</text>
-			</view>
-			<view v-if="showAppManageTips">
-				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
-				<view class="watch-upgrade-permission-tip">{{ $t('手表升级权限操作注意') }}</view>
-				<view class="app-link-row" @click="openExamplePopup">
-					<text class="link-icon-anim icon-point">👉</text>
-					<text class="app-setting-link-text">{{$t('查看操作示例图')}}</text>
-				</view>
-				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
-				<view class="tip-text">{{$t('定时测量方案一')}}：{{ manualGuideText }}</view>
-				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
-				<view class="tip-text">{{$t('定时测量方案二')}}：{{ afterJumpGuideText }}</view>
-				<view class="app-link-list">
-					<view class="app-link-row" @click="openAppAuthorizeSetting">
-						<text class="link-icon-anim icon-gear">⚙️</text>
-						<text class="app-setting-link-text">{{$t('去设置')}}</text>
+	<view class="page">
+		<view class="page-content">
+			<view class="app-info-card">
+				<view class="app-info-main">
+					<view class="app-avatar-wrap">
+						<image class="app-avatar" src="/static/image/app_icon_all.jpg" mode="aspectFit" />
+					</view>
+					<view class="app-info-text">
+						<text class="app-name">JakobLife</text>
+						<text class="app-version">{{ version }}</text>
+						<view class="status-badge" :class="{ 'status-badge-update': hasNewVersion }">
+							<view class="status-badge-icon">
+								<uni-icons v-if="!hasNewVersion" type="checkmarkempty" size="12" color="#2E9E4F" />
+								<uni-icons v-else type="info" size="12" color="#E53935" />
+							</view>
+							<text class="status-badge-text"
+								:class="{ 'status-badge-text-update': hasNewVersion }">{{ versionBadgeText }}</text>
+						</view>
+						<text v-if="$url_APP_IP==='https://jakoblife-qa.jakob-techs.com'"
+							class="test-server-tag">{{ $t('测试服') }}</text>
 					</view>
 				</view>
-				<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
 			</view>
-		</view>
-		<uni-popup ref="examplePopup" type="center" :mask-click="true">
-			<view class="example-popup">
-				<view class="example-popup-title">{{$t('定时测量操作示例')}}</view>
-				<scroll-view scroll-y class="example-scroll">
-					<view v-for="(group, groupIndex) in exampleGroups" :key="groupIndex" class="example-group">
-						<view class="example-group-title">{{$t(group.titleKey)}}</view>
-						<view v-for="(item, stepIndex) in group.steps" :key="stepIndex" class="example-item">
-							<image class="example-img" :src="item.src" mode="widthFix"
-								@click="previewExampleImage(groupIndex, stepIndex)" />
-							<view class="example-caption">{{$t(item.captionKey)}}</view>
+			<view v-if="showAppManageTips" class="app-info-card">
+				<view class="app-manage-tips">
+					<view class="tips-divider"></view>
+					<view class="watch-upgrade-permission-tip">{{ $t('手表升级权限操作注意') }}</view>
+					<view class="app-link-row" @click="openExamplePopup">
+						<text class="link-icon-anim icon-point">👉</text>
+						<text class="app-setting-link-text">{{ $t('查看操作示例图') }}</text>
+					</view>
+					<view class="tips-divider"></view>
+					<view class="tip-text">{{ $t('定时测量方案一') }}：{{ manualGuideText }}</view>
+					<view class="tips-divider"></view>
+					<view class="tip-text">{{ $t('定时测量方案二') }}：{{ afterJumpGuideText }}</view>
+					<view class="app-link-list">
+						<view class="app-link-row" @click="openAppAuthorizeSetting">
+							<text class="link-icon-anim icon-gear">⚙️</text>
+							<text class="app-setting-link-text">{{ $t('去设置') }}</text>
 						</view>
 					</view>
-				</scroll-view>
-				<button class="example-close-btn" @click="closeExamplePopup">{{$t('知道了')}}</button>
+					<view class="tips-divider"></view>
+				</view>
 			</view>
-		</uni-popup>
-		<view class="bg">
-			<!-- 保留原有导航项 -->
-			<view class="bt_BG" @click="Text_content9()">
-				<view class="text">{{$t('软件更新')}}</view>
-				<view style="width: 10%; display: flex;flex-direction: row; align-items: center;">
-					<uni-icons type="right" size="16"></uni-icons>
+			<view class="section">
+				<text class="section-title">{{ isZhLocale ? '更新' : 'Updates' }}</text>
+				<view class="card">
+					<view class="menu-row" @click="Text_content9()">
+						<view class="menu-icon-box menu-icon-blue">
+							<uni-icons type="cloud-download" size="20" color="#FFFFFF" />
+						</view>
+						<view class="menu-text">
+							<text class="menu-title">{{ $t('软件更新') }}</text>
+							<text
+								class="menu-desc">{{ isZhLocale ? '检查最新 APP 版本' : 'Check for the latest app version' }}</text>
+						</view>
+						<uni-icons type="right" size="16" color="#C5CED9" />
+					</view>
+					<view class="menu-divider"></view>
+					<view class="menu-row" @click="watcahupdate()">
+						<view class="menu-icon-box menu-icon-blue">
+							<uni-icons type="gear" size="20" color="#FFFFFF" />
+						</view>
+						<view class="menu-text">
+							<text class="menu-title">{{ $t('手表升级') }}</text>
+							<text
+								class="menu-desc">{{ isZhLocale ? '检查并更新手表固件' : 'Check and update watch firmware' }}</text>
+						</view>
+						<uni-icons type="right" size="16" color="#C5CED9" />
+					</view>
+					<view class="menu-divider"></view>
+					<view class="menu-row" @click="Text_content4()">
+						<view class="menu-icon-box menu-icon-blue">
+							<uni-icons type="list" size="20" color="#FFFFFF" />
+						</view>
+						<view class="menu-text">
+							<text class="menu-title">{{ $t('APP历史版本') }}</text>
+							<text class="menu-desc">{{ isZhLocale ? '查看版本更新说明' : 'View release notes' }}</text>
+						</view>
+						<uni-icons type="right" size="16" color="#C5CED9" />
+					</view>
 				</view>
 			</view>
 
-			<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
-			<view class="bt_BG" @click="watcahupdate()">
-				<view class="text">{{$t('手表升级')}}</view>
-				<view style="width: 10%; display: flex;flex-direction: row; align-items: center;">
-					<uni-icons type="right" size="16"></uni-icons>
-				</view>
-			</view>
-			<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
-			<view class="bt_BG" @click="Text_content4()">
-				<view class="text">{{$t('APP历史版本')}}</view>
-				<view style="width: 10%; display: flex;flex-direction: row; align-items: center;">
-					<uni-icons type="right" size="16"></uni-icons>
-				</view>
-			</view>
-		</view>
-		<view class="bg">
-			<view class="bt_BG" @click="Text_content2()">
-				<view class="text">{{$t('JakobLife软件移动客户端用户使用规范1')}}</view>
-				<view style="width: 10%; display: flex;flex-direction: row; align-items: center;">
-					<uni-icons type="right" size="16"></uni-icons>
-				</view>
-			</view>
-			<view style="background: gainsboro; width: 90%; height: 1px; margin: 10px 15px 0 15px;"></view>
-			<view class="bt_BG" @click="Text_content3()">
-				<view class="text">{{$t('JakobLife隐私政策1')}}</view>
-				<view style="width: 10%; display: flex;flex-direction: row; align-items: center;">
-					<uni-icons type="right" size="16"></uni-icons>
+			<view class="section">
+				<text class="section-title">{{ isZhLocale ? '法律信息' : 'Legal' }}</text>
+				<view class="card">
+					<view class="menu-row menu-row-compact" @click="Text_content2()">
+						<view class="menu-icon-box menu-icon-blue">
+							<uni-icons type="person" size="20" color="#FFFFFF" />
+						</view>
+						<view class="menu-text">
+							<text class="menu-title">{{ $t('JakobLife软件移动客户端用户使用规范1') }}</text>
+						</view>
+						<uni-icons type="right" size="16" color="#C5CED9" />
+					</view>
+					<view class="menu-divider"></view>
+					<view class="menu-row menu-row-compact" @click="Text_content3()">
+						<view class="menu-icon-box menu-icon-blue">
+							<uni-icons type="locked" size="20" color="#FFFFFF" />
+						</view>
+						<view class="menu-text">
+							<text class="menu-title">{{ $t('JakobLife隐私政策1') }}</text>
+						</view>
+						<uni-icons type="right" size="16" color="#C5CED9" />
+					</view>
 				</view>
 			</view>
 		</view>
+		<view class="page-footer">
+			<text class="footer-icp" @click="beiandianji()">{{ Record_number }}</text>
+			<text
+				class="footer-copy">{{ isZhLocale ? '© 2026 Jakoblife。保留所有权利。' : '© 2026 Jakoblife. All rights reserved.' }}</text>
+		</view>
+		<uni-popup ref="examplePopup" type="center" :mask-click="true">
+			<view class="example-popup">
+				<view class="example-popup-title">{{ $t('定时测量操作示例') }}</view>
+				<scroll-view scroll-y class="example-scroll">
+					<view v-for="(group, groupIndex) in exampleGroups" :key="groupIndex" class="example-group">
+						<view class="example-group-title">{{ $t(group.titleKey) }}</view>
+						<view v-for="(item, stepIndex) in group.steps" :key="stepIndex" class="example-item">
+							<image class="example-img" :src="item.src" mode="widthFix"
+								@click="previewExampleImage(groupIndex, stepIndex)" />
+							<view class="example-caption">{{ $t(item.captionKey) }}</view>
+						</view>
+					</view>
+				</scroll-view>
+				<button class="example-close-btn" @click="closeExamplePopup">{{ $t('知道了') }}</button>
+			</view>
+		</uni-popup>
 		<view>
 			<uni-popup ref="watchdown_popup" :mask-click="false">
 				<view class="progress_all" v-if="percent>=0&&percent!==100">
-					<view style="color: red;">1.{{$t("手表更新提示")}}</view>
-					<view style="color: green;">2.{{$t("手表更新提示1")}}</view>
+					<view class="progress-warn">1.{{$t("手表更新提示")}}</view>
+					<view class="progress-ok">2.{{$t("手表更新提示1")}}</view>
 					<view class="progress">
 						<view>{{$t("总进度")}}{{percent}}%</view>
 					</view>
 					<view class="progress">
-						<progress :percent="percent" stroke-width="10" :show-info="false" activeColor="#10AEFF"
+						<progress :percent="percent" stroke-width="10" :show-info="false" activeColor="#3298F7"
 							style="width: 100%;" />
 					</view>
 				</view>
@@ -103,17 +146,15 @@
 		</view>
 		<!-- 下载进度弹窗 -->
 		<uni-popup ref="down_popup" :mask-click="false">
-			<view style="width: 80vw; background:#fff; padding: 20px; border-radius: 10px; align-items: center;">
-				<view style="text-align: center; font-weight: bold; margin-bottom: 15px;">{{$t("正在下载更新")}}</view>
-				<progress :percent="progress" show-info activeColor="#10AEFF" stroke-width="3" />
-				<view
-					style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #666;">
+			<view class="download-popup">
+				<view class="download-title">{{$t("正在下载更新")}}</view>
+				<progress :percent="progress" show-info activeColor="#3298F7" stroke-width="3" />
+				<view class="download-meta">
 					<view>{{$t('已下载')}}: {{formattedDownloaded}}</view>
 					<view>{{$t('总大小')}}: {{formattedTotalSize}}</view>
 				</view>
-				<view style="display: flex; justify-content: center; margin-top: 20px;">
-					<button @click="cancelDownload"
-						style="background: #10AEFF; color: white; width: 40%;">{{$t('取消下载')}}</button>
+				<view class="download-actions">
+					<button class="download-cancel" @click="cancelDownload">{{$t('取消下载')}}</button>
 				</view>
 			</view>
 		</uni-popup>
@@ -167,6 +208,7 @@
 		data() {
 			return {
 				version: this.$t('当前版本') + systemInfo.appVersion,
+				hasNewVersion: false,
 				Record_number: this.$t('备案号'),
 				manufacturerType: detectQxManufacturerType(),
 				progress: 0, // 进度百分比
@@ -271,7 +313,6 @@
 		//返回按钮
 		onBackPress() {
 			let that = this
-			console.log(that.otaState)
 			if (that.otaState === "GETTING_INFO" || that.otaState === "UPGRADING") {
 				return true
 			} else {
@@ -327,14 +368,12 @@
 			}, 1000)
 		},
 		beforeDestroy() {
-			console.log("beforeDestroy")
 			if (this.otaState === "GETTING_INFO" || this.otaState === "UPGRADING") {
 				this.disconnect();
 				this.stopScan();
 			}
 		},
 		onUnload() {
-			console.log("onUnload")
 			if (this.updateIdChangedtimer) {
 				clearInterval(this.updateIdChangedtimer)
 			}
@@ -354,6 +393,10 @@
 			}
 		},
 		computed: {
+			isZhLocale() {
+				const lan = uni.getLocale()
+				return lan === 'zh-Hans' || lan === 'zh-Hant'
+			},
 			// 格式化已下载大小
 			formattedDownloaded() {
 				return this.formatBytes(this.downloadedSize);
@@ -376,12 +419,23 @@
 			},
 			flatExampleSteps() {
 				return flattenQxDingshiExampleSteps(this.exampleGroups)
+			},
+			versionBadgeText() {
+				if (this.hasNewVersion) {
+					return this.isZhLocale ? '有新版本可以更新' : 'New version available'
+				}
+				return this.$t('已经是最新版本2')
 			}
 		},
 		onLoad() {
 			uni.setNavigationBarTitle({
 				title: this.$t('关于更新')
 			})
+			uni.setNavigationBarColor({
+				frontColor: '#000000',
+				backgroundColor: '#DCEEFC'
+			})
+			this.checkVersionStatus()
 		},
 		methods: {
 			...mapMutations(['setacktypes']),
@@ -621,19 +675,26 @@
 					}
 				}
 			},
+			checkVersionStatus() {
+				if (uni.getSystemInfoSync().platform === 'android') {
+					this.check_new_version('com.work.jakob', '0', true)
+				} else {
+					this.check_new_version('io.dcloud.jakob', '1', true)
+				}
+			},
 			//软件更新
 			Text_content9() {
 				if (uni.getSystemInfoSync().platform === 'android') {
-					this.check_new_version("com.work.jakob", "0")
+					this.check_new_version('com.work.jakob', '0')
 				} else {
-					this.check_new_version("io.dcloud.jakob", "1")
+					this.check_new_version('io.dcloud.jakob', '1')
 				}
 			},
 			// 检查新版本
-			check_new_version(pkgName, type) {
+			check_new_version(pkgName, type, silent = false) {
 				let that = this;
 				uni.request({
-					url: that.$url_APP_IP + "/prod-api/system/version/check_new_version",
+					url: that.$url_APP_IP + '/prod-api/system/version/check_new_version',
 					method: 'POST',
 					data: {
 						pkgName: pkgName,
@@ -645,49 +706,57 @@
 					},
 					success(version) {
 						if (version.data.code === 4003) {
-							uni.showModal({
-								content: that.$t('已经是最新版本1') + systemInfo.appVersion + "\n" + that.$t(
-									'已经是最新版本2'),
-								showCancel: false
-							});
+							that.hasNewVersion = false
+							if (!silent) {
+								uni.showModal({
+									content: that.$t('已经是最新版本1') + systemInfo.appVersion + '\n' + that.$t(
+										'已经是最新版本2'),
+									showCancel: false
+								});
+							}
 						} else {
-							// 保存是否为强制更新
-							let remarkParts = version.data.data.remark === null ? "" : version.data
-								.data.remark.split("&&&");
-							// 初始化中英文变量
-							let englishPart = '';
-							let chinesePart = '';
-							// 安全地获取分割后的部分
-							if (remarkParts.length > 0) {
-								englishPart = remarkParts[0];
-							}
-							if (remarkParts.length > 1) {
-								chinesePart = remarkParts[1];
-							}
-							let lan = uni.getLocale();
-							uni.showModal({
-								content: `${that.$t('版本更新1')}${version.data.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
-								confirmText: that.$t('安装'),
-								cancelText: that.$t('稍后安装'),
-								success: function(res) {
-									if (res.confirm) {
-										that.$refs.down_popup.open("center")
-										that.checkUpdate(version.data.data.path)
-									} else {
-										uni.showToast({
-											title: that.$t('稍后安装'),
-											icon: 'none'
-										});
-									}
+							that.hasNewVersion = true
+							if (!silent) {
+								// 保存是否为强制更新
+								let remarkParts = version.data.data.remark === null ? '' : version.data
+									.data.remark.split('&&&');
+								// 初始化中英文变量
+								let englishPart = '';
+								let chinesePart = '';
+								// 安全地获取分割后的部分
+								if (remarkParts.length > 0) {
+									englishPart = remarkParts[0];
 								}
-							});
+								if (remarkParts.length > 1) {
+									chinesePart = remarkParts[1];
+								}
+								let lan = uni.getLocale();
+								uni.showModal({
+									content: `${that.$t('版本更新1')}${version.data.data.versionName}${that.$t('版本更新2')}\n${lan == 'zh-Hans' || lan == 'zh-Hant' ? chinesePart : englishPart}`,
+									confirmText: that.$t('安装'),
+									cancelText: that.$t('稍后安装'),
+									success: function(res) {
+										if (res.confirm) {
+											that.$refs.down_popup.open('center')
+											that.checkUpdate(version.data.data.path)
+										} else {
+											uni.showToast({
+												title: that.$t('稍后安装'),
+												icon: 'none'
+											});
+										}
+									}
+								});
+							}
 						}
 					},
 					fail(err) {
-						uni.showToast({
-							title: that.$t('检查更新失败'),
-							icon: 'none'
-						});
+						if (!silent) {
+							uni.showToast({
+								title: that.$t('检查更新失败'),
+								icon: 'none'
+							});
+						}
 					}
 				})
 			},
@@ -2561,29 +2630,241 @@
 	}
 </script>
 
-<style>
-	.bg {
+<style scoped>
+	.page {
+		min-height: 100vh;
+		padding-bottom: 60px;
+		background: linear-gradient(180deg, #dceefc 0%, #f4f7fb 42%, #f4f7fb 100%);
+		color: #1c1c1e;
+		box-sizing: border-box;
+	}
+
+	.page-content {
+		position: relative;
+		z-index: 1;
+		padding: 20px 32rpx 20px;
+		box-sizing: border-box;
+	}
+
+	.app-info-card {
+		position: relative;
+		background: #fff;
+		border-radius: 24rpx;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		padding: 22px 20px;
+		margin-bottom: 24px;
+		overflow: hidden;
+	}
+
+	.card-mascot {
+		position: absolute;
+		top: -18px;
+		right: -16px;
+		width: 128px;
+		height: 128px;
+		z-index: 0;
+		pointer-events: none;
+	}
+
+	.app-info-main {
+		position: relative;
+		z-index: 1;
 		display: flex;
-		flex-direction: column;
-		margin-top: 40px;
-		background: white;
-		border-radius: 10px;
-		padding-bottom: 10px;
-		margin-bottom: 50px;
+		align-items: flex-start;
+		gap: 16px;
+	}
+
+	.app-avatar-wrap {
+		width: 72px;
+		height: 72px;
+		border-radius: 20px;
+		background: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
-	.bt_BG {
-		display: flex;
-		flex-direction: row;
-		padding: 15px 10px 5px 15px;
-		align-items: center;
+	.app-avatar {
+		width: 72px;
+		height: 72px;
+		border-radius: 20px;
+		object-fit: contain;
 	}
 
-	.text {
-		width: 90%;
+	.app-info-text {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		padding-top: 2px;
+	}
+
+	.app-name {
+		display: block;
+		font-size: 22px;
+		font-weight: 700;
+		color: #1c1c1e;
+		line-height: 1.35;
+	}
+
+	.app-version {
+		display: block;
+		margin-top: 8px;
 		font-size: 14px;
-		margin-left: 10px;
+		color: #8a94a6;
+		line-height: 1.45;
+	}
+
+	.status-badge {
+		display: inline-flex;
+		align-items: center;
+		max-width: 100%;
+		margin-top: 12px;
+		padding: 6px 12px 6px 8px;
+		background: #e8f7ed;
+		border-radius: 999px;
+		box-sizing: border-box;
+	}
+
+	.status-badge-update {
+		background: #ffebee;
+	}
+
+	.status-badge-icon {
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-right: 6px;
+		flex-shrink: 0;
+	}
+
+	.status-badge-text {
+		font-size: 12px;
+		font-weight: 600;
+		color: #2e9e4f;
+		line-height: 1.45;
+		flex: 1;
+		min-width: 0;
+		word-break: break-word;
+	}
+
+	.status-badge-text-update {
+		color: #e53935;
+	}
+
+	.test-server-tag {
+		display: block;
+		margin-top: 10px;
+		font-size: 12px;
+		color: #8a94a6;
+		line-height: 1.45;
+	}
+
+	.section {
+		margin-bottom: 15px;
+	}
+
+	.section-title {
+		display: block;
+		font-size: 16px;
+		font-weight: 600;
+		color: #6b7c93;
+		margin-bottom: 12px;
+		padding-left: 4px;
+	}
+
+	.card {
+		background: #fff;
+		border-radius: 24rpx;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		overflow: hidden;
+	}
+
+	.menu-row {
+		display: flex;
+		align-items: center;
+		padding: 16px 14px;
+	}
+
+	.menu-row-compact {
+		padding-top: 18px;
+		padding-bottom: 18px;
+	}
+
+	.menu-icon-box {
+		width: 44px;
+		height: 44px;
+		border-radius: 12px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.menu-icon-blue {
+		background: linear-gradient(180deg, #4da8ff 0%, #3298f7 100%);
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.menu-text {
+		flex: 1;
+		min-width: 0;
+		padding: 0 12px;
+	}
+
+	.menu-title {
+		display: block;
+		font-size: 16px;
+		font-weight: 600;
+		color: #1c1c1e;
+		line-height: 1.35;
+	}
+
+	.menu-desc {
+		display: block;
+		margin-top: 4px;
+		font-size: 13px;
+		color: #8a94a6;
+		line-height: 1.4;
+	}
+
+	.menu-divider {
+		height: 1px;
+		background: #eef1f5;
+		margin-left: 70px;
+	}
+
+	.page-footer {
+		margin-left: 15px;
+		margin-right: 15px;
+		padding: 14px;
+		text-align: center;
+		background: #eaf4ff;
+		border-radius: 14px;
+		box-sizing: border-box;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.footer-icp {
+		display: block;
+		font-size: 12px;
+		color: #5c677a;
+		line-height: 1.5;
+	}
+
+	.footer-copy {
+		display: block;
+		margin-top: 6px;
+		font-size: 12px;
+		color: #5c677a;
+		line-height: 1.5;
 	}
 
 	/* 进度条样式 */
@@ -2597,8 +2878,6 @@
 		font-size: 14px;
 		padding: 5px 15px;
 	}
-
-
 
 	.box {
 		padding: 20rpx;
@@ -2656,7 +2935,8 @@
 		margin: 20px;
 		padding: 20px;
 		border-radius: 20px;
-		background-color: #f9f9f9;
+		background-color: #fff;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	.progress {
@@ -2669,27 +2949,27 @@
 	}
 
 	.app-manage-tips {
-		margin-bottom: 50px;
-		display: flex;
-		flex-direction: column;
-		background: white;
-		border-radius: 10px;
-		padding: 10px;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		margin-top: 4px;
+	}
+
+	.tips-divider {
+		height: 1px;
+		background: #eef1f5;
+		margin: 12px 0;
 	}
 
 	.watch-upgrade-permission-tip {
 		font-size: 14px;
 		line-height: 1.6;
 		color: #e53935;
-		margin: 12px 5px 8px;
+		margin: 4px 0 8px;
 	}
 
 	.tip-text {
-		margin-top: 10px;
+		margin-top: 4px;
 		font-size: 14px;
 		line-height: 1.6;
-		color: red;
+		color: #e53935;
 	}
 
 	.app-link-list {
@@ -2706,7 +2986,7 @@
 	}
 
 	.app-setting-link-text {
-		color: #007aff;
+		color: #3298f7;
 		font-size: 14px;
 		margin-left: 10px;
 	}
@@ -2809,5 +3089,56 @@
 		color: #fff;
 		font-size: 15px;
 		border-radius: 22px;
+	}
+
+	.progress-warn {
+		color: #e53935;
+		font-size: 14px;
+		line-height: 1.6;
+	}
+
+	.progress-ok {
+		color: #2e9e4f;
+		font-size: 14px;
+		line-height: 1.6;
+		margin-top: 8px;
+	}
+
+	.download-popup {
+		width: 80vw;
+		background: #fff;
+		padding: 20px;
+		border-radius: 20px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.download-title {
+		text-align: center;
+		font-weight: 700;
+		font-size: 16px;
+		color: #1c1c1e;
+		margin-bottom: 15px;
+	}
+
+	.download-meta {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 10px;
+		font-size: 12px;
+		color: #8a94a6;
+	}
+
+	.download-actions {
+		display: flex;
+		justify-content: center;
+		margin-top: 20px;
+	}
+
+	.download-cancel {
+		background: #3298F7;
+		color: #fff;
+		width: 40%;
+		border-radius: 999px;
+		font-size: 14px;
 	}
 </style>

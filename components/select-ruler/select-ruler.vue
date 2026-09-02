@@ -8,65 +8,89 @@
 		<!-- 左右渐变遮罩 -->
 		<view class="mask mask-left"></view>
 		<view class="mask mask-right"></view>
-		<!-- 刻度尺 -->
-		<scroll-view :scroll-x="true" @scroll="handleScroll" :scroll-left="scroll_left">
-			<view class="ruler-item" v-for="(item, index) in rulerItems" :key="index">
-				<view class="ruler-line" :class="{ 'ruler-line-major': index % 10 === 0 }"></view>
-				<text v-if="index % 10 === 0"
-					class="ruler-label">{{ (index + min) / multiple | fixedPoint(point) }}</text>
+		<!-- 刻度尺：外观/精度与原先一致，仅渲染可视区刻度 -->
+		<scroll-view :scroll-x="true" @scroll="handleScroll" :scroll-left="scroll_left"
+			:show-scrollbar="false">
+			<view class="ruler-track" :style="{ width: trackWidth + 'px' }">
+				<view class="ruler-window" :style="{ left: windowLeft + 'px' }">
+					<view class="ruler-item" v-for="index in visibleIndexes" :key="index">
+						<view class="ruler-line" :class="{ 'ruler-line-major': index % 10 === 0 }"></view>
+						<text v-if="index % 10 === 0"
+							class="ruler-label">{{ (index + min) / multiple | fixedPoint(point) }}</text>
+					</view>
+				</view>
 			</view>
 		</scroll-view>
 	</view>
 </template>
 <script>
+	const ITEM_WIDTH = 5;
+	const BUFFER = 30;
+
 	export default {
 		name: "select-ruler",
 		data() {
 			return {
 				number: 0,
 				scroll_left: 0,
+				scrollPos: 0,
+				viewWidth: 375,
 				scroll: {
 					detail: {},
 				},
 			};
 		},
 		props: {
-			// 最小值
 			min: {
 				type: Number,
 				default: 0,
 			},
-			// 最大值
 			max: {
 				type: Number,
 				default: 500,
 			},
-			// 缩放比例
 			multiple: {
 				type: Number,
 				default: 1,
 			},
-			// 默认值
 			defaultValue: {
 				type: Number,
 				default: 1000,
 			},
-			// 是否禁用
 			disable: {
 				type: Boolean,
 				default: false,
 			},
-			// 小数点后保留位数
 			point: {
 				type: Number,
 				default: 0,
 			},
 		},
 		computed: {
-			rulerItems() {
-				return Array.from({
-					length: this.max - this.min + 1
-				}, (_, i) => i + this.min);
+			rulerCount() {
+				return this.max - this.min + 1;
+			},
+			// 与原先 first margin-left:50% / last margin-right:50% 等效
+			trackWidth() {
+				return this.viewWidth + this.rulerCount * ITEM_WIDTH;
+			},
+			startIndex() {
+				const raw = Math.floor(this.scrollPos / ITEM_WIDTH) - BUFFER;
+				return Math.max(0, raw);
+			},
+			endIndex() {
+				const visible = Math.ceil(this.viewWidth / ITEM_WIDTH) + BUFFER * 2;
+				return Math.min(this.rulerCount - 1, this.startIndex + visible);
+			},
+			visibleIndexes() {
+				const list = [];
+				for (let i = this.startIndex; i <= this.endIndex; i++) {
+					list.push(i);
+				}
+				return list;
+			},
+			windowLeft() {
+				return this.viewWidth / 2 + this.startIndex * ITEM_WIDTH;
 			},
 		},
 		filters: {
@@ -75,20 +99,25 @@
 			},
 		},
 		created() {
+			try {
+				const info = uni.getSystemInfoSync();
+				this.viewWidth = info.windowWidth || 375;
+			} catch (e) {}
 			this.setDefault(this.defaultValue);
 		},
 		methods: {
-			// 刻度尺滚动监听
 			handleScroll(e) {
 				this.scroll = e;
-				this.number = Math.round(e.detail.scrollLeft / Math.round((e.detail.scrollWidth) / this.max));
+				const scrollLeft = e.detail.scrollLeft || 0;
+				this.scrollPos = scrollLeft;
+				const index = Math.round(scrollLeft / ITEM_WIDTH);
+				this.number = Math.max(0, Math.min(this.max - this.min, index));
 				this.$emit('change', ((this.number + this.min) / this.multiple).toFixed(this.point));
 			},
-			// 初始化刻度尺
 			initScroll() {
-				this.scroll_left = this.number * 5;
+				this.scroll_left = this.number * ITEM_WIDTH;
+				this.scrollPos = this.scroll_left;
 			},
-			// 设置默认值
 			setDefault(number) {
 				if (number < this.min || number > this.max) {
 					uni.showToast({
@@ -100,11 +129,9 @@
 				this.number = number - this.min;
 				this.initScroll();
 			},
-			// 增加
 			plusValue(step) {
 				this.setDefault(this.number + this.min + Math.floor(step));
 			},
-			// 减少
 			reduceValue(step) {
 				this.setDefault(this.number + this.min - Math.floor(step));
 			},
@@ -114,7 +141,7 @@
 <style scoped lang="scss">
 	.select-ruler {
 		position: relative;
-		height: 80px; // 增加高度以容纳刻度值
+		height: 80px;
 
 		.tap-mask {
 			width: 100%;
@@ -180,41 +207,45 @@
 			height: 100%;
 			white-space: nowrap;
 
+			.ruler-track {
+				height: 80px;
+				position: relative;
+				display: inline-block;
+			}
+
+			.ruler-window {
+				position: absolute;
+				top: 0;
+				height: 100%;
+				white-space: nowrap;
+			}
+
 			.ruler-item {
 				width: 5px;
 				text-align: center;
 				display: inline-block;
 				position: relative;
 
-				//开始值
-				&:first-child {
-					margin-left: 50%;
-				}
-
-				//结束值
-				&:last-child {
-					margin-right: calc(50% - 2px);
-				}
-
 				.ruler-line {
 					width: 1px;
-					height: 20px; // 增加刻度线的高度
+					height: 20px;
 					background: rgba(#3A414B, .07);
 					display: inline-block;
 					vertical-align: text-top;
 
 					&.ruler-line-major {
-						height: 30px; // 主刻度线更高
+						height: 30px;
 					}
 				}
 
 				.ruler-label {
 					position: absolute;
-					top: 50px; // 调整刻度值的位置
+					top: 50px;
 					left: 50%;
 					transform: translateX(-50%);
 					color: #3D3D3D;
 					font-size: 12px;
+					white-space: nowrap;
 				}
 			}
 		}

@@ -3,12 +3,10 @@
 		<view class="health_avatr">
 			<view class="context_btn" @click="btn_avatar()">
 				<view class="context_title">{{$t('头像')}}</view>
-				<view style="width: 35vw; display: flex;justify-content: flex-end;">
-					<image :src="avatar"
-						style="border: 1px solid gainsboro; width: 30px; height: 30px;border-radius: 20px;">
-					</image>
+				<view class="avatar_wrap">
+					<image class="avatar_img" :src="avatar"></image>
 				</view>
-				<uni-icons style="margin-left: 5px;" type="forward" size="20"></uni-icons>
+				<uni-icons class="chevron" type="right" size="14" color="#C5CDD8"></uni-icons>
 			</view>
 			<!-- <view style="width: 80vw; height: 1px; background: gainsboro; margin-left:25px;"></view> -->
 			<!-- <view class="context_btn" @click="member()">
@@ -18,53 +16,51 @@
 			</view> -->
 		</view>
 
-		<view style="margin: 20px 0 20px 15px; color: black;">{{$t('身体基础信息')}}：</view>
+		<view class="section_title">{{$t('身体基础信息')}}</view>
 
 		<view class="health_avatr">
 			<view class="bt_BG">
 				<view class="text">{{$t('性别')}}</view>
-				<view
-					style="width: 40vw; justify-content: flex-end; display: flex;flex-direction: row;align-items: center;">
-					<view class="color_bg" :style="getcolor(select)" @click="select_click()">
+				<view class="row_right" @click="select_click()">
+					<view class="color_bg" :style="getcolor(select)">
 						{{select}}
 					</view>
-					<uni-icons type="forward" size="20" style="margin-left: 5px;" @click="select_click()"></uni-icons>
+					<uni-icons class="chevron" type="right" size="14" color="#C5CDD8"
+						@click="select_click()"></uni-icons>
 				</view>
 			</view>
-			<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
+			<view class="row_line"></view>
 			<view class="bt_BG">
 				<view class="text">{{$t('出生日期')}}</view>
-				<view style="width: 40vw; justify-content: flex-end; display: flex;flex-direction: row;">
+				<view class="row_right">
 					<picker fields="day" mode="date" :value="date" @change="bindDateChange">
-						<view style="display: flex;flex-direction: row;align-items: center;">
+						<view class="picker_inner">
 							<view class="color_bg_1" :style="getcolor(date)">{{date}}</view>
-							<uni-icons type="forward" size="20" style="margin-left: 10px;"></uni-icons>
+							<uni-icons class="chevron" type="right" size="14" color="#C5CDD8"></uni-icons>
 						</view>
 					</picker>
 				</view>
 			</view>
-			<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
+			<view class="row_line"></view>
 			<view class="bt_BG">
 				<view class="text">{{$t('身高')}}</view>
-				<view style="justify-content: flex-end; display: flex;flex-direction: row; align-items: center;">
-					<input type="number" :placeholder="$t('请输入')" v-model="height"
-						style="color: black; text-align: right; font-size: 14px;" maxlength="5" />
-					<view style="margin-right: 15px;width: 60px;">
+				<view class="row_right value_edit">
+					<input class="value_input" type="number" :placeholder="$t('请输入')" v-model="height" maxlength="5" />
+					<view class="unit_picker">
 						<picker @change="bindPickerChange_Height" :value="Height_index" :range="Height_array">
-							<view class="uni-input" style="text-align: right;">{{Height_array[Height_index]}}</view>
+							<view class="uni-input unit_text">{{Height_array[Height_index]}}</view>
 						</picker>
 					</view>
 				</view>
 			</view>
-			<view style="width: 85%; height: 1px; background: gainsboro; margin-left:25px;"></view>
+			<view class="row_line"></view>
 			<view class="bt_BG">
 				<view class="text">{{$t('体重')}}</view>
-				<view style="justify-content: flex-end;display: flex;flex-direction: row;align-items: center;">
-					<input type="number" :placeholder="$t('请输入')" v-model="width"
-						style="color: black; text-align: right; font-size: 14px;" maxlength="5" />
-					<view style="margin-right: 15px;width: 60px;">
+				<view class="row_right value_edit">
+					<input class="value_input" type="number" :placeholder="$t('请输入')" v-model="width" maxlength="5" />
+					<view class="unit_picker">
 						<picker @change="bindPickerChange_Width" :value="Width_index" :range="Width_array">
-							<view class="uni-input" style="text-align: right;background: none;">
+							<view class="uni-input unit_text">
 								{{Width_array[Width_index]}}
 							</view>
 						</picker>
@@ -76,7 +72,7 @@
 			<uni-popup ref="popup" type="bottom" border-radius="10px 10px 0 0" :mask-click="true">
 				<view class="popup_bg">
 					<view class="select_text" @click="sex_nan()">{{$t('男')}}</view>
-					<view style="border-top: 1px solid gainsboro;"></view>
+					<view class="popup_line"></view>
 					<view class="select_text" @click="sex_nv()">{{$t('女')}}</view>
 				</view>
 			</uni-popup>
@@ -324,7 +320,7 @@
 			},
 			getcolor(id) {
 				return {
-					color: id == this.$t('请输入') ? "gray" : "black"
+					color: id == this.$t('请输入') || id == this.$t('请选择') ? "#9ba3af" : "#1a2b4a"
 				}
 			},
 
@@ -334,86 +330,161 @@
 
 <style>
 	.health_page {
-		padding: 20px 10px 0 10px;
-		color: black;
-		height: 100vh;
+		min-height: 100vh;
+		padding: 20px 16px 40px;
+		box-sizing: border-box;
+		background: linear-gradient(180deg, #dceefc 0%, #f4f7fb 42%, #f4f7fb 100%);
+		color: #1a2b4a;
 	}
 
 	.health_avatr {
+		background: #ffffff;
+		border-radius: 16px;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-		background: white;
-		border-radius: 20px;
-		margin-left: 10px;
-		margin-right: 10px;
+		padding: 4px 16px;
+		overflow: hidden;
+	}
+
+	.section_title {
+		display: block;
+		font-size: 16px;
+		font-weight: 700;
+		color: #1a2b4a;
+		margin: 24px 4px 12px;
 	}
 
 	.context_btn {
-		height: 48px;
+		min-height: 64px;
 		display: flex;
 		flex-direction: row;
-		background: white;
 		align-items: center;
-		padding-top: 10px;
-		padding-left: 10px;
-		padding-bottom: 10px;
-		padding-right: 10px;
-		border-radius: 50px;
+		padding: 12px 0;
+		box-sizing: border-box;
 	}
 
 	.context_title {
-		width: 40vw;
-		font-size: 16px;
-		color: black;
-		margin-left: 15px;
+		flex: 1;
+		font-size: 15px;
+		font-weight: 600;
+		color: #1a2b4a;
 	}
 
-	.color_bg {
-		color: black;
-		text-align: center;
-		font-size: 14px;
-		margin-right: 5px;
+	.avatar_wrap {
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		margin-right: 4px;
 	}
 
+	.avatar_img {
+		width: 44px;
+		height: 44px;
+		border-radius: 22px;
+		border: 2px solid #e8f0fe;
+		background: #f4f7fb;
+	}
+
+	.chevron {
+		margin-left: 4px;
+		flex-shrink: 0;
+	}
+
+	.bt_BG {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		min-height: 56px;
+		padding: 12px 0;
+		box-sizing: border-box;
+	}
+
+	.text {
+		flex: 1;
+		font-size: 15px;
+		font-weight: 600;
+		color: #1a2b4a;
+		min-width: 0;
+	}
+
+	.row_right {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-end;
+		flex-shrink: 0;
+		max-width: 55%;
+	}
+
+	.value_edit {
+		max-width: 58%;
+	}
+
+	.picker_inner {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.color_bg,
 	.color_bg_1 {
-		color: gray;
-		text-align: center;
 		font-size: 14px;
+		color: #1a2b4a;
+		text-align: right;
+	}
+
+	.value_input {
+		flex: 1;
+		min-width: 0;
+		color: #1a2b4a;
+		text-align: right;
+		font-size: 14px;
+		padding: 0 8px 0 0;
+	}
+
+	.unit_picker {
+		margin-left: 4px;
+		padding: 4px 10px;
+		border-radius: 16px;
+		background: #e8f0fe;
+		flex-shrink: 0;
+	}
+
+	.unit_text {
+		text-align: center;
+		font-size: 13px;
+		font-weight: 600;
+		color: #3298F7;
+		background: none;
+		line-height: 1.4;
+	}
+
+	.row_line {
+		height: 1px;
+		background: #eef1f5;
 	}
 
 	.popup_bg {
-		background: white;
-		border-radius: 20px;
-		margin-left: 20px;
-		margin-right: 20px;
-		margin-bottom: 10px;
+		background: #ffffff;
+		border-radius: 16px;
+		margin: 0 16px 24px;
+		overflow: hidden;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.popup_line {
+		height: 1px;
+		background: #eef1f5;
 	}
 
 	.select_text {
-		height: 48px;
+		height: 52px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		text-align: center;
 		padding: 10px;
 		font-size: 16px;
-		font-weight: bold;
-	}
-
-	.bt_BG {
-		display: flex;
-		height: 48px;
-		flex-direction: row;
-		align-items: center;
-		padding-top: 10px;
-		padding-left: 10px;
-		padding-right: 10px;
-		padding-bottom: 10px;
-
-	}
-
-	.text {
-		width: 40vw;
-		font-size: 16px;
-		margin-left: 15px;
+		font-weight: 600;
+		color: #3298F7;
 	}
 </style>

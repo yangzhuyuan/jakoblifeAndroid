@@ -488,16 +488,12 @@
 					};
 				});
 			},
-
 			// 处理体脂数据
 			processBodyFatData(data) {
-				console.log("原始体脂数据:", data);
-
 				if (!data || data.length === 0) {
 					this.swipeList = [];
 					return;
 				}
-
 				this.swipeList = data.map(item => ({
 					...item,
 					object: {

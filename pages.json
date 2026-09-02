@@ -256,7 +256,7 @@
 			"path": "pages/tabBar/my/Health_record",
 			"style": {
 				"navigationBarTitleText": "健康档案",
-				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -289,23 +289,25 @@
 			"path": "pages/tabBar/my/Unit_setting",
 			"style": {
 				"navigationBarTitleText": "单位设置",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
+				"navigationBarBackgroundColor": "#dceefc",
+				"navigationBarTextStyle": "black",
+				"backgroundColor": "#EEF5FB"
 			}
 		},
 		{
 			"path": "pages/tabBar/my/Help_center",
 			"style": {
 				"navigationBarTitleText": "帮助中心",
-				"navigationBarBackgroundColor": "#F5F5F5",
-				"navigationBarTextStyle": "black"
+				"navigationBarBackgroundColor": "#dceefc",
+				"navigationBarTextStyle": "black",
+				"backgroundColor": "#EEF5FB"
 			}
 		},
 		{
 			"path": "pages/tabBar/my/Safety_center",
 			"style": {
-				"navigationBarTitleText": "安全中心",
-				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarTitleText": "账号与安全",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -329,8 +331,9 @@
 			"path": "pages/tabBar/my/About_Update",
 			"style": {
 				"navigationBarTitleText": "关于&更新",
-				"navigationBarBackgroundColor": "#F7F7F7",
-				"navigationBarTextStyle": "black"
+				"navigationBarBackgroundColor": "#dceefc",
+				"navigationBarTextStyle": "black",
+				"backgroundColor": "#EEF5FB"
 			}
 		},
 		{
@@ -370,7 +373,7 @@
 			"path": "pages/tabBar/device/Equipment_management",
 			"style": {
 				"navigationBarTitleText": "设备管理",
-				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarBackgroundColor": "#F8F9FB",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -378,7 +381,7 @@
 			"path": "pages/tabBar/my/Equipment_management1",
 			"style": {
 				"navigationBarTitleText": "设备管理",
-				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarBackgroundColor": "#F8F9FB",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -594,8 +597,7 @@
 			"path": "pages/tabBar/tendency/supplement",
 			"style": {
 				"navigationBarTitleText": "信息补充",
-				"navigationStyle": "custom",
-				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -660,7 +662,7 @@
 			"path": "pages/tabBar/my/Alarms",
 			"style": {
 				"navigationBarTitleText": "警报",
-				"navigationBarBackgroundColor": "#F7F7F7",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -722,7 +724,7 @@
 			"path": "pages/tabBar/my/fankui",
 			"style": {
 				"navigationBarTitleText": "反馈",
-				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -795,6 +797,14 @@
 			"style": {
 				"navigationBarTitleText": "OTA",
 				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/emotion_trend_detail",
+			"style": {
+				"navigationBarTitleText": "AI健康趋势分析",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -884,7 +894,7 @@
 			"path": "pages/tabBar/main/globalweather/Monitoring",
 			"style": {
 				"navigationBarTitleText": "定时监测",
-				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -924,7 +934,7 @@
 			"path": "pages/tabBar/main/report_all_type/report_all_type",
 			"style": {
 				"navigationBarTitleText": "报告",
-				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarBackgroundColor": "#dceefc",
 				"navigationBarTextStyle": "black"
 			}
 		},
@@ -941,6 +951,22 @@
 			"style": {
 				"navigationBarTitleText": "ECG",
 				"navigationBarBackgroundColor": "#F5F5F5",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/AI_Cardiovascular_Guardian",
+			"style": {
+				"navigationBarTitleText": "AI 心血管守护者",
+				"navigationBarBackgroundColor": "#0B3A5C",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/tabBar/main/Health_Summary",
+			"style": {
+				"navigationBarTitleText": "健康摘要",
+				"navigationBarBackgroundColor": "#EEF5FB",
 				"navigationBarTextStyle": "black"
 			}
 		}

@@ -1,46 +1,97 @@
 <template>
-	<view style="color: black;height: 100vh;">
-		<view style="background: #3298F7;">
-			<view style="display: flex;flex-direction: column;align-items: center;padding-top: 120px;">
+	<view class="my-page">
+		<view class="my_title_all" :style="titleBarStyle">
+			<view class="nav-side">
+				<image src="/static/image/app_icon_all.jpg" mode="aspectFit" class="msg-icon-left" />
+			</view>
+			<view class="title">{{$t('我的')}}</view>
+			<view class="nav-side nav-side-right">
+				<image :src="msg ? '../../../static/icons/19.png' : '../../../static/icons/20.png'" mode="aspectFit"
+					class="msg-icon" @click="Historical_record">
+				</image>
+			</view>
+		</view>
+		<view class="header-wrap">
+			<view class="nav-bar-spacer" :style="navSpacerStyle"></view>
+			<view class="profile-section">
 				<view @click="touxiang" class="avatar-container">
 					<image :src="avatar" class="avatar-image" mode="aspectFit"></image>
 				</view>
-				<view style="margin-top: 15px;color: white;font-size: 18px;font-weight: bold;">{{username}}</view>
-			</view>
-			<view class="bg" @click="Health_record()">
-				<view class="context_btn">
-					<view class="context_title">{{$t('我的健康档案')}}</view>
-					<uni-icons type="forward" size="20"></uni-icons>
+				<view class="username">{{username}}</view>
+				<view class="view-profile" @click="touxiang">
+					<text class="view-profile-text">{{$t('个人信息')}}</text>
+					<uni-icons type="right" size="12" color="#ffffff"></uni-icons>
 				</view>
 			</view>
-			<view style="background: #F5F5F5; padding-bottom: 80px;padding-top: 20px">
-				<view class="context_btn1">
-					<view v-for="(item, index) in menuItems" :key="index">
-						<view class="context_btn2" @click="navigateToPage(item.url)">
-							<view class="context_btn3">
-								<image class="imagessai" v-show="item.title === '生成健康报告'"
-									src="/static/page_icon/aipbg.jpg" mode="aspectFit">
-								</image>
-								<view class="context_title1">{{$t(item.title)}}</view>
-							</view>
-							<uni-icons type="forward" size="20"></uni-icons>
+			<view class="header-arc">
+				<view class="header-arc-inner"></view>
+			</view>
+		</view>
+		<view class="content-section">
+			<view class="menu-card health-card" @click="Health_record()">
+				<view class="icon-box">
+					<image class="menu-icon-img" src="/static/page_icon/baogao_1.png" mode="aspectFit"></image>
+				</view>
+				<view class="row-main">
+					<text class="row-label">{{$t('我的健康档案')}}</text>
+				</view>
+				<uni-icons type="right" size="14" color="#C5CDD8"></uni-icons>
+			</view>
+			<view class="menu-card">
+				<view v-for="(item, index) in mainMenuItems" :key="'main-' + index">
+					<view class="menu-row" @click="onMenuItemClick(item)">
+						<view class="icon-box">
+							<image v-if="item.title === '生成健康报告'" class="menu-icon-img menu-icon-ai"
+								src="/static/page_icon/aipbg.jpg" mode="aspectFit"></image>
+							<uni-icons v-else-if="item.title === '设置'" type="gear-filled" size="20"
+								color="#3298F7"></uni-icons>
+							<image v-else-if="item.title === '设备管理'" class="menu-icon-img"
+								src="/static/page_icon/jiance_1.png" mode="aspectFit"></image>
+							<uni-icons v-else-if="item.title === '数据同步'" type="reload" size="20"
+								color="#3298F7"></uni-icons>
+							<uni-icons v-else-if="item.title === '警报'" type="notification-filled" size="20"
+								color="#3298F7"></uni-icons>
+							<uni-icons v-else-if="item.title === 'ECG模板'" type="heart-filled" size="20"
+								color="#3298F7"></uni-icons>
+							<uni-icons v-else-if="item.title === '脉诊健康管理'" type="heart-filled" size="20"
+								color="#3298F7"></uni-icons>
+							<uni-icons v-else-if="item.title === '反馈'" type="chat-filled" size="20"
+								color="#3298F7"></uni-icons>
+							<uni-icons v-else type="heart-filled" size="20" color="#3298F7"></uni-icons>
 						</view>
-						<view class="divider"></view>
+						<view class="row-main">
+							<text class="row-label">{{$t(item.title)}}</text>
+							<text v-if="item.title === '生成健康报告'" class="row-sub">{{$t('健康趋势报告副标题')}}</text>
+						</view>
+						<uni-icons type="right" size="14" color="#C5CDD8"></uni-icons>
 					</view>
-					<view class="context_btn2">
-						<view class="context_title1">{{$t('推送开关')}}</view>
-						<switch @change="switch1Change" style="transform:scale(0.8);" :checked="switchsdss"
-							color="#0686CC" />
+					<view v-if="index !== mainMenuItems.length - 1" class="row-line"></view>
+				</view>
+				<view class="row-line"></view>
+				<view class="menu-row push-row">
+					<view class="icon-box">
+						<uni-icons type="notification-filled" size="20" color="#3298F7"></uni-icons>
 					</view>
+					<text class="row-label">{{$t('推送开关')}}</text>
+					<switch @change="switch1Change" class="push-switch" :checked="switchsdss" color="#3298F7" />
 				</view>
 			</view>
-			<view class="my_title_all">
-				<view style="width: 25px;height: 25px;"></view>
-				<view class="title">{{$t('我的')}}</view>
-				<image :src="msg ? '../../../static/icons/19.png' : '../../../static/icons/20.png'" mode="aspectFit"
-					style="width: 25px; height: 25px; padding-right: 30px;object-fit: contain;"
-					@click="Historical_record">
-				</image>
+
+			<view class="menu-card">
+				<view v-for="(item, index) in bottomMenuItems" :key="'help-' + index">
+					<view class="menu-row" @click="navigateToPage(item.url)">
+						<view class="icon-box">
+							<uni-icons v-if="item.title === '帮助中心'" type="help-filled" size="20"
+								color="#3298F7"></uni-icons>
+							<uni-icons v-else-if="item.title === '安全中心'" type="locked-filled" size="20"
+								color="#3298F7"></uni-icons>
+							<uni-icons v-else type="info-filled" size="20" color="#3298F7"></uni-icons>
+						</view>
+						<text class="row-label">{{$t(item.title)}}</text>
+						<uni-icons type="right" size="14" color="#C5CDD8"></uni-icons>
+					</view>
+					<view v-if="index !== bottomMenuItems.length - 1" class="row-line"></view>
+				</view>
 			</view>
 		</view>
 	</view>
@@ -52,10 +103,29 @@
 	} from 'vuex';
 	export default {
 		computed: {
-			...mapState(['getpendinglenth'])
+			...mapState(['getpendinglenth']),
+			titleBarStyle() {
+				return {
+					paddingTop: (this.statusBarHeight + 30) + 'px'
+				};
+			},
+			navSpacerStyle() {
+				return {
+					height: (this.statusBarHeight + 100) + 'px'
+				};
+			},
+			mainMenuItems() {
+				const bottomTitles = ['帮助中心', '安全中心', '关于更新'];
+				return this.menuItems.filter(item => !bottomTitles.includes(item.title));
+			},
+			bottomMenuItems() {
+				const bottomTitles = ['帮助中心', '安全中心', '关于更新'];
+				return this.menuItems.filter(item => bottomTitles.includes(item.title));
+			}
 		},
 		data() {
 			return {
+				statusBarHeight: uni.getSystemInfoSync().statusBarHeight || 0,
 				timsdpad: null,
 				avatar: '',
 				msg: true,
@@ -75,6 +145,10 @@
 				{
 					title: '设备管理',
 					url: '/pages/tabBar/my/Equipment_management1'
+				},
+				{
+					title: '数据同步',
+					action: 'syncData'
 				},
 				{
 					title: '警报',
@@ -122,12 +196,6 @@
 				}
 			]
 		},
-		onHide() {
-			if (this.timsdpad) {
-				clearInterval(this.timsdpad);
-				this.timsdpad = null;
-			}
-		},
 		onShow() {
 			const token = uni.getStorageSync("token");
 			if (!token) {
@@ -137,6 +205,21 @@
 				return;
 			}
 			this.getInfoUser()
+			uni.$off('REQUEST_DEVICE_HISTORY_SYNC_DONE', this.onHistorySyncDone)
+			uni.$on('REQUEST_DEVICE_HISTORY_SYNC_DONE', this.onHistorySyncDone)
+		},
+		onHide() {
+			if (this.timsdpad) {
+				clearInterval(this.timsdpad);
+				this.timsdpad = null;
+			}
+			clearTimeout(this._historySyncTimer)
+			this._historySyncTimer = null
+			this._historySyncing = false
+			try {
+				uni.hideLoading()
+			} catch (e) {}
+			uni.$off('REQUEST_DEVICE_HISTORY_SYNC_DONE', this.onHistorySyncDone)
 		},
 		methods: {
 			...mapMutations(['getInfo']),
@@ -169,7 +252,7 @@
 			},
 			// 处理用户信息
 			handleUserInfo(data) {
-				this.avatar = data.avatar || "../../../static/icons/40x40.png";
+				this.avatar = data.avatar || "/static/page_icon/app_icon_all.jpg";
 				this.username = data.nickName || data.userName || "未登录";
 				this.getInfo(data);
 				this.pending(data);
@@ -210,10 +293,73 @@
 				})
 			},
 			// 统一的页面跳转方法
+			onMenuItemClick(item) {
+				if (item && item.action === 'syncData') {
+					this.syncDeviceHistory()
+					return
+				}
+				this.navigateToPage(item.url)
+			},
 			navigateToPage(url) {
 				uni.navigateTo({
 					url: url
 				});
+			},
+			syncDeviceHistory() {
+				const hasBpw1 = !!uni.getStorageSync('deviceIdwatch')
+				const hasBpw6 = !!uni.getStorageSync('BPW6devicemac')
+				let boundBpw1 = hasBpw1
+				let boundBpw6 = hasBpw6
+				try {
+					const list = uni.getStorageSync('lixianlist')
+					if (Array.isArray(list)) {
+						boundBpw1 = boundBpw1 || list.some(row => String(row && row.deviceModelId) === '30000')
+						boundBpw6 = boundBpw6 || list.some(row => String(row && row.deviceModelId) === '30001')
+					}
+				} catch (e) {}
+				if (!boundBpw1 && !boundBpw6) {
+					uni.showToast({
+						title: this.$t('当前未绑定任何设备'),
+						icon: 'none'
+					})
+					return
+				}
+				if (this._historySyncing) {
+					uni.showToast({
+						title: this.$t('数据同步中请稍后'),
+						icon: 'none'
+					})
+					return
+				}
+				this._historySyncing = true
+				uni.showLoading({
+					title: this.$t('数据同步中请稍后'),
+					mask: true
+				})
+				uni.$emit('REQUEST_DEVICE_HISTORY_SYNC')
+				clearTimeout(this._historySyncTimer)
+				this._historySyncTimer = setTimeout(() => {
+					this.onHistorySyncDone({
+						ok: false,
+						message: this.$t('数据同步失败')
+					})
+				}, 20000)
+			},
+			onHistorySyncDone(payload) {
+				if (!this._historySyncing) {
+					return
+				}
+				clearTimeout(this._historySyncTimer)
+				this._historySyncTimer = null
+				this._historySyncing = false
+				try {
+					uni.hideLoading()
+				} catch (e) {}
+				const ok = payload && payload.ok
+				uni.showToast({
+					title: (payload && payload.message) || this.$t(ok ? '已发送同步命令' : '数据同步失败'),
+					icon: 'none'
+				})
 			},
 
 			//我的健康档案
@@ -263,123 +409,246 @@
 	}
 </script>
 
-<style>
+<style scoped>
+	.my-page {
+		min-height: 100vh;
+		background: #f4f7fb;
+		color: #1a2b4a;
+	}
+
+	.header-wrap {
+		background: #3298F7;
+		padding-bottom: 0;
+		position: relative;
+		z-index: 1;
+	}
+
+	.header-arc {
+		position: relative;
+		height: 72px;
+		overflow: hidden;
+		background: #f4f7fb;
+		z-index: 2;
+	}
+
+	.header-arc-inner {
+		position: absolute;
+		left: 50%;
+		top: -48px;
+		width: 130%;
+		height: 100px;
+		transform: translateX(-50%);
+		background: #3298F7;
+		border-radius: 50%;
+	}
+
 	.my_title_all {
-		height: 60px;
-		padding: 30px 15px 10px 15px;
+		height: 100px;
+		padding-left: 15px;
+		padding-right: 15px;
+		padding-bottom: 10px;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
 		position: fixed;
-		width: 100vw;
 		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 999;
+		box-sizing: border-box;
 		background: #3298F7;
 	}
 
+	.nav-bar-spacer {
+		flex-shrink: 0;
+	}
+
+	.nav-side {
+		width: 55px;
+		flex-shrink: 0;
+	}
+
+	.nav-side-right {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-end;
+		padding-right: 5px;
+	}
+
 	.title {
-		color: white;
+		flex: 1;
+		color: #ffffff;
 		text-align: center;
-		width: 85%;
 		font-weight: bold;
 		font-size: 16px;
 	}
 
-	.bg {
-		margin-top: 40px;
-		background: #F5F5F5;
-		padding-top: 20px;
-		border-top-right-radius: 20px;
-		border-top-left-radius: 20px;
-	}
-
-	.context_btn {
-		width: auto;
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: center;
-		background: white;
-		margin-left: 20px;
-		margin-top: 20px;
-		margin-right: 20px;
-		padding-right: 10px;
-		height: 56px;
-		border-radius: 20px;
-		box-shadow: 0 -4px 8px 0 rgba(0, 0, 0, 0.15);
-	}
-
-	.context_btn1 {
-		width: auto;
-		display: flex;
-		flex-direction: column;
-		background: white;
-		padding: 2px 10px 5px 10px;
-		margin-left: 20px;
-		margin-right: 20px;
-		border-radius: 15px;
-		box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.15);
-	}
-
-	.context_btn2 {
-		display: flex;
-		flex-direction: row;
-		background: white;
-		align-items: center;
-		height: 56px;
-		padding-left: 10px;
-	}
-
-	.context_btn3 {
-		flex-direction: row;
-		display: flex;
-		justify-content: space-between;
-		width: 90%;
-		align-items: center;
-	}
-
-	.imagessai {
+	.msg-icon {
 		width: 25px;
 		height: 25px;
 		object-fit: contain;
-		margin-bottom: 20px;
-		border-radius: 25px;
-		margin-right: 5px;
 	}
 
-	.context_title {
-		width: 85%;
-		font-size: 16px;
-		color: black;
-		margin-left: 15px;
-	}
-
-	.context_title1 {
-		width: 90%;
-		font-size: 16px;
-		color: black;
-	}
-
-	/* 提取公共样式 */
-	.avatar-container {
-		background: white;
-		border-radius: 100px;
-		display: flex;
-		padding: 1px;
-		align-items: center;
-		cursor: pointer;
-	}
-
-	.avatar-image {
-		border-radius: 100px;
-		width: 85px;
-		height: 85px;
+	.msg-icon-left {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
 		object-fit: contain;
 	}
 
-	.divider {
-		width: 92%;
+	.profile-section {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 20px 20px 0;
+	}
+
+	.avatar-container {
+		background: #ffffff;
+		border-radius: 50%;
+		display: flex;
+		padding: 3px;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.avatar-image {
+		border-radius: 50%;
+		width: 96px;
+		height: 96px;
+		object-fit: cover;
+	}
+
+	.username {
+		margin-top: 14px;
+		color: #ffffff;
+		font-size: 20px;
+		font-weight: 700;
+		line-height: 1.3;
+	}
+
+	.view-profile {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		margin-top: 8px;
+		padding: 4px 0 8px;
+	}
+
+	.view-profile-text {
+		color: rgba(255, 255, 255, 0.92);
+		font-size: 14px;
+		margin-right: 2px;
+	}
+
+	.content-section {
+		position: relative;
+		z-index: 2;
+		margin-top: 0;
+		padding: 40px 16px calc(80px + env(safe-area-inset-bottom));
+		background: #f4f7fb;
+		box-sizing: border-box;
+	}
+
+	.menu-card {
+		background: #ffffff;
+		border-radius: 16px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		padding: 10px 16px;
+		margin-bottom: 16px;
+		overflow: hidden;
+	}
+
+	.health-card {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 16px;
+		min-height: 72px;
+		box-sizing: border-box;
+	}
+
+	.menu-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 14px 0;
+		min-height: 56px;
+		box-sizing: border-box;
+	}
+
+	.push-row {
+		padding-right: 0;
+	}
+
+	.push-switch {
+		transform: scale(0.82);
+		flex-shrink: 0;
+	}
+
+	.row-line {
 		height: 1px;
-		background: gainsboro;
-		margin-left: 10px;
+		background: #eef1f5;
+		margin-left: 52px;
+	}
+
+	.icon-box {
+		width: 40px;
+		height: 40px;
+		border-radius: 10px;
+		background: #e8f0fe;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		margin-right: 12px;
+	}
+
+	.menu-icon-img {
+		width: 40px;
+		height: 40px;
+		border: 1px solid #e8f0fe;
+		border-radius: 10px;
+		object-fit: contain;
+	}
+
+	.menu-icon-ai {
+		width: 40px;
+		height: 40px;
+		border-radius: 10px;
+		object-fit: contain;
+	}
+
+	.row-main {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.row-label {
+		flex: 1;
+		font-size: 15px;
+		font-weight: 600;
+		color: #1a2b4a;
+		min-width: 0;
+	}
+
+	.health-card .row-label {
+		flex: none;
+		font-size: 16px;
+	}
+
+	.row-main .row-label {
+		flex: none;
+	}
+
+	.row-sub {
+		margin-top: 4px;
+		font-size: 12px;
+		color: #9ba3af;
+		line-height: 1.4;
 	}
 </style>

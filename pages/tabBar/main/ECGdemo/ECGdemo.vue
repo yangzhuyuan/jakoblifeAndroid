@@ -68,12 +68,6 @@
 					<view v-if="logs.length === 0" class="log-empty">暂无日志</view>
 				</scroll-view>
 			</view>
-
-			<EcgSwiperItem ref="ecgSwiperItem" :statsVisible="statsVisible"
-				:baseFeaturesExtracted="baseFeaturesExtracted" :derivedFeaturesExtracted="derivedFeaturesExtracted"
-				:qualityScore="qualityScore" :modelScore="modelScore" :ecgdatarows="ecgdatarows"
-				@start-measure="startbtn" @ecg-detail="ecgbtn" />
-
 			<!-- 本地模拟测试 -->
 			<view class="test-section">
 				<text class="test-title">本地模拟测试</text>
@@ -90,21 +84,13 @@
 				<view class="test-actions" style="margin-top: 10px;">
 					<button class="btn secondary" :disabled="isMockTesting" @tap="loadBleFullWave">加载BLE全波形</button>
 				</view>
-				<text class="test-hint">BLE测试数据：原始 {{ bleDataPointCount }} 点 @{{ bleTestFs }}Hz
-					≈{{ bleTestSec }}s（已是mV；clean±300后INT16；云端滤波）</text>
-
-				<!-- <view class="txt-import-section">
-					<text class="test-title">客户 hex TXT 解析上报</text>
-					<view class="test-actions">
-						<button class="btn primary" :disabled="customerTxtBusy || isMockTesting"
-							@tap="pickCustomerTxtFile">选择TXT上报</button>
-						<button class="btn secondary" :disabled="customerTxtBusy || isMockTesting"
-							@tap="parseAndUploadBuiltinTxt">内置250hz上报</button>
-					</view>
-					<text class="test-hint" v-if="customerTxtInfo">{{ customerTxtInfo }}</text>
-					<text class="test-hint" v-else>内置上报：ble-test-data(uV)→mV 后按原 INT16（2字节/点）上报</text>
-				</view> -->
+				<text class="test-hint">新协议模拟：23|len|小端ADC|cs|0A → ((adc-2048)*3300/4096)/400=mV（|mV|>5丢弃）；
+					{{ bleDataPointCount }}点 / {{ bleMockFrameCount }}帧 @{{ bleTestFs }}Hz≈{{ bleTestSec }}s</text>
 			</view>
+			<EcgSwiperItem ref="ecgSwiperItem" :statsVisible="statsVisible"
+				:baseFeaturesExtracted="baseFeaturesExtracted" :derivedFeaturesExtracted="derivedFeaturesExtracted"
+				:qualityScore="qualityScore" :modelScore="modelScore" :ecgdatarows="ecgdatarows"
+				@start-measure="startbtn" @ecg-detail="ecgbtn" />
 		</view>
 	</scroll-view>
 </template>
@@ -115,10 +101,10 @@
 		getLocalTimeAllJSON
 	} from '../../../api/unitls/timezone.js';
 	import {
-		bleTestEcgData,
 		bleTestEcgFs,
 		bleTestEcgSeconds,
-		bleTestEcgNeedUvToMv
+		bleTestEcgNeedUvToMv,
+		bleTestEcgFrameHex
 	} from './ble-test-data.js';
 	const systemInfo = uni.getSystemInfoSync();
 	const windowHeight = systemInfo.windowHeight;
@@ -129,31 +115,37 @@
 	const BLE_TEST_TYPE = 'ble';
 	/** 相邻采样最大步进（低于 ecg-wave baselineJumpThreshold 400） */
 	const BLE_MAX_STEP = 350;
-	/** 显示缩放：越大波形越小；波峰需明显故适中 */
-	const BLE_DISPLAY_SCALE = 40;
-	/** 实时垂直增益：突出最高波峰 */
-	const BLE_MEASURE_GAIN = 3.5;
-	/** 结束后全图垂直增益：明显缩小（全图用 measureAmplifyFactor） */
-	const BLE_FULL_WAVE_GAIN = 0.36;
+	/** 显示缩放：越大波形越小；波峰需明显故适中（旧差分路径用，协议 mV 直出后不再除） */
+	/** 显示缩放（旧差分路径用；协议 mV 直出后不再除） */
+	const BLE_DISPLAY_SCALE = 1;
+	/**
+	 * 临床纸速灵敏度：1mm 小格 = 0.1mV（即 10mm/mV）。
+	 * 旧值 1mV/小格会把 QRS（约 0.5～1mV）画成一条线。
+	 */
+	const BLE_MV_PER_SMALL_GRID = 0.1;
+	/** 目标半屏填充；实时与「加载BLE全波形」共用 */
+	const BLE_TARGET_FILL = 0.22;
+	/** 实时/全图最小放大，避免偏扁 */
+	const BLE_LIVE_AMPLIFY_MIN = 0.95;
+	/** 无画布时的兜底增益 */
+	const BLE_MEASURE_GAIN = 1;
+	const BLE_FULL_WAVE_GAIN = BLE_MEASURE_GAIN;
 	/**
 	 * 绘制采样率固定 250Hz（与 TXT/上报一致）。
-	 * 显示：差分配对后 hold×2 对齐原始点数（10000@250Hz=40s）；上报仍用原始 mV，不走显示缓冲。
 	 */
 	const BLE_DRAW_SAMPLE_RATE = 250;
 	/**
-	 * 实时一屏目标可见波峰数（约 3～4 个）。仅本页 applyBleWaveRange 测量态使用。
-	 * 注意：screenDuration 越长，一屏波峰越多、越挤；全波形窗口仍用 BLE_FULL_WAVE_SECONDS。
+	 * 一屏目标可见高波峰数（R 峰 3～4 个）。
 	 */
 	const BLE_TARGET_PEAKS = 3.5;
-	/** 实时一屏秒数：PC 建议最近 3～10 秒 mV 波形 */
+	/** 实时一屏秒数（约 70bpm 时 3～4 个 R 峰） */
 	const BLE_SCREEN_SECONDS = 3.0;
-	const BLE_SCREEN_SECONDS_MIN = 3;
-	const BLE_SCREEN_SECONDS_MAX = 10;
+	const BLE_SCREEN_SECONDS_MIN = 2.4;
+	const BLE_SCREEN_SECONDS_MAX = 4;
 	/** 每次蓝牙测量固定时长（秒）；模拟以 TXT 播完为准 */
-	const BLE_MEASURE_SECONDS = 40;
+	const BLE_MEASURE_SECONDS = 60;
 	/**
-	 * 全图一屏时间窗（秒）。
-	 * 必须短：一屏画满 40s/整段数据会挤成一条毛刺带；用滑条看其余时段。
+	 * 全图一屏时间窗（秒），与实时同为 3～4 个高波峰。
 	 */
 	const BLE_FULL_WAVE_SECONDS = 3.0;
 	/** 测量最大点数（按绘制采样率） */
@@ -177,7 +169,7 @@
 		// 偏高阈值，贴近肉眼主波峰（R 峰），减少小毛刺计入
 		const thr = mean + 0.55 * std;
 		// ~0.35s：按心率量级的主峰间距
-		const minDist = Math.max(40, Math.floor(sampleRate * 0.35));
+		const minDist = Math.max(60, Math.floor(sampleRate * 0.35));
 		const peaks = [];
 		for (let i = 2; i < n - 2; i++) {
 			const v = samples[i];
@@ -194,8 +186,142 @@
 		rrs.sort((a, b) => a - b);
 		const medRr = rrs[Math.floor(rrs.length / 2)] || Math.round(sampleRate * 0.7);
 		const sec = ((Math.max(2, targetPeaks) - 1) * medRr) / sampleRate;
-		// PC：实时窗口建议最近 3～10 秒 mV 波形（250Hz×3s≈750 点）
 		return Math.max(BLE_SCREEN_SECONDS_MIN, Math.min(BLE_SCREEN_SECONDS_MAX, sec || fallback));
+	}
+
+	/* ==================== 图片协议：23|len|LE uint16×len|cs|0A ==================== */
+	/** 与真机 parseWave 一致：12bit / 3.3V / 1.65V 偏置 */
+	const BLE_ADC_MID = 2048;
+	const BLE_ADC_FS_MV = 3300;
+	const BLE_ADC_FULL = 4096;
+	const BLE_ADC_GAIN = 400;
+	const BLE_ADC_RAIL_MARGIN = 20;
+	/** 模拟组帧：与例帧一致，每帧 5 组 */
+	const BLE_WAVE_GROUPS_PER_FRAME = 5;
+	/** |mV| 超过此值丢弃（接触异常/轨饱和） */
+	const BLE_MV_ABS_LIMIT = 5;
+
+	function bleAdcToMv(adc) {
+		return (Number(adc) - BLE_ADC_MID) * BLE_ADC_FS_MV / BLE_ADC_FULL / BLE_ADC_GAIN;
+	}
+
+	function bleMvToAdc(mv) {
+		const x = Math.round(Number(mv) * BLE_ADC_GAIN * BLE_ADC_FULL / BLE_ADC_FS_MV + BLE_ADC_MID);
+		return Math.max(0, Math.min(4095, x));
+	}
+
+	function isBleMvInRange(v) {
+		return Number.isFinite(v) && Math.abs(v) <= BLE_MV_ABS_LIMIT;
+	}
+
+	function isBleAdcRail(adc) {
+		return adc <= BLE_ADC_RAIL_MARGIN || adc >= (BLE_ADC_FULL - 1 - BLE_ADC_RAIL_MARGIN);
+	}
+
+	function filterBleMvInRange(list) {
+		const out = [];
+		for (let i = 0; i < (list || []).length; i++) {
+			const v = Number(list[i]);
+			if (isBleMvInRange(v)) out.push(v);
+		}
+		return out;
+	}
+
+	/**
+	 * 单帧严格按图片协议解析 → mV 列表（校验失败返回 []）。
+	 * 23|len|LE×len|cs|0A；((adc-2048)*3300/4096)/400；cs 为 0x0A 时按 0x00；|mV|>5 丢弃。
+	 */
+	function parseBleProtocolFrameToMv(frameBytes) {
+		const buf = frameBytes || [];
+		if (buf.length < 6 || buf[0] !== 0x23 || buf[buf.length - 1] !== 0x0a) return [];
+		const sumRx = buf[buf.length - 2];
+		let sumCalc = 0;
+		for (let i = 1; i < buf.length - 2; i++) {
+			sumCalc = (sumCalc + (buf[i] & 0xff)) & 0xff;
+		}
+		if (sumCalc === 0x0a) sumCalc = 0x00;
+		if (sumCalc !== sumRx) return [];
+		const n = buf[1] & 0xff;
+		if (n < 1 || buf.length !== 4 + n * 2) return [];
+		const out = [];
+		for (let g = 0; g < n; g++) {
+			const off = 2 + g * 2;
+			const adc = (buf[off] & 0xff) | ((buf[off + 1] & 0xff) << 8);
+			const mv = (adc - BLE_ADC_MID) * BLE_ADC_FS_MV / BLE_ADC_FULL / BLE_ADC_GAIN;
+			out.push(isBleAdcRail(adc) || !isBleMvInRange(mv) ? NaN : mv);
+		}
+		return out;
+	}
+
+	/** hex 帧列表（可含空格）→ 协议解析后的 mV */
+	function parseBleProtocolFramesToMv(frameHexList) {
+		const out = [];
+		const list = frameHexList || [];
+		for (let f = 0; f < list.length; f++) {
+			const clean = String(list[f] || '').replace(/\s+/g, '');
+			if (!clean || clean.length < 10 || (clean.length % 2) !== 0) continue;
+			const bytes = new Array(clean.length / 2);
+			for (let i = 0; i < clean.length; i += 2) {
+				bytes[i / 2] = parseInt(clean.substr(i, 2), 16);
+			}
+			const mvs = parseBleProtocolFrameToMv(bytes);
+			for (let j = 0; j < mvs.length; j++) out.push(mvs[j]);
+		}
+		return out;
+	}
+
+	/** 校验：(长度+数据) & 0xFF；若为 0x0A 则写成 0x00 */
+	function bleFrameChecksum(payloadBytes) {
+		let s = 0;
+		for (let i = 0; i < payloadBytes.length; i++) {
+			s = (s + (payloadBytes[i] & 0xff)) & 0xff;
+		}
+		if (s === 0x0a) s = 0x00;
+		return s;
+	}
+
+	function buildBleWaveFrameBytes(adcSamples) {
+		const n = (adcSamples || []).length;
+		if (!n) return [];
+		const payload = [n & 0xff];
+		for (let i = 0; i < n; i++) {
+			const adc = Math.max(0, Math.min(4095, adcSamples[i] | 0));
+			payload.push(adc & 0xff, (adc >> 8) & 0xff);
+		}
+		return [0x23, ...payload, bleFrameChecksum(payload), 0x0a];
+	}
+
+	function bleBytesToHex(bytes) {
+		let hex = '';
+		for (let i = 0; i < bytes.length; i++) {
+			hex += ('00' + (bytes[i] & 0xff).toString(16)).slice(-2);
+		}
+		return hex;
+	}
+
+	/** mV → ADC → 协议帧 hex（模拟蓝牙 notify） */
+	function encodeBleWaveFrameHexList(mvList, groupsPerFrame = BLE_WAVE_GROUPS_PER_FRAME) {
+		const frames = [];
+		const src = mvList || [];
+		const gpf = Math.max(1, groupsPerFrame | 0);
+		for (let i = 0; i < src.length;) {
+			const n = Math.min(gpf, src.length - i);
+			const adcs = new Array(n);
+			for (let j = 0; j < n; j++) adcs[j] = bleMvToAdc(src[i + j]);
+			i += n;
+			frames.push(bleBytesToHex(buildBleWaveFrameBytes(adcs)));
+		}
+		return frames;
+	}
+
+	/** 离线走同一公式：mV→ADC→mV（与 parseWave 一致，供全波形/上报对齐） */
+	function decodeBleProtocolMvFromSource(mvList) {
+		const src = mvList || [];
+		const out = new Array(src.length);
+		for (let i = 0; i < src.length; i++) {
+			out[i] = bleAdcToMv(bleMvToAdc(src[i]));
+		}
+		return out;
 	}
 
 	/** 设备差分编码的「轨」幅值（约 ±1650） */
@@ -229,8 +355,8 @@
 		};
 	}
 
-	/** 本设备差分后显示极性：正值向上为 R 峰。若仍朝下，只改这一处为 1 或 -1 */
-	const BLE_ECG_POLARITY = -1;
+	/** 协议 mV 正值向上为 R 峰（ADC>2048）。旧差分解码才需要 -1 */
+	const BLE_ECG_POLARITY = 1;
 
 	/**
 	 * 仅显示用（不上报）：
@@ -308,14 +434,14 @@
 	const CUSTOMER_TXT_CTRL_START = 'A6 15 01 16';
 	const CUSTOMER_TXT_CTRL_END = 'A6 15 00 15';
 	const CUSTOMER_TXT_MIN_KEEP_SEC = 10;
-	/** 上报固定：250Hz × 40s = 10000 点（与 TXT/BLE 一致）；对齐 DEFAULT_ECG_STORAGE_VOLTAGE_RANGE_MV=500 */
+	/** 上报固定：250Hz × 60s = 15000 点（与 TXT/BLE 一致）；对齐 DEFAULT_ECG_STORAGE_VOLTAGE_RANGE_MV=500 */
 	const CUSTOMER_UPLOAD_FS = 250;
-	const CUSTOMER_UPLOAD_SECONDS = 40;
-	const CUSTOMER_UPLOAD_POINTS = CUSTOMER_UPLOAD_FS * CUSTOMER_UPLOAD_SECONDS; // 10000
+	const CUSTOMER_UPLOAD_SECONDS = 60;
+	const CUSTOMER_UPLOAD_POINTS = CUSTOMER_UPLOAD_FS * CUSTOMER_UPLOAD_SECONDS; // 15000
 	/** 对齐 ecg_main.DEFAULT_ECG_STORAGE_VOLTAGE_RANGE_MV */
 	const CUSTOMER_STORAGE_VOLTAGE_RANGE_MV = 500;
-	/** 对齐 ecg_main.CUSTOMER_HEX_TXT_ABS_LIMIT_MV：|x|>300 视为接触异常并插值 */
-	const CUSTOMER_HEX_TXT_ABS_LIMIT_MV = 300;
+	/** |x|>5 视为接触异常并插值（与 BLE_MV_ABS_LIMIT 一致） */
+	const CUSTOMER_HEX_TXT_ABS_LIMIT_MV = 5;
 	/** 对齐 ecg_main metadata.customer_lowpass_hz（云端特征用；本页入库 raw 不做滤波） */
 	const CUSTOMER_HEX_TXT_LOWPASS_HZ = 12;
 
@@ -348,7 +474,7 @@
 			};
 		}
 		if (src.length > expectPoints) {
-			// 均匀抽稀到 10000，保持约 40s 覆盖
+			// 均匀抽稀到 15000，保持约 60s 覆盖
 			const out = new Array(expectPoints);
 			const last = src.length - 1;
 			for (let i = 0; i < expectPoints; i++) {
@@ -389,20 +515,16 @@
 	}
 
 	/**
-	 * 仅本页实时/全波形显示：mV 转回显示量级后差分成连续波（不上报）。
-	 * 上报严格按 PC store_data：customer 已是 mV 的 cleaned raw，不做差分解码。
+	 * 仅本页实时/全波形显示：协议 mV 直接显示（×极性），不再差分解码。
 	 */
 	function customerMvToDisplayWave(mvSignal) {
 		if (!mvSignal || !mvSignal.length) return [];
-		let maxAbs = 0;
+		const out = new Array(mvSignal.length);
 		for (let i = 0; i < mvSignal.length; i++) {
-			const a = Math.abs(Number(mvSignal[i]));
-			if (Number.isFinite(a) && a > maxAbs) maxAbs = a;
+			const v = Number(mvSignal[i]);
+			out[i] = Number.isFinite(v) ? v * BLE_ECG_POLARITY : 0;
 		}
-		const rawLike = maxAbs > 0 && maxAbs < 20 ?
-			mvSignal.map((v) => (Number.isFinite(v) ? v * 1000 : 0)) :
-			mvSignal.slice();
-		return prepareBleContinuousWave(rawLike);
+		return out;
 	}
 
 	function inferFsFromFileName(fileName) {
@@ -801,20 +923,28 @@
 	}
 
 	/**
-	 * ble-test-data.js：60s 已是 mV（对齐 PC customer_adc_mV）。
-	 * 显示：差分连续波；上报：clean±300 → INT16 raw（云端再滤波）。
+	 * 模拟数据：只认原始协议帧，严格用 parseBleProtocolFrameToMv 解出 mV。
+	 * 与真机 parseWave 同一套（新二进制协议，非旧 ASCII/#）。
 	 */
-	const bleContinuousWaveData = prepareBleContinuousWave(bleTestEcgData);
+	const bleMockFrameHexList = (bleTestEcgFrameHex && bleTestEcgFrameHex.length) ?
+		bleTestEcgFrameHex.slice() : [];
+	const bleProtocolMvData = bleMockFrameHexList.length ?
+		parseBleProtocolFramesToMv(bleMockFrameHexList) : [];
+	/** 显示用：协议 mV × 极性 */
+	const bleContinuousWaveData = bleProtocolMvData.map((v) => v * BLE_ECG_POLARITY);
 	/** 按主峰 RR 估出的一屏秒数（钳制在 3～10s） */
-	const BLE_ESTIMATED_SCREEN_SECONDS = estimateBleScreenSeconds(bleContinuousWaveData);
-	/** 缩放后的显示量程（差分后仍为显示缓冲量级） */
+	const BLE_ESTIMATED_SCREEN_SECONDS = estimateBleScreenSeconds(
+		bleContinuousWaveData.length ? bleContinuousWaveData : [0]
+	);
+	/** 显示量程：按 p95 留余量，避免偶发尖峰把格子撑太大导致波形显矮 */
 	const BLE_VOLTAGE_RANGE = (() => {
-		let maxAbs = 0;
-		for (let i = 0; i < bleContinuousWaveData.length; i++) {
-			const a = Math.abs(bleContinuousWaveData[i]);
-			if (a > maxAbs) maxAbs = a;
-		}
-		return Math.max(20, Math.ceil(maxAbs * 1.5));
+		if (!bleProtocolMvData.length) return 120;
+		const abs = bleProtocolMvData.map((v) => Math.abs(v)).filter((a) => Number.isFinite(a)).sort((a, b) => a -
+			b);
+		if (!abs.length) return 120;
+		const p95 = abs[Math.min(abs.length - 1, Math.floor(abs.length * 0.95))] || abs[abs.length - 1];
+		const maxAbs = abs[abs.length - 1];
+		return Math.max(80, Math.ceil(Math.max(p95 * 1.8, maxAbs * 0.9)));
 	})();
 
 	export default {
@@ -851,9 +981,11 @@
 				bleMockTimer: null,
 				selectedType: BLE_TEST_TYPE,
 				rhythmOptions: [],
-				bleDataPointCount: bleTestEcgData.length,
+				bleDataPointCount: bleProtocolMvData.length,
+				bleMockFrameCount: bleMockFrameHexList.length,
 				bleTestFs: bleTestEcgFs,
-				bleTestSec: bleTestEcgSeconds,
+				bleTestSec: bleProtocolMvData.length && bleTestEcgFs ?
+					+(bleProtocolMvData.length / bleTestEcgFs).toFixed(1) : bleTestEcgSeconds,
 				/** 模拟结束后保持 BLE 全波形，云端列表只更新评分不覆盖波形 */
 				keepBleFullWaveDisplay: false,
 				bleHandler: null,
@@ -870,7 +1002,7 @@
 				bleMeasureStartedAt: 0,
 				/** 已点开始测量、等待设备出数 */
 				bleMeasureArmed: false,
-				/** 蓝牙原始 # 采样（未做差分显示处理），用于 mV 换算上报 */
+				/** 蓝牙协议解析后的 mV（上报用）；非旧版 ASCII/# */
 				bleRawEcgValues: [],
 				/** 客户 TXT 解析上报进行中 */
 				customerTxtBusy: false,
@@ -935,7 +1067,7 @@
 				if (this.logs.length > 200) {
 					this.logs.shift();
 				}
-				this.logScrollTop = this.logs.length * 40;
+				this.logScrollTop = this.logs.length * 60;
 			},
 			clearLogs() {
 				this.logs = [];
@@ -973,7 +1105,7 @@
 				const wave = this.getWaveRef();
 				const options = [{
 					type: BLE_TEST_TYPE,
-					name: `BLE测试数据(${bleTestEcgData.length}点)`
+					name: `BLE新协议(${bleProtocolMvData.length}点)`
 				}];
 				if (wave && typeof wave.getTestRhythmTypes === 'function') {
 					const types = wave.getTestRhythmTypes();
@@ -986,22 +1118,101 @@
 				}
 				this.rhythmOptions = options;
 			},
+			/**
+			 * 按画布真实 fixedGain/高度计算增益；实时与「加载BLE全波形」共用。
+			 * 用 p95 估幅度，避免个别尖峰把增益压死。
+			 */
+			fitBleDisplayGain(wave, data, fillRatio = BLE_TARGET_FILL) {
+				const src = (data && data.length) ? data : bleContinuousWaveData;
+				if (!wave || !src || !src.length) {
+					return Number(this._bleDisplayGain) || BLE_MEASURE_GAIN;
+				}
+				wave.lepuNormalizeAmplitude = false;
+				if (typeof wave.maxAmplifyFactor === 'number') {
+					wave.maxAmplifyFactor = Math.max(wave.maxAmplifyFactor, 20);
+				}
+				if (typeof wave.minAmplifyFactor === 'number') {
+					wave.minAmplifyFactor = Math.min(wave.minAmplifyFactor, 0.3);
+				}
+				if (typeof wave.setMillivoltsPerSmallGrid === 'function') {
+					wave.setMillivoltsPerSmallGrid(BLE_MV_PER_SMALL_GRID);
+				} else {
+					wave.millivoltsPerSmallGrid = BLE_MV_PER_SMALL_GRID;
+				}
+				if (typeof wave.calculateStandardGain === 'function') {
+					wave.calculateStandardGain();
+				}
+				let sum = 0;
+				let n = 0;
+				for (let i = 0; i < src.length; i++) {
+					const v = Number(src[i]);
+					if (!Number.isFinite(v)) continue;
+					sum += v;
+					n++;
+				}
+				const mean = n ? sum / n : 0;
+				const absList = [];
+				let maxAbs = 0;
+				for (let i = 0; i < src.length; i++) {
+					const a = Math.abs(Number(src[i]) - mean);
+					if (!Number.isFinite(a)) continue;
+					absList.push(a);
+					if (a > maxAbs) maxAbs = a;
+				}
+				if (!absList.length) {
+					return Number(this._bleDisplayGain) || BLE_MEASURE_GAIN;
+				}
+				absList.sort((a, b) => a - b);
+				const p95 = absList[Math.min(absList.length - 1, Math.floor(absList.length * 0.95))] || maxAbs;
+				// 临床 QRS 约 0.5～1mV；不要用 maxAbs，尖峰会把波形压成直线
+				const scaleAbs = Math.max(p95 * 1.15, 0.35);
+				const fixedGain = Math.max(1, Number(wave.fixedGain) || (8 / BLE_MV_PER_SMALL_GRID));
+				const marginTB = (wave.margin && (wave.margin.top + wave.margin.bottom)) || 20;
+				const canvasH = Math.max(Number(wave.pxHeight) || 0, 200);
+				const halfH = Math.max(60, (canvasH - marginTB) / 2);
+				let amp = (halfH * fillRatio) / (scaleAbs * fixedGain);
+				// 0.1mV/小格时 amp=1 已是 10mm/mV；限制在 0.45～1.1，避免顶满格子
+				amp = Math.min(1.1, Math.max(0.45, amp));
+				this._bleDisplayGain = amp;
+				wave.apiDataAmplifyFactor = 1;
+				wave.measureAmplifyFactor = amp;
+				wave.amplifyFactor = amp;
+				// 测量中禁止 forceDraw：会改走静态 draw()，造成一闪一闪、像在滑动
+				if (!wave.isMeasuring) {
+					if (typeof wave.setMeasureAmplifyFactor === 'function') {
+						wave.setMeasureAmplifyFactor(amp);
+					}
+					if (typeof wave.setAmplifyFactor === 'function') {
+						wave.setAmplifyFactor(amp);
+					}
+				}
+				this.addLog('波形缩放',
+					'acMax=' + maxAbs.toFixed(3) + ', p95=' + p95.toFixed(3) + ', scale=' + scaleAbs.toFixed(3) +
+					', fixed=' + fixedGain.toFixed(1) + ', halfH=' + halfH.toFixed(0) + ', amp=' + amp.toFixed(3) +
+					', fill=' + fillRatio
+				);
+				return amp;
+			},
+			applyBleDisplayGain(wave) {
+				if (!wave) return BLE_MEASURE_GAIN;
+				return this.fitBleDisplayGain(wave, bleContinuousWaveData, BLE_TARGET_FILL);
+			},
 			applyBleWaveRange(wave, forFullWave = false) {
 				if (!wave) return;
-				const liveBusy = !!(wave.isMeasuring && (wave.lepuSampleCount > 0 || wave.fullDataList && wave
-					.fullDataList.length > 0));
-				// 测量中途只改参数，避免 setSampleRate/setScreenDuration 清空已画缓冲
-				if (liveBusy && !forFullWave) {
-					wave.sampleRate = BLE_DRAW_SAMPLE_RATE;
-					wave.screenDuration = BLE_ESTIMATED_SCREEN_SECONDS;
-					wave.scrollStartDuration = BLE_ESTIMATED_SCREEN_SECONDS;
-					wave.measureAmplifyFactor = BLE_MEASURE_GAIN;
-					wave.amplifyFactor = BLE_MEASURE_GAIN;
-					wave.apiDataAmplifyFactor = 1;
-					if (typeof wave.setSignalGridRange === 'function') {
-						wave.setSignalGridRange(Math.max(BLE_VOLTAGE_RANGE, 50));
-					}
+				wave.lepuNormalizeAmplitude = false;
+				if (wave.isMeasuring && !forFullWave) {
 					return;
+				}
+				if (typeof wave.maxAmplifyFactor === 'number') {
+					wave.maxAmplifyFactor = Math.max(wave.maxAmplifyFactor, 20);
+				}
+				if (typeof wave.setMillivoltsPerSmallGrid === 'function') {
+					wave.setMillivoltsPerSmallGrid(BLE_MV_PER_SMALL_GRID);
+				} else {
+					wave.millivoltsPerSmallGrid = BLE_MV_PER_SMALL_GRID;
+				}
+				if (typeof wave.calculateStandardGain === 'function') {
+					wave.calculateStandardGain();
 				}
 				if (typeof wave.setSampleRate === 'function') {
 					wave.setSampleRate(BLE_DRAW_SAMPLE_RATE);
@@ -1009,84 +1220,47 @@
 					wave.sampleRate = BLE_DRAW_SAMPLE_RATE;
 				}
 				if (typeof wave.setSignalGridRange === 'function') {
-					wave.setSignalGridRange(Math.max(BLE_VOLTAGE_RANGE, 50));
+					wave.setSignalGridRange(Math.max(BLE_VOLTAGE_RANGE, 5));
 				}
 				if (typeof wave.setNormalVoltageRange === 'function') {
-					wave.setNormalVoltageRange(Math.max(BLE_VOLTAGE_RANGE, 50));
+					wave.setNormalVoltageRange(Math.max(BLE_VOLTAGE_RANGE, 5));
 				}
 				if (!forFullWave && typeof wave.setScreenDuration === 'function') {
 					wave.setScreenDuration(BLE_ESTIMATED_SCREEN_SECONDS);
+				} else if (!forFullWave) {
+					wave.screenDuration = BLE_ESTIMATED_SCREEN_SECONDS;
+					wave.scrollStartDuration = BLE_ESTIMATED_SCREEN_SECONDS;
 				}
-				const gain = forFullWave ? BLE_FULL_WAVE_GAIN : BLE_MEASURE_GAIN;
-				wave.measureAmplifyFactor = gain;
-				wave.amplifyFactor = gain;
-				wave.apiDataAmplifyFactor = 1;
-				if (!forFullWave) {
-					if (typeof wave.setMeasureAmplifyFactor === 'function' && gain >= 0.5) {
-						wave.setMeasureAmplifyFactor(gain);
-					}
-					if (typeof wave.setAmplifyFactor === 'function' && gain >= 0.5) {
-						wave.setAmplifyFactor(gain);
-					}
+				this.applyBleDisplayGain(wave);
+				const displayAmp = Math.min(1.1, Math.max(
+					BLE_LIVE_AMPLIFY_MIN,
+					Number(wave.measureAmplifyFactor) || BLE_LIVE_AMPLIFY_MIN
+				));
+				wave.measureAmplifyFactor = displayAmp;
+				wave.amplifyFactor = displayAmp;
+				if (!forFullWave && typeof wave.updateDisplayDataLength === 'function') {
+					wave.updateDisplayDataLength();
 				}
 			},
-			/** 确保已进入测量态（与模拟相同的 rate/时长/增益） */
 			ensureBleMeasuring(wave, reason = '') {
 				if (!wave) return false;
-				if (!wave.isMeasuring) {
-					if (wave.showFullWaveMode) {
-						wave.showFullWaveMode = false;
-						wave.showFullWaveControls = false;
-					}
-					this.applyBleWaveRange(wave);
-					wave.startMeasurement();
-					this.applyBleWaveRange(wave);
-					if (reason) this.addLog('测量', `自动进入测量: ${reason}`);
-				} else {
-					this.applyBleWaveRange(wave);
+				if (wave.isMeasuring) return true;
+				if (wave.showFullWaveMode) {
+					wave.showFullWaveMode = false;
+					wave.showFullWaveControls = false;
 				}
+				this.applyBleWaveRange(wave);
+				wave.startMeasurement();
+				if (reason) this.addLog('测量', '自动进入测量: ' + reason);
 				return !!wave.isMeasuring;
 			},
-			/**
-			 * 仅本页全波形/云端数据显示用：按峰值把高度压到约半屏 25%，避免顶满画布。
-			 * 不改 ecg-wave 默认逻辑，也不影响实时测量增益（BLE_MEASURE_GAIN）。
-			 * generateApiData 在 voltageRange<=10 时会把 apiDataAmplifyFactor 设为 25，必须在其后覆盖。
-			 */
-			fitEcgDemoWaveGain(wave, data, fillRatio = 0.25) {
-				if (!wave || !data || !data.length) return 0;
-				const absList = [];
-				let maxAbs = 0;
-				for (let i = 0; i < data.length; i++) {
-					const a = Math.abs(Number(data[i]));
-					if (!Number.isFinite(a)) continue;
-					absList.push(a);
-					if (a > maxAbs) maxAbs = a;
-				}
-				if (!absList.length) return 0;
-				absList.sort((a, b) => a - b);
-				const p95 = absList[Math.min(absList.length - 1, Math.floor(absList.length * 0.95))] || maxAbs;
-				const p99 = absList[Math.min(absList.length - 1, Math.floor(absList.length * 0.99))] || maxAbs;
-				// 用更大 scaleAbs（贴近 maxAbs），降低 amp，避免尖峰顶边、整体显大
-				const scaleAbs = Math.max(p95 * 1.15, p99 * 1.05, maxAbs * 0.75, 0.001);
-				const fixedGain = wave.fixedGain || 50;
-				const marginTB = (wave.margin && (wave.margin.top + wave.margin.bottom)) || 40;
-				const halfH = Math.max(60, ((wave.pxHeight || 280) - marginTB) / 2);
-				const amp = (halfH * fillRatio) / (scaleAbs * fixedGain);
-				wave.apiDataAmplifyFactor = 1;
-				wave.measureAmplifyFactor = amp;
-				wave.amplifyFactor = amp;
-				if (typeof wave.forceDraw === 'function') {
-					wave.forceDraw();
-				}
-				this.addLog('波形缩放',
-					`maxAbs=${maxAbs.toFixed(3)}, p95=${p95.toFixed(3)}, p99=${p99.toFixed(3)}, scale=${scaleAbs.toFixed(3)}, amp=${amp.toFixed(4)}, fill=${fillRatio}`
-				);
-				return amp;
+			fitEcgDemoWaveGain(wave, data, fillRatio = BLE_TARGET_FILL) {
+				return this.fitBleDisplayGain(wave, data, fillRatio);
 			},
-			/** 全波形：短窗口不挤在一起；垂直增益按峰值自适应，避免顶出画布 */
 			showBleProcessedFullWave(wave) {
 				if (!wave || typeof wave.showFullWave !== 'function') return;
 				this.applyBleWaveRange(wave, true);
+				wave.fullWaveDuration = BLE_ESTIMATED_SCREEN_SECONDS;
 				wave.showFullWave();
 				const total = typeof wave.fullWaveTotalDuration === 'number' ?
 					wave.fullWaveTotalDuration :
@@ -1094,13 +1268,11 @@
 							.length) ||
 						0) /
 					(wave.sampleRate || 250);
-				// 一屏 3～10s（250Hz×3s≈750 点），禁止把整段 40s 塞进画布
 				const win = Math.min(
-					BLE_FULL_WAVE_SECONDS,
+					BLE_ESTIMATED_SCREEN_SECONDS,
 					Math.max(BLE_SCREEN_SECONDS_MIN, Math.min(BLE_SCREEN_SECONDS_MAX, total ||
 						BLE_SCREEN_SECONDS))
 				);
-				// 优先从有信号的靠后位置起看（避开开头接触不稳定段）
 				const start = total > win + 3 ? Math.min(3, total - win) : 0;
 				wave.fullWaveStartTime = start;
 				wave.fullWaveDuration = win;
@@ -1111,10 +1283,22 @@
 				const src = (wave.fullDataList && wave.fullDataList.length) ?
 					wave.fullDataList :
 					(wave.apiDataList || []);
-				const amp = this.fitEcgDemoWaveGain(wave, src, 0.25);
+				const useGain = this.fitBleDisplayGain(wave, src.length ? src : bleContinuousWaveData,
+					BLE_TARGET_FILL);
+				const fullAmp = Math.min(1.1, Math.max(
+					BLE_LIVE_AMPLIFY_MIN,
+					Number(useGain) || BLE_LIVE_AMPLIFY_MIN
+				));
+				wave.measureAmplifyFactor = fullAmp;
+				wave.amplifyFactor = fullAmp;
+				wave.apiDataAmplifyFactor = 1;
+				if (typeof wave.forceDraw === 'function') {
+					wave.forceDraw();
+				}
 				this.addLog(
 					'全波形',
-					`自适应增益=${(amp || 0).toFixed(4)}, 一屏=${win.toFixed(1)}s / 总${total.toFixed(1)}s, 极性=${BLE_ECG_POLARITY}`
+					'增益=' + useGain.toFixed(2) + '(实时同款), 一屏=' + win.toFixed(1) + 's / 总' + total.toFixed(1) +
+					's, 极性=' + BLE_ECG_POLARITY
 				);
 			},
 			clearBleMeasureTimer() {
@@ -1123,7 +1307,7 @@
 					this.bleMeasureTimer = null;
 				}
 			},
-			/** 每次蓝牙测量固定 40s：到点自动结束并出全图 */
+			/** 每次蓝牙测量固定 60s：到点自动结束并出全图 */
 			startBleMeasureTimer(reason = '开始计时', force = false) {
 				if (this.bleMeasureTimer && !force) return;
 				this.clearBleMeasureTimer();
@@ -1141,7 +1325,7 @@
 				this._bleMeasureFinishing = true;
 				this.clearBleMeasureTimer();
 				this.addLog('测量', `已满 ${BLE_MEASURE_SECONDS}s，自动结束`);
-				this.measurementStatus = '采集结束(40s)';
+				this.measurementStatus = '采集结束(60s)';
 				this.tip = this.measurementStatus;
 				this.bleMeasureArmed = false;
 				if (typeof wave.stopMeasurement === 'function') {
@@ -1184,26 +1368,38 @@
 				}
 			},
 			/**
-			 * BLE 模拟：本地按采样率推送，播完自动停止，不循环。
-			 * 不走 ecg-wave.startTestWaveform（其内部会把 index 置 0 重复播放）。
+			 * BLE 模拟：把数据编成图片协议帧（23|len|LE|cs|0A），写入 buffer 走 tryParse/parseWave。
+			 * 与真机 notify 同一路径；播完自动停止，不循环。
 			 */
-			startBleMockPlayback(wave, payload) {
+			startBleMockPlayback(wave) {
 				this.clearBleMockTimer();
 				if (wave && typeof wave.stopTestWaveform === 'function') {
 					wave.stopTestWaveform();
 				}
-				if (wave && typeof wave.clear === 'function') {
+				if (typeof this.clearWave === 'function') {
+					this.clearWave();
+				} else if (wave && typeof wave.clear === 'function') {
 					wave.clear();
 				}
-				this._bleMockData = payload || [];
+				this.buffer = '';
+				this.bleMeasureArmed = true;
+				this._bleMeasureFinishing = false;
+				this.resetBleStreamState();
+				this.bleRawEcgValues = [];
+				this.lastBleValidMv = null;
+				this.dataCount = 0;
+				this._bleMockFrames = bleMockFrameHexList.slice();
 				this._bleMockIndex = 0;
 				this.applyBleWaveRange(wave);
 				if (typeof wave.startMeasurement === 'function') {
 					wave.startMeasurement();
 				}
-				this.applyBleWaveRange(wave);
+				this.clearBleMeasureTimer(); // 模拟以帧播完为准，不用真机 60s 超时
+				// 250Hz、每帧 5 点 → 50 帧/秒；10 tick/秒 → 每 tick 约 5 帧
 				const batchesPerSecond = 10;
-				const batchSize = Math.max(1, Math.round(BLE_DRAW_SAMPLE_RATE / batchesPerSecond));
+				const framesPerTick = Math.max(1, Math.round(
+					(BLE_DRAW_SAMPLE_RATE / BLE_WAVE_GROUPS_PER_FRAME) / batchesPerSecond
+				));
 				const interval = Math.round(1000 / batchesPerSecond);
 				this.isMockTesting = true;
 				this.bleMockTimer = setInterval(() => {
@@ -1211,18 +1407,23 @@
 						this.clearBleMockTimer();
 						return;
 					}
-					const data = this._bleMockData || [];
-					if (this._bleMockIndex >= data.length) {
+					const frames = this._bleMockFrames || [];
+					if (this._bleMockIndex >= frames.length) {
 						this.clearBleMockTimer();
-						this.addLog('模拟测试', `数据播放完毕(${data.length}点)，自动停止`);
+						this.addLog('模拟测试',
+							`协议帧播放完毕(${frames.length}帧/${bleProtocolMvData.length}点)，自动停止`);
 						this.stopMockTest(true);
 						return;
 					}
-					const end = Math.min(this._bleMockIndex + batchSize, data.length);
-					const batch = data.slice(this._bleMockIndex, end);
+					const end = Math.min(this._bleMockIndex + framesPerTick, frames.length);
+					let chunk = '';
+					for (let i = this._bleMockIndex; i < end; i++) {
+						chunk += frames[i];
+					}
 					this._bleMockIndex = end;
-					if (batch.length && typeof wave.pushData === 'function') {
-						wave.pushData(batch);
+					if (chunk) {
+						this.buffer += chunk;
+						this.tryParse();
 					}
 				}, interval);
 			},
@@ -1237,18 +1438,18 @@
 				}
 				this.keepBleFullWaveDisplay = false;
 				if (this.selectedType === BLE_TEST_TYPE) {
-					const payload = this.getBleWavePayload();
-					if (!payload.length) {
+					if (!bleMockFrameHexList.length) {
 						uni.showToast({
 							title: '无模拟数据',
 							icon: 'none'
 						});
 						return;
 					}
-					this.startBleMockPlayback(wave, payload);
+					this.startBleMockPlayback(wave);
 					this.addLog(
 						'模拟测试',
-						`开始BLE回放(播完即停): ${payload.length}点, screen=${BLE_ESTIMATED_SCREEN_SECONDS.toFixed(2)}s(~${BLE_TARGET_PEAKS}峰), range=${BLE_VOLTAGE_RANGE}`
+						`开始协议帧回放(播完即停): ${bleMockFrameHexList.length}帧/${bleProtocolMvData.length}点, ` +
+						`groups=${BLE_WAVE_GROUPS_PER_FRAME}, screen=${BLE_ESTIMATED_SCREEN_SECONDS.toFixed(2)}s`
 					);
 					return;
 				}
@@ -1279,12 +1480,33 @@
 					wave.stopMeasurement();
 				}
 				this.isMockTesting = false;
+				this.bleMeasureArmed = false;
+				this._bleMockFrames = null;
 				this._bleMockData = null;
 				this._bleMockIndex = 0;
 				if (showBleFull && wasBle) {
-					// 内置 ble-test-data：对齐 PC 客户 hex（已是 mV + ±300 清洁 → INT16）
-					this.uploadMockBleCustomerEcg();
-					setTimeout(() => this.renderBleFullWaveFromPayload('模拟完成'), 50);
+					// 优先用协议解析得到的 bleRawEcgValues（与真机一致）
+					const parsed = (this.bleRawEcgValues || []).filter(v => Number.isFinite(Number(v))).map(Number);
+					if (parsed.length) {
+						this.uploadAlreadyMvCustomerEcg(parsed, {
+							raw_format: 'customer_ble_mock',
+							logTag: '模拟解析上报',
+							errTag: '模拟上报异常',
+							fs: bleTestEcgFs,
+							seconds: Math.max(1, Math.round(parsed.length / (bleTestEcgFs || 250))),
+							fileName: `${bleTestEcgFs}hz_protocol.txt`
+						});
+					} else {
+						this.uploadMockBleCustomerEcg();
+					}
+					setTimeout(() => {
+						if (wave && typeof wave.getFullDataList === 'function' &&
+							wave.getFullDataList().length) {
+							this.showBleProcessedFullWave(wave);
+						} else {
+							this.renderBleFullWaveFromPayload('模拟完成');
+						}
+					}, 50);
 				}
 				this.addLog('模拟测试', '已停止');
 			},
@@ -1329,18 +1551,18 @@
 				});
 			},
 			/**
-			 * 已是 mV 采样（模拟 ble-test-data / 实时 # 帧解析后）：
-			 * 与 PC clean_customer_hex_txt_ecg 同路径 → clean±300 → INT16。
+			 * 已是协议 mV（模拟帧解析 / 实时 parseWave）：
+			 * clean±500 → INT16。
 			 */
 			uploadAlreadyMvCustomerEcg(mvValues, options = {}) {
-				const raw = (mvValues || []).filter(v => Number.isFinite(Number(v))).map(Number);
+				const raw = (mvValues || []).map(v => Number(v));
 				const logTag = options.logTag || '解析上报';
 				const errTag = options.errTag || '上报异常';
 				const fs = options.fs || bleTestEcgFs || CUSTOMER_UPLOAD_FS;
 				const sec = options.seconds || bleTestEcgSeconds || 60;
 				const fileName = options.fileName || `${fs}hz_${sec}s.txt`;
 				const rawFormat = options.raw_format || 'customer_ble_mock';
-				if (!raw.length) {
+				if (!raw.length || !raw.some(v => Number.isFinite(v))) {
 					this.addLog(logTag, '无已是 mV 采样');
 					return;
 				}
@@ -1390,19 +1612,19 @@
 					this.addLog(errTag, err);
 				});
 			},
-			/** 模拟：内置 ble-test-data 一律走客户 hex mV 清洁路径 */
+			/** 模拟兜底：协议往返后的 mV（正常回放结束走 bleRawEcgValues） */
 			uploadMockBleCustomerEcg() {
-				if (!bleTestEcgData || !bleTestEcgData.length) {
-					this.addLog('模拟上报', '无 bleTestEcgData');
+				if (!bleProtocolMvData || !bleProtocolMvData.length) {
+					this.addLog('模拟上报', '无 bleProtocolMvData');
 					return;
 				}
-				this.uploadAlreadyMvCustomerEcg(bleTestEcgData, {
+				this.uploadAlreadyMvCustomerEcg(bleProtocolMvData, {
 					raw_format: 'customer_ble_mock',
 					logTag: '模拟解析上报',
 					errTag: '模拟上报异常',
 					fs: bleTestEcgFs,
 					seconds: bleTestEcgSeconds,
-					fileName: `${bleTestEcgFs}hz_${bleTestEcgSeconds}s.txt`
+					fileName: `${bleTestEcgFs}hz_${bleTestEcgSeconds}s_protocol.txt`
 				});
 			},
 			/** 与「加载BLE全波形」共用：始终用 bleContinuousWaveData（与 TXT 同点数） */
@@ -1431,7 +1653,7 @@
 				this.fullDataCount = payload.length;
 				this.addLog(
 					'BLE波形',
-					`${reason}: 显示${payload.length}点 @${BLE_DRAW_SAMPLE_RATE}Hz≈${(payload.length / BLE_DRAW_SAMPLE_RATE).toFixed(1)}s（TXT原始${bleTestEcgData.length}点）`
+					`${reason}: 协议解析显示${payload.length}点 @${BLE_DRAW_SAMPLE_RATE}Hz≈${(payload.length / BLE_DRAW_SAMPLE_RATE).toFixed(1)}s（帧${bleMockFrameHexList.length}）`
 				);
 			},
 			loadBleFullWave() {
@@ -1439,7 +1661,7 @@
 				this.keepBleFullWaveDisplay = true;
 				this.renderBleFullWaveFromPayload('加载BLE全波形');
 				uni.showToast({
-					title: `已加载 ${bleTestEcgData.length} 点`,
+					title: `已加载 ${bleProtocolMvData.length} 点`,
 					icon: 'none'
 				});
 			},
@@ -1568,21 +1790,21 @@
 					'正在：ble-test-data(uV)→mV→原INT16上报...' :
 					`正在：ble-test-data(已是幅值 ${bleTestEcgSeconds}s)→原INT16上报...`;
 				try {
-					if (!bleTestEcgData || !bleTestEcgData.length) {
-						throw new Error('无 bleTestEcgData');
+					if (!bleProtocolMvData || !bleProtocolMvData.length) {
+						throw new Error('无协议解析模拟数据');
 					}
 					if (bleTestEcgNeedUvToMv) {
 						await this.runCustomerTxtParseAndUpload(
 							'',
 							'250hz_40s.txt',
-							bleTestEcgData, {
+							bleProtocolMvData, {
 								displayMode: 'bleFull'
 							}
 						);
 					} else {
 						this.renderBleFullWaveFromPayload('内置250hz上报');
 						await new Promise((resolve, reject) => {
-							const raw = bleTestEcgData.filter(v => Number.isFinite(Number(v))).map(
+							const raw = bleProtocolMvData.filter(v => Number.isFinite(Number(v))).map(
 								Number);
 							const signal = raw.map(roundMv6);
 							const p99Abs = customerPercentile(signal.map(Math.abs), 99);
@@ -1593,11 +1815,11 @@
 								samplingRate: bleTestEcgFs,
 								unit: 'mV',
 								unitWasUv: false,
-								unitMode: 'mV_as_is',
+								unitMode: 'protocol_mV',
 								skipForceUvConvert: true,
 								p99AbsRaw: p99Abs,
 								rawPointCount: raw.length,
-								fileName: `${bleTestEcgFs}hz_${bleTestEcgSeconds}s.txt`,
+								fileName: `${bleTestEcgFs}hz_protocol.txt`,
 								raw_format: 'customer_ble_mock',
 								trimInfo: {
 									trim_applied: false,
@@ -2127,6 +2349,7 @@
 				this.bleMeasureArmed = true;
 				this._bleMeasureFinishing = false;
 				this.buffer = '';
+				this.lastBleValidMv = null;
 				wave.clear();
 				wave.stopMeasurement();
 				wave.hideFullWave();
@@ -2184,8 +2407,8 @@
 				});
 			},
 			tryParse() {
-				// 按字节边界拆帧：不能用 indexOf('0a')，否则数据/校验和为 0x0A 时会误切
-				// 从帧头起，在每个候选帧尾 0x0A 处用校验和确认，通过才消费该帧
+				// 波形帧 0x23：按长度字段定长拆帧（len=组数，每组 2 字节小端）
+				// 命令帧 0xA5/0xA6：在候选帧尾 0x0A 处用校验确认（校验和若为 0x0A 设备会写成 0x00）
 				const odd = this.buffer.length % 2;
 				const hexComplete = odd ? this.buffer.slice(0, -odd) : this.buffer;
 				const oddNibble = odd ? this.buffer.slice(-1) : '';
@@ -2193,6 +2416,7 @@
 
 				const arr = new Uint8Array(hexComplete.match(/.{2}/g).map(b => parseInt(b, 16)));
 				const MAX_FRAME = 64;
+				const MAX_WAVE_GROUPS = 30; // (64-4)/2
 				let i = 0;
 				let consumed = 0;
 
@@ -2203,18 +2427,45 @@
 						consumed = i;
 						continue;
 					}
+
+					// 波形帧（仅新协议）：23 | len(组数) | LE×len | cs | 0A
+					// 旧 ASCII（#1.61…）第二字节为 '1'/'-' 等，组数会 >30，直接跳过
+					if (head === 0x23) {
+						if (i + 1 >= arr.length) break;
+						const groupCount = arr[i + 1];
+						// 拒绝旧版 ASCII 伪帧：载荷以可打印数字/符号开头
+						if (groupCount >= 0x20) {
+							i++;
+							consumed = i;
+							continue;
+						}
+						if (groupCount < 1 || groupCount > MAX_WAVE_GROUPS) {
+							i++;
+							consumed = i;
+							continue;
+						}
+						const frameLen = 4 + groupCount * 2;
+						if (i + frameLen > arr.length) break; // 帧不完整，等后续分包
+						const frame = arr.slice(i, i + frameLen);
+						if (frame[frameLen - 1] !== 0x0A || !this.isRxChecksumOk(frame)) {
+							i++;
+							consumed = i;
+							continue;
+						}
+						this.parseWave(frame);
+						i += frameLen;
+						consumed = i;
+						continue;
+					}
+
+					// 命令帧：扫描到帧尾 0x0A 并用校验确认
 					const limit = Math.min(arr.length - 1, i + MAX_FRAME - 1);
 					let accepted = false;
 					for (let end = i + 4; end <= limit; end++) {
 						if (arr[end] !== 0x0A) continue;
 						const frame = arr.slice(i, end + 1);
-						if (head === 0x23) {
-							if (!this.isRxChecksumOk(frame)) continue;
-							this.parseWave(frame);
-						} else {
-							if (!this.isRxChecksumOk(frame)) continue;
-							this.parseCmd(frame);
-						}
+						if (!this.isRxChecksumOk(frame)) continue;
+						this.parseCmd(frame);
 						i = end + 1;
 						consumed = i;
 						accepted = true;
@@ -2236,67 +2487,83 @@
 					.join('');
 				this.buffer = keep + oddNibble;
 			},
-			/** 接收帧校验：设备实际为 (载荷和 & 0xFF)；兼容旧版 (sum ^ 0x0A) */
+			/**
+			 * 接收帧校验：(长度+数据 求和) & 0xFF；
+			 * 若结果为 0x0A 则设备写成 0x00，避免与帧尾 0x0A 混淆。
+			 */
 			isRxChecksumOk(buf) {
 				if (buf.length < 5 || buf[buf.length - 1] !== 0x0A) return false;
 				const sumRx = buf[buf.length - 2];
-				const sumCalc = buf.slice(1, -2).reduce((s, b) => s + b, 0) & 0xFF;
-				return sumCalc === sumRx || ((sumCalc ^ 0x0A) === sumRx);
+				let sumCalc = buf.slice(1, -2).reduce((s, b) => s + b, 0) & 0xFF;
+				if (sumCalc === 0x0A) sumCalc = 0x00;
+				return sumCalc === sumRx;
 			},
+			/**
+			 * 波形帧：与 parseBleProtocolFrameToMv 同一套协议解析。
+			 * 显示/缓存直接用协议 mV（不再差分解码、不再 hold×2）。
+			 */
 			parseWave(buf) {
-				if (!this.isRxChecksumOk(buf)) return;
-				const str = String.fromCharCode(...buf.slice(1, -2));
-				const val = parseFloat(str);
-				if (Number.isNaN(val)) return;
+				const mvList = parseBleProtocolFrameToMv(buf);
+				if (!mvList.length) return;
+
 				const wave = this.getWaveRef();
 				if (!wave) return;
-				// 已发测量命令或设备已开始采集时，自动进入测量并按模拟同款处理
+				// 已发测量命令或设备已开始采集时，自动进入测量
 				if (!wave.isMeasuring) {
 					if (this.bleMeasureArmed || this.measurementStatus === '采集开始') {
 						this.ensureBleMeasuring(wave, '收到波形帧');
 					} else {
 						if (!this._bleDropLogged) {
 							this._bleDropLogged = true;
-							this.addLog('波形', '收到 # 波形帧但未在测量中，已忽略（请先点开始测量）');
+							this.addLog('波形', '收到波形帧但未在测量中，已忽略（请先点开始测量）');
 						}
 						return;
 					}
 				}
 				if (!wave.isMeasuring) return;
-				// 缓存原始 # 采样（非 TXT）：对齐 PC 客户 hex（已是 mV）
+
 				if (!this.bleRawEcgValues) this.bleRawEcgValues = [];
-				const rawMax = BLE_MEASURE_SECONDS * CUSTOMER_TXT_DEFAULT_FS;
-				if (this.bleRawEcgValues.length < rawMax) {
-					this.bleRawEcgValues.push(val);
+				const rawMax = this.isMockTesting ?
+					Math.max(bleProtocolMvData.length || 1, BLE_MEASURE_SECONDS * CUSTOMER_TXT_DEFAULT_FS) :
+					(BLE_MEASURE_SECONDS * CUSTOMER_TXT_DEFAULT_FS);
+
+				for (let k = 0; k < mvList.length; k++) {
+					const val = mvList[k];
+					if (this.bleRawEcgValues.length < rawMax) {
+						this.bleRawEcgValues.push(val);
+					}
+					// 首包只启动计时，不再改增益/缓冲（测量中改会闪烁、变成滑动）
+					if (this.dataCount === 0 && !this.isMockTesting) {
+						this.startBleMeasureTimer('首包波形到达', false);
+					}
+					if (this.dataCount >= BLE_MEASURE_MAX_POINTS && !this.isMockTesting) {
+						break;
+					}
+					let displaySource = val;
+					if (!Number.isFinite(displaySource)) {
+						displaySource = Number.isFinite(this.lastBleValidMv) ? this.lastBleValidMv : 0;
+					} else {
+						this.lastBleValidMv = displaySource;
+					}
+					const displayVal = displaySource * BLE_ECG_POLARITY;
+					const remain = this.isMockTesting ?
+						Number.MAX_SAFE_INTEGER :
+						(BLE_MEASURE_MAX_POINTS - this.dataCount);
+					if (remain <= 0) break;
+					wave.pushData([displayVal]);
+					this.dataCount += 1;
+					this.fullDataCount = wave.getFullDataCount ? wave.getFullDataCount() : this.dataCount;
+					this.queueLength = wave.getQueueLength ? wave.getQueueLength() : 0;
+					if (this.dataCount === 1 || this.dataCount % 50 === 0) {
+						this.addLog('波形',
+							`已接收${this.dataCount}点, 最近mV=${Number.isFinite(val) ? val.toFixed(3) : 'NaN'}, 显示=${displayVal.toFixed(3)}`
+						);
+					}
+					if (this.dataCount >= BLE_MEASURE_MAX_POINTS && !this.isMockTesting) {
+						break;
+					}
 				}
-				const samples = this.processLiveBleSample(val);
-				if (!samples.length) return;
-				// 首包波形到达时重置 40s 计时，保证从真实出数起算
-				if (this.dataCount === 0) {
-					this.startBleMeasureTimer('首包波形到达', false);
-					this.applyBleWaveRange(wave);
-				}
-				if (this.dataCount >= BLE_MEASURE_MAX_POINTS) {
-					return;
-				}
-				// 每对原始点只解出 1 个显示值，再 hold 成 2 点，保持 250Hz 时间轴（封顶 10000，不造 20000）
-				const held = [];
-				for (let i = 0; i < samples.length; i++) {
-					held.push(samples[i], samples[i]);
-				}
-				const remain = BLE_MEASURE_MAX_POINTS - this.dataCount;
-				const toPush = held.length > remain ? held.slice(0, remain) : held;
-				if (!toPush.length) return;
-				wave.pushData(toPush);
-				this.dataCount += toPush.length;
-				this.fullDataCount = wave.getFullDataCount ? wave.getFullDataCount() : this.dataCount;
-				this.queueLength = wave.getQueueLength ? wave.getQueueLength() : 0;
-				if (this.dataCount === 1 || this.dataCount % 50 === 0) {
-					this.addLog('波形',
-						`已接收显示${this.dataCount}点/原始${this.bleRawEcgValues.length}点, 最近原始=${val}, 显示=${toPush[0].toFixed(3)}`
-					);
-				}
-				if (this.dataCount >= BLE_MEASURE_MAX_POINTS) {
+				if (this.dataCount >= BLE_MEASURE_MAX_POINTS && !this.isMockTesting) {
 					this.clearBleMeasureTimer();
 					this.finishBleMeasureByTimeout();
 				}
@@ -2304,9 +2571,11 @@
 			parseCmd(buf) {
 				if (!this.isRxChecksumOk(buf)) {
 					const sumRx = buf[buf.length - 2];
-					const sumCalc = buf.slice(1, -2).reduce((s, b) => s + b, 0) & 0xFF;
+					let sumCalc = buf.slice(1, -2).reduce((s, b) => s + b, 0) & 0xFF;
+					const rawSum = sumCalc;
+					if (sumCalc === 0x0A) sumCalc = 0x00;
 					this.addLog('协议',
-						`命令帧校验失败 calc=0x${sumCalc.toString(16)} xor=0x${(sumCalc ^ 0x0A).toString(16)} rx=0x${sumRx.toString(16)}`
+						`命令帧校验失败 rawSum=0x${rawSum.toString(16)} expect=0x${sumCalc.toString(16)} rx=0x${sumRx.toString(16)}`
 					);
 					return;
 				}
@@ -2479,7 +2748,7 @@
 					return;
 				}
 				const raw = this.bleRawEcgValues;
-				// 实时仅多一步 hex/# 解析；拿到 mV 后与「开始模拟」同一套 uploadAlreadyMvCustomerEcg
+				// 实时：协议帧→mV；与「开始模拟」同一套 uploadAlreadyMvCustomerEcg
 				if (raw && raw.length) {
 					const fs = CUSTOMER_TXT_DEFAULT_FS || CUSTOMER_UPLOAD_FS || 250;
 					const sec = Math.max(1, Math.round(raw.length / fs)) || BLE_MEASURE_SECONDS;
@@ -2506,6 +2775,7 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/json;charset=UTF-8'
 				}).then((res) => {
+					// console.log('云端', res);
 					if (res.code === 200 && res.total > 0) {
 						if (res.rows[res.total - 1].baseFeaturesExtracted !== 1) {
 							setTimeout(() => this.ecgdatalist(), 3000);
@@ -2575,6 +2845,7 @@
 				this.measurementStatus = '';
 				this._bleMeasureFinishing = false;
 				this.bleRawEcgValues = [];
+				this.lastBleValidMv = null;
 				this.clearBleMeasureTimer();
 				this.resetBleStreamState();
 			},
@@ -2659,16 +2930,13 @@
 
 	.title_zs_ECG {
 		display: flex;
-		justify-content: flex-end;
-		margin-right: 20px;
-		margin-left: 20px;
+		justify-content: center;
 		text-align: right;
 		padding-top: 20px;
 		color: red;
-		padding-bottom: 5px;
-		margin-top: 5px;
+		padding-bottom: 20px;
 		font-weight: 400;
-		font-size: 12px;
+		font-size: 18px;
 	}
 
 	.ble-panel {
@@ -2677,6 +2945,7 @@
 		background: #f8f9fa;
 		border-radius: 12px;
 		border: 1px solid #e8e8e8;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	.ble-row {
@@ -2828,6 +3097,7 @@
 		padding: 12px;
 		background: #1a1a2e;
 		border-radius: 12px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	.log-header {
@@ -2896,6 +3166,7 @@
 		background: #f8f9fa;
 		border-radius: 12px;
 		border: 1px dashed #d0d0d0;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	.txt-import-section {

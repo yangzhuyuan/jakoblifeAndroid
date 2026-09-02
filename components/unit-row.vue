@@ -1,16 +1,18 @@
 <template>
-	<view>
-		<view class="row">
-			<text class="title">{{ title }}</text>
-			<view class="right">
-				<view class="text">{{ array[index] }}</view>
-				<view class="icon-wrapper">
-					<uni-icons type="bottom" size="16" />
-					<picker :range="array" :value="index" @change="onChange" class="picker-mask" />
+	<view class="unit-row">
+		<picker :range="array" :value="index" @change="onChange">
+			<view class="row">
+				<view class="left">
+					<image v-if="icon" class="row-icon" :src="icon" mode="aspectFit" />
+					<text class="title">{{ title }}</text>
+				</view>
+				<view class="right">
+					<text class="value">{{ array[index] }}</text>
+					<uni-icons type="right" size="14" color="#B7C3D4" />
 				</view>
 			</view>
-		</view>
-		<view class="line" />
+		</picker>
+		<view v-if="!hideLine" class="line" />
 	</view>
 </template>
 
@@ -21,7 +23,9 @@
 			title: String,
 			array: Array,
 			storageKey: String,
-			currentIndex: Number
+			currentIndex: Number,
+			icon: String,
+			hideLine: Boolean
 		},
 		data() {
 			return {
@@ -47,43 +51,50 @@
 </script>
 
 <style scoped>
+	.line {
+		height: 1rpx;
+		background: #EEF1F5;
+		margin-left: 88rpx;
+	}
+
 	.row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 20rpx 0;
+		padding: 32rpx 28rpx;
+	}
+
+	.left {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.row-icon {
+		width: 48px;
+		height: 48px;
+		margin-right: 20rpx;
+		flex-shrink: 0;
+		object-fit: contain;
 	}
 
 	.title {
-		width: 40%;
-		font-weight: bold;
-		font-size: 32rpx;
+		font-weight: 600;
+		font-size: 30rpx;
+		color: #1C1C1E;
 	}
 
 	.right {
 		display: flex;
 		align-items: center;
+		flex-shrink: 0;
+		margin-left: 16rpx;
 	}
 
-	.text {
-		margin-right: 20rpx;
-	}
-
-	.icon-wrapper {
-		position: relative;
-	}
-
-	.picker-mask {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		opacity: 0;
-	}
-
-	.line {
-		height: 1rpx;
-		background: #e5e5e5;
+	.value {
+		margin-right: 8rpx;
+		font-size: 28rpx;
+		color: #3298F7;
 	}
 </style>

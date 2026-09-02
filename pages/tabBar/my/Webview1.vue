@@ -9,7 +9,7 @@
 	export default {
 		onShow() {
 			uni.setNavigationBarTitle({
-				title: this.$t('反馈')
+				title: this.$t('联系客服')
 			})
 		}
 	}

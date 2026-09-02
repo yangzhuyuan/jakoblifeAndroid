@@ -1,5 +1,5 @@
 <template>
-	<view class="wave-box">
+	<view class="wave-box" :style="{ height: boxHeight + 'px' }">
 		<canvas canvas-id="ecg-canvas" :style="canvasStyle" class="ecg-canvas" />
 		<view class="full-wave-controls" v-if="showFullWaveControls">
 			<view class="control-row">
@@ -22,6 +22,12 @@
 	} from './test-ecg-data.js';
 
 	export default {
+		props: {
+			boxHeight: {
+				type: Number,
+				default: 120
+			}
+		},
 		computed: {
 			canvasStyle() {
 				return {
@@ -179,6 +185,8 @@
 				lepuDisplayBuffer: [],
 				lepuSegmentMvBuffer: [],
 				lepuTargetHalfRange: 1.0,
+				/** false：实时按原始 mV 绘制，不再压到 ±1mV（ECGdemo 协议直出用） */
+				lepuNormalizeAmplitude: true,
 				lepuSweepStartTime: 0, // 第一组扫屏起始墙钟，首个有效采样写入时记录
 				scrollStartDuration: 3, // 与 screenDuration 一致，250Hz × 5s = 1250 点
 			};
@@ -241,6 +249,9 @@
 				return Math.min(1, elapsedSec / this.screenDuration);
 			},
 			normalizeLepuAmplitude(mv) {
+				if (this.lepuNormalizeAmplitude === false) {
+					return mv;
+				}
 				this.lepuSegmentMvBuffer.push(mv);
 				if (this.lepuSegmentMvBuffer.length > this.segmentDataPoints) {
 					this.lepuSegmentMvBuffer.shift();
@@ -1242,6 +1253,9 @@
 				this.forceDraw();
 			},
 			forceDraw() {
+				if (this.isMeasuring && !this.showFullWaveMode) {
+					return;
+				}
 				if (this.isDrawing) return;
 				this.isDrawing = true;
 				if (this.drawTimer) {

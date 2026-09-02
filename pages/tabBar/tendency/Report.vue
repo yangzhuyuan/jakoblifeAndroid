@@ -1171,7 +1171,6 @@
 				return y3 !== '0' || y1 !== '0' || j7 !== '0' || y2 !== '0' || j8 !== '0'
 			},
 			showMeasurementCountAdviceModal() {
-				console.log('测量次数较少')
 				setTimeout(() => {
 					uni.showModal({
 						title: this.$t('提示'),
@@ -1280,12 +1279,10 @@
 					filterVarList: that.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
 				}
-				console.log("get_retVarLisdata参数：", data)
 				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_retVarList", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((get_retVarList) => {
-					console.log("get_retVarLis：", get_retVarList)
 					if (get_retVarList.code === 200) {
 						const retVarListStr = get_retVarList.data?.retVarList || '';
 						let resultArray = retVarListStr ? retVarListStr.split(";").filter(Boolean) : [];
@@ -1362,12 +1359,10 @@
 					period: that.period,
 					retVarList: that.finlretVarList1
 				}
-				console.log("1血压指标最终表查询", data)
 				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_finalRetVarList", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((get_finalRetVarList) => {
-					console.log("2血压指标最终表查询", get_finalRetVarList)
 					if (get_finalRetVarList.code === 200) {
 						if (get_finalRetVarList.data.retVarList !== "") {
 							let resultArray = get_finalRetVarList.data.retVarList.split(";");
@@ -1815,7 +1810,6 @@
 				if (dates.length > 2) {
 					this.lingfesds = 2
 				} else {
-					console.log('日期范围不超过两天');
 					this.lingfesds = 1
 				}
 			},
@@ -1893,7 +1887,6 @@
 				}).then(res => {
 					if (res.code === 200) {
 						const last = res.data[res.data.length - 1]
-						console.log(this.BloodPressureLevel)
 						if (last.object.summary.bmiAvg <= 24.00 && this.BloodPressureLevel === 0) {
 							this.tizhongBMIa = "BMI:" + last.object.summary.bmiAvg + "<=24.00"
 							this.tizhongBMI = this.$t("正常体重") + ":" + this.$t("高血压风险增幅1")

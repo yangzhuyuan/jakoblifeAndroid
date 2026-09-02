@@ -1,30 +1,69 @@
 <template>
-	<view class="pagsin">
-		<view class="list-container">
-			<view class="list-item">
-				<view class="item-content" @click="btn_add">
-					<image lazy-load style="width: 68px; height: 68px;" :src="imageurl"></image>
+	<view class="pagsin" :class="{ 'pagsin-empty': !list.length }">
+		<view v-if="!list.length" class="empty-page">
+			<view class="hs-header">
+				<view class="empty-header">
+					<text class="empty-title">{{ $t('我的设备') }}</text>
+					<text class="empty-subtitle">{{ $t('连接并管理您的Jakoblife设备') }}</text>
 				</view>
+				<image class="hero-img" src="/static/page_icon/app_icon_all.jpg" mode="aspectFit"></image>
 			</view>
-			<view class="list-item" v-for="(item, index) in list" :key="index" :class="{ active: act === index }"
-				@click="checkClick(index, item)">
-				<view class="item-content">
-					<image lazy-load class="imagesd" mode="aspectFit" :src="getDeviceImage(item.deviceModelId)"></image>
-					<view class="xinghao">{{$t('型号') + (item.name==="BPW6"?"U19M":item.name)}}</view>
-					<view style="font-size: 10px; padding-bottom: 5px; text-align: center;">SN:{{item.deviceSn}}</view>
-					<view v-if="item.name==='JL-S260'||item.name==='JL-S100'"></view>
-					<view v-else class="device-ble-status-badge"
-						:class="isDeviceBleConnected(item.mac) ? 'is-on' : 'is-off'">
-						{{ isDeviceBleConnected(item.mac) ? $t('设备已连接') : $t('设备未连接') }}
+			<view class="empty-card">
+				<image class="empty-illustration" src="/static/page_icon/shebei_1.png" mode="aspectFit" />
+				<text class="empty-card-title">{{ $t('尚未连接设备') }}</text>
+				<text class="empty-card-desc">{{ $t('添加设备后即可开始同步测量数据') }}</text>
+				<view class="empty-add-btn" @click="btn_add">
+					<view class="empty-add-icon">
+						<text class="empty-add-plus">+</text>
+					</view>
+					<text class="empty-add-text">{{ $t('添加设备') }}</text>
+				</view>
+				<view class="empty-tip-card">
+					<view class="empty-tip-icon-wrap">
+						<uni-icons></uni-icons>
+						<image class="empty-tip-icon" src="/static/page_icon/shebei_2.png" mode="aspectFit" />
+					</view>
+					<view class="empty-tip-body">
+						<text class="empty-tip-title">{{ $t('连接提示') }}</text>
+						<text class="empty-tip-desc">{{ $t('请开启蓝牙并将设备靠近手机') }}</text>
 					</view>
 				</view>
 			</view>
+			<view class="empty-bottom">
+				<button plain="true" class="button_bg_color empty-remove-btn" @tap="deleteDevice()">{{ $t('删除该设备') }}
+				</button>
+				<text class="empty-footer-note">{{ $t('连接设备后即可使用') }}</text>
+			</view>
 		</view>
-		<view class="bottom-bar">
-			<button plain="true" class="button_bg_color" :style="{ background: act === -1 ? '#DBDBDB' : '#3298F7' }"
-				@tap="deleteDevice()">{{$t('删除该设备')}}
-			</button>
-		</view>
+		<template v-else>
+			<view class="list-container">
+				<view class="list-item">
+					<view class="item-content" @click="btn_add">
+						<image lazy-load style="width: 68px; height: 68px;" :src="imageurl"></image>
+					</view>
+				</view>
+				<view class="list-item" v-for="(item, index) in list" :key="index" :class="{ active: act === index }"
+					@click="checkClick(index, item)">
+					<view class="item-content">
+						<image lazy-load class="imagesd" mode="aspectFit" :src="getDeviceImage(item.deviceModelId)">
+						</image>
+						<view class="xinghao">{{$t('型号') + (item.name==="BPW6"?"U19M":item.name)}}</view>
+						<view style="font-size: 10px; padding-bottom: 5px; text-align: center;">SN:{{item.deviceSn}}
+						</view>
+						<view v-if="item.name==='JL-S260'||item.name==='JL-S100'"></view>
+						<view v-else class="device-ble-status-badge"
+							:class="isDeviceBleConnected(item.mac) ? 'is-on' : 'is-off'">
+							{{ isDeviceBleConnected(item.mac) ? $t('设备已连接') : $t('设备未连接') }}
+						</view>
+					</view>
+				</view>
+			</view>
+			<view class="bottom-bar">
+				<button plain="true" class="button_bg_color" :style="{ background: act === -1 ? '#DBDBDB' : '#3298F7' }"
+					@tap="deleteDevice()">{{$t('删除该设备')}}
+				</button>
+			</view>
+		</template>
 	</view>
 </template>
 
@@ -674,5 +713,195 @@
 		border-radius: 100px;
 		border: none !important;
 		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	}
+
+	.pagsin-empty {
+		background: #F8F9FB;
+		padding-top: 0;
+	}
+
+	.empty-page {
+		min-height: 100vh;
+		padding: 24rpx 32rpx 48rpx;
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.empty-header {
+		margin-top: 15px;
+		margin-bottom: 32rpx;
+	}
+
+	.hs-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 28rpx;
+	}
+
+	.hero-img {
+		width: 68px;
+		height: 68px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		object-fit: contain;
+	}
+
+	.empty-title {
+		display: block;
+		font-size: 44rpx;
+		font-weight: 700;
+		color: #1A2B4A;
+		line-height: 1.3;
+		margin-bottom: 12rpx;
+	}
+
+	.empty-subtitle {
+		display: block;
+		font-size: 26rpx;
+		color: #8A97AB;
+		line-height: 1.5;
+	}
+
+	.empty-card {
+		background: #FFFFFF;
+		border-radius: 40rpx;
+		padding: 48rpx 40rpx 40rpx;
+		box-shadow: 0 8rpx 28rpx rgba(16, 24, 40, 0.06);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.empty-illustration {
+		width: 520rpx;
+		height: 320rpx;
+		margin-bottom: 32rpx;
+	}
+
+	.empty-card-title {
+		font-size: 34rpx;
+		font-weight: 700;
+		color: #1A2B4A;
+		text-align: center;
+		margin-bottom: 16rpx;
+	}
+
+	.empty-card-desc {
+		font-size: 26rpx;
+		color: #8A97AB;
+		text-align: center;
+		line-height: 1.5;
+		margin-bottom: 40rpx;
+		padding: 0 16rpx;
+	}
+
+	.empty-add-btn {
+		width: 100%;
+		height: 96rpx;
+		background: #007AFF;
+		border-radius: 999rpx;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 24rpx;
+		box-shadow: 0 8rpx 24rpx rgba(0, 122, 255, 0.28);
+	}
+
+	.empty-add-icon {
+		width: 40rpx;
+		height: 40rpx;
+		border-radius: 50%;
+		border: 2rpx solid rgba(255, 255, 255, 0.9);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-right: 16rpx;
+	}
+
+	.empty-add-plus {
+		color: #FFFFFF;
+		font-size: 28rpx;
+		font-weight: 500;
+		line-height: 1;
+		margin-top: -2rpx;
+	}
+
+	.empty-add-text {
+		color: #FFFFFF;
+		font-size: 32rpx;
+		font-weight: 600;
+	}
+
+	.empty-tip-card {
+		width: 100%;
+		background: #EBF5FF;
+		border-radius: 24rpx;
+		padding: 24rpx 28rpx;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		box-sizing: border-box;
+	}
+
+	.empty-tip-icon-wrap {
+		width: 72rpx;
+		height: 72rpx;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		margin-right: 20rpx;
+	}
+
+	.empty-tip-icon {
+		width: 72rpx;
+		height: 72rpx;
+		border-radius: 50%;
+	}
+
+	.empty-tip-body {
+		flex: 1;
+		min-width: 0;
+		padding-top: 4rpx;
+	}
+
+	.empty-tip-title {
+		display: block;
+		font-size: 28rpx;
+		font-weight: 700;
+		color: #1A2B4A;
+		margin-bottom: 8rpx;
+	}
+
+	.empty-tip-desc {
+		display: block;
+		font-size: 24rpx;
+		color: #8A97AB;
+		line-height: 1.5;
+	}
+
+	.empty-bottom {
+		margin-top: auto;
+		padding-top: 48rpx;
+	}
+
+	.empty-remove-btn {
+		background: #DBDBDB !important;
+		box-shadow: none !important;
+	}
+
+	.empty-footer-note {
+		display: block;
+		margin-top: 24rpx;
+		text-align: center;
+		font-size: 24rpx;
+		color: #AEAEB2;
+		line-height: 1.4;
 	}
 </style>

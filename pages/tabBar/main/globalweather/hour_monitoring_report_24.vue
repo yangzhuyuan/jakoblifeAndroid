@@ -638,8 +638,6 @@
 			try {
 				const request = JSON.parse(decodeURIComponent(options.request));
 				const form = JSON.parse(decodeURIComponent(options.form));
-				console.log("request:", request);
-				console.log("form:", form);
 				this.userInfo = {
 					...this.userInfo,
 					...form
@@ -989,9 +987,8 @@
 				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
 				const chinaNow = getChinaTimeAllJSON()
 				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
-				const profYmd = chinaHour < 1
-					? getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD
-					: chinaNow.YMD
+				const profYmd = chinaHour < 1 ? getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD :
+					chinaNow.YMD
 				that.pacitime = profYmd + ' 00:00:00'
 				let data = {
 					userId: uni.getStorageSync("userid"),
@@ -999,12 +996,10 @@
 					period: that.period,
 					retVarList: that.finlretVarList1.toLowerCase()
 				};
-				console.log("get_finalRetVarList", data)
 				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_finalRetVarList", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((get_finalRetVarList) => {
-					console.log("get_finalRetVarList", get_finalRetVarList)
 					if (get_finalRetVarList.code === 200) {
 						if (get_finalRetVarList.data.retVarList !== "") {
 							let resultArray = get_finalRetVarList.data.retVarList.split(";");
@@ -1045,12 +1040,10 @@
 					filterVarList: that.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
 				}
-				console.log("get_retVarLisdata参数：", data)
 				that.$post(that.$url_APP_IP + "/prod-api/device_app/get_retVarList", data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((get_retVarList) => {
-					console.log("get_retVarLis：", get_retVarList)
 					if (get_retVarList.code === 200 && get_retVarList.data && get_retVarList.data.retVarList) {
 						const processedData = that.filterByMonitorTimeRange(
 							that.processRetVarList(get_retVarList.data.retVarList)

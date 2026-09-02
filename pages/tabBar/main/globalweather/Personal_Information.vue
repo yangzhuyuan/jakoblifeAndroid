@@ -429,7 +429,6 @@
 			saveToStorage() {
 				try {
 					uni.setStorageSync(this.storageKey, this.form)
-					console.log('数据已保存到本地')
 					return true
 				} catch (e) {
 					console.error('保存到本地失败：', e)
@@ -535,21 +534,12 @@
 				this.form.weightunit = this.weightunit
 				// 保存到本地存储
 				const saveSuccess = this.saveToStorage()
-
 				if (saveSuccess) {
-					// this.showPreview = true
 					uni.showToast({
 						title: this.$t('保存成功'),
 						icon: 'none'
 					})
 				}
-
-				// 控制台输出
-				console.log('提交的数据：', this.form)
-				console.log('计算指标：', {
-					bmi: this.bmi,
-					whtr: this.whtr
-				})
 				let request = {
 					type: this.type,
 					bmi: this.bmi,
