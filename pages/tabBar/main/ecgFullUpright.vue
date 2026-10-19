@@ -5,18 +5,13 @@
 		</view>
 		<scroll-view class="wave-scroll" scroll-y :scroll-top="scrollTop" @scroll="onScroll">
 			<view class="wave-box" :style="waveBoxStyle">
-				<canvas canvas-id="ecg-canvas-upright" :style="canvasStyle" class="ecg-canvas" />
+				<canvas canvas-id="ecg-canvas" :style="canvasStyle" class="ecg-canvas" />
 			</view>
 		</scroll-view>
 	</view>
 </template>
 
 <script>
-	import { flipEcgDisplayPolarity } from './ecg-display-fix.js';
-
-	/**
-	 * 心电图详情（R 峰朝上）。基于 ecgFull 独立副本，不改原页。
-	 */
 	export default {
 		data() {
 			return {
@@ -80,7 +75,7 @@
 			if (channel) {
 				channel.once('sendData', arr => {
 					if (arr && arr.length) this.processData(arr);
-					console.log(arr)
+					// console.log(arr)
 				});
 				channel.once('startTime', str => {
 					this.currentDate = str;
@@ -106,11 +101,9 @@
 		methods: {
 			processData(arr) {
 				if (!arr || !arr.length) return;
-				// 仅本页：显示前取反，纠正 R 峰朝下（不影响上传/原 ecgFull）
-				const flipped = flipEcgDisplayPolarity(arr);
-				this.rawList = flipped;
+				this.rawList = arr;
 				// unpackInt16ECG 输出已是 mV，与 ecg-wave 相同流程做基线去除
-				const mvData = this.processEcgDataArray(flipped);
+				const mvData = this.processEcgDataArray(arr);
 				const pointsPerGroup = this.secondsPerRow * this.sampleRate;
 				const groups = Math.ceil(mvData.length / pointsPerGroup);
 				const processed = [];
@@ -122,7 +115,7 @@
 					const end = Math.min(start + pointsPerGroup, mvData.length);
 					const group = mvData.slice(start, end);
 					const filteredGroup = this.filterOutliers(group);
-					const rawGroup = flipped.slice(start, end);
+					const rawGroup = arr.slice(start, end);
 
 					if (this.isFlatLineWaveform(filteredGroup, rawGroup)) {
 						continue;
@@ -372,7 +365,7 @@
 					}
 					this.pxWidth = Math.floor(rect.width);
 					this.calculateCanvasHeight();
-					this.ctx = uni.createCanvasContext('ecg-canvas-upright', this);
+					this.ctx = uni.createCanvasContext('ecg-canvas', this);
 
 					// 初始只绘制前几行
 					this.visibleStartRow = 0;

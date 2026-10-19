@@ -9,9 +9,10 @@
 		<view v-if="modelIdtype === '体脂秤'" class="notice-text">
 			{{$t('体脂秤注意事项')}}
 		</view>
-		<view v-else-if="modelIdtype === '血压计'" class="notice-text">
-			{{$t('血压计注意事项')}}
-			<button class="settings-button" @click="gotosetting">{{$t("去设置")}}</button>
+		<view v-else-if="modelIdtype === '血压计'" class="notice-text" style="text-align: center;">
+			{{$t('血压计WiFi配对成功')}}
+			<!-- {{$t('血压计注意事项')}}
+			<button class="settings-button" @click="gotosetting">{{$t("去设置")}}</button> -->
 		</view>
 		<view class="btn">
 			<button class="btn_BG" @click="btn_click">{{$t('确定')}}</button>
@@ -20,6 +21,7 @@
 </template>
 
 <script>
+	import { markDeviceBound } from '@/pages/api/deviceBindingState.js';
 	import {
 		mapState,
 		mapMutations
@@ -32,6 +34,7 @@
 		},
 
 		onLoad(opt) {
+			markDeviceBound();
 			const modelIdMap = {
 				"20000": "体脂秤",
 				"20001": "体脂秤",
@@ -39,6 +42,18 @@
 				"30001": "手表"
 			};
 			this.modelIdtype = modelIdMap[opt.modelId] || "血压计";
+			// 新绑手表：清上一台本地步数，避免首页仍显示旧表当天数据
+			if (opt.modelId === '30000' || opt.modelId === '30001') {
+				try {
+					uni.removeStorageSync('weeklySteps');
+					uni.removeStorageSync('steps_last_upload_by_day');
+					uni.removeStorageSync('settept');
+					uni.removeStorageSync('settept1');
+					uni.removeStorageSync('steps_source_device_key');
+					uni.removeStorageSync('steps_today_from_device');
+					uni.setStorageSync('steps_pending_new_device', 1);
+				} catch (e) {}
+			}
 		},
 
 		onShow() {

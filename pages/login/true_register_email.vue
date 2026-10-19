@@ -49,6 +49,9 @@
 		mapMutations
 	} from 'vuex';
 	import codeCountdownMixin from '@/pages/api/codeCountdownMixin.js'
+	import {
+		isQxBleAppInForeground
+	} from '@/pages/api/qxBleAlignedSchedule.js'
 	export default {
 		mixins: [codeCountdownMixin],
 		computed: {
@@ -223,10 +226,12 @@
 				}).catch((err) => {
 					that.resetCodeCountdown()
 					uni.hideLoading()
-					uni.showToast({
-						title: this.$t("网络连接异常"),
-						icon: 'none'
-					})
+					if (isQxBleAppInForeground()) {
+						uni.showToast({
+							title: this.$t("网络连接异常"),
+							icon: 'none'
+						})
+					}
 					console.log("失败", err)
 				})
 			},

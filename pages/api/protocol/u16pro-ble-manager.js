@@ -1,3 +1,4 @@
+import { hasAnyBoundDevice } from '../deviceBindingState.js'
 // protocol/u16pro-ble-manager.js
 import {
 	BLE_UUID,
@@ -71,6 +72,7 @@ class U16ProBLEManager {
 			isReadingBPHistory: false,
 			bpBuffer: [],
 			expectedBPCount: 0,
+			bpReadTimeoutTimer: null,
 
 			isReadingHRHistory: false,
 			hrBuffer: [],
@@ -94,6 +96,7 @@ class U16ProBLEManager {
 			spO2ReceivedPackets: 0,
 			pendingSpO2Read: null,
 			spO2ScheduleTimer: null,
+			spo2ReadTimeoutTimer: null,
 			/** true：DATA_CHANGED 触发的实时读（可上报）；false：连接后历史同步（不上报） */
 			spo2RealtimeMode: false,
 			spo2RealtimeSeq: 0,
@@ -700,6 +703,16 @@ class U16ProBLEManager {
 			case CMD.BP_MEASUREMENT:
 				// console.log('【BPW6血压】:', result.data)
 				return result.data
+				break
+			case CMD.HR_MEASUREMENT:
+				// 对齐苹果：手机发起心率测量 ACK；先冻结快照，等 DATA_CHANGED 再拉历史上报
+				this._hrRetryUsed = false
+				this._freezeHrCompareSnapshot()
+				console.log('【BPW6】心率测量已发起，等待数据变更通知')
+				return result.data || {
+					type: 'HR_MEASUREMENT',
+					success: 0x38
+				}
 				break
 			case CMD.BP_DYNAMIC_PARAMS_CHANGED:
 				this.state.bpDynamicParams = result.data
@@ -1845,7 +1858,7 @@ class U16ProBLEManager {
 		if (this.readingState.hrScheduleTimer) {
 			clearTimeout(this.readingState.hrScheduleTimer)
 		}
-		const delayMs = options.realtime ? (options.isRetry ? 0 : 300) : 0
+		const delayMs = 0
 		this.readingState.hrScheduleTimer = setTimeout(() => {
 			this.readingState.hrScheduleTimer = null
 			this.flushPendingHRHistoryRead()
@@ -1875,22 +1888,107 @@ class U16ProBLEManager {
 	}
 
 	/**
+	 * 重置血压历史读取锁（断链/超距回连后若无结束包，锁会永久卡住）
+	 */
+	_resetBPReadingState() {
+		if (this.readingState.bpReadTimeoutTimer) {
+			clearTimeout(this.readingState.bpReadTimeoutTimer)
+			this.readingState.bpReadTimeoutTimer = null
+		}
+		this.readingState.isReadingBPHistory = false
+		this.readingState.bpBuffer = []
+		this.readingState.expectedBPCount = 0
+	}
+
+	_armBPReadTimeout() {
+		if (this.readingState.bpReadTimeoutTimer) {
+			clearTimeout(this.readingState.bpReadTimeoutTimer)
+		}
+		this.readingState.bpReadTimeoutTimer = setTimeout(() => {
+			this.readingState.bpReadTimeoutTimer = null
+			if (!this.readingState.isReadingBPHistory) {
+				return
+			}
+			console.warn('【血压历史】读取超时，强制释放锁', {
+				got: (this.readingState.bpBuffer && this.readingState.bpBuffer.length) || 0,
+				expected: this.readingState.expectedBPCount || 0
+			})
+			this._resetBPReadingState()
+		}, 30000)
+	}
+
+	/**
+	 * 重置血氧历史读取锁
+	 * @param {{ keepRealtime?: boolean }} [opts] keepRealtime=true：完成路径保留 realtime 标记给外层 notify 读取
+	 */
+	_resetSpO2ReadingState(opts = {}) {
+		if (this.readingState.spo2ReadTimeoutTimer) {
+			clearTimeout(this.readingState.spo2ReadTimeoutTimer)
+			this.readingState.spo2ReadTimeoutTimer = null
+		}
+		this.readingState.isReadingSpO2History = false
+		if (!(opts && opts.keepRealtime)) {
+			this.readingState.spo2RealtimeMode = false
+			this.readingState.spo2RealtimeSeq = 0
+		}
+		this.readingState.spO2Buffer = []
+		this.readingState.spO2TotalPackets = 0
+		this.readingState.spO2ReceivedPackets = 0
+	}
+
+	_armSpO2ReadTimeout() {
+		if (this.readingState.spo2ReadTimeoutTimer) {
+			clearTimeout(this.readingState.spo2ReadTimeoutTimer)
+		}
+		this.readingState.spo2ReadTimeoutTimer = setTimeout(() => {
+			this.readingState.spo2ReadTimeoutTimer = null
+			if (!this.readingState.isReadingSpO2History) {
+				return
+			}
+			console.warn('【血氧历史】读取超时，强制释放锁')
+			this._resetSpO2ReadingState()
+			this._flushPendingSpO2Reread()
+		}, 30000)
+	}
+
+	/**
+	 * 超距回连/取消同步链：清掉可能卡住的历史读锁，避免下一次全量同步直接「请稍候」
+	 */
+	resetHistoryReadingLocks(reason) {
+		const rs = this.readingState || {}
+		const hadBp = !!rs.isReadingBPHistory
+		const hadHr = !!rs.isReadingHRHistory
+		const hadSpo2 = !!rs.isReadingSpO2History
+		const had = hadBp || hadHr || hadSpo2
+		this._resetBPReadingState()
+		this._resetHRReadingState()
+		this._resetSpO2ReadingState()
+		if (had) {
+			console.warn('【BPW6】已强制释放历史读取锁', reason || '', {
+				bp: hadBp,
+				hr: hadHr,
+				spo2: hadSpo2
+			})
+		}
+	}
+
+	/**
 	 * 处理血压历史响应
 	 */
 	_handleBPHistoryResponse(data) {
 		if (data.empty) {
-			const completedCount = this.readingState.bpBuffer.length
+			const listSnapshot = [...(this.readingState.bpBuffer || [])]
+			const completedCount = listSnapshot.length
 			console.log('【血压历史】读取完成，共', completedCount, '条')
-			this.readingState.isReadingBPHistory = false
-			this.state.bloodPressureList = [...this.readingState.bpBuffer, ...this.state.bloodPressureList]
+			this._resetBPReadingState()
+			this.state.bloodPressureList = [...listSnapshot, ...this.state.bloodPressureList]
 			if (this.callbacks.onBPHistory) {
 				this.callbacks.onBPHistory({
-					list: this.readingState.bpBuffer,
+					list: listSnapshot,
 					allList: this.state.bloodPressureList,
 					completed: true
 				})
 			}
-			this.readingState.bpBuffer = []
 			return {
 				type: 'BP_history_empty',
 				empty: true,
@@ -1902,18 +2000,18 @@ class U16ProBLEManager {
 		// console.log('【血压历史】收到第', this.readingState.bpBuffer.length, '条:', data)
 		if (this.readingState.expectedBPCount > 0 &&
 			this.readingState.bpBuffer.length >= this.readingState.expectedBPCount) {
-			const completedCount = this.readingState.bpBuffer.length
+			const listSnapshot = [...this.readingState.bpBuffer]
+			const completedCount = listSnapshot.length
 			console.log('【血压历史】已达到预期数量，停止接收', completedCount)
-			this.readingState.isReadingBPHistory = false
-			this.state.bloodPressureList = [...this.readingState.bpBuffer, ...this.state.bloodPressureList]
+			this._resetBPReadingState()
+			this.state.bloodPressureList = [...listSnapshot, ...this.state.bloodPressureList]
 			if (this.callbacks.onBPHistory) {
 				this.callbacks.onBPHistory({
-					list: this.readingState.bpBuffer,
+					list: listSnapshot,
 					allList: this.state.bloodPressureList,
 					completed: true
 				})
 			}
-			this.readingState.bpBuffer = []
 			// 标记批次完成，由统一监听补发 BP_history_empty（部分固件不发空结束包）
 			return {
 				...data,
@@ -1929,7 +2027,7 @@ class U16ProBLEManager {
 	_handleSpO2HistoryResponse(data) {
 		if (data.empty) {
 			console.log('【血氧历史】该日期无数据')
-			this.readingState.isReadingSpO2History = false
+			this._resetSpO2ReadingState({ keepRealtime: true })
 			if (this.callbacks.onSpO2History) {
 				this.callbacks.onSpO2History({
 					list: [],
@@ -1953,7 +2051,7 @@ class U16ProBLEManager {
 			this.state.spO2List = []
 			if (data.totalPackets <= 1) {
 				console.log('【血氧历史】无数据包，读取完成')
-				this.readingState.isReadingSpO2History = false
+				this._resetSpO2ReadingState({ keepRealtime: true })
 				if (this.callbacks.onSpO2History) {
 					this.callbacks.onSpO2History({
 						list: [],
@@ -2016,7 +2114,7 @@ class U16ProBLEManager {
 				latest.updateTimeStr = this.getCurrentTime()
 			}
 			console.log('【血氧历史】完成，共', this.state.spO2List.length, '条')
-			this.readingState.isReadingSpO2History = false
+			this._resetSpO2ReadingState({ keepRealtime: true })
 			if (this.callbacks.onSpO2History) {
 				this.callbacks.onSpO2History({
 					list: this.state.spO2List,
@@ -2359,11 +2457,13 @@ class U16ProBLEManager {
 		const hexStr = U16ProProtocol.bytesToHex(packet)
 		// console.log('【发送数据】:' + hexStr)
 		return new Promise((resolve, reject) => {
-			uni.writeBLECharacteristicValue({
+			// Preserve the default write; retry only an explicit unsupported-property error.
+			const write = (fallback = false) => uni.writeBLECharacteristicValue({
 				deviceId: targetDeviceId,
 				serviceId: this.serviceId,
 				characteristicId: this.writeCharId,
 				value: buffer,
+				...(fallback ? { writeType: "writeNoResponse" } : {}),
 				success: (res) => {
 					console.log('【BPW6发送成功】：' + hexStr)
 					this.isConnected = true
@@ -2378,9 +2478,26 @@ class U16ProBLEManager {
 				},
 				fail: (err) => {
 					console.error('【BPW6发送失败】:' + hexStr, err)
+					const code = err && (err.errCode != null ? err.errCode : err.code)
+					const msg = String((err && (err.errMsg || err.message)) || '')
+					if (!fallback && (Number(code) === 10007 || msg.indexOf('property not support') >= 0)) {
+						console.warn('【BPW6】主命令写属性不支持，尝试无响应写入', hexStr)
+						write(true)
+						return
+					}
+					if (code === 10004 || code === '10004' || msg.indexOf('no connection') >= 0) {
+						this.isConnected = false
+						try {
+							uni.$emit('BPW6_GATT_WRITE_DEAD', {
+								deviceId: targetDeviceId,
+								err
+							})
+						} catch (eEmit) {}
+					}
 					reject(err)
 				}
 			})
+			write()
 		})
 	}
 
@@ -2435,8 +2552,14 @@ class U16ProBLEManager {
 		this.readingState.isReadingBPHistory = true
 		this.readingState.bpBuffer = []
 		this.readingState.expectedBPCount = count
+		this._armBPReadTimeout()
 		const packet = U16ProProtocol.buildReadBPHistory(timestamp, direction, count)
-		return this.sendCommand(packet, deviceId)
+		try {
+			return await this.sendCommand(packet, deviceId)
+		} catch (err) {
+			this._resetBPReadingState()
+			throw err
+		}
 	}
 
 	/**
@@ -2687,6 +2810,7 @@ class U16ProBLEManager {
 			this.readingState.spo2RealtimeSeq = 0
 		}
 		this.state.spO2List = []
+		this._armSpO2ReadTimeout()
 
 		const d = new Date(date)
 		const dayStart = U16ProProtocol.dateToTimestamp(d)
@@ -2695,9 +2819,7 @@ class U16ProBLEManager {
 		try {
 			return await this.sendCommand(packet, deviceId)
 		} catch (err) {
-			this.readingState.isReadingSpO2History = false
-			this.readingState.spo2RealtimeMode = false
-			this.readingState.spo2RealtimeSeq = 0
+			this._resetSpO2ReadingState()
 			throw err
 		}
 	}
@@ -2709,7 +2831,7 @@ class U16ProBLEManager {
 	/**
 	 * 实时血氧：延迟再读历史；若正在读则结束后补读一次（补读仍带 realtime）
 	 */
-	_scheduleSpO2HistoryRead(deviceId, delayMs = 1200) {
+	_scheduleSpO2HistoryRead(deviceId, delayMs = 300) {
 		if (this._spo2HistoryReadTimer) {
 			clearTimeout(this._spo2HistoryReadTimer)
 			this._spo2HistoryReadTimer = null
@@ -2903,16 +3025,20 @@ class U16ProBLEManager {
 		const sinceLastNotifyMs = this._lastBcNotifyTime ?
 			Date.now() - this._lastBcNotifyTime :
 			-1
+		// 回连后 isBcNotifying 常粘住，但长时间无 BC 包 → 假就绪；按常量判过期并轻刷
+		const staleMs = Number(BC_PACKET.BC_NOTIFY_STALE_MS) || 20000
+		const notifyStale = neverReceivedBc || (sinceLastNotifyMs >= 0 && sinceLastNotifyMs > staleMs)
 		// 刚收到完成帧等 BC 包时通道已热，再 refresh 会拖死后台拉数起步
 		const channelHot = sinceLastNotifyMs >= 0 && sinceLastNotifyMs < 5000
 
 		// 通道+notify 已就绪：勿因 force 反复 rediscover（会抢占链路 → status=0）
-		// 从未收过 BC 才轻量刷新；热通道即使 force 也跳过
+		// 从未收过 / 过期 / 显式 force：轻量刷新；热通道即使 force 也跳过
 		if (channelReady && notifyReady) {
-			if ((forceNotify || neverReceivedBc) && !channelHot) {
+			if ((forceNotify || notifyStale) && !channelHot) {
 				console.log('【PPG】BC通道已就绪，仅轻量刷新notify', {
 					sinceLastNotifyMs,
 					neverReceivedBc,
+					notifyStale,
 					forceNotify
 				})
 				await this._refreshBcNotify(targetDeviceId)
@@ -2955,7 +3081,7 @@ class U16ProBLEManager {
 		// #ifdef APP-PLUS
 		try {
 			const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule')
-			if (plugin && typeof plugin.acquireWakeLock === 'function') {
+			if (hasAnyBoundDevice() && plugin && typeof plugin.acquireWakeLock === 'function') {
 				plugin.acquireWakeLock({}, () => {})
 			}
 		} catch (e2) {}
@@ -3527,6 +3653,15 @@ class U16ProBLEManager {
 			this._setPpgDeviceProfile(deviceId, 'standard')
 			return plain
 		}
+		// 回连/应答丢失：设备侧可能已在测（status=0 拒启），挂起等完成而非空转重发
+		const rejectStatus = plain && plain.status
+		if (plain && plain.success === false && (rejectStatus === 0 || rejectStatus === BC_PACKET.FAIL_DATA)) {
+			const waited = await this._waitPpgCompleteAfterPossibleStart(immediateMode ? 70000 : 90000)
+			if (waited?.success) {
+				this._setPpgDeviceProfile(deviceId, 'standard')
+				return waited
+			}
+		}
 		// 失败交给外层延迟重试；绝不预停止、绝不试兼容时长
 		console.warn('【PPG】标准机启动失败，交由外层重试', plain)
 		return plain
@@ -3548,6 +3683,16 @@ class U16ProBLEManager {
 		if (parsed4a?.success) {
 			this._setPpgDeviceProfile(deviceId, 'compat')
 			return parsed4a
+		}
+		// 同标准机：被拒可能表示设备已在测（回连后常见），挂起等完成
+		const rejectStatus = parsed4a && parsed4a.status
+		if (parsed4a && parsed4a.success === false && (rejectStatus === 0 || rejectStatus ===
+				BC_PACKET.FAIL_DATA)) {
+			const waited = await this._waitPpgCompleteAfterPossibleStart(immediateMode ? 70000 : 90000)
+			if (waited?.success) {
+				this._setPpgDeviceProfile(deviceId, 'compat')
+				return waited
+			}
 		}
 		// 失败交给外层延迟重试；绝不发 0x4B / 无时长（否则手表显示测量完成）
 		console.warn('【PPG】兼容机启动失败，交由外层重试', parsed4a)
@@ -3705,34 +3850,37 @@ class U16ProBLEManager {
 	}
 
 	/**
-	 * 启动包可能已生效但应答丢失/被拒时，等待测量完成通知（0x58）
-	 * 不改变已在测设备的行为；超时返回 null
+	 * 启动包可能已生效但应答丢失/被拒(status=0)时，等待测量完成通知。
+	 * 标准机：0x58；兼容机：常仅 0x4B。不改已在测设备行为；超时返回 null。
+	 * 注意：此处不做 startSettle，否则会吞掉真正的测完 0x4B。
 	 */
 	async _waitPpgCompleteAfterPossibleStart(timeoutMs = 65000) {
-		console.warn('【PPG】可能已在测量中，改为等待0x58完成通知', {
+		console.warn('【PPG】可能已在测量中，改为等待0x58/0x4B完成通知', {
 			timeoutMs
 		})
-		this._ppgAwaitingStartSettle = true
 		this.state.ppgMeasuring = true
 		try {
 			const result = await this._waitForBcResponse(CMD.PPG_MEASUREMENT_COMPLETE, {
-				acceptCmds: [CMD.PPG_MEASUREMENT_COMPLETE],
+				acceptCmds: [CMD.PPG_MEASUREMENT_COMPLETE, CMD.PPG_STOP],
 				timeout: timeoutMs
 			})
-			console.log('【PPG】等到测量完成通知(兼容启动应答丢失)', result.parsed)
+			console.log('【PPG】等到测量完成通知(兼容启动应答丢失)', {
+				cmd: result.cmd,
+				parsed: result.parsed
+			})
 			this.state.ppgMeasuring = false
 			return {
 				success: true,
 				status: BC_PACKET.SUCCESS_DATA,
+				cmd: result.cmd,
 				type: 'ppg_command',
-				waitedComplete: true
+				waitedComplete: true,
+				fromStopCompat: result.cmd === CMD.PPG_STOP
 			}
 		} catch (e) {
-			console.warn('【PPG】等待0x58超时', e.message || e)
+			console.warn('【PPG】等待完成通知超时', e.message || e)
 			this.state.ppgMeasuring = false
 			return null
-		} finally {
-			this._ppgAwaitingStartSettle = false
 		}
 	}
 
@@ -4241,6 +4389,7 @@ class U16ProBLEManager {
 		this.isConnected = false
 		this.isNotifying = false
 		this.resetBcServiceState()
+		this.resetHistoryReadingLocks('disconnect')
 		this.deviceId = ''
 	}
 

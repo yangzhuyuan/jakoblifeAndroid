@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "file": "pages/Bind/Bing_page/Bind_page_2.vue",
+      "bytes": 47333,
+      "sha256": "e833a45b1fc063139682970e785794106569bb99c3d886a5a70a4ecbf615b746"
+    },
+    {
+      "file": "pages/Bind/Bing_xueya/Bing_xueya.vue",
+      "bytes": 7620,
+      "sha256": "ccde5fb4d89926a3f957b61a6bab182a2b0ce483d8bca2b59afe6a754b52cc99"
+    },
+    {
+      "file": "pages/Bind/Bing_xueya/Bing_xueya_2.vue",
+      "bytes": 42828,
+      "sha256": "02bc15eb56eb21d214e169f29a9082a2ba37f872109f816af009d0e7623c3449"
+    },
+    {
+      "file": "tests/zk872-auto-connect.test.cjs",
+      "bytes": 27219,
+      "sha256": "eb89803c1856e1a01b208bb9d1534d2020f06a5b0bd454c69f94d942c72b29c1"
+    }
+  ]
+}

@@ -7,7 +7,7 @@
 			<view class="list-item" :class="index == active ? 'active' : ''" v-for="(item, index) in list" :key="index">
 				<view class="list_item_bg" @click="check_click(index, item.modelConnectType, item.name)">
 					<image class="imagsest" mode="aspectFit" :src="item.modelPicturePath" />
-					<view class="namstysle">{{(item.name==="BPW6"?"U19M":item.name)}}</view>
+					<view class="namstysle">{{(item.name==="BPW6"?"U19M/U16H":item.name)}}</view>
 				</view>
 			</view>
 		</view>
@@ -30,6 +30,18 @@
 			</button>
 			<view class="viewstylesss" @click="NOclick()">
 				{{ $t("不知道设备型号") }}
+			</view>
+		</view>
+
+		<!-- ZK-B872 型号选择 -->
+		<view v-if="showZkModelPicker" class="zk-mask" @click="closeZkModelPicker">
+			<view class="zk-sheet" @click.stop>
+				<view class="zk-title">{{ zkModelTitle }}</view>
+				<view class="zk-item" v-for="(item, index) in zkModelOptions" :key="index"
+					@click="onZkModelSelect(item)">
+					{{ item.label }}
+				</view>
+				<view class="zk-cancel" @click="closeZkModelPicker">{{ zkCancelText }}</view>
 			</view>
 		</view>
 	</view>
@@ -77,7 +89,38 @@
 
 	export default {
 		computed: {
-			...mapState(['tokens'])
+			...mapState(['tokens']),
+			isZhLocale() {
+				return lan === 'zh-Hans' || lan === 'zh-Hant'
+			},
+			zkModelTitle() {
+				return this.isZhLocale ? '选择型号' : 'Select Model'
+			},
+			zkCancelText() {
+				return this.isZhLocale ? '取消' : 'Cancel'
+			},
+			zkModelOptions() {
+				if (this.isZhLocale) {
+					return [{
+							label: '蓝牙款',
+							modelConnectType: '1'
+						},
+						{
+							label: 'WIFI款',
+							modelConnectType: '2'
+						}
+					]
+				}
+				return [{
+						label: 'BT',
+						modelConnectType: '1'
+					},
+					{
+						label: 'WIFI',
+						modelConnectType: '2'
+					}
+				]
+			}
 		},
 		data() {
 			return {
@@ -90,6 +133,7 @@
 				SELECT_TYPE: '',
 				name: '',
 				SHEBEI: '',
+				showZkModelPicker: false
 			}
 		},
 
@@ -140,11 +184,31 @@
 						icon: "none"
 					})
 					return
-				} else {
-					uni.navigateTo({
-						url: `../Bing_page/Bind_page_2?modelConnectType=${this.modelConnectType}&SELECT_TYPE=${this.SELECT_TYPE}&name=${this.name}`
-					});
 				}
+				// if (this.name === "ZK-B872") {
+				// 	this.showZkModelPicker = true
+				// 	return
+				// }
+				this.navigateToBindStep(this.modelConnectType, this.name)
+			},
+			closeZkModelPicker() {
+				this.showZkModelPicker = false
+			},
+			onZkModelSelect(item) {
+				console.log(item.modelConnectType)
+				this.showZkModelPicker = false
+				this.modelConnectType = item.modelConnectType
+				this.navigateToBindStep(item.modelConnectType, this.name, item.label)
+			},
+			navigateToBindStep(modelConnectType, name, variant) {
+				let url =
+					`../Bing_page/Bind_page_2?modelConnectType=${modelConnectType}&SELECT_TYPE=${this.SELECT_TYPE}&name=${encodeURIComponent(name || '')}`
+				if (variant) {
+					url += `&variant=${encodeURIComponent(variant)}`
+				}
+				uni.navigateTo({
+					url
+				})
 			},
 			Unbind() {
 				uni.switchTab({
@@ -316,5 +380,49 @@
 		margin-top: 10px;
 		font-size: 12px;
 		font-weight: 400;
+	}
+
+	.zk-mask {
+		position: fixed;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.45);
+		z-index: 999;
+		display: flex;
+		align-items: flex-end;
+	}
+
+	.zk-sheet {
+		width: 100%;
+		background: #fff;
+		border-radius: 16px 16px 0 0;
+		padding-bottom: calc(12px + env(safe-area-inset-bottom));
+	}
+
+	.zk-title {
+		text-align: center;
+		font-size: 16px;
+		font-weight: 600;
+		padding: 16px 12px 8px;
+		color: #333;
+	}
+
+	.zk-item {
+		text-align: center;
+		font-size: 16px;
+		padding: 14px 12px;
+		border-top: 1px solid #f0f0f0;
+		color: #3298F7;
+	}
+
+	.zk-cancel {
+		text-align: center;
+		font-size: 16px;
+		padding: 14px 12px;
+		margin-top: 8px;
+		border-top: 8px solid #f5f5f5;
+		color: #666;
 	}
 </style>

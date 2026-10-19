@@ -12,8 +12,6 @@
 			</text>
 		</view>
 
-		<view v-if="modeltips" class="model-tip">{{$t('您的无感血压AI模型正在建立中大概需要2周时间')}}</view>
-		<view v-else class="model-tip">{{$t('您的AI无感血压模型已经建立')}}</view>
 		<view class="table-header">
 			<text class="col-time">{{$t('测量时间')}}</text>
 			<text class="col-period">{{$t('时段')}}</text>
@@ -49,7 +47,12 @@
 
 <script>
 	import {
-		getChinaTimeAllJSON
+		isChinaTimezone,
+		resolveAbroadMonitorEndYmd,
+		resolveReportProfYmd,
+		shiftCalendarDay,
+		canFallbackAbroadProfDate,
+		hasRetVarListPayload
 	} from '@/pages/api/unitls/timezone.js'
 	export default {
 		data() {
@@ -61,7 +64,6 @@
 				pacitime: '',
 				filterVarList: "JLvFLGvJL01v1W",
 				period: "1W",
-				modeltips: true,
 			}
 		},
 		computed: {
@@ -79,70 +81,46 @@
 			dataTipText() {
 				const yesterday = new Date()
 				yesterday.setDate(yesterday.getDate() - 1)
-				const month = yesterday.getMonth() + 1
-				const day = yesterday.getDate()
+				let month = yesterday.getMonth() + 1
+				let day = yesterday.getDate()
+				if (!isChinaTimezone() && canFallbackAbroadProfDate()) {
+					const tipYmd = shiftCalendarDay(resolveAbroadMonitorEndYmd(), -1)
+					const parts = String(tipYmd).split('-')
+					if (parts.length >= 3) {
+						month = parseInt(parts[1], 10)
+						day = parseInt(parts[2], 10)
+					}
+				}
 				const isZh = (this.$i18n && this.$i18n.locale || '').indexOf('zh') === 0
 				const dateStr = isZh ?
 					`${month}月${day}日` :
-					`${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][yesterday.getMonth()]} ${day}`
+					`${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month - 1]} ${day}`
 				return this.$t('当天数据云端计算中需明天查询', {
 					date: dateStr
 				})
 			}
 		},
 		onShow() {
-			const modeltipsbool = uni.getStorageSync("temperature")
-			// console.log("modeltipsbool", modeltipsbool)
 			uni.setNavigationBarTitle({
 				title: this.$t('无感血压报告')
 			})
-			// this.ppgdatalist()
 			this.calculateTimeRange()
 			this.get_retVarList()
-			if (modeltipsbool && modeltipsbool !== '-/-' && Number(modeltipsbool) >= 500) {
-				this.modeltips = false
-			}
 		},
 		methods: {
-
-			//根据患者ID查询PPG信号最新分析结果
-			ppgdatalist() {
-				let that = this
-				let ppgdata = {
-					patientId: uni.getStorageSync("userid"),
-				}
-				that.$get(that.$url_APP_IP + "/prod-api/device/ppgresults/get_result_by_patient_id",
-					ppgdata, {
-						'Authorization': 'Bearer ' + uni.getStorageSync("token"),
-						'content-type': 'application/json;charset=UTF-8'
-					}).then((ppgdatalist) => {
-					console.log("ppgdatalist", ppgdatalist.data.remark)
-					if (ppgdatalist.code === 200) {
-						if (ppgdatalist.data.remark) {
-							that.modeltips = false
-						} else {
-							that.modeltips = true
-						}
-					} else {
-						that.modeltips = true
-					}
-				})
-			},
-
-
 			switchTab(tab) {
 				this.currentTab = tab
 			},
 			calculateTimeRange() {
-				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
-				const chinaNow = getChinaTimeAllJSON()
-				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
-				this.pacitime = chinaHour < 1 ?
-					getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD :
-					chinaNow.YMD
+				this.pacitime = resolveReportProfYmd()
 			},
-			// 手机本地日期：只保留「昨天」和「前天」（如今天 18 号 → 16、17 号）
+			// 国内：只保留本地「昨天」和「前天」（今天 18 号 → 16、17 号）
+			// 国外：仅中国 00:00–00:59 按监测结束日往前一天（3–4）；过了 01:00 恢复本地昨天+前天
 			getTargetDateSet() {
+				if (!isChinaTimezone() && canFallbackAbroadProfDate()) {
+					const endYmd = resolveAbroadMonitorEndYmd()
+					return new Set([shiftCalendarDay(endYmd, -1), endYmd])
+				}
 				const pad = (n) => String(n).padStart(2, '0')
 				const formatYMD = (d) =>
 					`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -264,35 +242,38 @@
 				})
 			},
 			get_retVarList() {
+				this.fetchRetVarList(this.pacitime || resolveReportProfYmd(), true)
+			},
+			fetchRetVarList(profYmd, allowFallback) {
 				const that = this
 				const token = uni.getStorageSync('token')
 				if (!token) {
 					that.dataList = []
+					that.loading = false
 					return
 				}
 				that.loading = true
+				that.pacitime = String(profYmd || '').slice(0, 10)
 				const data = {
 					userId: uni.getStorageSync("userid"),
-					// deviceId: uni.getStorageSync("deviceSn"),
 					profDate: that.pacitime,
 					filterVarList: that.filterVarList,
 					retVarList: 'TIME_MEASURE,JLvOPRvJL01vSBP,JLvOPRvJL01vDBP,JLvOPRvJL01vHR'
 				}
-				// console.log('get_retVarLisdata参数：', data)
 				that.$post(that.$url_APP_IP + '/prod-api/device_app/get_retVarList', data, {
 					'Authorization': 'Bearer ' + token,
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((res) => {
-					// console.log('get_retVarLis：', res)
-					if (res.code === 200 && res.data && res.data.retVarList) {
-						that.dataList = that.processRetVarList(res.data.retVarList)
-					} else {
-						that.dataList = []
+					const list = hasRetVarListPayload(res) ? that.processRetVarList(res.data.retVarList) : []
+					if (!list.length && allowFallback && canFallbackAbroadProfDate()) {
+						that.fetchRetVarList(shiftCalendarDay(that.pacitime, -1), false)
+						return
 					}
+					that.dataList = list
+					that.loading = false
 				}).catch((e) => {
 					console.warn('[Smooth_BP_Data] get_retVarList failed', e)
 					that.dataList = []
-				}).finally(() => {
 					that.loading = false
 				})
 			}
@@ -331,15 +312,6 @@
 		text-align: center;
 		background: #fff8e8;
 		border-bottom: 1px solid #f0e6c8;
-	}
-
-	.model-tip {
-		padding: 16rpx 20rpx;
-		font-size: 22rpx;
-		line-height: 1.5;
-		color: #c0392b;
-		text-align: center;
-		background: rgba(255, 248, 232, 0.95);
 	}
 
 	.tab {

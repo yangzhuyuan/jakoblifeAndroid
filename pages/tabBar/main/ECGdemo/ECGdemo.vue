@@ -1048,8 +1048,8 @@
 				};
 			},
 			getEcgWaveRef() {
-				const item = this.$refs.ecgSwiperItem;
-				return item && item.$refs && item.$refs.wave;
+				const item = this.$refs.ecgSwiperItem
+				return item && item.$refs && item.$refs.wave
 			},
 			getWaveRef() {
 				return this.getEcgWaveRef();
@@ -2348,6 +2348,7 @@
 				this.sendCnt = 0;
 				this.bleMeasureArmed = true;
 				this._bleMeasureFinishing = false;
+				this._bleUploadDone = false;
 				this.buffer = '';
 				this.lastBleValidMv = null;
 				wave.clear();
@@ -2391,7 +2392,7 @@
 				this.addLog('心电图', `查看详情 recordId=${id}`);
 				uni.navigateTo({
 					// 恢复原 ecgFull；显示差分连续波，与「加载BLE全波形」一致（不上报）
-					url: '/pages/tabBar/main/ecgFull',
+					url: '/pages/tabBar/main/ecgFullUpright',
 					success: (res) => {
 						const mvArr = this.unpackInt16ECG(
 							this.toArrayBuffer(rawData),
@@ -2747,9 +2748,15 @@
 					this.addLog('上传', '已跳过：模拟/BLE全波形模式不走 saveFinalData');
 					return;
 				}
+				// 60s/满点数 与设备「采集结束」都会进这里，同一轮只上报一次
+				if (this._bleUploadDone) {
+					this.addLog('上传', '已跳过：本次测量已上报');
+					return;
+				}
 				const raw = this.bleRawEcgValues;
 				// 实时：协议帧→mV；与「开始模拟」同一套 uploadAlreadyMvCustomerEcg
 				if (raw && raw.length) {
+					this._bleUploadDone = true;
 					const fs = CUSTOMER_TXT_DEFAULT_FS || CUSTOMER_UPLOAD_FS || 250;
 					const sec = Math.max(1, Math.round(raw.length / fs)) || BLE_MEASURE_SECONDS;
 					this.uploadAlreadyMvCustomerEcg(raw.slice(), {
@@ -2844,6 +2851,7 @@
 				this.queueLength = 0;
 				this.measurementStatus = '';
 				this._bleMeasureFinishing = false;
+				this._bleUploadDone = false;
 				this.bleRawEcgValues = [];
 				this.lastBleValidMv = null;
 				this.clearBleMeasureTimer();

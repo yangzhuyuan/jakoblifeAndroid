@@ -118,6 +118,15 @@
 			this.sn = res.sn
 			this.SELECT_TYPE = res.SELECT_TYPE
 			this.modelId = res.modelId
+			this.fromManage = res.fromManage === '1' || res.fromManage === 1 || res.fromManage === true
+			this.presetDeviceId = res.deviceId ? decodeURIComponent(res.deviceId) : ''
+			if (this.fromManage && this.presetDeviceId) {
+				uni.openBluetoothAdapter({
+					success: () => {
+						this.createBLEConnection(this.presetDeviceId, '')
+					}
+				})
+			}
 		},
 		//定义初始化值
 		data() {
@@ -134,6 +143,7 @@
 				count: 3,
 				bluetoothList: [],
 				bluetoothList1: [],
+				writeTypeHint: 'write',
 				idList: [], //存放设备deviceId数组 去重
 				rssiTimer: '',
 				deviceId: '',
@@ -141,6 +151,8 @@
 				uuid: '',
 				notifyuuid: '',
 				modelId: '',
+				fromManage: false,
+				presetDeviceId: '',
 			}
 		},
 
@@ -333,7 +345,6 @@
 				let that = this;
 				uni.openBluetoothAdapter({
 					success: res => {
-						console.log('蓝牙初始化', res)
 						that.connectBluetooth()
 					},
 					fail: function(err) {
@@ -383,6 +394,7 @@
 				that.$refs.popup.open("bottom")
 				uni.createBLEConnection({
 					deviceId: deviceId,
+					timeout: 15000,
 					success: (res) => {
 						console.log("连接低功耗蓝牙设备成功", res);
 						if (item != "") {
@@ -396,7 +408,11 @@
 								deviceId: deviceId,
 								mtu: 512,
 								success(resMTU) {
-									console.log("设置蓝牙最大传输单元", resMTU);
+									console.log("设置蓝牙最大传输单元", JSON.stringify(resMTU),
+										'请求MTU=512，实际MTU=', resMTU.mtu || '回调未提供，不能据此确认实际包长');
+								},
+								fail(err) {
+									console.log('设置蓝牙MTU失败', JSON.stringify(err))
 								}
 							})
 							that.getBLEDeviceServices(deviceId)
@@ -404,6 +420,12 @@
 					},
 					fail(erro) {
 						that.$refs.popup.close()
+						uni.closeBluetoothAdapter()
+						uni.openBluetoothAdapter()
+						uni.showToast({
+							title: that.$t("连接超时"),
+							icon: "none"
+						});
 						console.log("连接低功耗蓝牙设备失败", erro);
 					}
 				});
@@ -429,14 +451,19 @@
 					deviceId: deviceId,
 					serviceId: serviceId,
 					success: (res) => {
-						console.log('获取蓝牙设备某个服务中所有特征值(characteristic)', res.characteristics)
+						console.log('获取蓝牙设备某个服务中所有特征值(characteristic)', JSON.stringify(res.characteristics))
 						for (let i = 0; res.characteristics.length > i; i++) {
 							let item = res.characteristics[i]
 							//蓝牙消息通知
-							if (item.properties.write) {
+							if (item.properties.write || item.properties.writeNoResponse) {
 								that.deviceId = deviceId
 								that.serviceId = serviceId
 								that.uuid = item.uuid
+								const platform = uni.getSystemInfoSync().platform
+								that.writeTypeHint = platform === 'android' || !item.properties.write ?
+									'writeNoResponse' : 'write'
+								console.log('配网写入特征值', item.uuid, '原始属性', JSON.stringify(item.properties),
+									'平台', platform, '选用', that.writeTypeHint)
 							}
 							if (item.properties.notify) {
 								that.notifyuuid = item.uuid
@@ -458,7 +485,8 @@
 					url: '../../Bind/Bing_xueya/Bing_xueya_2?deviceId=' + that.deviceId +
 						"&serviceId=" + that.serviceId + "&uuid=" + that.uuid + "&sn=" + that.sn +
 						"&SELECT_TYPE=" + that.SELECT_TYPE + "&modelId=" + that.modelId + "&notifyuuid=" + that
-						.notifyuuid
+						.notifyuuid + '&writeTypeHint=' + that.writeTypeHint + (that.fromManage ? '&fromManage=1' :
+							'')
 				})
 			},
 			android() {
@@ -508,7 +536,6 @@
 			},
 			/*搜索连接蓝牙*/
 			connectBluetooth() {
-				console.log('开始搜索蓝牙')
 				let that = this;
 				uni.startBluetoothDevicesDiscovery({
 					allowDuplicatesKey: true,

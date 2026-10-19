@@ -39,7 +39,8 @@
 				</view>
 				<uni-icons class="card-arrow" type="right" size="16" color="#C3CDD8"></uni-icons>
 			</view>
-			<view class="card" hover-class="card-hover" @click="goToSupplementdata">
+			<view class="card" :class="{ 'card-disabled': !wuganModelReady }"
+				:hover-class="wuganModelReady ? 'card-hover' : ''" @click="goToSupplementdata">
 				<view class="card-icon">
 					<image class="card-icon-img" src="/static/page_icon/baogao_4.png" mode="aspectFit" />
 				</view>
@@ -49,6 +50,7 @@
 				</view>
 				<uni-icons class="card-arrow" type="right" size="16" color="#C3CDD8"></uni-icons>
 			</view>
+			<view v-if="!wuganModelReady" class="wugan-gate-tip">{{ $t('您的无感血压AI模型正在建立中大概需要2周时间') }}</view>
 			<view class="info-box">
 				<uni-icons type="info" size="16" color="#4A78C6"></uni-icons>
 				<text class="info-text">{{ $t('报告仅用于查看测量数据和趋势分析') }}</text>
@@ -59,13 +61,24 @@
 
 <script>
 	export default {
+		data() {
+			return {
+				wuganModelReady: false,
+			}
+		},
 		onShow() {
 			let that = this
+			that.wuganModelReady = that.isWuganModelReady()
 			uni.setNavigationBarTitle({
 				title: that.$t("报告")
 			})
 		},
 		methods: {
+			/** 与无感血压报告页一致：体温有效且 >= 500 才视为无感模型已建立 */
+			isWuganModelReady() {
+				const modeltipsbool = uni.getStorageSync('temperature')
+				return !!(modeltipsbool && modeltipsbool !== '-/-' && Number(modeltipsbool) >= 500)
+			},
 			clickset(type) {
 				uni.navigateTo({
 					url: '../../main/globalweather/Personal_Information?type=' + type
@@ -77,6 +90,10 @@
 				})
 			},
 			goToSupplementdata() {
+				if (!this.isWuganModelReady()) {
+					this.wuganModelReady = false
+					return
+				}
 				uni.navigateTo({
 					url: '/pages/tabBar/main/report_all_type/Smooth_BP_Data'
 				})
@@ -162,6 +179,20 @@
 
 	.card-hover {
 		opacity: 0.86;
+	}
+
+	.card-disabled {
+		opacity: 0.45;
+	}
+
+	.wugan-gate-tip {
+		margin: -8rpx 0 28rpx;
+		padding: 24rpx 28rpx;
+		background: #FFF6E0;
+		border-radius: 24rpx;
+		font-size: 26rpx;
+		line-height: 1.6;
+		color: #E8A317;
 	}
 
 	.card-icon {

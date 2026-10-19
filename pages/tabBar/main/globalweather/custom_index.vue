@@ -13,7 +13,7 @@
 		<view class="section">
 			<view class="section-title">
 				<view class="title-wrapper">
-					<text>{{$t("自定义时段")}}</text>
+					<text>{{$t("自动血压测量计划标题")}}</text>
 					<view v-if="sending" class="sending-status">
 						<text class="sending-text">{{$t("配置中")}}</text>
 						<text class="sending-icon-animate">⏳</text>

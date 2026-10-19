@@ -1,0 +1,57 @@
+{
+  "createdAt": "2026-10-16T09:28:36.017Z",
+  "files": [
+    {
+      "file": "App.vue",
+      "sha256": "c4aa8e84e2c53aa20b5666486dc03f5ffab404c929aebb0918205072f139a75a"
+    },
+    {
+      "file": "nativeplugins/KeepAlivesdkplugin/keepAliveManager.js",
+      "sha256": "d160b23a8b97a9ecd3b5b9be861bd2a8f617f1914c0175994a2e6d49d3c3a2ab"
+    },
+    {
+      "file": "pages/api/appBaseHosts.js",
+      "sha256": "26f4e6909dd261984ff87fc8c450cb61423ed9361a24e74e96c9e2408d203124"
+    },
+    {
+      "file": "pages/api/qxBleAlignedSchedule.js",
+      "sha256": "a31b336e3f94fac4d610d87777332188dc8d28fe26c44306f8c01f9f7cd61424"
+    },
+    {
+      "file": "pages/api/protocol/u16pro-ble-manager.js",
+      "sha256": "c88bce5b737b9c931e4dee58993d46becd646b31f7dd8f5b1495a7f95ae8065d"
+    },
+    {
+      "file": "pages/tabBar/main/Main.vue",
+      "sha256": "6754c9629b0d5ed05b5dab25ea15010c44a14c5cdcdd3595797872ba158b3275"
+    },
+    {
+      "file": "pages/tabBar/device/Equipment_management.vue",
+      "sha256": "3ab11323d216c78832a4c770a1fb55aa0b954c4c6d204018247dce22feef77e1"
+    },
+    {
+      "file": "pages/tabBar/my/Equipment_management1.vue",
+      "sha256": "9cdee633a951cedec709adff6571e96a730bdd31da1b507ad1bbb7351f7ae0c4"
+    },
+    {
+      "file": "pages/Bind/Bing_page/Bind_success.vue",
+      "sha256": "0285f6a048d72f559b9a338b66302a279450348fbd152da24314871eba360672"
+    },
+    {
+      "file": "tests/zk872-home-refresh.test.cjs",
+      "sha256": "01ce72a14fb9346bb520eb5ab691353364d58be925feb199b9e67c9c508e2452"
+    },
+    {
+      "file": "tests/zk872-auto-connect.test.cjs",
+      "sha256": "eb89803c1856e1a01b208bb9d1534d2020f06a5b0bd454c69f94d942c72b29c1"
+    },
+    {
+      "file": "tests/wifi-provisioning.test.cjs",
+      "sha256": "a89949bd1e9288359071606eed701fd891e729d19b4e133f5b175f565dd9171f"
+    },
+    {
+      "file": "tests/wifi-list-refresh.test.cjs",
+      "sha256": "0ca43f06a2115edb6f90aa9116e347a48b2b3e4157b6d6ab9b83263229d67a6e"
+    }
+  ]
+}

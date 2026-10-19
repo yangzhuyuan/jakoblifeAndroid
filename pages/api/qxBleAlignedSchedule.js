@@ -7,6 +7,7 @@
  */
 
 import Vue from 'vue'
+import { hasAnyBoundDevice, DEVICE_BINDING_STATE_CHANGED } from './deviceBindingState.js'
 import {
 	getRequest
 } from './request.js'
@@ -14,10 +15,6 @@ import {
 	APP_IP_CN,
 	getActiveAppBaseUrl
 } from './appBaseHosts.js'
-import {
-	getCurrentTime,
-	jakobLifeDebugFileLog
-} from './jakobLifeDebugFileLog.js'
 import keepAliveManager from '@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js'
 import {
 	u16proBLE
@@ -624,9 +621,17 @@ function querySystemBleConnected(deviceId) {
 }
 
 function createQxBleConnection(deviceId) {
+	return createQxBleConnectionDetail(deviceId).then((res) => !!(res && res.ok))
+}
+
+/** 区分真正连上与 already（超距久了系统常假 already，不能当回连成功） */
+function createQxBleConnectionDetail(deviceId) {
 	return new Promise((resolve) => {
 		if (!deviceId || typeof uni.createBLEConnection !== 'function') {
-			resolve(false)
+			resolve({
+				ok: false,
+				already: false
+			})
 			return
 		}
 		const markConnectedHint = () => {
@@ -634,25 +639,132 @@ function createQxBleConnection(deviceId) {
 				uni.removeStorageSync('bpw6_bg_need_bt_reconnect')
 			} catch (e) {}
 		}
+		// 待回连时缩短 timeout：超距 10012 快失败快重试，进范围后更快追上
+		const createTimeout = hasBpw6BgGattNeedReconnect() ? 2500 : 8000
 		uni.createBLEConnection({
 			deviceId,
-			timeout: 8000,
+			timeout: createTimeout,
 			success: () => {
 				markConnectedHint()
-				resolve(true)
+				resolve({
+					ok: true,
+					already: false
+				})
 			},
 			fail: (err) => {
 				const msg = String((err && err.errMsg) || '')
 				if (msg.indexOf('already') >= 0 || (err && (err.errCode === -1 || err.code === -
 						1))) {
 					markConnectedHint()
-					resolve(true)
+					resolve({
+						ok: true,
+						already: true
+					})
 					return
 				}
-				resolve(false)
+				resolve({
+					ok: false,
+					already: false
+				})
 			}
 		})
 	})
+}
+
+/** 超距久置后直连 MAC 常 10012：短扫把设备刷进系统缓存再 create */
+let _bpw6BgGattFailStreak = 0
+let _bpw6BgGattScanBusy = false
+let _bpw6BgGattLastScanAt = 0
+let _bpw6BgGattScanGen = 0
+
+function stopBpw6BgGattScanQuiet() {
+	try {
+		if (typeof uni.stopBluetoothDevicesDiscovery === 'function') {
+			uni.stopBluetoothDevicesDiscovery({
+				complete() {}
+			})
+		}
+	} catch (e) {}
+}
+
+/**
+ * BPW6 回连辅助扫描：发现绑定 MAC 后 resolve(true)；超时/失败 resolve(false)。
+ * 节流：常态 15s；仅「待回连」时 6s（黑屏超距久置回来需更快刷缓存）。
+ */
+export function assistBpw6ReconnectByScan(deviceId = '', timeoutMs = 4000) {
+	const mac = deviceId || uni.getStorageSync('BPW6devicemac') || ''
+	return new Promise((resolve) => {
+		if (!mac || typeof uni.startBluetoothDevicesDiscovery !== 'function') {
+			resolve(false)
+			return
+		}
+		const now = Date.now()
+		const scanGap = hasBpw6BgGattNeedReconnect() ? 4000 : 15000
+		if (_bpw6BgGattScanBusy || now - _bpw6BgGattLastScanAt < scanGap) {
+			resolve(false)
+			return
+		}
+		_bpw6BgGattScanBusy = true
+		_bpw6BgGattLastScanAt = now
+		const gen = (++_bpw6BgGattScanGen)
+		let done = false
+		const finish = (ok) => {
+			if (done || gen !== _bpw6BgGattScanGen) return
+			done = true
+			_bpw6BgGattScanBusy = false
+			stopBpw6BgGattScanQuiet()
+			resolve(!!ok)
+		}
+		const onFound = (res) => {
+			if (gen !== _bpw6BgGattScanGen) return
+			const devices = (res && res.devices) || []
+			for (let i = 0; i < devices.length; i++) {
+				const d = devices[i]
+				if (d && isSameQxBleDeviceId(d.deviceId, mac)) {
+					finish(true)
+					return
+				}
+			}
+		}
+		const startScan = () => {
+			try {
+				uni.onBluetoothDeviceFound(onFound)
+			} catch (eOn) {}
+			uni.startBluetoothDevicesDiscovery({
+				allowDuplicatesKey: true,
+				success: () => {
+					setTimeout(() => finish(false), Math.max(2000, Number(timeoutMs) || 4000))
+				},
+				fail: () => finish(false)
+			})
+		}
+		if (typeof uni.openBluetoothAdapter === 'function') {
+			uni.openBluetoothAdapter({
+				success: startScan,
+				fail: () => finish(false)
+			})
+		} else {
+			startScan()
+		}
+	})
+}
+
+function noteBpw6BgGattCreateResult(ok, already) {
+	if (ok && !already) {
+		_bpw6BgGattFailStreak = 0
+		return
+	}
+	if (already) {
+		// 假 already 会走 close；真 already 由 writeFresh 判断，不计入扫连失败
+		return
+	}
+	_bpw6BgGattFailStreak += 1
+}
+
+/** 连续 create 失败后是否该短扫再连（待回连每 2 次，常态每 3 次） */
+function shouldAssistBpw6ReconnectByScan() {
+	const every = hasBpw6BgGattNeedReconnect() ? 2 : 3
+	return _bpw6BgGattFailStreak >= every && (_bpw6BgGattFailStreak % every === 0)
 }
 
 /**
@@ -660,6 +772,102 @@ function createQxBleConnection(deviceId) {
  * 并本地补一次 GATT 连接（Main 未挂载时仍可恢复链路）。
  */
 let _qxBpw6SilentReconnectAt = 0
+let _qxBpw6SilentReconnectDeferTimer = null
+
+function runBpw6SilentReconnectCreate(mac, pendingRecover) {
+	// 超距久了系统常假 already：不能当回连成功去清待回连标记，否则熄屏回前台再也 create 不上
+	createQxBleConnectionDetail(mac).then((res) => {
+		const ok = !!(res && res.ok)
+		const already = !!(res && res.already)
+		// 前台：真连上才清标记。假 already 时绝不 close（避免打断正常链路/PPG），交给 Main 读服务探测。
+		if (qxAppInForeground) {
+			if (ok && !already) {
+				notifyQxBleWatchConnectionState(true, mac)
+				const writeFresh = bpw6BgGattWriteIsFresh()
+				const needFull = !writeFresh || pendingRecover || hasBpw6BgGattNeedReconnect()
+				// 真 create 成功：交 Main 补通道后再清待回连（避免瞬间 10004 后停摆）
+				markBpw6BgGattNeedReconnect(true)
+				try {
+					uni.$emit('BPW6_ENSURE_RECONNECT', {
+						deviceId: mac,
+						reason: needFull ? 'qxBle-bg-gatt-ok-full' : 'qxBle-bg-gatt-ok'
+					})
+				} catch (eOk) {}
+				return
+			}
+			if (ok && already) {
+				// 仅「无待回连 + 近期写成功」视为真还连着；否则不 close，交给 Main 读服务判断
+				if (!pendingRecover && !hasBpw6BgGattNeedReconnect() && bpw6BgGattWriteIsFresh()) {
+					notifyQxBleWatchConnectionState(true, mac)
+					markBpw6BgGattNeedReconnect(false)
+					return
+				}
+				// 打开 App 后假 already：强制待回连，供 Main close+create
+				markBpw6BgGattNeedReconnect(true)
+				try {
+					uni.$emit('BPW6_ENSURE_RECONNECT', {
+						deviceId: mac,
+						reason: 'app-foreground-retry'
+					})
+				} catch (e) {}
+				return
+			}
+			// create 失败（超距未进范围等）：始终置待回连，交 Main 前台直连重试
+			markBpw6BgGattNeedReconnect(true)
+			try {
+				uni.$emit('BPW6_ENSURE_RECONNECT', {
+					deviceId: mac,
+					reason: 'app-foreground-retry'
+				})
+			} catch (e) {}
+			return
+		}
+		if (ok && !already) {
+			notifyQxBleWatchConnectionState(true, mac)
+			const writeFresh = bpw6BgGattWriteIsFresh()
+			const needFull = !writeFresh || pendingRecover || hasBpw6BgGattNeedReconnect()
+			// 黑屏静默回连：真 create 成功必须交 Main 补通道/校时，绝不可只清标记
+			markBpw6BgGattNeedReconnect(true)
+			try {
+				uni.$emit('BPW6_ENSURE_RECONNECT', {
+					deviceId: mac,
+					reason: needFull ? 'qxBle-bg-gatt-ok-full' : 'qxBle-bg-gatt-ok'
+				})
+			} catch (eBgOk) {}
+			return
+		}
+		if (already) {
+			if (!hasBpw6BgGattNeedReconnect() && bpw6BgGattWriteIsFresh()) {
+				notifyQxBleWatchConnectionState(true, mac)
+				return
+			}
+			markBpw6BgGattNeedReconnect(true)
+			// PPG 传输中勿 close，避免打断情绪/定时测量
+			if (!isBpw6BgGattPpgBusy()) {
+				closeStaleBpw6BgGatt(mac, {
+					force: true
+				})
+			}
+			return
+		}
+		markBpw6BgGattNeedReconnect(true)
+	}).catch(() => {
+		if (qxAppInForeground) {
+			if (pendingRecover || hasBpw6BgGattNeedReconnect()) {
+				markBpw6BgGattNeedReconnect(true)
+			}
+			try {
+				uni.$emit('BPW6_ENSURE_RECONNECT', {
+					deviceId: mac,
+					reason: 'app-foreground-retry'
+				})
+			} catch (e) {}
+			return
+		}
+		markBpw6BgGattNeedReconnect(true)
+	})
+}
+
 export function requestBpw6SilentReconnect(deviceId = '', reason = '') {
 	const mac = deviceId || uni.getStorageSync('BPW6devicemac') || ''
 	if (!mac) return
@@ -675,17 +883,740 @@ export function requestBpw6SilentReconnect(deviceId = '', reason = '') {
 		return
 	}
 	_qxBpw6SilentReconnectAt = now
+	// 进入前先记住待回连信号；后续 create 回调里勿误清，否则 Main.onShow 读不到
+	const pendingRecover = hasBpw6BgGattNeedReconnect()
+	const writeStale = !bpw6BgGattWriteIsFresh()
 	try {
 		uni.$emit('BPW6_ENSURE_RECONNECT', {
 			deviceId: mac,
-			reason: reason || 'qxBle'
+			// 写特征已过期：用 retry 理由，确保 Main 走强制 create（冷启动 App.onShow 常早于 Main.onLoad）
+			reason: (qxAppInForeground && writeStale) ? 'app-foreground-retry' : (reason || 'qxBle')
 		})
 	} catch (e) {}
-	createQxBleConnection(mac).then((ok) => {
-		if (ok) {
-			notifyQxBleWatchConnectionState(true, mac)
+	// 冷启动/久置：写特征必过期。先交 Main 武装回连，延迟再 create，避免孤儿 GATT（只探活电量、无校时）
+	if (qxAppInForeground && writeStale) {
+		markBpw6BgGattNeedReconnect(true)
+		if (_qxBpw6SilentReconnectDeferTimer) {
+			try {
+				clearTimeout(_qxBpw6SilentReconnectDeferTimer)
+			} catch (eClr) {}
+			_qxBpw6SilentReconnectDeferTimer = null
 		}
-	}).catch(() => {})
+		_qxBpw6SilentReconnectDeferTimer = setTimeout(() => {
+			_qxBpw6SilentReconnectDeferTimer = null
+			if (!qxAppInForeground) return
+			if (!uni.getStorageSync('BPW6devicemac')) return
+			runBpw6SilentReconnectCreate(mac, true)
+		}, 900)
+		return
+	}
+	runBpw6SilentReconnectCreate(mac, pendingRecover)
+}
+
+/** BPW6 熄屏超距回连：不依赖 Main / 情绪定时，模块级 Handler 循环 create */
+let _bpw6BgGattWatchActive = false
+let _bpw6BgGattWatchBusy = false
+let _bpw6BgGattNativeDelayed = null
+let _bpw6BgGattCpuWakeLock = null
+
+function markBpw6BgGattNeedReconnect(on) {
+	try {
+		if (on) {
+			uni.setStorageSync('bpw6_bg_need_gatt_reconnect', 1)
+		} else {
+			uni.removeStorageSync('bpw6_bg_need_gatt_reconnect')
+		}
+	} catch (e) {}
+}
+
+function hasBpw6BgGattNeedReconnect() {
+	try {
+		const v = uni.getStorageSync('bpw6_bg_need_gatt_reconnect')
+		return v === 1 || v === '1' || v === true
+	} catch (e) {
+		return false
+	}
+}
+
+function acquireBpw6BgGattCpuWakeLock(timeoutMs) {
+	if (!hasAnyBoundDevice()) return
+	// #ifdef APP-PLUS
+	try {
+		if (uni.getSystemInfoSync().platform !== 'android') return
+		acquireQxBleWakeLock()
+		const main = plus.android.runtimeMainActivity()
+		const Context = plus.android.importClass('android.content.Context')
+		const PowerManager = plus.android.importClass('android.os.PowerManager')
+		const pm = main.getSystemService(Context.POWER_SERVICE)
+		if (!pm) return
+		if (!_bpw6BgGattCpuWakeLock) {
+			_bpw6BgGattCpuWakeLock = pm.newWakeLock(
+				PowerManager.PARTIAL_WAKE_LOCK,
+				'JakobLife:Bpw6BgGattWatch'
+			)
+			plus.android.importClass(_bpw6BgGattCpuWakeLock)
+			_bpw6BgGattCpuWakeLock.setReferenceCounted(false)
+		}
+		_bpw6BgGattCpuWakeLock.acquire(Math.max(15000, Number(timeoutMs) || 60000))
+	} catch (e) {}
+	// #endif
+}
+
+function releaseBpw6BgGattCpuWakeLock() {
+	// #ifdef APP-PLUS
+	try {
+		if (_bpw6BgGattCpuWakeLock && _bpw6BgGattCpuWakeLock.isHeld()) {
+			_bpw6BgGattCpuWakeLock.release()
+		}
+	} catch (e) {}
+	// #endif
+}
+
+function clearBpw6BgGattNativeDelayed() {
+	if (!_bpw6BgGattNativeDelayed) return
+	try {
+		if (_bpw6BgGattNativeDelayed.handler && _bpw6BgGattNativeDelayed.runnable) {
+			_bpw6BgGattNativeDelayed.handler.removeCallbacks(_bpw6BgGattNativeDelayed.runnable)
+		}
+	} catch (e) {}
+	if (_bpw6BgGattNativeDelayed.jsTimer) {
+		clearTimeout(_bpw6BgGattNativeDelayed.jsTimer)
+	}
+	_bpw6BgGattNativeDelayed = null
+}
+
+function postBpw6BgGattNativeDelayed(fn, delayMs) {
+	clearBpw6BgGattNativeDelayed()
+	const run = () => {
+		_bpw6BgGattNativeDelayed = null
+		try {
+			fn && fn()
+		} catch (e) {}
+	}
+	// #ifdef APP-PLUS
+	try {
+		if (uni.getSystemInfoSync().platform === 'android') {
+			const Handler = plus.android.importClass('android.os.Handler')
+			const Looper = plus.android.importClass('android.os.Looper')
+			const handler = new Handler(Looper.getMainLooper())
+			const runnable = plus.android.implements('java.lang.Runnable', {
+				run: run
+			})
+			handler.postDelayed(runnable, Math.max(0, delayMs || 0))
+			_bpw6BgGattNativeDelayed = {
+				handler,
+				runnable,
+				jsTimer: null
+			}
+			return
+		}
+	} catch (e) {}
+	// #endif
+	_bpw6BgGattNativeDelayed = {
+		handler: null,
+		runnable: null,
+		jsTimer: setTimeout(run, Math.max(0, delayMs || 0))
+	}
+}
+
+function isBpw6BgGattPpgBusy() {
+	try {
+		if (isQxPpgXferBusy && isQxPpgXferBusy()) return true
+		if (isQxEmotionImmediateBusy && isQxEmotionImmediateBusy('bpw6')) return true
+		if (u16proBLE && u16proBLE.isPpgOperationInProgress && u16proBLE.isPpgOperationInProgress()) {
+			return true
+		}
+		const send = uni.getStorageSync('sendwatch')
+		if (send === 1 || send === '1') return true
+		const scheduled = uni.getStorageSync('qx_ble_scheduled_measure')
+		if (scheduled === 1 || scheduled === '1') return true
+		const afterBp = uni.getStorageSync('bpw6_after_bp_ppg')
+		if (afterBp === 1 || afterBp === '1') return true
+	} catch (e) {}
+	return false
+}
+
+let _bpw6BgGattLastCloseAt = 0
+let _bpw6BgGattLastProbeAt = 0
+let _bpw6BgGattDozeReceiver = null
+/** Handler 快路径（进程未冻时） */
+let _bpw6BgGattDozeHandler = null
+/** AlarmManager PendingIntent（Doze 黑屏续跑） */
+let _bpw6BgGattDozePi = null
+let _bpw6BgGattWatchGen = 0
+let _bpw6BgGattWatchBusyAt = 0
+let _bpw6BgScreenReceiver = null
+/** 黑屏 connected 事件触发全量恢复的节流，避免 close/create 抖动连打 */
+let _bpw6BgConnectedRecoverEmitAt = 0
+
+function bpw6BgGattWriteIsFresh() {
+	const lastOk = Number(u16proBLE && u16proBLE._lastGattWriteOkAt) || 0
+	return lastOk > 0 && Date.now() - lastOk < 90000
+}
+
+/** 距上次写成功的毫秒。从未写过返回 0，避免冷启动被当成久断。 */
+function bpw6BgWriteIdleMs() {
+	const lastOk = Number(u16proBLE && u16proBLE._lastGattWriteOkAt) || 0
+	if (!lastOk) return 0
+	return Date.now() - lastOk
+}
+
+/** 超过此时长仍无写成功：熄屏巡检必须再试 create。短于此时长只探活，避免误关还连着的表。 */
+const BPW6_BG_LONG_IDLE_MS = 3 * 60 * 1000
+
+function probeBpw6BgBattery(mac, timeoutMs) {
+	return new Promise((resolve, reject) => {
+		let settled = false
+		const timer = setTimeout(() => {
+			if (settled) return
+			settled = true
+			reject(new Error('battery-probe-timeout'))
+		}, timeoutMs || 4000)
+		Promise.resolve(u16proBLE.readBattery(mac)).then((res) => {
+			if (settled) return
+			settled = true
+			clearTimeout(timer)
+			resolve(res)
+		}).catch((err) => {
+			if (settled) return
+			settled = true
+			clearTimeout(timer)
+			reject(err)
+		})
+	})
+}
+
+/** 供 App.onHide 判断是否武装强制 GATT 巡检（近期无成功写则链路可能已死） */
+export function isBpw6BgGattWriteFresh() {
+	return bpw6BgGattWriteIsFresh()
+}
+
+/**
+ * 假 already 清链路。待回连时节流缩短，否则 20s 内反复 already 永远 close 不上。
+ * @param {string} mac
+ * @param {{ force?: boolean }} [opts]
+ */
+function closeStaleBpw6BgGatt(mac, opts = {}) {
+	// Never close a GATT that Main is currently rebuilding or initializing.
+	if (isBpw6BgRecoveryOwned(mac)) return
+	const now = Date.now()
+	if (!mac) return
+	const need = hasBpw6BgGattNeedReconnect() || !!(opts && opts.force)
+	const gap = need ? 4000 : 20000
+	if (now - _bpw6BgGattLastCloseAt < gap) return
+	_bpw6BgGattLastCloseAt = now
+	if (typeof uni.closeBLEConnection !== 'function') return
+	uni.closeBLEConnection({
+		deviceId: mac,
+		complete() {}
+	})
+}
+
+function markBpw6BgGattWatchPersisted(on) {
+	try {
+		if (on) {
+			uni.setStorageSync('bpw6_bg_gatt_watch', 1)
+		} else {
+			uni.removeStorageSync('bpw6_bg_gatt_watch')
+		}
+	} catch (e) {}
+}
+
+function hasBpw6BgGattWatchPersisted() {
+	try {
+		const v = uni.getStorageSync('bpw6_bg_gatt_watch')
+		return v === 1 || v === '1' || v === true
+	} catch (e) {
+		return false
+	}
+}
+
+/** 保活闹钟唤醒：续跑 BPW6 熄屏 GATT 巡检（不依赖情绪开关） */
+function resumeBpw6BgGattWatchFromKeepAlive() {
+	if (qxAppInForeground) return
+	const mac = uni.getStorageSync('BPW6devicemac') || ''
+	if (!mac) return
+	const need = hasBpw6BgGattNeedReconnect()
+	const writeFresh = bpw6BgGattWriteIsFresh()
+	const watching = _bpw6BgGattWatchActive || hasBpw6BgGattWatchPersisted()
+	// 长时间无写成功也续武装巡检。不因写过期单独置待回连，tick 里对 already 先探活
+	if (!need && !watching && writeFresh) return
+	startBpw6BgGattReconnectWatch('keepAlive-wake', {
+		forceNeed: !!need
+	})
+}
+
+function clearBpw6BgGattDozeAlarm() {
+	if (_bpw6BgGattDozeHandler) {
+		try {
+			if (_bpw6BgGattDozeHandler.handler && _bpw6BgGattDozeHandler.runnable) {
+				_bpw6BgGattDozeHandler.handler.removeCallbacks(_bpw6BgGattDozeHandler.runnable)
+			}
+		} catch (e) {}
+		if (_bpw6BgGattDozeHandler.jsTimer) {
+			clearTimeout(_bpw6BgGattDozeHandler.jsTimer)
+		}
+		_bpw6BgGattDozeHandler = null
+	}
+	// #ifdef APP-PLUS
+	try {
+		if (uni.getSystemInfoSync().platform === 'android') {
+			const main = plus.android.runtimeMainActivity()
+			const am = main.getSystemService('alarm')
+			if (am && _bpw6BgGattDozePi) {
+				am.cancel(_bpw6BgGattDozePi)
+			}
+			if (am) {
+				try {
+					const Intent = plus.android.importClass('android.content.Intent')
+					const PendingIntent = plus.android.importClass('android.app.PendingIntent')
+					const intent = new Intent('com.jakoblife.BPW6_BG_GATT_WATCH')
+					intent.setPackage(main.getPackageName())
+					let flags = 0x8000000
+					try {
+						flags = flags | (PendingIntent.FLAG_IMMUTABLE != null ? PendingIntent.FLAG_IMMUTABLE : 0x04000000)
+					} catch (eFlag) {
+						flags = flags | 0x04000000
+					}
+					const pi = PendingIntent.getBroadcast(main, 0xB6A1, intent, flags)
+					am.cancel(pi)
+				} catch (eLegacy) {}
+			}
+		}
+	} catch (e) {}
+	// #endif
+	_bpw6BgGattDozePi = null
+}
+
+function ensureBpw6BgGattDozeReceiver() {
+	// #ifdef APP-PLUS
+	if (_bpw6BgGattDozeReceiver) return
+	try {
+		if (uni.getSystemInfoSync().platform !== 'android') return
+		const main = plus.android.runtimeMainActivity()
+		const IntentFilter = plus.android.importClass('android.content.IntentFilter')
+		const filter = new IntentFilter('com.jakoblife.BPW6_BG_GATT_WATCH')
+		const receiver = plus.android.implements('io.dcloud.android.content.BroadcastReceiver', {
+			onReceive: function() {
+				try {
+					if (!hasAnyBoundDevice() || qxAppInForeground) {
+						clearBpw6BgGattDozeAlarm()
+						return
+					}
+					const mac = uni.getStorageSync('BPW6devicemac') || ''
+					if (!mac) {
+						clearBpw6BgGattDozeAlarm()
+						return
+					}
+					// JS 被冻/重启后内存 _bpw6BgGattWatchActive 可能为 false，靠持久化标记续跑
+					if (!_bpw6BgGattWatchActive) {
+						if (hasBpw6BgGattWatchPersisted() || hasBpw6BgGattNeedReconnect()) {
+							startBpw6BgGattReconnectWatch('doze-alarm-resume', {
+								forceNeed: hasBpw6BgGattNeedReconnect()
+							})
+							return
+						}
+						clearBpw6BgGattDozeAlarm()
+						return
+					}
+					acquireBpw6BgGattCpuWakeLock(60000)
+					// 先排下一次，避免本次 create 不回调把熄屏回连链掐死
+					scheduleBpw6BgGattDozeAlarm(15000)
+					tickBpw6BgGattReconnectWatch()
+				} catch (e) {}
+			}
+		})
+		try {
+			main.registerReceiver(receiver, filter, 2)
+		} catch (e2) {
+			main.registerReceiver(receiver, filter)
+		}
+		_bpw6BgGattDozeReceiver = receiver
+	} catch (e) {}
+	// #endif
+}
+
+/**
+ * 熄屏 Doze 下 Handler 会被推迟/冻死；BPW6 超距回连必须用 AlarmManager 精确闹钟续跑。
+ * 同时保留 Handler 作为进程未冻时的快路径。
+ */
+function scheduleBpw6BgGattDozeAlarm(delayMs) {
+	if (!hasAnyBoundDevice()) return clearBpw6BgGattDozeAlarm()
+	if (qxAppInForeground) return
+	if (!_bpw6BgGattWatchActive && !hasBpw6BgGattWatchPersisted() && !hasBpw6BgGattNeedReconnect()) {
+		return
+	}
+	const minDelay = hasBpw6BgGattNeedReconnect() ? 4000 : 8000
+	const delay = Math.max(minDelay, Number(delayMs) || 20000)
+
+	// Handler 快路径（进程活着时更及时）
+	if (_bpw6BgGattDozeHandler) {
+		try {
+			if (_bpw6BgGattDozeHandler.handler && _bpw6BgGattDozeHandler.runnable) {
+				_bpw6BgGattDozeHandler.handler.removeCallbacks(_bpw6BgGattDozeHandler.runnable)
+			}
+		} catch (e) {}
+		if (_bpw6BgGattDozeHandler.jsTimer) {
+			clearTimeout(_bpw6BgGattDozeHandler.jsTimer)
+		}
+		_bpw6BgGattDozeHandler = null
+	}
+	const runHandler = () => {
+		_bpw6BgGattDozeHandler = null
+		try {
+			if (!hasAnyBoundDevice() || qxAppInForeground || !_bpw6BgGattWatchActive) return
+			acquireBpw6BgGattCpuWakeLock(60000)
+			tickBpw6BgGattReconnectWatch()
+		} catch (e) {}
+	}
+	// #ifdef APP-PLUS
+	try {
+		if (uni.getSystemInfoSync().platform === 'android') {
+			const Handler = plus.android.importClass('android.os.Handler')
+			const Looper = plus.android.importClass('android.os.Looper')
+			const handler = new Handler(Looper.getMainLooper())
+			const runnable = plus.android.implements('java.lang.Runnable', { run: runHandler })
+			handler.postDelayed(runnable, delay)
+			_bpw6BgGattDozeHandler = { handler, runnable, jsTimer: null }
+		} else {
+			_bpw6BgGattDozeHandler = { handler: null, runnable: null, jsTimer: setTimeout(runHandler, delay) }
+		}
+	} catch (e) {
+		_bpw6BgGattDozeHandler = { handler: null, runnable: null, jsTimer: setTimeout(runHandler, delay) }
+	}
+
+	// Doze 精确闹钟（长时间黑屏/超距后回来的关键）
+	try {
+		if (uni.getSystemInfoSync().platform === 'android') {
+			ensureBpw6BgGattDozeReceiver()
+			const main = plus.android.runtimeMainActivity()
+			const Intent = plus.android.importClass('android.content.Intent')
+			const PendingIntent = plus.android.importClass('android.app.PendingIntent')
+			const AlarmManager = plus.android.importClass('android.app.AlarmManager')
+			const SystemClock = plus.android.importClass('android.os.SystemClock')
+			const am = main.getSystemService('alarm')
+			if (!am) return
+			const intent = new Intent('com.jakoblife.BPW6_BG_GATT_WATCH')
+			intent.setPackage(main.getPackageName())
+			let flags = 0x8000000
+			try {
+				flags = flags | (PendingIntent.FLAG_IMMUTABLE != null ? PendingIntent.FLAG_IMMUTABLE : 0x04000000)
+			} catch (eFlag) {
+				flags = flags | 0x04000000
+			}
+			const pi = PendingIntent.getBroadcast(main, 0xB6A1, intent, flags)
+			_bpw6BgGattDozePi = pi
+			const trigger = SystemClock.elapsedRealtime() + delay
+			try {
+				am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, trigger, pi)
+			} catch (e1) {
+				try {
+					am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, trigger, pi)
+				} catch (e2) {
+					am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, trigger, pi)
+				}
+			}
+		}
+	} catch (e) {}
+	// #endif
+}
+
+function armBpw6BgGattNext(delayMs) {
+	if (!hasAnyBoundDevice()) return
+	if (!_bpw6BgGattWatchActive || qxAppInForeground) return
+	postBpw6BgGattNativeDelayed(tickBpw6BgGattReconnectWatch, delayMs)
+	// 待回连时 Doze 闹钟更密，缩短黑屏远距回来后的空窗
+	const dozeDelay = hasBpw6BgGattNeedReconnect() ?
+		Math.max(4000, Number(delayMs) || 4000) :
+		Math.max(12000, Number(delayMs) || 20000)
+	scheduleBpw6BgGattDozeAlarm(dozeDelay)
+}
+
+/** 亮屏/解锁触发回连的最短间隔（避免亮灭屏狂打 create + 全量同步） */
+let _bpw6BgScreenActionAt = 0
+
+/** 亮屏/解锁但未打开本 App 时：仅链路可疑才补一枪。仅 BPW6 后台，前台直接返回。 */
+function ensureBpw6BgScreenReceiver() {
+	// #ifdef APP-PLUS
+	if (_bpw6BgScreenReceiver) return
+	try {
+		if (uni.getSystemInfoSync().platform !== 'android') return
+		const main = plus.android.runtimeMainActivity()
+		const IntentFilter = plus.android.importClass('android.content.IntentFilter')
+		const filter = new IntentFilter()
+		filter.addAction('android.intent.action.SCREEN_ON')
+		filter.addAction('android.intent.action.USER_PRESENT')
+		const receiver = plus.android.implements('io.dcloud.android.content.BroadcastReceiver', {
+			onReceive: function() {
+				try {
+					if (qxAppInForeground) return
+					const mac = uni.getStorageSync('BPW6devicemac') || ''
+					if (!mac) return
+					const now = Date.now()
+					const need = hasBpw6BgGattNeedReconnect()
+					const writeFresh = bpw6BgGattWriteIsFresh()
+					// SCREEN_ON + USER_PRESENT 常连发；待回连时 12s，否则 90s
+					const screenGap = (need || !writeFresh) ? 12000 : 90000
+					if (now - _bpw6BgScreenActionAt < screenGap) return
+					// 链路仍活着：亮屏不强制待回连、不 create，避免每次亮屏全量同步
+					if (!need && writeFresh) return
+					_bpw6BgScreenActionAt = now
+					acquireBpw6BgGattCpuWakeLock(60000)
+					if (!_bpw6BgGattWatchActive) {
+						startBpw6BgGattReconnectWatch('screen-on', {
+							forceNeed: !!need
+						})
+						return
+					}
+					if (need) {
+						markBpw6BgGattNeedReconnect(true)
+						tickBpw6BgGattReconnectWatch()
+					} else if (!writeFresh) {
+						// 只是久未写：探活，不要先标待回连再 close
+						tickBpw6BgGattReconnectWatch()
+					}
+					scheduleBpw6BgGattDozeAlarm(12000)
+				} catch (e) {}
+			}
+		})
+		try {
+			main.registerReceiver(receiver, filter, 2)
+		} catch (e2) {
+			main.registerReceiver(receiver, filter)
+		}
+		_bpw6BgScreenReceiver = receiver
+	} catch (e) {}
+	// #endif
+}
+
+function isBpw6BgRecoveryOwned(mac) {
+	return !!(u16proBLE && u16proBLE._bpw6BgRecoveryDeviceId === mac &&
+		Date.now() < (u16proBLE._bpw6BgRecoveryUntil || 0))
+}
+
+function tickBpw6BgGattReconnectWatch() {
+	if (!hasAnyBoundDevice()) return stopBpw6BgGattReconnectWatch()
+	if (!_bpw6BgGattWatchActive) return
+	if (qxAppInForeground) {
+		stopBpw6BgGattReconnectWatch()
+		return
+	}
+	const mac = uni.getStorageSync('BPW6devicemac') || ''
+	if (!mac) {
+		stopBpw6BgGattReconnectWatch()
+		return
+	}
+	if (isBpw6BgRecoveryOwned(mac)) {
+		armBpw6BgGattNext(3000)
+		return
+	}
+	if (isAndroidBluetoothReallyOff() === true) {
+		armBpw6BgGattNext(8000)
+		return
+	}
+	if (isBpw6BgGattPpgBusy()) {
+		armBpw6BgGattNext(8000)
+		return
+	}
+	// 短扫进行中勿并行 create，避免 discovery/connect 互抢
+	if (_bpw6BgGattScanBusy) {
+		armBpw6BgGattNext(2000)
+		return
+	}
+	acquireBpw6BgGattCpuWakeLock(60000)
+	// create 回调在熄屏 Doze 里可能永远不来；先挂下一轮闹钟，回来仍能继续试
+	// 待回连时闹钟更密，缩短黑屏远距回来空窗
+	scheduleBpw6BgGattDozeAlarm(hasBpw6BgGattNeedReconnect() ? 8000 : 15000)
+	if (_bpw6BgGattWatchBusy) {
+		const busyLimit = hasBpw6BgGattNeedReconnect() ? 7000 : 12000
+		if (Date.now() - (_bpw6BgGattWatchBusyAt || 0) < busyLimit) {
+			armBpw6BgGattNext(hasBpw6BgGattNeedReconnect() ? 2500 : 12000)
+			return
+		}
+		_bpw6BgGattWatchGen += 1
+		_bpw6BgGattWatchBusy = false
+	}
+	const gen = (_bpw6BgGattWatchGen += 1)
+	_bpw6BgGattWatchBusy = true
+	_bpw6BgGattWatchBusyAt = Date.now()
+	createQxBleConnectionDetail(mac).then((res) => {
+		if (gen !== _bpw6BgGattWatchGen) return
+		_bpw6BgGattWatchBusy = false
+		// A result from before Main took ownership must not restart its setup.
+		if (isBpw6BgRecoveryOwned(mac)) {
+			armBpw6BgGattNext(3000)
+			return
+		}
+		const ok = !!(res && res.ok)
+		const already = !!(res && res.already)
+		noteBpw6BgGattCreateResult(ok, already)
+		if (ok && !already) {
+			notifyQxBleWatchConnectionState(true, mac)
+			const writeFresh = bpw6BgGattWriteIsFresh()
+			// connected 事件可能已抢先清掉 need；真 create 成功仍必须交 Main 补通道/校时
+			const needFull = !writeFresh || hasBpw6BgGattNeedReconnect()
+			// 保留待回连直到 Main 补 BC/notify 成功，避免半恢复停摆
+			markBpw6BgGattNeedReconnect(true)
+			try {
+				uni.$emit('BPW6_ENSURE_RECONNECT', {
+					deviceId: mac,
+					reason: needFull ? 'qxBle-bg-gatt-ok-full' : 'qxBle-bg-gatt-ok'
+				})
+			} catch (e) {}
+			// 待回连未清前缩短巡检：Main 补通道失败时更快再枪，避免黑屏远距回来空等 20s
+			armBpw6BgGattNext(8000)
+			return
+		}
+		if (already) {
+			// 长时间超距后系统常报 already，但写特征已死：已有待回连才 close。
+			// 仅 90 秒没写、且没有断连标记：先读电量。成功说明连接还在，不要关断、不要全量同步。
+			if (!hasBpw6BgGattNeedReconnect() && bpw6BgGattWriteIsFresh()) {
+				armBpw6BgGattNext(20000)
+				return
+			}
+			if (!hasBpw6BgGattNeedReconnect()) {
+				const now = Date.now()
+				if (now - _bpw6BgGattLastProbeAt <= 60000 ||
+					!(u16proBLE && typeof u16proBLE.readBattery === 'function')) {
+					armBpw6BgGattNext(20000)
+					return
+				}
+				_bpw6BgGattLastProbeAt = now
+				const onDead = () => {
+					markBpw6BgGattNeedReconnect(true)
+					closeStaleBpw6BgGatt(mac, {
+						force: true
+					})
+					armBpw6BgGattNext(1800)
+				}
+				probeBpw6BgBattery(mac, 4000).then(() => {
+					// 写成功会刷新 _lastGattWriteOkAt，连接还在，不要全量同步
+					armBpw6BgGattNext(20000)
+				}).catch(onDead)
+				return
+			}
+			markBpw6BgGattNeedReconnect(true)
+			closeStaleBpw6BgGatt(mac, {
+				force: true
+			})
+			// close 后尽快再 create，黑屏远距回来靠这一枪
+			armBpw6BgGattNext(1800)
+			return
+		}
+		// create 失败（超距未进范围）：只标记待回连，勿 close 占节流；间隔略缩短便于进范围后尽快追上
+		markBpw6BgGattNeedReconnect(true)
+		// 连续失败后短扫再连：久置超距回来 Android 常需先发现才能 create
+		if (shouldAssistBpw6ReconnectByScan() && !_bpw6BgGattScanBusy) {
+			assistBpw6ReconnectByScan(mac, 3500).then((found) => {
+				if (gen !== _bpw6BgGattWatchGen) return
+				if (found) {
+					createQxBleConnectionDetail(mac).then((res2) => {
+						if (gen !== _bpw6BgGattWatchGen) return
+						const ok2 = !!(res2 && res2.ok)
+						const already2 = !!(res2 && res2.already)
+						noteBpw6BgGattCreateResult(ok2, already2)
+						if (ok2 && !already2) {
+							notifyQxBleWatchConnectionState(true, mac)
+							markBpw6BgGattNeedReconnect(true)
+							try {
+								uni.$emit('BPW6_ENSURE_RECONNECT', {
+									deviceId: mac,
+									reason: 'qxBle-bg-gatt-ok-full'
+								})
+							} catch (eScanOk) {}
+							armBpw6BgGattNext(8000)
+							return
+						}
+						if (already2) {
+							markBpw6BgGattNeedReconnect(true)
+							closeStaleBpw6BgGatt(mac, {
+								force: true
+							})
+							armBpw6BgGattNext(1800)
+							return
+						}
+						armBpw6BgGattNext(2000)
+					}).catch(() => {
+						armBpw6BgGattNext(3000)
+					})
+					return
+				}
+				armBpw6BgGattNext(3000)
+			}).catch(() => {
+				armBpw6BgGattNext(3000)
+			})
+			return
+		}
+		armBpw6BgGattNext(2500)
+	}).catch(() => {
+		if (gen !== _bpw6BgGattWatchGen) return
+		_bpw6BgGattWatchBusy = false
+		markBpw6BgGattNeedReconnect(true)
+		noteBpw6BgGattCreateResult(false, false)
+		armBpw6BgGattNext(3000)
+	})
+}
+
+/**
+ * 熄屏/后台：启动 BPW6 GATT 回连巡检（不依赖情绪定时、不依赖 Main 是否挂载）
+ * @param {string} [reason]
+ * @param {{ forceNeed?: boolean }} [opts]
+ */
+export function startBpw6BgGattReconnectWatch(reason = '', opts = {}) {
+	if (!hasAnyBoundDevice()) return
+	const mac = uni.getStorageSync('BPW6devicemac') || ''
+	if (!mac) return
+	if (qxAppInForeground) return
+	// #ifdef APP-PLUS
+	if (uni.getSystemInfoSync().platform !== 'android') return
+	// #endif
+	try {
+		initQxBleConnectionMonitor()
+	} catch (eInit) {}
+	ensureBpw6BgScreenReceiver()
+	if (opts && opts.forceNeed) {
+		markBpw6BgGattNeedReconnect(true)
+	}
+	const r = String(reason || '')
+	if (r.indexOf('disconnect') >= 0 || r.indexOf('out-of-range') >= 0) {
+		markBpw6BgGattNeedReconnect(true)
+	}
+	if (r.indexOf('channel-10004') >= 0) {
+		// 作废关闭前已经发出的 create，避免它的成功回调占用忙锁
+		_bpw6BgGattWatchGen += 1
+		_bpw6BgGattWatchBusy = false
+	}
+	if (_bpw6BgGattWatchActive) {
+		// 已在巡检：刚断连，或长时间无写（Doze 丢了断连回调）时补一枪。不因此置待回连，already 仍先探活
+		if (hasBpw6BgGattNeedReconnect() || bpw6BgWriteIdleMs() >= BPW6_BG_LONG_IDLE_MS) {
+			acquireBpw6BgGattCpuWakeLock(60000)
+			tickBpw6BgGattReconnectWatch()
+		}
+		return
+	}
+	_bpw6BgGattWatchActive = true
+	markBpw6BgGattWatchPersisted(true)
+	acquireBpw6BgGattCpuWakeLock(60000)
+	try {
+		// 有 BPW6 绑定时拉起保活前台服务，避免熄屏 Doze 冻死 JS/Handler
+		keepAliveManager.ensureAlarmListener()
+		keepAliveManager.ensureRunningForAppTimers()
+	} catch (e) {}
+	// 进程被冻后动态 Receiver 可能失效，每次启动巡检都重新挂闹钟链路
+	try {
+		ensureBpw6BgGattDozeReceiver()
+	} catch (eRx) {}
+	tickBpw6BgGattReconnectWatch()
+	scheduleBpw6BgGattDozeAlarm(12000)
+}
+
+export function stopBpw6BgGattReconnectWatch() {
+	_bpw6BgGattWatchActive = false
+	_bpw6BgGattWatchBusy = false
+	markBpw6BgGattWatchPersisted(false)
+	clearBpw6BgGattNativeDelayed()
+	clearBpw6BgGattDozeAlarm()
+	releaseBpw6BgGattCpuWakeLock()
 }
 
 async function ensureQxBleDeviceConnectedForWrite(deviceId) {
@@ -1680,6 +2611,7 @@ export function isQxBleAppInForeground() {
 
 /** 测量/休眠唤醒期间持有 CPU，避免发 BLE 时被系统挂起 */
 function acquireQxBleWakeLock() {
+	if (!hasAnyBoundDevice()) return
 	// #ifdef APP-PLUS
 	try {
 		const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule')
@@ -1816,15 +2748,49 @@ function initQxBleConnectionMonitor() {
 		if (typeof uni.onBLEConnectionStateChange === 'function') {
 			uni.onBLEConnectionStateChange((change) => {
 				if (!change) return
+				const bpw6Mac = uni.getStorageSync('BPW6devicemac') || ''
+				// BPW6 后台断开：必须按 BPW6devicemac 处理，勿被情绪机型/readQxEmotionDeviceId 滤掉
+				if (!change.connected && bpw6Mac && isSameQxBleDeviceId(change.deviceId, bpw6Mac) &&
+					!qxAppInForeground) {
+					markBpw6BgGattNeedReconnect(true)
+					startBpw6BgGattReconnectWatch('qxBle-bg-disconnect', {
+						forceNeed: true
+					})
+					syncQxBleWatchConnectedFromSystem({
+						reason: 'onBLEConnectionStateChange-bg'
+					})
+					requestBpw6SilentReconnect(change.deviceId, 'qxBle-bg-disconnect')
+					return
+				}
+				if (change.connected && bpw6Mac && isSameQxBleDeviceId(change.deviceId, bpw6Mac)) {
+					// 切勿在此清 bpw6_bg_need_gatt_reconnect：
+					// connected 常早于 create 成功回调，抢先清标记会使 recovering=false，
+					// 黑屏超距回连后不交 Main 补通道/校时 → 假回连、测量不上传。
+					// 待回连仅由 Main 补 notify/BC 成功后清除。
+					if (!bpw6BgGattWriteIsFresh()) {
+						markBpw6BgGattNeedReconnect(true)
+						if (!qxAppInForeground) {
+							const nowEmit = Date.now()
+							if (nowEmit - _bpw6BgConnectedRecoverEmitAt > 8000) {
+								_bpw6BgConnectedRecoverEmitAt = nowEmit
+								try {
+									uni.$emit('BPW6_ENSURE_RECONNECT', {
+										deviceId: bpw6Mac,
+										reason: 'qxBle-bg-gatt-ok-full'
+									})
+								} catch (eConnEmit) {}
+							}
+						}
+					}
+				}
 				const watchId = readQxEmotionDeviceId()
 				if (!watchId || !isSameQxBleDeviceId(change.deviceId, watchId)) return
 				// BPW6 后台假断开：不立刻改未连接，交给带 hint 的系统查询兜底
 				if (!change.connected && !qxAppInForeground &&
-					isSameQxBleDeviceId(change.deviceId, uni.getStorageSync('BPW6devicemac'))) {
+					isSameQxBleDeviceId(change.deviceId, bpw6Mac)) {
 					syncQxBleWatchConnectedFromSystem({
 						reason: 'onBLEConnectionStateChange-bg'
 					})
-					// 展示态保持；通知 Main / 本地静默重连 GATT
 					requestBpw6SilentReconnect(change.deviceId, 'qxBle-bg-disconnect')
 					return
 				}
@@ -1947,6 +2913,7 @@ function scheduleQxSlotDispatchRetry(reason = '') {
  * @param {string} reason 日志原因
  */
 export function ensureQxBleBackgroundRuntime(reason = '') {
+	if (!hasAnyBoundDevice()) return Promise.resolve(false)
 	// #ifdef APP-PLUS
 	if (uni.getSystemInfoSync().platform !== 'android') return Promise.resolve(true)
 	if (!isSwitchOn()) return Promise.resolve(false)
@@ -1960,6 +2927,7 @@ export function ensureQxBleBackgroundRuntime(reason = '') {
 
 /** 将原生闹钟对准下一槽位（休眠/Doze 主路径） */
 export function scheduleQxBleNativeAlarm() {
+	if (!hasAnyBoundDevice()) return
 	// #ifdef APP-PLUS
 	if (uni.getSystemInfoSync().platform !== 'android') return
 	if (!isSwitchOn()) return
@@ -2766,6 +3734,16 @@ async function probeBpw6LinkBeforeMeasure(deviceId) {
 export const QX_BPW6_SCHEDULED_PPG_START_EVENT = 'QX_BPW6_SCHEDULED_PPG_START'
 /** 调度直发后完成帧中继 → Main 静默拉数上传 */
 export const QX_BPW6_SCHEDULED_PPG_COMPLETE_EVENT = 'QX_BPW6_SCHEDULED_PPG_COMPLETE'
+/** 定时/血压后 PPG 已启动：Main 可亮屏弹 AI 训练提示（立即测量不发） */
+export const AI_TRAIN_TIP_PPG_START_EVENT = 'AI_TRAIN_TIP_PPG_START'
+
+function emitAiTrainTipPpgStart(source = 'scheduled') {
+	try {
+		uni.$emit(AI_TRAIN_TIP_PPG_START_EVENT, {
+			source: source || 'scheduled'
+		})
+	} catch (e) {}
+}
 /** 调度侧已挂完成 watch，Main 勿再重复挂（同 pending key） */
 const QX_BPW6_SCHEDULE_COMPLETE_RELAY_KEY = 'qx_bpw6_schedule_complete_relay'
 
@@ -2957,6 +3935,8 @@ async function runOneBpw6QxMeasurement(deviceId) {
 		refreshKeepAliveNotificationIfNeeded()
 		markQxPpgXferBusy()
 		ensureQxPpgXferBackgroundRuntime(tag)
+		// 亮屏由 Main 弹训练提示；黑屏仅记会话，回亮屏再补
+		emitAiTrainTipPpgStart('scheduled')
 	}
 	markSessionBusyEarly(false)
 	console.log('[qxBle] //定时测量-BPW6开始下发', targetDeviceId, qxAppInForeground ? '前台' : '后台')
@@ -3004,6 +3984,7 @@ function runOneBpw1QxMeasurement(deviceId, serviceId, characteristicId) {
 								ensureQxPpgXferBackgroundRuntime('BPW1定时下发成功-等待传数')
 								uni.removeStorageSync('otaBP')
 								refreshKeepAliveNotificationIfNeeded()
+								emitAiTrainTipPpgStart('scheduled')
 								resolve()
 							})
 							.catch((err) => {
@@ -3649,6 +4630,7 @@ export function stopGlobalQxBleAlignedSchedule() {
 
 /** Android：启动/刷新保活前台服务 + 闹钟，保证后台到点能执行 JS 发 BLE */
 export function ensureQxBleKeepAliveForBackground() {
+	if (!hasAnyBoundDevice()) return
 	// #ifdef APP-PLUS
 	if (uni.getSystemInfoSync().platform !== 'android') return
 	if (!isSwitchOn()) return
@@ -3664,9 +4646,24 @@ export function ensureQxBleKeepAliveForBackground() {
 
 /** 保活原生闹钟触发：到点发测量并刷新下一槽位（后台主路径） */
 export async function handleQxBleKeepAliveWake() {
+	if (!hasAnyBoundDevice()) return
 	reconcileQxScheduleBusyState()
 	clearStaleSessionFlagsIfSlotDue()
 	clearStaleQxScheduledMeasureState()
+	// BPW6 黑屏超距：保活唤醒时续跑 GATT 巡检（情绪开关关闭时也要）
+	try {
+		resumeBpw6BgGattWatchFromKeepAlive()
+	} catch (eBpw6) {}
+	// BPW1 黑屏超距：保活唤醒续跑探活/回连（不碰 BPW6 路径）
+	try {
+		const bpw1 = uni.getStorageSync('deviceIdwatch') || ''
+		if (bpw1) {
+			uni.$emit('BPW1_ENSURE_RECONNECT', {
+				deviceId: bpw1,
+				reason: 'keepAlive-wake'
+			})
+		}
+	} catch (eBpw1) {}
 	await ensureQxBleBackgroundRuntime('保活闹钟')
 	const wakeResult = await runQxBleScheduleWakeTick('keepAlive-alarm')
 	if (!isSwitchOn()) return
@@ -3697,6 +4694,7 @@ export async function handleQxBleKeepAliveWake() {
 
 /** App 进入后台/熄屏：不中断进行中的 BLE/排程，仅加强保活 */
 export function onQxBleAppBackground() {
+	if (!hasAnyBoundDevice()) return
 	if (!isSwitchOn()) return
 	setQxBleAppForegroundState(false)
 	startQxBleTimeSyncLoop()
@@ -3715,10 +4713,14 @@ export function onQxBleAppBackground() {
 /** App 回前台：不中断测量；仅补检到点，勿全量重启排程 */
 export function onQxBleAppForeground() {
 	setQxBleAppForegroundState(true)
+	stopBpw6BgGattReconnectWatch()
 	stopQxBleTimeSyncLoop()
 	// BPW6：回前台补静默重连（不改展示/测量逻辑）
 	const bpw6Mac = uni.getStorageSync('BPW6devicemac')
 	if (bpw6Mac) {
+		// 勿提前清 bpw6_bg_need_gatt_reconnect：Main.onShow 靠它清假「已连」并强制 create；
+		// 真连上由 requestBpw6SilentReconnect / BLEConnection success / settle 再清。
+		// 前台路径不会因 already 去 close，正常已连不会被误拆。
 		requestBpw6SilentReconnect(bpw6Mac, 'app-foreground')
 	}
 	if (!isSwitchOn()) return
@@ -3787,6 +4789,9 @@ export async function resumeQxBleScheduleIfEnabled() {
 
 try {
 	keepAliveManager.registerQxBleWakeHandler(handleQxBleKeepAliveWake)
+	uni.$on(DEVICE_BINDING_STATE_CHANGED, (hasDevices) => {
+		if (!hasDevices) stopBpw6BgGattReconnectWatch()
+	})
 	keepAliveManager.registerQxBleHeartbeat(logQxBleScheduleHeartbeatFromKeepAlive)
 	keepAliveManager.registerQxBleMeasuringCheck(isQxBleMeasureSessionActive)
 } catch (e) {

@@ -1,4 +1,5 @@
 <script>
+	import { hasAnyBoundDevice, DEVICE_BINDING_STATE_CHANGED } from '@/pages/api/deviceBindingState.js';
 	import {
 		mapState,
 		mapMutations
@@ -13,7 +14,8 @@
 		ISgetUserInfoChina,
 	} from './pages/api/isInChinaByIP.js'; //获取定位
 	import {
-		refreshActiveAppBaseUrl
+		refreshActiveAppBaseUrl,
+		canPersistBpw6LocalBind
 	} from '@/pages/api/appBaseHosts.js';
 
 	import keepAliveManager from "@/nativeplugins/KeepAlivesdkplugin/keepAliveManager.js";
@@ -24,7 +26,9 @@
 		setQxBleAppForegroundState,
 		ensureQxBleKeepAliveForBackground,
 		replanQxBleScheduleOnTimezoneChange,
-		requestBpw6SilentReconnect
+		requestBpw6SilentReconnect,
+		startBpw6BgGattReconnectWatch,
+		stopBpw6BgGattReconnectWatch
 	} from '@/pages/api/qxBleAlignedSchedule.js';
 	import {
 		startTimezoneWatch,
@@ -77,6 +81,8 @@
 			}, 1000)
 			// #endif
 			const activeUrl = refreshActiveAppBaseUrl(Vue)
+			uni.$on(DEVICE_BINDING_STATE_CHANGED, this.syncDeviceKeepAlive)
+			this.syncDeviceKeepAlive(hasAnyBoundDevice())
 			syncTimezoneSignature()
 			startTimezoneWatch(() => {
 				replanQxBleScheduleOnTimezoneChange()
@@ -85,19 +91,63 @@
 
 		onHide() {
 			setQxBleAppForegroundState(false)
+			uni.$emit('APP_SCREEN_AWAKE', false)
 			this.stopInterval();
 			this.startInterval();
 			uni.removeStorageSync("dingwei")
+			if (!hasAnyBoundDevice()) this.syncDeviceKeepAlive(false)
 			// #ifdef APP-PLUS
-			if (uni.getSystemInfoSync().platform === 'android') {
+			if (uni.getSystemInfoSync().platform === 'android' && hasAnyBoundDevice()) {
+				const bpw6 = uni.getStorageSync('BPW6devicemac')
+				const bpw1 = uni.getStorageSync('deviceIdwatch')
 				if (keepAliveManager.shouldKeepAliveForAppTimers()) {
 					this.maybeInitKeepAliveForTimers()
 					keepAliveManager.ensureRunningForAppTimers();
+				} else {
+					// 任意已绑定设备均允许保活；各型号的重连流程仍由原判断控制。
+					try {
+						keepAliveManager.init()
+						keepAliveManager.ensureRunningForAppTimers()
+					} catch (eKa) {}
 				}
 				const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule');
 				plugin.acquireWakeLock({}, res => {})
 				keepAliveManager.onAppHide();
 				onQxBleAppBackground();
+				try {
+					uni.setStorageSync('bpw6_last_bg_at', Date.now())
+				} catch (eBgAt) {}
+				// BPW6：熄屏启动模块级 GATT 巡检（不依赖情绪定时 / Main）
+				try {
+					if (bpw6 && canPersistBpw6LocalBind()) {
+						const needGatt = (() => {
+							try {
+								const v = uni.getStorageSync('bpw6_bg_need_gatt_reconnect')
+								return v === 1 || v === '1' || v === true
+							} catch (e) {
+								return false
+							}
+						})()
+						// 仅已有断连标记才强制待回连。空闲超 90 秒没写不算断链，避免熄屏把还连着的表关掉再全量同步
+						startBpw6BgGattReconnectWatch('App.onHide', {
+							forceNeed: !!needGatt
+						})
+						uni.$emit('BPW6_ENSURE_RECONNECT', {
+							deviceId: bpw6,
+							reason: 'bg-presence-arm'
+						})
+					}
+				} catch (eArm) {}
+				// BPW1：熄屏始终武装巡检（对齐 BPW6）。超距断链时 onBLEConnectionStateChange
+				// 在 Doze 下常丢失；若仅在「已待回连」时才挂闹钟，黑屏走出范围后永不回连。
+				try {
+					if (bpw1) {
+						uni.$emit('BPW1_ENSURE_RECONNECT', {
+							deviceId: bpw1,
+							reason: 'bg-presence-arm'
+						})
+					}
+				} catch (eArm1) {}
 			}
 			// #endif
 		},
@@ -108,10 +158,21 @@
 		onShow() {
 			let that = this
 			setQxBleAppForegroundState(true)
+			uni.$emit('APP_SCREEN_AWAKE', true)
 			// 配置域名
 			that.getBaseUrl();
+			this.syncDeviceKeepAlive(hasAnyBoundDevice())
 			// #ifdef APP-PLUS
 			if (uni.getSystemInfoSync().platform === 'android') {
+				try {
+					stopBpw6BgGattReconnectWatch()
+					uni.$emit('BPW6_ENSURE_RECONNECT', {
+						reason: 'bg-presence-clear'
+					})
+					uni.$emit('BPW1_ENSURE_RECONNECT', {
+						reason: 'bg-presence-clear'
+					})
+				} catch (eClr) {}
 				keepAliveManager.resumeForegroundIfSuspended();
 				// ensureQxBleKeepAliveForBackground();
 				if (keepAliveManager.shouldKeepAliveForAppTimers()) {
@@ -127,13 +188,26 @@
 			setTimeout(() => {
 				that.tryResumeQxBleSchedule()
 			}, 2600)
-			// BPW6 回前台强制补一次静默重连（与 onQxBleAppForeground 去重节流）
-			try {
-				const bpw6 = uni.getStorageSync('BPW6devicemac')
-				if (bpw6) {
-					requestBpw6SilentReconnect(bpw6, 'App.onShow')
-				}
-			} catch (e) {}
+			// BPW6 回前台静默重连：略延迟，等 Main.onLoad 挂上 BPW6_ENSURE_RECONNECT（冷启动 App.onShow 更早）
+			setTimeout(() => {
+				try {
+					const bpw6 = uni.getStorageSync('BPW6devicemac')
+					if (bpw6 && canPersistBpw6LocalBind()) {
+						requestBpw6SilentReconnect(bpw6, 'App.onShow')
+					}
+				} catch (e) {}
+			}, 500)
+			// BPW1：回前台兜底补踢（不依赖当前是否在 Main Tab；关开蓝牙/超距后 need 标记在 storage）
+			setTimeout(() => {
+				try {
+					const bpw1 = uni.getStorageSync('deviceIdwatch')
+					if (!bpw1) return
+					uni.$emit('BPW1_ENSURE_RECONNECT', {
+						deviceId: bpw1,
+						reason: 'app-show-fg-recover'
+					})
+				} catch (eB1) {}
+			}, 550)
 			// #endif
 			let timesder = setInterval(() => {
 				if (uni.getStorageSync("token")) {
@@ -157,9 +231,24 @@
 			// });
 		},
 		globalData: {
-			test: ''
+			test: '初始值',
+			token: "未登录"
 		},
 		methods: {
+			syncDeviceKeepAlive(hasDevices) {
+				// #ifdef APP-PLUS
+				if (uni.getSystemInfoSync().platform !== 'android') return
+				if (hasDevices) {
+					keepAliveManager.ensureRunningForAppTimers()
+				} else {
+					keepAliveManager.stopForNoBoundDevice()
+					try {
+						const plugin = uni.requireNativePlugin('ThirdSdkPlugin-ThirdSdkModule')
+						if (plugin && typeof plugin.releaseWakeLock === 'function') plugin.releaseWakeLock({}, () => {})
+					} catch (e) {}
+				}
+				// #endif
+			},
 			...mapMutations(['setUniverifyErrorMsg', 'setUniverifyLogin', 'setlanyaId']),
 			/** 登录后恢复情绪定时测量（不依赖 dingwei 定位标记） */
 			tryResumeQxBleSchedule() {
@@ -170,6 +259,7 @@
 			},
 			/** Android 保活初始化（Monitoring 相关开关任一开启时） */
 			maybeInitKeepAliveForTimers() {
+				if (!hasAnyBoundDevice()) return
 				// #ifdef APP-PLUS
 				if (uni.getSystemInfoSync().platform !== 'android') return
 				keepAliveManager.init()

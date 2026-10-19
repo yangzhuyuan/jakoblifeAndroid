@@ -26,9 +26,14 @@
 			</template>
 			<template v-else-if="modelname === 'BPW6'">
 				<image class="imgss_sc" mode="aspectFit"
-					:src="(language === 'zh-Hans' || language == 'zh-Hant')?'/static/image/U19M_zh_1.jpg':'/static/image/U19M_en_1.jpg'" />
+					:src="(language === 'zh-Hans' || language == 'zh-Hant')?'/static/image/U19M_zh_1.jpg':'/static/image/U19M_en_1.png'" />
 				<image class="imgss_sc" mode="aspectFit"
 					:src="(language === 'zh-Hans' || language == 'zh-Hant')?'/static/image/U19M_zh_2.jpg':'/static/image/U19M_en_2.jpg'" />
+				<view class="bpw6-swipe-hint">
+					<text class="bpw6-swipe-hint-text">{{ (language === 'zh-Hans' || language == 'zh-Hant') ? '左滑' : 'Swipe left' }}</text>
+					<text class="bpw6-swipe-hint-arrow">-></text>
+				</view>
+				<image class="imgss_sc" mode="aspectFit" src="/static/image/U19M_en_3.jpg" />
 			</template>
 			<image v-else-if="isScaleDevice" class="imgss_sc" mode="aspectFit" src="/static/image/sc_tz.jpg" />
 			<image v-else class="imgss_sc" mode="aspectFit" src="/static/image/sc_xy.jpg" />
@@ -75,6 +80,7 @@
 		mapMutations
 	} from 'vuex'
 	import appScan from '@/uni_modules/simbalkj-scan/components/simbalkj-scan/appScan.vue'
+	import { isZk872WifiModel } from '@/pages/api/zk872WifiConnection.js'
 	import {
 		u16proBLE
 	} from '@/pages/api/protocol/u16pro-ble-manager.js'
@@ -142,29 +148,31 @@
 				scan_img: '/static/image-active.png',
 				xinghao: '',
 				context_msg: this.$t('请将条码放入扫码框内即可自动扫描'),
-
 				// 设备信息
 				modelConnectType: '',
 				SELECT_TYPE: '',
 				modelname: '',
 				modelId: '',
+				wifiDeviceId: '',
+				zkBinding: false,
+				zkBoundSn: '',
+				zkBindRequestTask: null,
+				zkBindPageActive: true,
 				context_msg1: '',
-
 				// 输入相关
 				inputcontext: '',
-
 				// 权限状态标记 - 关键修复
 				locationChecked: false,
 				locationGranted: false,
 				pendingLocationCheck: false,
-
 				// BPW1专用
 				BPW1deviceId: '',
 				BPW1model: '30000',
+				/** BPW1 绑定成功跳转：保留 BLE，避免进主页再关开适配器导致极慢 */
+				_bpw1BindKeepBle: false,
 				// BPW6专用
 				BPW6deviceId: '',
 				BPW6model: '30001',
-
 				// 蓝牙相关
 				writeuuid: '',
 				scanTimer: null,
@@ -178,7 +186,6 @@
 			isScaleDevice() {
 				return SCALE_DEVICES.includes(this.modelname)
 			},
-
 			// 当前语言对应的图片映射
 			imageMap() {
 				return ['zh-Hans', 'zh-Hant'].includes(CURRENT_LANG) ?
@@ -186,7 +193,6 @@
 					DEVICE_IMAGES.default
 			}
 		},
-
 		onLoad(options) {
 			this.SELECT_TYPE = options.SELECT_TYPE
 			this.modelConnectType = options.modelConnectType
@@ -195,8 +201,8 @@
 				title: this.$t('绑定设备')
 			})
 		},
-
 		onShow() {
+			this.zkBindPageActive = true
 			this.setDeviceBindingActive(true)
 			// 关键修复：如果正在等待用户从设置返回，检查权限并继续
 			if (this.pendingLocationCheck) {
@@ -204,26 +210,28 @@
 				this.checkLocationAndContinue()
 				return
 			}
-
 			// 如果已经获得权限，不再重复初始化
 			if (this.locationGranted) {
 				// 只需确保蓝牙适配器开启
 				this.ensureBluetoothEnabled()
 				return
 			}
-
 			// 首次进入或需要重新初始化
 			uni.closeBluetoothAdapter()
 			setTimeout(() => this.initBluetooth(), 1000)
 		},
 
 		onHide() {
+			this.zkBindPageActive = false
+			if (this.zkBinding) uni.hideLoading()
 			if (!this.pendingLocationCheck) {
 				this.setDeviceBindingActive(false)
 			}
 		},
 
 		onUnload() {
+			this.zkBindPageActive = false
+			if (this.zkBindRequestTask) this.zkBindRequestTask.abort()
 			this.cleanup()
 		},
 
@@ -256,13 +264,11 @@
 					fail: (err) => this.handleBluetoothError(err)
 				})
 			},
-
 			/**
 			 * 确保蓝牙已启用
 			 */
 			ensureBluetoothEnabled() {
 				uni.openBluetoothAdapter({
-					success: () => console.log('蓝牙已就绪'),
 					fail: (err) => {
 						if (err.errCode === 10001) {
 							// 蓝牙被关闭，提示用户
@@ -277,7 +283,6 @@
 					}
 				})
 			},
-
 			/**
 			 * 蓝牙准备就绪
 			 */
@@ -285,14 +290,12 @@
 				// 检查定位权限（Android）
 				this.checkAndroidLocation()
 			},
-
 			/**
 			 * 蓝牙错误处理
 			 */
 			handleBluetoothError(err) {
 				console.error('蓝牙初始化失败:', err)
 				uni.hideLoading()
-
 				if (err.errCode === 10001) {
 					uni.showModal({
 						content: this.$t('当前蓝牙未开启是否去设置打开'),
@@ -306,9 +309,7 @@
 					})
 				}
 			},
-
 			// ==================== Android定位权限管理 ====================
-
 			/**
 			 * 检查Android定位服务 - 关键修复
 			 */
@@ -319,7 +320,6 @@
 					this.startCameraCheck()
 					return
 				}
-
 				// Android 12+ 不需要定位权限
 				if (this.getAndroidVersion() >= 12) {
 					this.locationChecked = true
@@ -327,13 +327,11 @@
 					this.startCameraCheck()
 					return
 				}
-
 				// 导入Android类
 				const Context = plus.android.importClass('android.content.Context')
 				const LocationManager = plus.android.importClass('android.location.LocationManager')
 				const mainActivity = plus.android.runtimeMainActivity()
 				const locationManager = mainActivity.getSystemService(Context.LOCATION_SERVICE)
-
 				// 检查GPS是否开启
 				const isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
@@ -346,14 +344,12 @@
 				}
 				// #endif
 			},
-
 			/**
 			 * 显示GPS开启弹窗
 			 */
 			showGPSEnableDialog(activity) {
 				// 关键：标记正在等待用户从设置返回
 				this.pendingLocationCheck = true
-
 				uni.showModal({
 					title: this.$t('提示'),
 					content: this.$t('您的手机定位服务未开启'),
@@ -376,16 +372,13 @@
 					}
 				})
 			},
-
 			/**
 			 * 检查应用定位权限
 			 */
 			checkAppLocationPermission(activity) {
 				const PackageManager = plus.android.importClass('android.content.pm.PackageManager')
 				const permission = 'android.permission.ACCESS_FINE_LOCATION'
-
 				const hasPermission = activity.checkSelfPermission(permission) === PackageManager.PERMISSION_GRANTED
-
 				if (hasPermission) {
 					// 已有权限，继续
 					this.locationChecked = true
@@ -397,14 +390,12 @@
 					this.showPermissionRequestDialog(activity)
 				}
 			},
-
 			/**
 			 * 显示权限申请弹窗
 			 */
 			showPermissionRequestDialog(activity) {
 				// 关键：标记正在等待用户从设置返回
 				this.pendingLocationCheck = true
-
 				uni.showModal({
 					title: this.$t('提示'),
 					content: this.$t('需要获取您手机定位权限和附近设备权限'),
@@ -427,7 +418,6 @@
 					}
 				})
 			},
-
 			/**
 			 * 用户从设置返回后，检查权限并继续 - 关键修复
 			 */
@@ -437,9 +427,7 @@
 				const Context = plus.android.importClass('android.content.Context')
 				const LocationManager = plus.android.importClass('android.location.LocationManager')
 				const locationManager = mainActivity.getSystemService(Context.LOCATION_SERVICE)
-
 				const isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-
 				if (!isGpsEnabled) {
 					// 用户没有开启GPS
 					uni.showToast({
@@ -448,21 +436,17 @@
 					})
 					return
 				}
-
 				// 检查应用权限
 				const PackageManager = plus.android.importClass('android.content.pm.PackageManager')
 				const hasPermission = mainActivity.checkSelfPermission('android.permission.ACCESS_FINE_LOCATION') ===
 					PackageManager.PERMISSION_GRANTED
-
 				if (hasPermission) {
 					// 权限已获取，关键：保持当前界面状态
 					this.locationChecked = true
 					this.locationGranted = true
 					uni.setStorageSync('appQX', '1')
-
 					// 继续检查相机权限，不重置扫描界面
 					this.startCameraCheck()
-
 					uni.showToast({
 						title: this.$t('权限已获取'),
 						icon: 'success',
@@ -477,7 +461,6 @@
 				}
 				// #endif
 			},
-
 			/**
 			 * 获取Android版本
 			 */
@@ -486,7 +469,6 @@
 				const match = system.match(/Android\s(\d+)/i)
 				return match ? parseInt(match[1]) : 0
 			},
-
 			/**
 			 * 开始检查相机权限（保持扫描界面）
 			 */
@@ -505,22 +487,18 @@
 					// #endif
 				})
 			},
-
 			// ==================== 手动输入 ====================
-
 			ButtonTap() {
 				// 切换到输入界面，不重置其他状态
 				this.img_scan = false
 				this.$refs.qiehuanpopup?.open('center')
 			},
-
 			onPopupClose() {
 				// 弹窗关闭时，如果没有输入内容，返回扫描界面
 				if (!this.inputcontext && !this.context_msg1) {
 					this.img_scan = true
 				}
 			},
-
 			/**
 			 * 处理BPW1手动输入
 			 */
@@ -539,7 +517,6 @@
 					})
 				}
 			},
-
 			/**
 			 * 格式化MAC地址
 			 */
@@ -547,7 +524,6 @@
 				const clean = mac.replace(/[^a-fA-F0-9]/g, '')
 				return clean.match(/.{1,2}/g).join(':').toUpperCase()
 			},
-
 			shoudongbtn() {
 				if (!this.inputcontext) {
 					uni.showToast({
@@ -556,7 +532,6 @@
 					})
 					return
 				}
-
 				if (this.modelname === 'BPW1') {
 					this.handleBPW1ManualInput()
 				} else {
@@ -565,7 +540,6 @@
 					this.$refs.qiehuanpopup?.close()
 				}
 			},
-
 			shoudongbtncancle() {
 				this.$refs.qiehuanpopup?.close()
 				// 返回扫描界面，但不完全重置状态
@@ -574,9 +548,7 @@
 				}
 				this.inputcontext = ''
 			},
-
 			// ==================== 扫码处理 ====================
-
 			/**
 			 * 处理扫码结果
 			 */
@@ -595,7 +567,6 @@
 						break;
 				}
 			},
-
 			/**
 			 * 处理BPW1扫码
 			 */
@@ -682,13 +653,15 @@
 			 */
 			setDeviceInfo(data) {
 				this.img_scan = false // 确保显示设备信息界面
-				this.xinghao = `${this.$t('型号')}${data.model==="BPW6"?"U19M":data.model}`
+				this.xinghao = `${this.$t('型号')}${data.model==="BPW6"?"U19M/U16H":data.model}`
 				this.context_msg = `SN:${data.deviceSn}`
 				this.context_msg1 = data.deviceSn
 				this.modelId = data.modelId
+				this.wifiDeviceId = isZk872WifiModel(data.modelId, data.model) ? String(data.mac || '').trim() : ''
 				if (data.model === 'BPW6' && data.mac && !this.BPW6deviceId) {
 					this.BPW6deviceId = data.mac
 				}
+				// 用于过证， 设置的BP67 / BP68设备单独处理， 正常需要把以下两个判断注释掉
 				// if (data.model === 'JL-BP68W' && data.deviceSn && data.deviceSn === '1000103200000010') {
 				// 	this.modelConnectType = 1
 				// }
@@ -723,6 +696,7 @@
 			// ==================== 绑定流程 ====================
 
 			True_Bind() {
+				if (this.zkBinding) return
 				if (this.context_msg === this.$t('请将条码放入扫码框内即可自动扫描')) {
 					uni.showToast({
 						title: this.$t('请扫描设备的设备码'),
@@ -766,6 +740,16 @@
 					})
 					return
 				}
+				// 返回准备页后允许继续本页已完成的 ZK872 绑定；配网失败解绑后重新申请。
+				if (String(this.modelConnectType) === '2' && isZk872WifiModel(this.modelId, this.modelname)) {
+					const boundHere = this.zkBoundSn === this.context_msg1
+					const stillBound = res.rows?.some(item => item.deviceSn === this.context_msg1)
+					if (boundHere && stillBound) {
+						this.openZkWifiBindPage(this.modelId)
+						return
+					}
+					if (!stillBound) this.zkBoundSn = ''
+				}
 				// 无设备直接跳转
 				if (!res.rows?.length) {
 					this.navigateToBind(this.modelId)
@@ -793,14 +777,96 @@
 			 * 跳转到绑定页面
 			 */
 			navigateToBind(modelId) {
+				if (String(this.modelConnectType) === '2' && isZk872WifiModel(modelId, this.modelname)) {
+					return this.bindZk872BeforeWifi(modelId)
+				}
 				const routes = {
 					0: () => this.bindDeviceDirectly(this.context_msg1, '', modelId),
 					1: () => this.handleBLEBind(modelId),
 					2: () => uni.navigateTo({
-						url: `../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=${this.SELECT_TYPE}&sn=${this.context_msg1}&modelname=${this.modelname}&modelId=${modelId}`
+						url: `../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=${this.SELECT_TYPE}&sn=${this.context_msg1}&modelname=${this.modelname}&modelId=${modelId}` +
+							(this.wifiDeviceId ? '&deviceId=' + encodeURIComponent(this.wifiDeviceId) : '')
 					})
 				}
 				routes[this.modelConnectType]?.()
+			},
+			// 与手表一样先申请账号绑定，401 时停留在扫码页，不进入蓝牙或配网。
+			bindZk872BeforeWifi(modelId) {
+				if (this.zkBinding || this.zkBindPageActive === false) return
+				const sn = this.context_msg1
+				if (!sn) return
+				this.zkBinding = true
+				uni.showLoading({ title: this.$t('加载中'), mask: true })
+				let settled = false
+				let completed = false
+				let loading = true
+				const hideLoading = () => {
+					if (!loading) return
+					loading = false
+					uni.hideLoading()
+				}
+				const active = () => this.zkBindPageActive !== false && this.context_msg1 === sn
+				const fail = () => {
+					if (settled) return
+					settled = true
+					if (active()) {
+						hideLoading()
+						uni.showToast({ title: this.$t('网络连接失败'), icon: 'none' })
+					}
+				}
+				const complete = () => {
+					if (completed) return
+					completed = true
+					this.zkBinding = false
+					this.zkBindRequestTask = null
+					if (this.zkBindPageActive !== false) hideLoading()
+				}
+				try {
+					const task = uni.request({
+						url: this.$url_APP_IP + this.$url_bind_device,
+						method: 'POST',
+						data: { deviceSn: sn, mac: String(this.wifiDeviceId || '').trim() },
+						timeout: 15000,
+						header: {
+							'Authorization': `Bearer ${uni.getStorageSync('token')}`,
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						success: (response) => {
+							if (settled) return
+							if (response.statusCode !== 200 || !response.data || response.data.code == null) {
+								fail()
+								return
+							}
+							settled = true
+							const res = response.data
+							if (res.code == 200) this.zkBoundSn = sn
+							if (!active()) return
+							hideLoading()
+							if (res.code == 401) {
+								uni.showToast({ title: this.$t('此设备已被其他账号绑定'), icon: 'none' })
+								return
+							}
+							if (res.code != 200) {
+								uni.showToast({ title: res.msg || this.$t('失败'), icon: 'none' })
+								return
+							}
+							this.openZkWifiBindPage(modelId)
+						},
+						fail,
+						complete
+					})
+					if (this.zkBinding) this.zkBindRequestTask = task
+				} catch (err) {
+					fail()
+					complete()
+				}
+			},
+			openZkWifiBindPage(modelId) {
+				if (this.zkBindPageActive === false) return
+				uni.navigateTo({
+					url: `../../Bind/Bing_xueya/Bing_xueya?SELECT_TYPE=${this.SELECT_TYPE}&sn=${this.context_msg1}&modelname=${this.modelname}&modelId=${modelId}&zkAccountBound=1` +
+						(this.wifiDeviceId ? '&deviceId=' + encodeURIComponent(this.wifiDeviceId) : '')
+				})
 			},
 
 			/**
@@ -1001,7 +1067,6 @@
 			 * 监听BPW6设备
 			 */
 			onBPW6DeviceFound(targetMac, sn) {
-				console.log(targetMac, sn)
 				let scanCount = 0
 				let found = false
 				this.scanTimer = setInterval(() => {
@@ -1034,7 +1099,6 @@
 			 * 创建BPW6 BLE连接（带重试）
 			 */
 			createBPW6BLEConnection(deviceId, sn) {
-				console.log(deviceId, sn)
 				this.retryCount = 0
 				const tryConnect = () => {
 					this.retryCount++
@@ -1243,6 +1307,17 @@
 			 */
 			handleConnectionSuccess(deviceId, sn) {
 				uni.hideLoading()
+				// 仅 BPW1：落本地 mac/sn，并标记需在主页立刻弹经典蓝牙配对
+				try {
+					const mac = (deviceId || '').trim()
+					if (mac) {
+						uni.setStorageSync('deviceIdwatch', mac)
+						uni.setStorageSync('deviceSn', sn)
+						uni.setStorageSync('BPW1deviceSn', sn)
+						uni.setStorageSync('bpw1_need_classic_pair', '1')
+						this._bpw1BindKeepBle = true
+					}
+				} catch (e) {}
 				this.$refs.popup1?.open('center')
 				setTimeout(() => {
 					this.getBLEDeviceServices(deviceId, sn)
@@ -1505,12 +1580,21 @@
 				uni.hideLoading()
 				this.$refs.popup1?.close()
 				if (this.modelname === 'BPW6') {
+					this._bpw1BindKeepBle = false
 					this.setacktypes6(0)
 					uni.reLaunch({
 						url: `../../Bind/Bing_page/Bind_success?modelId=${this.BPW6model}`
 					})
 					return
 				}
+				// BPW1：成功路径保留 BLE，主页可直连已绑定 mac，避免关适配器后重开极慢
+				this._bpw1BindKeepBle = true
+				try {
+					if (this.BPW1deviceId) {
+						uni.setStorageSync('deviceIdwatch', String(this.BPW1deviceId).trim())
+					}
+					uni.setStorageSync('bpw1_need_classic_pair', '1')
+				} catch (e) {}
 				this.setacktypes(0)
 				uni.reLaunch({
 					url: `../../Bind/Bing_page/Bind_success?modelId=${this.BPW1model}`
@@ -1523,7 +1607,13 @@
 			cleanup() {
 				this.setDeviceBindingActive(false)
 				clearInterval(this.scanTimer)
-				uni.stopBluetoothDevicesDiscovery()
+				try {
+					uni.stopBluetoothDevicesDiscovery()
+				} catch (e) {}
+				// BPW1 绑定成功跳转：只停扫描，不断开/关适配器（否则进主页重连很慢）
+				if (this._bpw1BindKeepBle) {
+					return
+				}
 				uni.closeBLEConnection()
 				uni.closeBluetoothAdapter()
 			}
@@ -1604,6 +1694,28 @@
 		height: 120px;
 		object-fit: contain;
 		padding-top: 20px;
+	}
+
+	.bpw6-swipe-hint {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding-top: 20px;
+		flex-shrink: 0;
+	}
+
+	.bpw6-swipe-hint-text {
+		font-size: 12px;
+		color: #333;
+		line-height: 16px;
+		white-space: nowrap;
+	}
+
+	.bpw6-swipe-hint-arrow {
+		font-size: 22px;
+		line-height: 24px;
+		color: #333;
 	}
 
 	.Messageback {

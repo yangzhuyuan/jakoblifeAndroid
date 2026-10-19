@@ -1,5 +1,5 @@
 <template>
-	<view class="wave-box" :style="{ height: boxHeight + 'px' }">
+	<view class="wave-box">
 		<canvas canvas-id="ecg-canvas" :style="canvasStyle" class="ecg-canvas" />
 		<view class="full-wave-controls" v-if="showFullWaveControls">
 			<view class="control-row">
@@ -23,12 +23,17 @@
 
 	export default {
 		props: {
-			boxHeight: {
-				type: Number,
-				default: 120
+			invertWave: {
+				type: Boolean,
+				default: false
 			}
 		},
 		computed: {
+			displayPolarity() {
+				if (!this.invertWave || this.isTestWaveSource) return 1;
+				if (this.deviceDisplayPolarity !== null) return this.deviceDisplayPolarity;
+				return -1;
+			},
 			canvasStyle() {
 				return {
 					width: this.pxWidth + 'px',
@@ -169,6 +174,9 @@
 				waveRestartPosition: 0, // 波形重新开始位置
 				lastDataCount: 0, // 上次数据计数
 				isTestMode: false,
+			isTestWaveSource: false,
+				deviceDisplayPolarity: null,
+				devicePolaritySamples: [],
 				testWaveTimer: null,
 				testEcgGenerator: null,
 				testWaveType: 'preset',
@@ -185,8 +193,6 @@
 				lepuDisplayBuffer: [],
 				lepuSegmentMvBuffer: [],
 				lepuTargetHalfRange: 1.0,
-				/** false：实时按原始 mV 绘制，不再压到 ±1mV（ECGdemo 协议直出用） */
-				lepuNormalizeAmplitude: true,
 				lepuSweepStartTime: 0, // 第一组扫屏起始墙钟，首个有效采样写入时记录
 				scrollStartDuration: 3, // 与 screenDuration 一致，250Hz × 5s = 1250 点
 			};
@@ -249,9 +255,6 @@
 				return Math.min(1, elapsedSec / this.screenDuration);
 			},
 			normalizeLepuAmplitude(mv) {
-				if (this.lepuNormalizeAmplitude === false) {
-					return mv;
-				}
 				this.lepuSegmentMvBuffer.push(mv);
 				if (this.lepuSegmentMvBuffer.length > this.segmentDataPoints) {
 					this.lepuSegmentMvBuffer.shift();
@@ -476,7 +479,28 @@
 				}
 				return this.transformEcgSampleWithState(rawValue, this.signalState);
 			},
+			updateDeviceDisplayPolarity(value) {
+				if (!this.invertWave || this.isTestWaveSource || !this.isMeasuring ||
+					this.devicePolaritySamples === null || !Number.isFinite(value)) return;
+				this.devicePolaritySamples.push(value);
+				if (this.devicePolaritySamples.length < Math.max(250, this.sampleRate * 2)) return;
+				const values = this.devicePolaritySamples;
+				const topMean = samples => {
+					const top = samples.sort((a, b) => b - a).slice(0, 10);
+					return top.length ? top.reduce((sum, v) => sum + v, 0) / top.length : 0;
+				};
+				const positive = topMean(values.filter(v => v > 0));
+				const negative = topMean(values.filter(v => v < 0).map(v => -v));
+				if (Math.max(positive, negative) < this.leadOnThreshold ||
+					Math.max(positive, negative) < Math.min(positive, negative) * 1.2) {
+					this.devicePolaritySamples = [];
+					return;
+				}
+				this.deviceDisplayPolarity = negative > positive ? -1 : 1;
+				this.devicePolaritySamples = null;
+			},
 			appendProcessedSample(value) {
+				this.updateDeviceDisplayPolarity(value);
 				if (this.isMeasuring && this.useLepuStyle) {
 					this.appendLepuSample(value);
 				}
@@ -606,7 +630,7 @@
 					const drawIndex = (this.waveRestartPosition + i) % this.displayDataLength;
 					const v = this.realTimeDisplayData[drawIndex];
 					const x = area.x + i * pointWidth;
-					let y = centerY - v * currentGain;
+					let y = centerY - v * currentGain * this.displayPolarity;
 					y = Math.max(area.y, Math.min(area.y + area.h, y));
 					if (!moveToCalled) {
 						this.ctx.moveTo(x, y);
@@ -658,7 +682,7 @@
 						if (!this.lepuHasWrapped && x > headX) {
 							break;
 						}
-						let y = centerY - v * currentGain;
+						let y = centerY - v * currentGain * this.displayPolarity;
 						y = Math.max(area.y, Math.min(area.y + area.h, y));
 						if (!moveToCalled) {
 							this.ctx.moveTo(x, y);
@@ -691,7 +715,7 @@
 				for (let i = 0; i < count; i++) {
 					const v = this.realTimeDisplayData[i];
 					const x = area.x + i * pointWidth;
-					let y = centerY - v * currentGain;
+					let y = centerY - v * currentGain * this.displayPolarity;
 					y = Math.max(area.y, Math.min(area.y + area.h, y));
 					if (i === 0) {
 						this.ctx.moveTo(x, y);
@@ -722,7 +746,7 @@
 					const dataIndex = Math.min(bufferIndex, this.realTimeDisplayData.length - 1);
 					const v = this.realTimeDisplayData[dataIndex] || 0;
 					const x = area.x + i * pointWidth;
-					let y = centerY - v * currentGain;
+					let y = centerY - v * currentGain * this.displayPolarity;
 					y = Math.max(area.y, Math.min(area.y + area.h, y));
 					if (i === 0) {
 						this.ctx.moveTo(x, y);
@@ -741,7 +765,7 @@
 						const dataIndex = Math.min(i, this.realTimeDisplayData.length - 1);
 						const v = this.realTimeDisplayData[dataIndex] || 0;
 						const x = area.x + (visibleLength + i) * pointWidth;
-						let y = centerY - v * currentGain;
+						let y = centerY - v * currentGain * this.displayPolarity;
 						y = Math.max(area.y, Math.min(area.y + area.h, y));
 						this.ctx.lineTo(x, y);
 						if (v !== 0) hasData = true;
@@ -801,7 +825,7 @@
 				const x = this.lepuHasWrapped ?
 					area.x + latestIdx * this.getLepuPointWidth(area) :
 					this.getLepuSweepHeadX(area);
-				let y = centerY - v * currentGain;
+				let y = centerY - v * currentGain * this.displayPolarity;
 				y = Math.max(area.y, Math.min(area.y + area.h, y));
 				const coreRadius = 6;
 				const glowRadius = 18;
@@ -856,7 +880,7 @@
 				for (let i = 0; i < this.realTimeDisplayData.length; i++) {
 					const v = this.realTimeDisplayData[i];
 					const x = area.x + i * pointWidth;
-					let y = centerY - v * currentGain;
+					let y = centerY - v * currentGain * this.displayPolarity;
 					y = Math.max(area.y, Math.min(area.y + area.h, y));
 					if (!moveToCalled) {
 						this.ctx.moveTo(x, y);
@@ -897,11 +921,9 @@
 				return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 			},
 			onStartTimeChange(e) {
-				const total = this.fullWaveTotalDuration || 0;
-				const win = Math.min(this.fullWaveDuration || 5, Math.max(0, total));
-				const startTime = Math.max(0, Math.min(parseFloat(e.detail.value) || 0, Math.max(0, total - win)));
+				const startTime = parseFloat(e.detail.value);
 				this.fullWaveStartTime = startTime;
-				this.fullWaveEndTime = Math.min(total, startTime + win);
+				this.fullWaveEndTime = startTime + this.fullWaveDuration;
 				this.updateFullWaveData();
 			},
 			updateFullWaveData() {
@@ -932,6 +954,9 @@
 			pushApiData(arr) {
 				if (!arr || arr.length === 0) return;
 				if (this.isMeasuring) return;
+				this.isTestWaveSource = false;
+				this.deviceDisplayPolarity = null;
+				this.devicePolaritySamples = [];
 				this.apiDataList = arr.slice();
 				const processed = this.processEcgDataArray(this.apiDataList);
 				if (this.dataList.length === 0) {
@@ -949,10 +974,8 @@
 				this.fullWaveZoom = 50;
 				const totalDataPoints = this.apiDataList.length;
 				const totalDuration = totalDataPoints / this.sampleRate;
-				// 不要写死 25s 上限，否则 40s 数据滑条/起止会被截断
-				const win = Math.min(this.fullWaveDuration || 5, Math.max(0, totalDuration));
-				this.fullWaveStartTime = 0;
-				this.fullWaveEndTime = Math.min(totalDuration, win);
+				this.fullWaveStartTime = Math.max(0, Math.min(25, totalDuration - 5));
+				this.fullWaveEndTime = Math.min(totalDuration, this.fullWaveStartTime + 5);
 				const processed = this.processEcgDataArray(this.apiDataList);
 				this.dataList = this.prepareFullWaveData(processed);
 				this.calculateGainForFullData(processed);
@@ -960,6 +983,9 @@
 				this.forceDraw();
 			},
 			startMeasurement() {
+				this.isTestWaveSource = false;
+				this.deviceDisplayPolarity = 1;
+				this.devicePolaritySamples = [];
 				this.resetMeasurementState();
 				this.isMeasuring = true;
 				this.dataSourceTip = this.$t("实时测量中");
@@ -999,6 +1025,8 @@
 				this.isMeasuring = false;
 				this.stopAnimation();
 				this.dataSourceTip = this.dataList.length === 0 ? this.$t("云端数据") : this.$t("测量数据");
+				console.log('停止测量，数据点数:', this.fullDataList.length);
+				console.log('返回正常显示模式，放大倍数:', this.amplifyFactor);
 			},
 			clearTestWaveTimer() {
 				if (this.testWaveTimer) {
@@ -1054,6 +1082,7 @@
 				}
 				this.startMeasurement();
 				this.isTestMode = true;
+				this.isTestWaveSource = true;
 				this.dataSourceTip = `测试波形: ${tipName}`;
 				const batchesPerSecond = 10;
 				const batchSize = Math.max(1, Math.round(this.sampleRate / batchesPerSecond));
@@ -1068,6 +1097,7 @@
 						this.pushData(batch);
 					}
 				}, interval);
+				console.log(`开始测试波形: ${tipName}`);
 			},
 			nextTestWaveBatch(batchSize) {
 				const batch = [];
@@ -1182,10 +1212,8 @@
 				this.fullWaveZoom = 50;
 				const totalDataPoints = sourceData.length;
 				const totalDuration = totalDataPoints / this.sampleRate;
-				// 不要写死 25s 上限，总时长由点数/采样率决定（如 10000@250Hz=40s）
-				const win = Math.min(this.fullWaveDuration || 10, Math.max(0, totalDuration));
-				this.fullWaveStartTime = 0;
-				this.fullWaveEndTime = Math.min(totalDuration, win);
+				this.fullWaveStartTime = Math.max(0, Math.min(25, totalDuration - 10));
+				this.fullWaveEndTime = Math.min(totalDuration, this.fullWaveStartTime + 10);
 				this.dataList = this.prepareFullWaveData(sourceData);
 				this.calculateGainForFullData(sourceData);
 				this.dataSourceTip = dataSource;
@@ -1253,9 +1281,6 @@
 				this.forceDraw();
 			},
 			forceDraw() {
-				if (this.isMeasuring && !this.showFullWaveMode) {
-					return;
-				}
 				if (this.isDrawing) return;
 				this.isDrawing = true;
 				if (this.drawTimer) {
@@ -1340,7 +1365,7 @@
 				for (let i = 0; i < this.dataList.length; i++) {
 					const v = this.dataList[i];
 					const x = area.x + i * pointWidth;
-					let y = mid - v * currentGain;
+					let y = mid - v * currentGain * this.displayPolarity;
 					y = Math.max(area.y, Math.min(area.y + area.h, y));
 					if (i === 0) {
 						this.ctx.moveTo(x, y);
@@ -1364,7 +1389,7 @@
 				for (let i = 0; i < dataToDraw.length; i++) {
 					const v = dataToDraw[i];
 					const x = area.x + i * pointWidth;
-					let y = mid - v * currentGain;
+					let y = mid - v * currentGain * this.displayPolarity;
 					y = Math.max(area.y, Math.min(area.y + area.h, y));
 					if (i === 0) {
 						this.ctx.moveTo(x, y);

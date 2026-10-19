@@ -767,6 +767,7 @@
 	}
 
 	.goals-card {
+		margin-left: 10px;
 		padding: 10px 12px 12px;
 		display: flex;
 		flex-direction: column;

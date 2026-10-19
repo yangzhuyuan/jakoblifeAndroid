@@ -15,57 +15,74 @@
 				<view class="pagedsismj_4">
 					<picker @change="types_change" :value="types_index" :range="types_array">
 						<view class="pagedsismj_5">
-							<view style="font-size: 14px;color: black;">{{types_array[types_index]}}</view>
-							<uni-icons type="bottom" size="18"></uni-icons>
+							<image v-if="Number(types_index) === 0" lazy-load src="/static/page_icon/shoubiao.png"
+								class="device_picker_icon" mode="aspectFit" />
+							<image v-else-if="Number(types_index) === 1" lazy-load src="/static/page_icon/lanya.png"
+								class="device_picker_icon" mode="aspectFit" />
+							<image v-else lazy-load src="../../../static/icons/6.png" class="device_picker_icon"
+								mode="aspectFit" />
+							<view class="device_picker_text">{{types_array[types_index]}}</view>
+							<uni-icons type="bottom" size="14" color="#999999"></uni-icons>
 						</view>
 					</picker>
 				</view>
 				<view v-if="data_type === 0" class="data_type_0">
 					<picker fields="day" mode="date" @change="bindDateChange1">
-						<view style="display: flex;flex-direction: row;">
-							<view style="font-size: 18px;color: gray;">{{date_0}}</view>
-							<uni-icons type="bottom" size="18"></uni-icons>
+						<view class="date_picker_row">
+							<view class="date_picker_text">{{date_0}}</view>
+							<uni-icons type="bottom" size="14" color="#999999"></uni-icons>
 						</view>
 					</picker>
 				</view>
 				<view v-else-if="data_type === 1" class="data_type_0">
 					<picker fields="month" mode="date" @change="bindDateChange2">
-						<view style="display: flex;flex-direction: row;">
-							<view style="font-size: 18px;color: gray;">{{date_1}}</view>
-							<uni-icons type="bottom" size="18"></uni-icons>
+						<view class="date_picker_row">
+							<view class="date_picker_text">{{date_1}}</view>
+							<uni-icons type="bottom" size="14" color="#999999"></uni-icons>
 						</view>
 					</picker>
 				</view>
 				<view v-else-if="data_type === 2" class="data_type_0">
 					<picker fields="year" mode="date" @change="bindDateChange3">
-						<view style="display: flex;flex-direction: row;">
-							<view style="font-size: 18px;color: gray;">{{date_2}}</view>
-							<uni-icons type="bottom" size="18"></uni-icons>
+						<view class="date_picker_row">
+							<view class="date_picker_text">{{date_2}}</view>
+							<uni-icons type="bottom" size="14" color="#999999"></uni-icons>
 						</view>
 					</picker>
 				</view>
 				<view class="pagedsismj_6">
-					<view class="ziti" :style="getcolor(act)" @click="button_pingju()">{{$t('平均')}}</view>
-					<view class="ziti_1" :style="getcolor1(act1)" @click="button_zuigao()">{{$t('最高')}}</view>
+					<view class="ziti" :class="{ 'metric-active': act === $t('平均') }" @click="button_pingju()">
+						{{$t('平均')}}
+					</view>
+					<view class="ziti_1" :class="{ 'metric-active': act1 === $t('最高') }" @click="button_zuigao()">
+						{{$t('最高')}}
+					</view>
 				</view>
 			</view>
 		</view>
 		<view v-if="tendentypes" class="pagedsismj_1">
 			<view class="table_bg">
+				<view class="chart_card_title">{{$t('血压趋势')}}</view>
 				<view class="table_jjj_1">
-					<view>
-						<view class="pingjun">
-							<view class="pingjun_1" />
-							<view class="pingjun_3">{{$t('平均收缩压')}}/{{Blood}}</view>
+					<view class="chart_summary_left">
+						<view class="pingjun_3">{{$t('平均')}}</view>
+						<view class="bp_summary_value">
+							<text class="bp_sys">{{Systolic_blood_pressure}}</text>
+							<text class="bp_slash"> / </text>
+							<text class="bp_dia">{{Diastolic_blood_pressure}}</text>
 						</view>
-						<view class="table_item_text">{{Systolic_blood_pressure}}</view>
+						<text class="bp_unit"> {{Blood}}</text>
 					</view>
-					<view style="margin-left: 20px;">
-						<view class="pingjun">
-							<view class="pingjun_2" />
-							<view class="pingjun_3">{{$t('平均舒张压')}}/{{Blood}}</view>
+					<view class="chart_summary_divider"></view>
+					<view class="chart_summary_legend">
+						<view class="chart_legend_item">
+							<view class="pingjun_1"></view>
+							<text class="chart_legend_text">{{$t('收缩压')}}</text>
 						</view>
-						<view class="table_item_text">{{Diastolic_blood_pressure}}</view>
+						<view class="chart_legend_item">
+							<view class="pingjun_2"></view>
+							<text class="chart_legend_text">{{$t('舒张压')}}</text>
+						</view>
 					</view>
 				</view>
 				<view class="charts-box">
@@ -74,133 +91,121 @@
 				</view>
 			</view>
 			<view class="icon_item_bgsdsadsa">
-				<view class="icon_item_bg_1">
-					<image lazy-load src="../../../static/icons/3.png" class="img_iocn_bg" mode="aspectFit" />
-					<view class="xueyastylesss">{{$t('最近血压')}}</view>
+				<view class="icon_item_bg_1 icon_circle_blue">
+					<uni-icons type="heart-filled" size="22" color="#3298F7"></uni-icons>
 				</view>
 				<view class="typesstyle_title">
-					<view class="title_type_bg">
+					<view class="card_item_title">{{$t('最近血压')}}</view>
+					<view class="bp_summary_value bp_summary_value_sm">
+						<text class="bp_sys">{{lately_Systolic_blood_pressure}}</text>
+						<text class="bp_slash"> / </text>
+						<text class="bp_dia">{{lately_Diastolic_blood_pressure}}</text>
+						<text class="bp_unit"> {{Blood}}</text>
+					</view>
+					<view class="card_meta_row">
+						<uni-icons type="heart" size="12" color="#999999"></uni-icons>
+						<text class="card_meta_text">{{lately_pulse}} bpm</text>
+					</view>
+				</view>
+				<view class="card_right_area">
+					<view class="status_badge" @tap="BMI_tap">
 						<view class="xueya_type" :style="bg(lately_Blood_pressure)" />
-						<view class="title_font_bg">{{lately_Blood_pressure}}</view>
-						<uni-icons type="help" size="15" @tap="BMI_tap"></uni-icons>
+						<text class="status_badge_text">{{lately_Blood_pressure}}</text>
 					</view>
-					<view class="border_bg" />
-					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">{{$t('收缩压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{lately_Systolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('舒张压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{lately_Diastolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('脉搏')}}/BPM</view>
-							<view class="text_item_bg_1">{{lately_pulse}}</view>
-						</view>
-					</view>
+					<!-- <uni-icons type="right" size="16" color="#C0C4CC"></uni-icons> -->
 				</view>
 			</view>
 			<view class="icon_item_bg">
-				<view class="icon_item_bg_1">
-					<image lazy-load src="../../../static/icons/3.png" class="img_iocn_bg" mode="aspectFit" />
-					<view class="xueyastylesss">{{$t('平均血压')}}</view>
+				<view class="icon_item_bg_1 icon_circle_green">
+					<uni-icons type="bars" size="22" color="#34C759"></uni-icons>
 				</view>
 				<view class="typesstyle_title">
-					<view class="title_type_bg">
+					<view class="card_item_title">{{$t('平均血压')}}</view>
+					<view class="bp_summary_value bp_summary_value_sm">
+						<text class="bp_sys">{{average_Systolic_blood_pressure}}</text>
+						<text class="bp_slash"> / </text>
+						<text class="bp_dia">{{average_Diastolic_blood_pressure}}</text>
+						<text class="bp_unit"> {{Blood}}</text>
+					</view>
+					<view class="card_meta_row">
+						<uni-icons type="heart" size="12" color="#999999"></uni-icons>
+						<text class="card_meta_text">{{average_pulse}} bpm</text>
+					</view>
+				</view>
+				<view class="card_right_area">
+					<view class="status_badge" @tap="BMI_tap">
 						<view class="xueya_type" :style="bg(average_Blood_pressure)" />
-						<view class="title_font_bg">{{average_Blood_pressure}}</view>
-						<uni-icons type="help" size="15" @tap="BMI_tap"></uni-icons>
+						<text class="status_badge_text">{{average_Blood_pressure}}</text>
 					</view>
-					<view class="border_bg" />
-					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">{{$t('收缩压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{average_Systolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('舒张压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{average_Diastolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('脉搏')}}/BPM</view>
-							<view class="text_item_bg_1">{{average_pulse}}</view>
-						</view>
-					</view>
+					<!-- <uni-icons type="right" size="16" color="#C0C4CC"></uni-icons> -->
 				</view>
 			</view>
 			<view class="icon_item_bg">
-				<view class="icon_item_bg_1">
-					<image lazy-load src="../../../static/icons/3.png" class="img_iocn_bg" mode="aspectFit" />
-					<view class="xueyastylesss">{{$t('最高血压')}}</view>
+				<view class="icon_item_bg_1 icon_circle_orange">
+					<uni-icons type="arrow-up" size="22" color="#FC7F41"></uni-icons>
 				</view>
 				<view class="typesstyle_title">
-					<view class="title_type_bg">
+					<view class="card_item_title">{{$t('最高血压')}}</view>
+					<view class="bp_summary_value bp_summary_value_sm">
+						<text class="bp_sys">{{Maximum_Systolic_blood_pressure}}</text>
+						<text class="bp_slash"> / </text>
+						<text class="bp_dia">{{Maximum_Diastolic_blood_pressure}}</text>
+						<text class="bp_unit"> {{Blood}}</text>
+					</view>
+					<view class="card_meta_row">
+						<uni-icons type="heart" size="12" color="#999999"></uni-icons>
+						<text class="card_meta_text">{{Maximum_pulse}} bpm</text>
+					</view>
+				</view>
+				<view class="card_right_area">
+					<view class="status_badge" @tap="BMI_tap">
 						<view class="xueya_type" :style="bg(Maximum_Blood_pressure)" />
-						<view class="title_font_bg">{{Maximum_Blood_pressure}}</view>
-						<uni-icons type="help" size="15" @tap="BMI_tap"></uni-icons>
+						<text class="status_badge_text">{{Maximum_Blood_pressure}}</text>
 					</view>
-					<view class="border_bg" />
-					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">{{$t('收缩压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{Maximum_Systolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('舒张压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{Maximum_Diastolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('脉搏')}}/BPM</view>
-							<view class="text_item_bg_1">{{Maximum_pulse}}</view>
-						</view>
-					</view>
+					<!-- <uni-icons type="right" size="16" color="#C0C4CC"></uni-icons> -->
 				</view>
 			</view>
 			<view class="icon_item_bg">
-				<view class="icon_item_bg_1">
-					<image lazy-load src="../../../static/icons/3.png" class="img_iocn_bg" mode="aspectFit" />
-					<view class="xueyastylesss">{{$t('最低血压')}}</view>
+				<view class="icon_item_bg_1 icon_circle_blue">
+					<uni-icons type="arrow-down" size="22" color="#3298F7"></uni-icons>
 				</view>
 				<view class="typesstyle_title">
-					<view class="title_type_bg">
+					<view class="card_item_title">{{$t('最低血压')}}</view>
+					<view class="bp_summary_value bp_summary_value_sm">
+						<text class="bp_sys">{{Minimum_Systolic_blood_pressure}}</text>
+						<text class="bp_slash"> / </text>
+						<text class="bp_dia">{{Minimum_Diastolic_blood_pressure}}</text>
+						<text class="bp_unit"> {{Blood}}</text>
+					</view>
+					<view class="card_meta_row">
+						<uni-icons type="heart" size="12" color="#999999"></uni-icons>
+						<text class="card_meta_text">{{Minimum_pulse}} bpm</text>
+					</view>
+				</view>
+				<view class="card_right_area">
+					<view class="status_badge" @tap="BMI_tap">
 						<view class="xueya_type" :style="bg(Minimum_Blood_pressure)" />
-						<view class="title_font_bg">{{Minimum_Blood_pressure}}</view>
-						<uni-icons type="help" size="15" @tap="BMI_tap"></uni-icons>
+						<text class="status_badge_text">{{Minimum_Blood_pressure}}</text>
 					</view>
-					<view class="border_bg" />
-					<view class="title_all_bg">
-						<view>
-							<view class="text_item_bg">{{$t('收缩压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{Minimum_Systolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('舒张压')}}/{{Blood}}</view>
-							<view class="text_item_bg_1">{{Minimum_Diastolic_blood_pressure}}</view>
-						</view>
-						<view>
-							<view class="text_item_bg">{{$t('脉搏')}}/BPM</view>
-							<view class="text_item_bg_1">{{Minimum_pulse}}</view>
-						</view>
-					</view>
+					<!-- <uni-icons type="right" size="16" color="#C0C4CC"></uni-icons> -->
 				</view>
 			</view>
 		</view>
-		<view v-else style="padding-bottom: 40px;">
+		<view v-else class="pagedsismj_1">
 			<view class="table_bg">
+				<view class="chart_card_title">{{$t('体重趋势')}}</view>
 				<view class="text_title_types_1">
-					<view style="display: flex;flex-direction: column; align-items: center;">
+					<view class="weight_summary_item">
 						<text class="text_title_types_2">{{$t('最近7天平均体重')}}/{{ newweightKG }}</text>
-						<view style="font-size: 16px; font-weight: 600; color: #1A1A1A; ">{{Mean_value}}</view>
+						<view class="weight_summary_value">{{Mean_value}}</view>
 					</view>
-					<view style="display: flex;flex-direction: column; align-items: center;width: 33%;">
+					<view class="weight_summary_item">
 						<text class="text_title_types_2">BMI</text>
-						<view style="font-size: 16px; font-weight: 600; color: #1A1A1A; ">{{bmi}}</view>
-
+						<view class="weight_summary_value">{{bmi}}</view>
 					</view>
-					<view style="display: flex;flex-direction: column; align-items: center;width: 33%;">
+					<view class="weight_summary_item">
 						<text class="text_title_types_2">{{$t('变化速度')}}</text>
-						<view style="font-size: 16px; font-weight: 600; color: #1A1A1A; ">{{weight_value}}</view>
+						<view class="weight_summary_value">{{weight_value}}</view>
 					</view>
 				</view>
 				<view class="charts-box">
@@ -209,31 +214,32 @@
 				</view>
 			</view>
 			<view class="icon_item_bg">
-				<view class="icon_item_bg_1">
+				<view class="icon_item_bg_1 icon_circle_blue">
 					<image lazy-load src="../../../static/icons/6.png" class="img_iocn_bg" mode="aspectFit" />
-					<view class="xueyastylesss">{{$t('今日体重')}}</view>
 				</view>
 				<view class="typesstyle_title">
-					<view class="title_type_bg">
-						<view class="xueya_type" :style="bg1(level_weight)" />
-						<view class="title_font_bg">{{level_weight}}</view>
-						<uni-icons type="help" size="15" style="" @tap="BMI_tap2"></uni-icons>
-					</view>
-					<view class="border_bg" />
-					<view class="title_all_bg">
-						<view>
+					<view class="card_item_title">{{$t('今日体重')}}</view>
+					<view class="weight_card_values">
+						<view class="weight_card_col">
 							<view class="text_item_bg">{{$t('最高体重')}}/{{newweightKG}}</view>
 							<view class="text_item_bg_1">{{max_weight}}</view>
 						</view>
-						<view>
+						<view class="weight_card_col">
 							<view class="text_item_bg">{{$t('最低体重')}}/{{newweightKG}}</view>
 							<view class="text_item_bg_1">{{min_weight}}</view>
 						</view>
-						<view>
+						<view class="weight_card_col">
 							<view class="text_item_bg">{{$t('平均体重')}}/{{newweightKG}}</view>
 							<view class="text_item_bg_1">{{avg_weight}}</view>
 						</view>
 					</view>
+				</view>
+				<view class="card_right_area">
+					<view class="status_badge" @tap="BMI_tap2">
+						<view class="xueya_type" :style="bg1(level_weight)" />
+						<text class="status_badge_text">{{level_weight}}</text>
+					</view>
+					<uni-icons type="right" size="16" color="#C0C4CC"></uni-icons>
 				</view>
 			</view>
 			<view class="icon_item_bg_toast">{{Detection_result}}</view>
@@ -471,6 +477,13 @@
 						<view style="flex: 1;text-align: center;">{{$t("舒张压")}}</view>
 					</view>
 					<view
+						style="background:#FFF176; color: black;padding: 10px; margin:0 10px; display: flex;justify-content: center; align-items: center;width: 90%;">
+						<view style="flex: 1;text-align: center;">{{$t("血压偏低")}}</view>
+						<view style="flex: 1;text-align: center;">&lt;90</view>
+						<view style="flex: 1;text-align: center;">{{$t("或")}}</view>
+						<view style="flex: 1;text-align: center;">&lt;60</view>
+					</view>
+					<view
 						style="background:#A6CE39; color: black;padding: 10px; margin:0 10px; display: flex;justify-content: center; align-items: center;width: 90%;">
 						<view style="flex: 1;text-align: center;">{{$t("正常血压")}}</view>
 						<view style="flex: 1;text-align: center;">91-120</view>
@@ -579,6 +592,9 @@
 		isInChinaByIP
 	} from '../../api/isInChinaByIP.js';
 	import WeightConverter from '../../api/unitls/weightConverter.js';
+	import {
+		classifyBloodPressure
+	} from '../../api/unitls/bloodPressureLevel.js';
 	const platformres = uni.getSystemInfoSync();
 	// 获取本地日期时间
 	const now = new Date();
@@ -665,7 +681,7 @@
 						pointShape: 'circle',
 						showSymbol: true // 显示数据点
 					}, {
-						legendShape: "#7AE545",
+						legendShape: "#4CD964",
 						name: this.$t("舒张压"),
 						data: [0],
 						connectNulls: true, // 不连接null值
@@ -674,7 +690,7 @@
 					}]
 				},
 				xeuyaopts: {
-					color: ["#FC7F41", "#7AE545"],
+					color: ["#FC7F41", "#4CD964"],
 					padding: [15, 10, 0, 15],
 					enableScroll: false,
 					xAxis: {
@@ -825,6 +841,10 @@
 
 		onUnload() {
 			uni.$off('UNIT_SETTINGS_CHANGED', this.syncUnitSettings);
+			if (this._trendReshowTimer) {
+				clearTimeout(this._trendReshowTimer);
+				this._trendReshowTimer = null;
+			}
 		},
 
 		onNavigationBarButtonTap(e) {
@@ -835,6 +855,10 @@
 
 		onHide() {
 			this.clearTimer()
+			if (this._trendReshowTimer) {
+				clearTimeout(this._trendReshowTimer);
+				this._trendReshowTimer = null;
+			}
 		},
 		onShow() {
 			uni.setNavigationBarTitle({
@@ -1080,9 +1104,21 @@
 			nudgeTrendCharts() {
 				this.bpChartReshow = false;
 				this.weightChartReshow = false;
+				if (this._trendReshowTimer) {
+					clearTimeout(this._trendReshowTimer);
+					this._trendReshowTimer = null;
+				}
+				// 等容器完成布局后再 reshow，避免量到 0 宽高 / Not Found 刷屏
 				this.$nextTick(() => {
-					this.bpChartReshow = true;
-					this.weightChartReshow = true;
+					this._trendReshowTimer = setTimeout(() => {
+						this._trendReshowTimer = null;
+						// 只唤醒当前可见图表，避免对未挂载实例触发无效查询
+						if (this.tendentypes) {
+							this.bpChartReshow = true;
+						} else {
+							this.weightChartReshow = true;
+						}
+					}, 200);
 				});
 			},
 			renderTrendCharts(cache) {
@@ -1111,7 +1147,7 @@
 						pointShape: 'circle',
 						showSymbol: true
 					}, {
-						legendShape: '#7AE545',
+						legendShape: '#4CD964',
 						name: this.$t('舒张压'),
 						data: lowData.slice(),
 						connectNulls: true,
@@ -2030,7 +2066,7 @@
 						pointShape: 'circle',
 						showSymbol: true
 					}, {
-						legendShape: '#7AE545',
+						legendShape: '#4CD964',
 						name: this.$t('舒张压'),
 						data: [null],
 						connectNulls: true,
@@ -2048,8 +2084,6 @@
 				}
 				this.nudgeTrendCharts()
 			},
-
-
 
 			//血压计统计每日平均值计算总最大最小值
 			query_month_avg(startTime, endTime) {
@@ -2209,6 +2243,7 @@
 			},
 			bg(bg) {
 				const bloodPressureColors = {
+					[this.$t("血压偏低")]: "#FFF176",
 					[this.$t("正常血压")]: "#58BF78",
 					[this.$t("正常高血压值")]: "#FFEC01",
 					[this.$t("一级高血压")]: "#FCCD41",
@@ -2219,25 +2254,10 @@
 				};
 			},
 			bgaaa(lowPressure, highPressure) {
-				let that = this;
-				const getBloodPressureLevel = (lowPressure, highPressure) => {
-					if ((lowPressure >= 61 && lowPressure <= 80) && (highPressure >= 91 && highPressure <= 120)) {
-						return that.$t("正常血压");
-					} else if ((lowPressure >= 81 && lowPressure <= 90) || (highPressure >= 121 && highPressure <=
-							140)) {
-						return that.$t("正常高血压值");
-					} else if ((lowPressure >= 91 && lowPressure <= 100) || (highPressure >= 141 && highPressure <=
-							160)) {
-						return that.$t("一级高血压");
-					} else if ((lowPressure >= 101 && lowPressure <= 110) || (highPressure >= 161 && highPressure <=
-							180)) {
-						return that.$t("二级高血压");
-					} else {
-						return that.$t("未知");
-					}
-				};
-				let leve = getBloodPressureLevel(lowPressure, highPressure);
-				return leve;
+				const {
+					key
+				} = classifyBloodPressure(lowPressure, highPressure);
+				return this.$t(key);
 			},
 			bg1(bg) {
 				const weightStatusColors = {
@@ -2396,13 +2416,13 @@
 
 <style lang="scss" scoped>
 	.pagedsismj {
-		color: black;
-		height: 100vh;
-		background: #EFEFF4;
+		color: #1A1A1A;
+		min-height: 100vh;
+		background: #F5F7FA;
 	}
 
 	.pagedsismj_1 {
-		background: #EFEFF4;
+		background: #F5F7FA;
 		padding-bottom: 120px;
 	}
 
@@ -2413,7 +2433,6 @@
 		align-items: center;
 	}
 
-
 	.title_all {
 		height: 60px;
 		padding: 30px 10px 10px 10px;
@@ -2423,7 +2442,7 @@
 		position: fixed;
 		width: 100vw;
 		top: 0;
-		background: #F7F7F7;
+		background: #F5F7FA;
 	}
 
 	.title {
@@ -2434,31 +2453,216 @@
 		font-size: 16px;
 	}
 
-
 	.title_time {
-		border-radius: 10px;
-		background: #3298F7;
+		width: 88vw;
+		border-radius: 12px;
+		background: #EEF1F6;
 		display: flex;
-		padding: 5px;
+		padding: 4px;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		text-align: center;
+		box-sizing: border-box;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	}
+
+	.button_time_1 {
+		flex: 1;
+		height: 36px;
+		font-size: 14px;
+		font-weight: 600;
+		color: #FFFFFF;
+		display: flex;
+		background: #3298F7;
+		border-radius: 10px;
+		justify-content: center;
+		align-items: center;
+		box-shadow: 0 2px 8px rgba(50, 152, 247, 0.28);
+	}
+
+	.button_time_2 {
+		flex: 1;
+		height: 36px;
+		font-size: 14px;
+		font-weight: 500;
+		display: flex;
+		background: transparent;
+		justify-content: center;
+		border: none;
+		color: #333333;
+		align-items: center;
+	}
+
+	.view_bor {
+		width: 1px;
+		height: 18px;
+		background: #D5DBE5;
+		flex-shrink: 0;
+		margin: 0 2px;
+	}
+
+	.pagedsismj_3 {
+		width: 88vw;
+		margin-top: 16px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		box-sizing: border-box;
+	}
+
+	.pagedsismj_4 {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.pagedsismj_5 {
+		display: flex;
 		flex-direction: row;
 		justify-content: center;
 		align-items: center;
-		text-align: center;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		padding: 6px 10px;
+		border-radius: 10px;
+		border: 1px solid #E5E8EF;
+		background: #FFFFFF;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	}
+
+	.device_picker_icon {
+		width: 18px;
+		height: 18px;
+		margin-right: 6px;
+		flex-shrink: 0;
+	}
+
+	.device_picker_text {
+		font-size: 13px;
+		color: #1A1A1A;
+		font-weight: 500;
+		margin-right: 2px;
+		max-width: 56px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.data_type_0 {
+		flex: 1;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 0 8px;
+		min-width: 0;
+	}
+
+	.date_picker_row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.date_picker_text {
+		font-size: 13px;
+		color: #666666;
+		margin-right: 2px;
+		max-width: 42vw;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.pagedsismj_6 {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		background: #EEF1F6;
+		border-radius: 10px;
+		padding: 3px;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	}
+
+	.ziti,
+	.ziti_1 {
+		font-weight: 600;
+		font-size: 12px;
+		color: #666666;
+		padding: 6px 10px;
+		border-radius: 8px;
+		line-height: 1;
+		margin: 0;
+	}
+
+	.metric-active {
+		background: #3298F7;
+		color: #FFFFFF !important;
+		box-shadow: 0 2px 6px rgba(50, 152, 247, 0.25);
 	}
 
 	.table_bg {
 		width: auto;
-		background: white;
-		margin: 20px;
-		padding: 20px 20px 0 15px;
-		border-radius: 20px;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		background: #FFFFFF;
+		margin: 16px 16px 0;
+		padding: 16px 14px 8px;
+		border-radius: 16px;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	}
+
+	.chart_card_title {
+		font-size: 16px;
+		font-weight: 700;
+		color: #1A1A1A;
+		margin-bottom: 10px;
 	}
 
 	.table_jjj_1 {
 		display: flex;
 		flex-direction: row;
+		align-items: center;
+		justify-content: flex-start;
+	}
+
+	.chart_summary_left {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.chart_summary_divider {
+		width: 1px;
+		height: 40px;
+		background: #E5E8EF;
+		margin: 0 16px;
+		flex-shrink: 0;
+	}
+
+	.chart_summary_legend {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		flex-shrink: 0;
+		padding-right: 4px;
+	}
+
+	.chart_legend_item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.chart_legend_item+.chart_legend_item {
+		margin-top: 8px;
+	}
+
+	.chart_legend_text {
+		font-size: 12px;
+		color: #999999;
+		margin-left: 6px;
 	}
 
 	.pingjun {
@@ -2469,66 +2673,178 @@
 
 	.pingjun_1 {
 		background: #FC7F41;
-		width: 10px;
-		height: 10px;
-		border-radius: 5px
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
 	}
 
 	.pingjun_2 {
-		background: #7AE545;
-		width: 10px;
-		height: 10px;
-		border-radius: 5px
+		background: #4CD964;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
 	}
 
 	.pingjun_3 {
-		margin-left: 5px;
 		color: #999999;
-		font-size: 10px;
+		font-size: 12px;
+		margin-left: 0;
 	}
 
 	.table_item_text {
-		font-size: 16px;
-		font-weight: bold;
-		margin-top: 5px;
-		margin-left: 15px;
+		font-size: 20px;
+		font-weight: 700;
+		margin-top: 4px;
+		color: #1A1A1A;
+	}
+
+	.bp_summary_value {
+		display: flex;
+		flex-direction: row;
+		align-items: baseline;
+		margin-top: 4px;
+		flex-wrap: wrap;
+	}
+
+	.bp_summary_value_sm {
+		margin-top: 2px;
+	}
+
+	.bp_sys {
+		font-size: 28px;
+		font-weight: 700;
+		color: #FC7F41;
+		line-height: 1.2;
+	}
+
+	.bp_slash {
+		font-size: 22px;
+		font-weight: 600;
+		color: #999999;
+	}
+
+	.bp_dia {
+		font-size: 28px;
+		font-weight: 700;
+		color: #4CD964;
+		line-height: 1.2;
+	}
+
+	.bp_unit {
+		font-size: 13px;
+		color: #999999;
+		font-weight: 500;
+		margin-left: 2px;
+	}
+
+	.bp_summary_value_sm .bp_sys,
+	.bp_summary_value_sm .bp_dia {
+		font-size: 22px;
+	}
+
+	.bp_summary_value_sm .bp_slash {
+		font-size: 18px;
+	}
+
+	.bp_summary_value_sm .bp_unit {
+		font-size: 12px;
+	}
+
+	.charts-box {
+		margin-top: 12px;
+		padding: 0;
+		background: #FFFFFF;
+		border-radius: 12px;
+		width: 100%;
+		height: 280px;
 	}
 
 	.img_iocn_bg {
-		width: 48px;
-		height: 48px;
+		width: 28px;
+		height: 28px;
 		object-fit: contain;
 	}
 
 	.xueya_type {
-		width: 14px;
-		height: 14px;
-		border-radius: 10px;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
 		background: #258C41;
-		margin-left: 10px;
+		margin-left: 0;
+		margin-right: 4px;
+		flex-shrink: 0;
 	}
 
 	.title_font_bg {
 		margin-left: 5px;
 		font-size: 14px;
-		font-weight: 400
+		font-weight: 400;
 	}
 
 	.xueyastylesss {
-		margin-top: 10px;
+		margin-top: 6px;
 		text-align: center;
 		line-height: 15px;
 		width: 52px;
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 400;
+		color: #666666;
 	}
 
 	.typesstyle_title {
 		display: flex;
 		flex-direction: column;
-		margin-left: 10px;
-		margin-right: 10px;
-		flex: 4;
+		margin-left: 12px;
+		margin-right: 8px;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.card_item_title {
+		font-size: 13px;
+		color: #666666;
+		font-weight: 500;
+		margin-bottom: 2px;
+	}
+
+	.card_meta_row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		margin-top: 4px;
+	}
+
+	.card_meta_text {
+		font-size: 12px;
+		color: #999999;
+		margin-left: 4px;
+	}
+
+	.card_right_area {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		flex-shrink: 0;
+		margin-right: 8px;
+	}
+
+	.status_badge {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		max-width: 28vw;
+		padding: 4px 8px;
+		border-radius: 999px;
+		background: #F2F4F7;
+		margin-right: 4px;
+	}
+
+	.status_badge_text {
+		font-size: 11px;
+		color: #666666;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.title_type_bg {
@@ -2540,7 +2856,7 @@
 
 	.border_bg {
 		width: auto;
-		background: #CCCCCC;
+		background: #EEEEEE;
 		height: 1px;
 		margin-top: 5px;
 	}
@@ -2556,13 +2872,14 @@
 	.text_item_bg {
 		font-size: 10px;
 		color: #999999;
-		margin-top: 5px;
+		margin-top: 2px;
 	}
 
 	.text_item_bg_1 {
-		font-weight: bold;
-		margin-top: 10px;
-		font-size: 16px;
+		font-weight: 700;
+		margin-top: 4px;
+		font-size: 15px;
+		color: #1A1A1A;
 	}
 
 	.tizhongsds {
@@ -2575,43 +2892,105 @@
 		margin-top: 20px;
 	}
 
-	.icon_item_bg {
-		width: auto;
-		height: 116px;
-		margin-top: 20px;
-		margin-left: 20px;
-		margin-right: 20px;
+	.icon_item_bg,
+	.icon_item_bgsdsadsa {
+		min-height: 88px;
+		height: auto;
+		margin-top: 12px;
+		margin-left: 16px;
+		margin-right: 16px;
+		padding: 12px 4px;
 		display: flex;
-		justify-content: left;
+		justify-content: flex-start;
 		align-items: center;
 		flex-direction: row;
-		background: white;
-		border-radius: 20px;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		background: #FFFFFF;
+		border-radius: 16px;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+		box-sizing: border-box;
 	}
 
 	.icon_item_bgsdsadsa {
-		height: 116px;
-		margin-left: 20px;
-		margin-right: 20px;
-		display: flex;
-		justify-content: left;
-		align-items: center;
-		flex-direction: row;
-		background: white;
-		border-radius: 20px;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		margin-top: 12px;
 	}
-
 
 	.icon_item_bg_toast {
 		text-align: center;
-		margin: 20px;
+		margin: 12px 16px 20px;
 		color: #3298F7;
-		padding: 15px 0 15px 0;
-		background: white;
-		border-radius: 15px;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		padding: 14px 0;
+		background: #FFFFFF;
+		border-radius: 16px;
+		box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+		font-size: 14px;
+	}
+
+	.icon_item_bg_1 {
+		flex: 0 0 auto;
+		width: 48px;
+		height: 48px;
+		margin-left: 12px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		border-radius: 50%;
+		background: #E8F3FF;
+	}
+
+	.icon_circle_blue {
+		background: #E8F3FF;
+	}
+
+	.icon_circle_green {
+		background: #E8F8EE;
+	}
+
+	.icon_circle_orange {
+		background: #FFF1E8;
+	}
+
+	.text_title_types_1 {
+		width: auto;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: flex-start;
+		padding: 0 4px;
+	}
+
+	.weight_summary_item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		flex: 1;
+	}
+
+	.weight_summary_value {
+		font-size: 16px;
+		font-weight: 700;
+		color: #1A1A1A;
+		margin-top: 4px;
+	}
+
+	.text_title_types_2 {
+		width: auto;
+		margin-top: 4px;
+		text-align: center;
+		color: #999999;
+		font-weight: 400;
+		font-size: 11px;
+	}
+
+	.weight_card_values {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		margin-top: 6px;
+	}
+
+	.weight_card_col {
+		flex: 1;
 	}
 
 	.popupsdind {
@@ -2717,125 +3096,6 @@
 		border-radius: 30px;
 		background: #3298F7;
 		color: white;
-	}
-
-	.icon_item_bg_1 {
-		flex: 1;
-		margin-left: 10px;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-	}
-
-	.button_time_1 {
-		width: 18vw;
-		height: 30px;
-		font-size: 14px;
-		color: black;
-		display: flex;
-		background: white;
-		border-radius: 10px;
-		justify-content: center;
-		align-items: center;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-	}
-
-	.button_time_2 {
-		width: 18vw;
-		height: 30px;
-		font-size: 14px;
-		display: flex;
-		background: none;
-		justify-content: center;
-		border: none;
-		color: white;
-		align-items: center;
-	}
-
-	.pagedsismj_3 {
-		width: 80vw;
-		margin-left: 20px;
-		margin-right: 20px;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-top: 20px;
-	}
-
-	.pagedsismj_4 {
-		flex: 1;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-	}
-
-	.pagedsismj_5 {
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: center;
-	}
-
-	.data_type_0 {
-		flex: 1.5;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-
-	.pagedsismj_6 {
-		flex: 1;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.text_title_types_1 {
-		width: auto;
-		margin-left: 20px;
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	.text_title_types_2 {
-		width: auto;
-		margin-top: 15px;
-		text-align: center;
-		color: #999999;
-		font-weight: 400;
-		font-size: 10px;
-	}
-
-	.view_bor {
-		height: 30px;
-		background: white;
-		width: 1px;
-		margin-left: 4px;
-		margin-right: 4px;
-	}
-
-	.charts-box {
-		margin-top: 20px;
-		padding: 5px;
-		background: white;
-		border-radius: 20px;
-		width: 100%;
-		height: 300px;
-	}
-
-	.ziti {
-		font-weight: 600;
-		margin-right: 5px;
-		margin-left: 10px;
-	}
-
-	.ziti_1 {
-		font-weight: 600;
-		margin-left: 5px;
 	}
 
 	.showTotal {

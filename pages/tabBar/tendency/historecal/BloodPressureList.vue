@@ -281,7 +281,8 @@
 					1: "#FFEC01",
 					2: "#FCCD41",
 					3: "#F55A5A",
-					4: "#FFFFFF"
+					4: "#FFF176",
+					5: "#FFFFFF"
 				};
 				return map[l] || "#FFFFFF";
 			},

@@ -1,0 +1,13 @@
+{
+  "createdAt": "2026-10-19T02:33:18.052Z",
+  "files": [
+    {
+      "file": "nativeplugins/KeepAlivesdkplugin/keepAliveManager.js",
+      "sha256": "161f9b7438cf38b21091fcb91a5b544f1786069fa70ce9e027ca450931257aef"
+    },
+    {
+      "file": "pages/tabBar/my/Safety_center.vue",
+      "sha256": "3cc2c4e57e7a5ebec41c4201f87b87f27bcbeb3eaf2f34e290fa86cefd7c789e"
+    }
+  ]
+}

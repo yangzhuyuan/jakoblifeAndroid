@@ -353,6 +353,7 @@
 			};
 		},
 		created() {
+			this._qiunDestroyed = false;
 			this.cid = this.canvasId
 			if (this.canvasId == 'uchartsid' || this.canvasId == '') {
 				let t = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -418,6 +419,7 @@
 			}
 			// #endif
 			this.$nextTick(() => {
+				if (this._qiunDestroyed) return;
 				this.beforeInit();
 			})
 			// #ifndef MP-ALIPAY || MP-BAIDU || MP-TOUTIAO || APP-VUE
@@ -425,6 +427,7 @@
 			const _this = this;
 			uni.onWindowResize(
 				debounce(function(res) {
+					if (_this._qiunDestroyed) return;
 					if (_this.mixinDatacomLoading == true) {
 						return;
 					}
@@ -441,7 +444,29 @@
 			);
 			// #endif
 		},
+		beforeDestroy() {
+			this._qiunDestroyed = true;
+			this._queryGen = (this._queryGen || 0) + 1;
+			if (this._layoutRetryTimer) {
+				clearTimeout(this._layoutRetryTimer);
+				this._layoutRetryTimer = null;
+			}
+			if (this._reshowTimer) {
+				clearTimeout(this._reshowTimer);
+				this._reshowTimer = null;
+			}
+		},
 		destroyed() {
+			this._qiunDestroyed = true;
+			this._queryGen = (this._queryGen || 0) + 1;
+			if (this._layoutRetryTimer) {
+				clearTimeout(this._layoutRetryTimer);
+				this._layoutRetryTimer = null;
+			}
+			if (this._reshowTimer) {
+				clearTimeout(this._reshowTimer);
+				this._reshowTimer = null;
+			}
 			if (this.echarts === true) {
 				delete cfe.option[this.cid]
 				delete cfe.instance[this.cid]
@@ -456,6 +481,7 @@
 		watch: {
 			chartDataProps: {
 				handler(val, oldval) {
+					if (this._qiunDestroyed) return;
 					if (typeof val === 'object') {
 						if (JSON.stringify(val) !== JSON.stringify(oldval)) {
 							this._clearChart();
@@ -479,6 +505,7 @@
 			},
 			localdata: {
 				handler(val, oldval) {
+					if (this._qiunDestroyed) return;
 					if (JSON.stringify(val) !== JSON.stringify(oldval)) {
 						if (val.length > 0) {
 							this.beforeInit();
@@ -495,6 +522,7 @@
 			},
 			optsProps: {
 				handler(val, oldval) {
+					if (this._qiunDestroyed) return;
 					if (typeof val === 'object') {
 						if (JSON.stringify(val) !== JSON.stringify(oldval) && this.echarts === false && this.optsWatch ==
 							true) {
@@ -512,6 +540,7 @@
 			},
 			eoptsProps: {
 				handler(val, oldval) {
+					if (this._qiunDestroyed) return;
 					if (typeof val === 'object') {
 						if (JSON.stringify(val) !== JSON.stringify(oldval) && this.echarts === true) {
 							this.checkData(this.drawData);
@@ -526,8 +555,24 @@
 				deep: true
 			},
 			reshow(val, oldval) {
-				if (val === true && this.mixinDatacomLoading === false) {
-					setTimeout(() => {
+				if (this._qiunDestroyed) return;
+				if (this._reshowTimer) {
+					clearTimeout(this._reshowTimer);
+					this._reshowTimer = null;
+				}
+				// reshow 关闭时停掉布局重试，避免对已失效节点连环 createSelectorQuery
+				if (val !== true) {
+					if (this._layoutRetryTimer) {
+						clearTimeout(this._layoutRetryTimer);
+						this._layoutRetryTimer = null;
+					}
+					this._layoutRetryCount = 0;
+					return;
+				}
+				if (this.mixinDatacomLoading === false) {
+					this._reshowTimer = setTimeout(() => {
+						this._reshowTimer = null;
+						if (this._qiunDestroyed) return;
 						this.mixinDatacomErrorMessage = null;
 						this.echartsResize.state = !this.echartsResize.state;
 						this.checkData(this.drawData);
@@ -535,6 +580,7 @@
 				}
 			},
 			reload(val, oldval) {
+				if (this._qiunDestroyed) return;
 				if (val === true) {
 					this.showchart = false;
 					this.mixinDatacomErrorMessage = null;
@@ -582,6 +628,7 @@
 		},
 		methods: {
 			beforeInit() {
+				if (this._qiunDestroyed) return;
 				this.mixinDatacomErrorMessage = null;
 				if (typeof this.chartData === 'object' && this.chartData != null && this.chartData.series !== undefined &&
 					this.chartData.series.length > 0) {
@@ -741,6 +788,7 @@
 				}
 			},
 			checkData(anyData) {
+				if (this._qiunDestroyed) return;
 				let cid = this.cid
 				//复位opts或eopts
 				if (this.echarts === true) {
@@ -777,25 +825,29 @@
 			},
 			resizeHandler() {
 				//渲染防抖
+				if (this._qiunDestroyed) return;
 				let currTime = Date.now();
 				let lastDrawTime = this.lastDrawTime ? this.lastDrawTime : currTime - 3000;
 				let duration = currTime - lastDrawTime;
 				if (duration < 1000) return;
-				let chartdom = uni
-					.createSelectorQuery()
-					// #ifndef MP-ALIPAY
-					.in(this)
-					// #endif
-					.select('#ChartBoxId' + this.cid)
-					.boundingClientRect(data => {
-						this.showchart = true;
-						if (data.width > 0 && data.height > 0) {
-							if (data.width !== this.cWidth || data.height !== this.cHeight) {
-								this.checkData(this.drawData)
+				try {
+					uni
+						.createSelectorQuery()
+						// #ifndef MP-ALIPAY
+						.in(this)
+						// #endif
+						.select('#ChartBoxId' + this.cid)
+						.boundingClientRect(data => {
+							if (this._qiunDestroyed) return;
+							this.showchart = true;
+							if (data && data.width > 0 && data.height > 0) {
+								if (data.width !== this.cWidth || data.height !== this.cHeight) {
+									this.checkData(this.drawData)
+								}
 							}
-						}
-					})
-					.exec();
+						})
+						.exec();
+				} catch (e) {}
 			},
 			getCloudData() {
 				if (this.mixinDatacomLoading == true) {
@@ -832,15 +884,26 @@
 				}
 			},
 			init() {
+				if (this._qiunDestroyed) return;
 				let cid = this.cid
-				let chartdom = uni
-					.createSelectorQuery()
-					// #ifndef MP-ALIPAY
-					.in(this)
-					// #endif
-					.select('#ChartBoxId' + cid)
-					.boundingClientRect(data => {
-						if (data.width > 0 && data.height > 0) {
+				const queryGen = (this._queryGen = (this._queryGen || 0) + 1);
+				try {
+					uni
+						.createSelectorQuery()
+						// #ifndef MP-ALIPAY
+						.in(this)
+						// #endif
+						.select('#ChartBoxId' + cid)
+						.boundingClientRect(data => {
+						// 组件已销毁或 option 已被清掉时，忽略异步布局回调，避免 background/context 报错
+						if (this._qiunDestroyed || queryGen !== this._queryGen) return;
+						if (this.echarts === true) {
+							if (!cfe.option[cid]) return;
+						} else if (!cfu.option[cid]) {
+							return;
+						}
+						if (data && data.width > 0 && data.height > 0) {
+							this._layoutRetryCount = 0;
 							this.mixinDatacomLoading = false;
 							this.showchart = true;
 							this.lastDrawTime = Date.now();
@@ -869,6 +932,7 @@
 							//如果是H5或者App端，采用renderjs渲染图表
 							if (this.inH5 || this.inApp) {
 								if (this.echarts == true) {
+									if (!cfe.option[cid]) return;
 									cfe.option[cid].ontap = this.ontap;
 									cfe.option[cid].onmouse = this.openmouse;
 									cfe.option[cid].tooltipShow = this.tooltipShow;
@@ -877,52 +941,60 @@
 									cfe.option[cid].lastDrawTime = this.lastDrawTime;
 									this.echartsOpts = deepCloneAssign({}, cfe.option[cid]);
 								} else {
+									if (!cfu.option[cid]) return;
 									cfu.option[cid].rotateLock = cfu.option[cid].rotate;
 									this.uchartsOpts = deepCloneAssign({}, cfu.option[cid]);
 								}
 								//如果是小程序端，采用uCharts渲染
 							} else {
+								if (!cfu.option[cid]) return;
 								cfu.option[cid] = formatterAssign(cfu.option[cid], cfu.formatter)
 								this.mixinDatacomErrorMessage = null;
 								this.mixinDatacomLoading = false;
 								this.showchart = true;
 								this.$nextTick(() => {
+									if (this._qiunDestroyed || !cfu.option[cid]) return;
 									if (this.type2d === true) {
-										const query = uni.createSelectorQuery().in(this)
-										query
-											.select('#' + cid)
-											.fields({
-												node: true,
-												size: true
-											})
-											.exec(res => {
-												if (res[0]) {
-													const canvas = res[0].node;
-													const ctx = canvas.getContext('2d', {
-														willReadFrequently: true
-													});
-													cfu.option[cid].context = ctx;
-													cfu.option[cid].rotateLock = cfu.option[cid].rotate;
-													if (cfu.instance[cid] && cfu.option[cid] && cfu.option[
-															cid].update === true) {
-														this._updataUChart(cid)
+										try {
+											const query = uni.createSelectorQuery().in(this)
+											query
+												.select('#' + cid)
+												.fields({
+													node: true,
+													size: true
+												})
+												.exec(res => {
+													if (this._qiunDestroyed || !cfu.option[cid]) return;
+													if (res[0]) {
+														const canvas = res[0].node;
+														const ctx = canvas.getContext('2d', {
+															willReadFrequently: true
+														});
+														cfu.option[cid].context = ctx;
+														cfu.option[cid].rotateLock = cfu.option[cid].rotate;
+														if (cfu.instance[cid] && cfu.option[cid] && cfu.option[
+																cid].update === true) {
+															this._updataUChart(cid)
+														} else {
+															canvas.width = data.width * this.pixel;
+															canvas.height = data.height * this.pixel;
+															canvas._width = data.width * this.pixel;
+															canvas._height = data.height * this.pixel;
+															setTimeout(() => {
+																if (this._qiunDestroyed || !cfu.option[cid] || !
+																	cfu.option[cid].context) return;
+																cfu.option[cid].context.restore();
+																cfu.option[cid].context.save();
+																this._newChart(cid)
+															}, 100)
+														}
 													} else {
-														canvas.width = data.width * this.pixel;
-														canvas.height = data.height * this.pixel;
-														canvas._width = data.width * this.pixel;
-														canvas._height = data.height * this.pixel;
-														setTimeout(() => {
-															cfu.option[cid].context.restore();
-															cfu.option[cid].context.save();
-															this._newChart(cid)
-														}, 100)
+														this.showchart = false;
+														this.mixinDatacomErrorMessage =
+															'参数错误：开启2d模式后，未获取到dom节点，canvas-id:' + cid;
 													}
-												} else {
-													this.showchart = false;
-													this.mixinDatacomErrorMessage =
-														'参数错误：开启2d模式后，未获取到dom节点，canvas-id:' + cid;
-												}
-											});
+												});
+										} catch (e) {}
 									} else {
 										if (this.inAli) {
 											cfu.option[cid].rotateLock = cfu.option[cid].rotate;
@@ -933,6 +1005,8 @@
 											this._updataUChart(cid)
 										} else {
 											setTimeout(() => {
+												if (this._qiunDestroyed || !cfu.option[cid] || !cfu.option[cid]
+													.context) return;
 												cfu.option[cid].context.restore();
 												cfu.option[cid].context.save();
 												this._newChart(cid)
@@ -944,12 +1018,43 @@
 						} else {
 							this.mixinDatacomLoading = false;
 							this.showchart = false;
-							if (this.reshow == true) {
+							if (this._qiunDestroyed || queryGen !== this._queryGen) return;
+							// data 为空时视图层常已打 Not Found，继续 .in(this) 会刷屏，只补 1 次长延迟
+							// 有节点但宽高为 0：容器未布局，可安全重试
+							const noNode = !data;
+							const retry = this._layoutRetryCount || 0;
+							const maxRetry = noNode ? 1 : 5;
+							if (retry < maxRetry) {
+								this._layoutRetryCount = retry + 1;
+								if (this._layoutRetryTimer) clearTimeout(this._layoutRetryTimer);
+								this._layoutRetryTimer = setTimeout(() => {
+									this._layoutRetryTimer = null;
+									if (!this._qiunDestroyed) this.init();
+								}, noNode ? 360 : (180 + retry * 80));
+							} else if (this.reshow == true && !noNode) {
+								this._layoutRetryCount = 0;
 								this.mixinDatacomErrorMessage = '布局错误：未获取到父元素宽高尺寸！canvas-id:' + cid;
+							} else {
+								this._layoutRetryCount = 0;
 							}
 						}
 					})
 					.exec();
+				} catch (e) {
+					// .in(this) 同步失败时最多补一次，避免 Page[...] Not Found 连环重试
+					if (this._qiunDestroyed) return;
+					const retry = this._layoutRetryCount || 0;
+					if (retry < 1) {
+						this._layoutRetryCount = retry + 1;
+						if (this._layoutRetryTimer) clearTimeout(this._layoutRetryTimer);
+						this._layoutRetryTimer = setTimeout(() => {
+							this._layoutRetryTimer = null;
+							if (!this._qiunDestroyed) this.init();
+						}, 400);
+					} else {
+						this._layoutRetryCount = 0;
+					}
+				}
 			},
 			saveImage() {
 				uni.canvasToTempFilePath({
@@ -991,25 +1096,29 @@
 						}
 					}, this);
 				} else {
-					const query = uni.createSelectorQuery().in(this)
-					query
-						.select('#' + this.cid)
-						.fields({
-							node: true,
-							size: true
-						})
-						.exec(res => {
-							if (res[0]) {
-								const canvas = res[0].node;
-								this.emitMsg({
-									name: 'getImage',
-									params: {
-										type: "getImage",
-										base64: canvas.toDataURL('image/png')
-									}
-								});
-							}
-						});
+					try {
+						if (this._qiunDestroyed) return;
+						const query = uni.createSelectorQuery().in(this)
+						query
+							.select('#' + this.cid)
+							.fields({
+								node: true,
+								size: true
+							})
+							.exec(res => {
+								if (this._qiunDestroyed) return;
+								if (res[0]) {
+									const canvas = res[0].node;
+									this.emitMsg({
+										name: 'getImage',
+										params: {
+											type: "getImage",
+											base64: canvas.toDataURL('image/png')
+										}
+									});
+								}
+							});
+					} catch (e) {}
 				}
 			},
 			// #ifndef APP-VUE || H5
@@ -1017,9 +1126,11 @@
 				if (this.mixinDatacomLoading == true) {
 					return;
 				}
+				if (this._qiunDestroyed || !cfu.option[cid]) return;
 				this.showchart = true;
 				cfu.instance[cid] = new uCharts(cfu.option[cid]);
 				cfu.instance[cid].addEventListener('renderComplete', () => {
+					if (!cfu.instance[cid]) return;
 					this.emitMsg({
 						name: 'complete',
 						params: {
@@ -1032,6 +1143,7 @@
 					cfu.instance[cid].delEventListener('renderComplete')
 				});
 				cfu.instance[cid].addEventListener('scrollLeft', () => {
+					if (!cfu.instance[cid]) return;
 					this.emitMsg({
 						name: 'scrollLeft',
 						params: {
@@ -1043,6 +1155,7 @@
 					});
 				});
 				cfu.instance[cid].addEventListener('scrollRight', () => {
+					if (!cfu.instance[cid]) return;
 					this.emitMsg({
 						name: 'scrollRight',
 						params: {
@@ -1055,6 +1168,7 @@
 				});
 			},
 			_updataUChart(cid) {
+				if (!cfu.instance[cid] || !cfu.option[cid]) return;
 				cfu.instance[cid].updateData(cfu.option[cid])
 			},
 			_tooltipDefault(item, category, index, opts) {
@@ -1074,6 +1188,7 @@
 			},
 			_showTooltip(e) {
 				let cid = this.cid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let tc = cfu.option[cid].tooltipCustom
 				if (tc && tc !== undefined && tc !== null) {
 					let offset = undefined;
@@ -1113,19 +1228,22 @@
 			},
 			_tap(e, move) {
 				let cid = this.cid
+				if (this._qiunDestroyed) return;
 				let currentIndex = null;
 				let legendIndex = null;
 				if (this.inScrollView === true || this.inAli) {
-					let chartdom = uni
-						.createSelectorQuery()
-						// #ifndef MP-ALIPAY
-						.in(this)
-						.select('#ChartBoxId' + cid)
-						// #endif
-						// #ifdef MP-ALIPAY
-						.select('#' + this.cid)
-						// #endif
-						.boundingClientRect(data => {
+					try {
+						uni
+							.createSelectorQuery()
+							// #ifndef MP-ALIPAY
+							.in(this)
+							.select('#ChartBoxId' + cid)
+							// #endif
+							// #ifdef MP-ALIPAY
+							.select('#' + this.cid)
+							// #endif
+							.boundingClientRect(data => {
+							if (this._qiunDestroyed || !data) return;
 							e.changedTouches = [];
 							if (this.inAli) {
 								e.changedTouches.unshift({
@@ -1143,6 +1261,7 @@
 									this._showTooltip(e);
 								}
 							} else {
+								if (!cfu.instance[cid]) return;
 								currentIndex = cfu.instance[cid].getCurrentDataIndex(e);
 								legendIndex = cfu.instance[cid].getLegendDataIndex(e);
 								if (this.tapLegend === true) {
@@ -1168,12 +1287,14 @@
 							}
 						})
 						.exec();
+					} catch (e2) {}
 				} else {
 					if (move) {
 						if (this.tooltipShow === true) {
 							this._showTooltip(e);
 						}
 					} else {
+						if (!cfu.instance[cid]) return;
 						e.changedTouches = [];
 						e.changedTouches.unshift({
 							x: e.detail.x - e.currentTarget.offsetLeft,
@@ -1206,6 +1327,7 @@
 			},
 			_touchStart(e) {
 				let cid = this.cid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				lastMoveTime = Date.now();
 				if (cfu.option[cid].enableScroll === true && e.touches.length == 1) {
 					cfu.instance[cid].scrollStart(e);
@@ -1222,6 +1344,7 @@
 			},
 			_touchMove(e) {
 				let cid = this.cid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let currMoveTime = Date.now();
 				let duration = currMoveTime - lastMoveTime;
 				let touchMoveLimit = cfu.option[cid].touchMoveLimit || 24;
@@ -1249,6 +1372,7 @@
 			},
 			_touchEnd(e) {
 				let cid = this.cid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				if (cfu.option[cid].enableScroll === true && e.touches.length == 0) {
 					cfu.instance[cid].scrollEnd(e);
 				}
@@ -1345,6 +1469,7 @@
 			}, 200)
 		},
 		destroyed() {
+			this._qiunDestroyed = true;
 			delete cfu.option[this.rid]
 			delete cfu.instance[this.rid]
 			delete cfe.option[this.rid]
@@ -1532,6 +1657,7 @@
 						this.updataUChart()
 					} else {
 						setTimeout(() => {
+							if (this._qiunDestroyed || !cfu.option[cid] || !cfu.option[cid].context) return;
 							cfu.option[cid].context.restore();
 							cfu.option[cid].context.save();
 							this.newUChart()
@@ -1541,8 +1667,10 @@
 			},
 			newUChart() {
 				let cid = this.rid
+				if (this._qiunDestroyed || !cfu.option[cid]) return;
 				cfu.instance[cid] = new uChartsRD(cfu.option[cid])
 				cfu.instance[cid].addEventListener('renderComplete', () => {
+					if (!cfu.instance[cid] || !that[cid] || !that[cid].callMethod) return;
 					that[cid].callMethod('emitMsg', {
 						name: "complete",
 						params: {
@@ -1555,6 +1683,7 @@
 					cfu.instance[cid].delEventListener('renderComplete')
 				});
 				cfu.instance[cid].addEventListener('scrollLeft', () => {
+					if (!cfu.instance[cid] || !that[cid] || !that[cid].callMethod) return;
 					that[cid].callMethod('emitMsg', {
 						name: "scrollLeft",
 						params: {
@@ -1566,6 +1695,7 @@
 					})
 				});
 				cfu.instance[cid].addEventListener('scrollRight', () => {
+					if (!cfu.instance[cid] || !that[cid] || !that[cid].callMethod) return;
 					that[cid].callMethod('emitMsg', {
 						name: "scrollRight",
 						params: {
@@ -1579,6 +1709,7 @@
 			},
 			updataUChart() {
 				let cid = this.rid
+				if (!cfu.instance[cid] || !cfu.option[cid]) return;
 				cfu.instance[cid].updateData(cfu.option[cid])
 			},
 			tooltipDefault(item, category, index, opts) {
@@ -1636,6 +1767,7 @@
 			},
 			tap(e) {
 				let cid = this.rid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let ontap = cfu.option[cid].ontap
 				let tooltipShow = cfu.option[cid].tooltipShow
 				let tapLegend = cfu.option[cid].tapLegend
@@ -1665,37 +1797,43 @@
 				if (tooltipShow == true) {
 					this.showTooltip(e, cid)
 				}
-				that[cid].callMethod('emitMsg', {
-					name: "getIndex",
-					params: {
-						type: "getIndex",
-						event: tmpe,
-						currentIndex: currentIndex,
-						legendIndex: legendIndex,
-						id: cid,
-						opts: cfu.instance[cid].opts
-					}
-				})
+				if (that[cid] && that[cid].callMethod) {
+					that[cid].callMethod('emitMsg', {
+						name: "getIndex",
+						params: {
+							type: "getIndex",
+							event: tmpe,
+							currentIndex: currentIndex,
+							legendIndex: legendIndex,
+							id: cid,
+							opts: cfu.instance[cid].opts
+						}
+					})
+				}
 			},
 			touchStart(e) {
 				let cid = this.rid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let ontouch = cfu.option[cid].ontouch
 				if (ontouch == false) return;
 				if (cfu.option[cid].enableScroll === true && e.touches.length == 1) {
 					cfu.instance[cid].scrollStart(e);
 				}
-				that[cid].callMethod('emitMsg', {
-					name: "getTouchStart",
-					params: {
-						type: "touchStart",
-						event: e.changedTouches[0],
-						id: cid,
-						opts: cfu.instance[cid].opts
-					}
-				})
+				if (that[cid] && that[cid].callMethod) {
+					that[cid].callMethod('emitMsg', {
+						name: "getTouchStart",
+						params: {
+							type: "touchStart",
+							event: e.changedTouches[0],
+							id: cid,
+							opts: cfu.instance[cid].opts
+						}
+					})
+				}
 			},
 			touchMove(e) {
 				let cid = this.rid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let ontouch = cfu.option[cid].ontouch
 				if (ontouch == false) return;
 				if (cfu.option[cid].enableScroll === true && e.changedTouches.length == 1) {
@@ -1717,35 +1855,41 @@
 					.changedTouches.length == 2) {
 					cfu.instance[cid].dobuleZoom(e);
 				}
-				that[cid].callMethod('emitMsg', {
-					name: "getTouchMove",
-					params: {
-						type: "touchMove",
-						event: e.changedTouches[0],
-						id: cid,
-						opts: cfu.instance[cid].opts
-					}
-				})
+				if (that[cid] && that[cid].callMethod) {
+					that[cid].callMethod('emitMsg', {
+						name: "getTouchMove",
+						params: {
+							type: "touchMove",
+							event: e.changedTouches[0],
+							id: cid,
+							opts: cfu.instance[cid].opts
+						}
+					})
+				}
 			},
 			touchEnd(e) {
 				let cid = this.rid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let ontouch = cfu.option[cid].ontouch
 				if (ontouch == false) return;
 				if (cfu.option[cid].enableScroll === true && e.touches.length == 0) {
 					cfu.instance[cid].scrollEnd(e);
 				}
-				that[cid].callMethod('emitMsg', {
-					name: "getTouchEnd",
-					params: {
-						type: "touchEnd",
-						event: e.changedTouches[0],
-						id: cid,
-						opts: cfu.instance[cid].opts
-					}
-				})
+				if (that[cid] && that[cid].callMethod) {
+					that[cid].callMethod('emitMsg', {
+						name: "getTouchEnd",
+						params: {
+							type: "touchEnd",
+							event: e.changedTouches[0],
+							id: cid,
+							opts: cfu.instance[cid].opts
+						}
+					})
+				}
 			},
 			mouseDown(e) {
 				let cid = this.rid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let onmouse = cfu.option[cid].onmouse
 				if (onmouse == false) return;
 				let rchartdom = document.getElementById('UC' + cid).getBoundingClientRect()
@@ -1758,18 +1902,21 @@
 				e.changedTouches.unshift(tmpe)
 				cfu.instance[cid].scrollStart(e)
 				cfu.option[cid].mousedown = true;
-				that[cid].callMethod('emitMsg', {
-					name: "getTouchStart",
-					params: {
-						type: "mouseDown",
-						event: tmpe,
-						id: cid,
-						opts: cfu.instance[cid].opts
-					}
-				})
+				if (that[cid] && that[cid].callMethod) {
+					that[cid].callMethod('emitMsg', {
+						name: "getTouchStart",
+						params: {
+							type: "mouseDown",
+							event: tmpe,
+							id: cid,
+							opts: cfu.instance[cid].opts
+						}
+					})
+				}
 			},
 			mouseMove(e) {
 				let cid = this.rid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let onmouse = cfu.option[cid].onmouse
 				let tooltipShow = cfu.option[cid].tooltipShow
 				if (onmouse == false) return;
@@ -1783,15 +1930,17 @@
 				e.changedTouches.unshift(tmpe)
 				if (cfu.option[cid].mousedown) {
 					cfu.instance[cid].scroll(e)
-					that[cid].callMethod('emitMsg', {
-						name: "getTouchMove",
-						params: {
-							type: "mouseMove",
-							event: tmpe,
-							id: cid,
-							opts: cfu.instance[cid].opts
-						}
-					})
+					if (that[cid] && that[cid].callMethod) {
+						that[cid].callMethod('emitMsg', {
+							name: "getTouchMove",
+							params: {
+								type: "mouseMove",
+								event: tmpe,
+								id: cid,
+								opts: cfu.instance[cid].opts
+							}
+						})
+					}
 				} else if (cfu.instance[cid]) {
 					if (tooltipShow == true) {
 						this.showTooltip(e, cid)
@@ -1800,6 +1949,7 @@
 			},
 			mouseUp(e) {
 				let cid = this.rid
+				if (!cfu.option[cid] || !cfu.instance[cid]) return;
 				let onmouse = cfu.option[cid].onmouse
 				if (onmouse == false) return;
 				let rchartdom = document.getElementById('UC' + cid).getBoundingClientRect()
@@ -1812,15 +1962,17 @@
 				e.changedTouches.unshift(tmpe)
 				cfu.instance[cid].scrollEnd(e)
 				cfu.option[cid].mousedown = false;
-				that[cid].callMethod('emitMsg', {
-					name: "getTouchEnd",
-					params: {
-						type: "mouseUp",
-						event: tmpe,
-						id: cid,
-						opts: cfu.instance[cid].opts
-					}
-				})
+				if (that[cid] && that[cid].callMethod) {
+					that[cid].callMethod('emitMsg', {
+						name: "getTouchEnd",
+						params: {
+							type: "mouseUp",
+							event: tmpe,
+							id: cid,
+							opts: cfu.instance[cid].opts
+						}
+					})
+				}
 			},
 		}
 	}

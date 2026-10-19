@@ -20,6 +20,7 @@
 				ctx: null,
 				dataList: [], // 用于绘制（已放大）
 				rawList: [], // 原始数据
+				invertWave: false,
 				currentScale: 500, // mm/mV
 				speed: 25, // mm/s (乐普标准速度)
 				margin: {
@@ -70,12 +71,13 @@
 				};
 			}
 		},
-		onLoad() {
+		onLoad(options = {}) {
+			this.invertWave = options.invertWave === '1';
 			const channel = this.getOpenerEventChannel && this.getOpenerEventChannel();
 			if (channel) {
 				channel.once('sendData', arr => {
 					if (arr && arr.length) this.processData(arr);
-					// console.log(arr)
+					console.log(arr)
 				});
 				channel.once('startTime', str => {
 					this.currentDate = str;
@@ -550,7 +552,7 @@
 						const val = rowData[i];
 						if (!Number.isFinite(val)) continue;
 						const x = area.x + (i / pointsPerRow) * area.w;
-						const y = Math.max(yMin, Math.min(yMax, centerY - val * gain));
+						const y = Math.max(yMin, Math.min(yMax, centerY - val * gain * (this.invertWave ? -1 : 1)));
 						if (!hasPoint) {
 							this.ctx.moveTo(x, y);
 							hasPoint = true;

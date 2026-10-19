@@ -514,7 +514,13 @@
 	import jsPDF from 'jspdf';
 	// #endif
 	import {
-		getChinaTimeAllJSON
+		getChinaTimeAllJSON,
+		isChinaTimezone,
+		resolveAbroadHour24EndYmd,
+		resolveReportProfYmd,
+		shiftCalendarDay,
+		canFallbackAbroadProfDate,
+		hasRetVarListPayload
 	} from '@/pages/api/unitls/timezone.js'
 	import {
 		imageToPdf,
@@ -577,6 +583,7 @@
 				dayCount: 0,
 				nightCount: 0,
 				pacitime: getChinaTimeAllJSON().YMD + ' 00:00:00',
+				reportProfYmd: '',
 				filterVarList: "JLvFLGvJL01v2D",
 				period: "2D",
 				finlretVarList1: 'BPvSBPvCNTv2DvCNTv0002,BPvSBPvCNTv2DvCNTv0003,BPvSBPvCNTv2DvCNTv0004,BPvSBPvCNTv2DvCNTv0001,JLvRULEv2DvDATACHECKv0001,JLvRULEv2DvDATACHECKv0002,JLvRULEv2DvDATACHECKv0003,BPvSBPvAVGv2DvAVGv0002,BPvDBPvAVGv2DvAVGv0002,BPvHRvAVGv2DvAVGv0002,BPvSBPvAVGv2DvAVGv0003,BPvDBPvAVGv2DvAVGv0003,BPvHRvAVGv2DvAVGv0003,BPvSBPvAVGv2DvAVGv0004,BPvDBPvAVGv2DvAVGv0004,BPvHRvAVGv2DvAVGv0004,BPvSBPvAVGv2DvAVGv0001,BPvDBPvAVGv2DvAVGv0001,BPvHRvAVGv2DvAVGv0001,JLvRULEv2DvBPCHECKv0004,JLvRULEv2DvBPCHECKv0005,JLvRULEv2DvBPCHECKv0007,JLvRULEv2DvBPCHECKv0008,JLvRULEv2DvBPCHECKv0010,JLvRULEv2DvBPCHECKv0011,JLvRULEv2DvBPCHECKv0001,JLvRULEv2DvBPCHECKv0002,BPvSBPvSTDv2DvSTDv0002,BPvDBPvSTDv2DvSTDv0002,BPvHRvSTDv2DvSTDv0002,BPvSBPvSTDv2DvSTDv0003,BPvDBPvSTDv2DvSTDv0003,BPvHRvSTDv2DvSTDv0003,BPvSBPvSTDv2DvSTDv0004,BPvDBPvSTDv2DvSTDv0004,BPvHRvSTDv2DvSTDv0004,BPvSBPvSTDv2DvSTDv0001,BPvDBPvSTDv2DvSTDv0001,BPvHRvSTDv2DvSTDv0001,BPvSBPvMAXv2DvMAXv0002,BPvDBPvMAXv2DvMAXv0002,BPvHRvMAXv2DvMAXv0002,BPvSBPvMAXv2DvMAXv0003,BPvDBPvMAXv2DvMAXv0003,BPvHRvMAXv2DvMAXv0003,BPvSBPvMAXv2DvMAXv0004,BPvDBPvMAXv2DvMAXv0004,BPvHRvMAXv2DvMAXv0004,BPvSBPvMAXv2DvMAXv0001,BPvDBPvMAXv2DvMAXv0001,BPvHRvMAXv2DvMAXv0001,BPvSBPvMEDv2DvMEDv0002,BPvDBPvMEDv2DvMEDv0002,BPvHRvMEDv2DvMEDv0002,BPvSBPvMEDv2DvMEDv0003,BPvDBPvMEDv2DvMEDv0003,BPvHRvMEDv2DvMEDv0003,BPvSBPvMEDv2DvMEDv0004,BPvDBPvMEDv2DvMEDv0004,BPvHRvMEDv2DvMEDv0004,BPvSBPvMEDv2DvMEDv0001,BPvDBPvMEDv2DvMEDv0001,BPvHRvMEDv2DvMEDv0001,BPvSBPvMINv2DvMINv0002,BPvDBPvMINv2DvMINv0002,BPvHRvMINv2DvMINv0002,BPvSBPvMINv2DvMINv0003,BPvDBPvMINv2DvMINv0003,BPvHRvMINv2DvMINv0003,BPvSBPvMINv2DvMINv0004,BPvDBPvMINv2DvMINv0004,BPvHRvMINv2DvMINv0004,BPvSBPvMINv2DvMINv0001,BPvDBPvMINv2DvMINv0001,BPvHRvMINv2DvMINv0001,BPvSBPvLOADv2DvRATIOv0002,BPvDBPvLOADv2DvRATIOv0002,BPvSBPvLOADv2DvRATIOv0003,BPvDBPvLOADv2DvRATIOv0003,BPvSBPvLOADv2DvRATIOv0004,BPvDBPvLOADv2DvRATIOv0004,BPvSBPvLOADv2DvRATIOv0001,BPvDBPvLOADv2DvRATIOv0001,JLvRULEv2DvBPCHECKv0022,JLvRULEv2DvBPCHECKv0027,JLvRULEv2DvBPCHECKv0023,JLvRULEv2DvBPCHECKv0028,JLvRULEv2DvBPCHECKv0024,JLvRULEv2DvBPCHECKv0029,JLvRULEv2DvBPCHECKv0021,JLvRULEv2DvBPCHECKv0026,BPvSBPvNBRv2DvRATIOv0001,BPvDBPvNBRv2DvRATIOv0001,JLvRULEv2DvBPCHECKv0013,JLvRULEv2DvBPCHECKv0014,JLvRULEv2DvBPCHECKv0015,JLvRULEv2DvBPCHECKv0016,JLvRULEv2DvBPCHECKv0017,JLvRULEv2DvBPCHECKv0018, JLvRULEv2DvBPCHECKv0019, JLvRULEv2DvBPCHECKv0020,BPvSBPvMBSv2DvMINUSv0001,BPvDBPvMBSv2DvMINUSv0001,JLvRULEv2DvBPCHECKv0031,BPvSBPvCVv2DvRATIO2v0002,BPvDBPvCVv2DvRATIO2v0002,BPvHRvCVv2DvRATIO2v0002,BPvSBPvCVv2DvRATIO2v0003,BPvDBPvCVv2DvRATIO2v0003,BPvHRvCVv2DvRATIO2v0003,BPvSBPvCVv2DvRATIO2v0004,BPvDBPvCVv2DvRATIO2v0004,BPvHRvCVv2DvRATIO2v0004,BPvSBPvCVv2DvRATIO2v0001,BPvDBPvCVv2DvRATIO2v0001,BPvHRvCVv2DvRATIO2v0001,BPvAASIv2D,JLvRULEv2DvBPCHECKv0032',
@@ -654,7 +661,6 @@
 			})
 			that.calculateTimeRange();
 			that.updateCurrentDateTime();
-			that.get_finalRetVarList();
 			that.get_retVarList();
 		},
 		methods: {
@@ -693,19 +699,13 @@
 			calculateTimeRange() {
 				const pad = (n) => String(n).padStart(2, '0');
 				const now = new Date();
-				const y = now.getFullYear();
-				const m = pad(now.getMonth() + 1);
-				const d = pad(now.getDate());
-				// 24 小时动态血压：前一日 06:00 → 当日 06:00（含夜间 21:30–06:00）
-				const endTime = `${y}-${m}-${d} 07:00:00`;
-				const startDate = new Date(`${y}/${m}/${d} 07:00:00`);
-				startDate.setDate(startDate.getDate() - 1);
-				const sy = startDate.getFullYear();
-				const sm = pad(startDate.getMonth() + 1);
-				const sd = pad(startDate.getDate());
-				const startTime = `${sy}-${sm}-${sd} 07:00:00`;
-				this.monitorInfo.startTime = startTime;
-				this.monitorInfo.endTime = endTime;
+				let endYmd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+				if (!isChinaTimezone()) {
+					endYmd = resolveAbroadHour24EndYmd();
+				}
+				const startYmd = shiftCalendarDay(endYmd, -1);
+				this.monitorInfo.startTime = `${startYmd} 06:00:00`;
+				this.monitorInfo.endTime = `${endYmd} 06:00:00`;
 			},
 			getBmiClass(bmi) {
 				if (!bmi || bmi === 'NA') return '';
@@ -984,12 +984,7 @@
 			// ==================== API 请求 ====================
 			get_finalRetVarList() {
 				let that = this;
-				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
-				const chinaNow = getChinaTimeAllJSON()
-				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
-				const profYmd = chinaHour < 1 ? getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD :
-					chinaNow.YMD
-				that.pacitime = profYmd + ' 00:00:00'
+				that.pacitime = (that.reportProfYmd || resolveReportProfYmd()) + ' 00:00:00'
 				let data = {
 					userId: uni.getStorageSync("userid"),
 					profDate: that.pacitime,
@@ -1027,13 +1022,11 @@
 
 
 			get_retVarList() {
+				this.fetchRetVarList(resolveReportProfYmd(), true)
+			},
+			fetchRetVarList(profYmd, allowFallback) {
 				let that = this
-				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
-				const chinaNow = getChinaTimeAllJSON()
-				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
-				const profYmd = chinaHour < 1 ?
-					getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD :
-					chinaNow.YMD
+				that.reportProfYmd = profYmd
 				let data = {
 					userId: uni.getStorageSync("userid"),
 					profDate: profYmd + ' 00:00:00',
@@ -1044,16 +1037,20 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((get_retVarList) => {
-					if (get_retVarList.code === 200 && get_retVarList.data && get_retVarList.data.retVarList) {
-						const processedData = that.filterByMonitorTimeRange(
+					const processedData = hasRetVarListPayload(get_retVarList) ?
+						that.filterByMonitorTimeRange(
 							that.processRetVarList(get_retVarList.data.retVarList)
-						);
-						that.monitorData = processedData;
-						that.updateStatistics(processedData);
-						if (!processedData.length) {
-							console.warn('[hour24] get_retVarList 无明细', that.monitorInfo.startTime,
-								that.monitorInfo.endTime, get_retVarList);
-						}
+						) : []
+					if (!processedData.length && allowFallback && canFallbackAbroadProfDate()) {
+						that.fetchRetVarList(shiftCalendarDay(profYmd, -1), false)
+						return
+					}
+					that.monitorData = processedData;
+					that.updateStatistics(processedData);
+					that.get_finalRetVarList();
+					if (!processedData.length) {
+						console.warn('[hour24] get_retVarList 无明细', that.monitorInfo.startTime,
+							that.monitorInfo.endTime, get_retVarList);
 					}
 				}).catch((err) => {
 					console.warn('[hour24] get_retVarList', err);

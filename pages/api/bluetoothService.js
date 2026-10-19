@@ -37,10 +37,12 @@ export default class BluetoothService {
 				},
 				fail: (err) => {
 					if (err.errCode === -1) {
-						// console.log("1连接成功", that.deviceId);
-						that.connected = true; // 已连接
+						// 系统已连接也视为成功（与 success 同样打日志，便于对照回连）
+						console.log("【连接成功】", that.deviceId, "(already)");
+						that.connected = true;
 						resolve("设备已连接");
 					} else {
+						console.warn("【连接失败】", that.deviceId, err);
 						reject(err);
 					}
 				},

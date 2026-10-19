@@ -4,7 +4,7 @@
 			<textarea class="feedback-textarea" placeholder="请输入反馈和建议" v-model="jianyicongtext" />
 		</view>
 		<button class="bt_Accept" @click="Accept()">{{$t('提交')}}</button>
-		<view class="lianxibg" @click="lianxibt()">联系我们</view>
+		<!-- <view class="lianxibg" @click="lianxibt()">联系我们</view> -->
 	</view>
 </template>
 

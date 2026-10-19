@@ -277,6 +277,91 @@ export function isChinaTimezone(date = new Date()) {
 }
 
 /**
+ * 报告就绪日（中国日历 YYYY-MM-DD）——国内原逻辑
+ * 永远按中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
+ */
+export function resolveChinaReportReadyYmd(now = new Date()) {
+	const chinaNow = getChinaTimeAllJSON(now)
+	const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
+	if (chinaHour < 1) {
+		return getChinaTimeAllJSON(new Date(now.getTime() - 24 * 60 * 60 * 1000)).YMD
+	}
+	return chinaNow.YMD
+}
+
+/**
+ * 日历日加减（按 YYYY-MM-DD，不走本地时区）
+ * @param {string} ymd
+ * @param {number} deltaDays
+ * @returns {string}
+ */
+export function shiftCalendarDay(ymd, deltaDays) {
+	const parts = String(ymd).split('-').map((n) => parseInt(n, 10))
+	if (parts.length < 3 || parts.some((n) => !Number.isFinite(n))) {
+		return ymd
+	}
+	const dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
+	dt.setUTCDate(dt.getUTCDate() + Number(deltaDays || 0))
+	return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`
+}
+
+export function isChinaEarlyMorningHour(now = new Date()) {
+	return Number(getChinaTimeAllJSON(now).YMDHMS.slice(11, 13)) < 1
+}
+
+/**
+ * 国外 24 小时监测结束日（手机本地日历 YYYY-MM-DD）
+ * 未过「本地次日」的中国 01:00 → 本地昨天
+ *   例：手机 6 号、尚未过中国 7 号 01:00 → 结束日 5 号（监测时间/列表 4–5，接口仍传 6）
+ * 已过 → 本地今天（监测时间/列表 5–6）
+ * 24 小时 / 7 天监测显示用；无感勿走此函数
+ */
+export function resolveAbroadHour24EndYmd(now = new Date()) {
+	const localYmd = getLocalTimeAllJSON(now).YMD
+	const nextLocalYmd = shiftCalendarDay(localYmd, 1)
+	const thresholdMs = new Date(`${nextLocalYmd}T01:00:00+08:00`).getTime()
+	if (!Number.isFinite(thresholdMs) || now.getTime() >= thresholdMs) {
+		return localYmd
+	}
+	return shiftCalendarDay(localYmd, -1)
+}
+
+/**
+ * 国外监测结束日（手机本地日历 YYYY-MM-DD）——7 天/无感
+ * 仅中国 00:00–00:59（且中国日历已比本地晚一天）额外往前一天；过了 01:00 恢复本地今天
+ */
+export function resolveAbroadMonitorEndYmd(now = new Date()) {
+	const localYmd = getLocalTimeAllJSON(now).YMD
+	const chinaNow = getChinaTimeAllJSON(now)
+	if (chinaNow.YMD > localYmd && isChinaEarlyMorningHour(now)) {
+		return shiftCalendarDay(localYmd, -1)
+	}
+	return localYmd
+}
+
+/** 国外且处于中国 00:00–00:59：无数据时可把 profDate 回退一天 */
+export function canFallbackAbroadProfDate(now = new Date()) {
+	return !isChinaTimezone(now) && isChinaEarlyMorningHour(now)
+}
+
+export function hasRetVarListPayload(res) {
+	if (!res || Number(res.code) !== 200 || !res.data) {
+		return false
+	}
+	const raw = res.data.retVarList
+	return raw != null && String(raw).trim() !== ''
+}
+
+/**
+ * 监测/无感接口 profDate：
+ * 国内、国外都按中国就绪日——本地 5 号且中国已过 6 号 01:00 传 6 号；
+ * 中国 6 号 00:00–00:59（未过凌晨 1 点）传 5 号
+ */
+export function resolveReportProfYmd(now = new Date()) {
+	return resolveChinaReportReadyYmd(now)
+}
+
+/**
  * 信息补充页「报告日期」跳转参数：
  * 选 D → 中国已过「D+1 日 01:00」则传 D+1，否则仍传 D
  * 例（中国）：选 22 号，中国已过 23 号 01:00 → 传 23；选 25 号，未过 26 号 01:00 → 传 25。

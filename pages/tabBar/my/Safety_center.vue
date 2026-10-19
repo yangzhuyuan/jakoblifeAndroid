@@ -264,7 +264,11 @@
 				const appQX = uni.getStorageSync("appQX")
 				const tongzhi = uni.getStorageSync("tongzhi")
 				const appQXTipShown = uni.getStorageSync("appQXTipShown")
+				const notificationResponded = uni.getStorageSync('keepAlive_notification_user_responded')
+				uni.$emit('APP_LOGOUT')
 				uni.clearStorageSync()
+				// 通知权限属于当前安装的应用，退出账号后保留用户的提示选择。
+				if (notificationResponded) uni.setStorageSync('keepAlive_notification_user_responded', notificationResponded)
 				uni.setStorageSync("appQX", appQX)
 				uni.setStorageSync("tongzhi", tongzhi)
 				if (appQXTipShown) {

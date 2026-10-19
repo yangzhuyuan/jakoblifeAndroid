@@ -136,6 +136,9 @@
 		setActiveAppRegion
 	} from '@/pages/api/appBaseHosts.js';
 	import codeCountdownMixin from '@/pages/api/codeCountdownMixin.js'
+	import {
+		isQxBleAppInForeground
+	} from '@/pages/api/qxBleAlignedSchedule.js'
 
 	export default {
 		mixins: [codeCountdownMixin],
@@ -611,6 +614,7 @@
 				}).catch(erro => {
 					uni.hideLoading();
 					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						if (!isQxBleAppInForeground()) return
 						uni.showToast({
 							title: this.$t("网络连接异常"),
 							icon: 'none'
@@ -632,6 +636,7 @@
 				this.$post(this.$url_APP_IP + "/prod-api/app/app_login", data, {
 					'content-type': 'application/json;charset=UTF-8'
 				}).then(res => {
+					// console.log("app_login res:", res);
 					uni.hideLoading()
 					switch (res.code) {
 						case 200:
@@ -658,6 +663,7 @@
 				}).catch(erro => {
 					uni.hideLoading()
 					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						if (!isQxBleAppInForeground()) return
 						uni.showToast({
 							title: this.$t("网络连接异常"),
 							icon: 'none'
@@ -703,6 +709,7 @@
 				}).catch(erro => {
 					uni.hideLoading()
 					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						if (!isQxBleAppInForeground()) return
 						uni.showToast({
 							title: this.$t("网络连接异常"),
 							icon: 'none'
@@ -1011,6 +1018,7 @@
 					}
 				}).catch(erro => {
 					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						if (!isQxBleAppInForeground()) return
 						uni.showToast({
 							title: this.$t("网络连接异常"),
 							icon: 'none'
@@ -1055,6 +1063,7 @@
 					}
 				}).catch(erro => {
 					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						if (!isQxBleAppInForeground()) return
 						uni.showToast({
 							title: this.$t("网络连接异常"),
 							icon: 'none'
@@ -1098,6 +1107,7 @@
 					}
 				}).catch(erro => {
 					if (erro.errMsg.includes("fail abort statusCode:-1")) {
+						if (!isQxBleAppInForeground()) return
 						uni.showToast({
 							title: this.$t("网络连接异常"),
 							icon: 'none'

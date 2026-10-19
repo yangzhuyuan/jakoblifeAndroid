@@ -165,7 +165,6 @@
 				this.isAllSelected = !this.isAllSelected;
 			},
 			cancelSharing() {
-				console.log("cancelSharing", this.id)
 				uni.request({
 					url: `${this.$url_APP_IP}/prod-api/share/data/${this.id}`,
 					method: 'DELETE',
@@ -174,7 +173,6 @@
 						'content-type': 'application/json'
 					},
 					success: (res) => {
-						console.log("res", res)
 						if (res.data.code === 200) {
 							uni.navigateBack();
 						}

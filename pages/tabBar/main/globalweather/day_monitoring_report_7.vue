@@ -116,7 +116,7 @@
 			<view class="trend-content">
 				<view class="trend-chart">
 					<view class="charts-box">
-						<qiun-data-charts :canvas2d="true" type="line" canvas-id="10086" :opts="chartOptions"
+						<qiun-data-charts :canvas2d="true" type="line" canvas-id="dmr7BpTrend" :opts="chartOptions"
 							:chartData="chartData" />
 					</view>
 				</view>
@@ -545,7 +545,13 @@
 		savePdfToFile
 	} from '../../../api/unitls/imageToPdf.js';
 	import {
-		getChinaTimeAllJSON
+		getChinaTimeAllJSON,
+		isChinaTimezone,
+		resolveAbroadHour24EndYmd,
+		resolveReportProfYmd,
+		shiftCalendarDay,
+		canFallbackAbroadProfDate,
+		hasRetVarListPayload
 	} from '@/pages/api/unitls/timezone.js'
 	export default {
 		data() {
@@ -784,15 +790,15 @@
 				return timesssaa
 			},
 			calculateTimeRange() {
+				const pad = (n) => String(n).padStart(2, '0');
 				const now = new Date();
-				const endTime =
-					`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} 21:05:00`;
-				const startDate = new Date(now);
-				startDate.setDate(startDate.getDate() - 6);
-				const startTime =
-					`${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')} 08:00:00`;
-				this.monitorInfo.startTime = startTime;
-				this.monitorInfo.endTime = endTime;
+				let endYmd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+				if (!isChinaTimezone()) {
+					endYmd = resolveAbroadHour24EndYmd();
+				}
+				const startYmd = shiftCalendarDay(endYmd, -6);
+				this.monitorInfo.startTime = `${startYmd} 08:00:00`;
+				this.monitorInfo.endTime = `${endYmd} 21:05:00`;
 			},
 			getBmiClass(bmi) {
 				if (!bmi || bmi === 'NA') return '';
@@ -937,6 +943,18 @@
 					});
 				}
 				return processedData.sort((a, b) => a.timestamp - b.timestamp);
+			},
+			filterByMonitorDateRange(data) {
+				if (!data || !data.length) return [];
+				const startYmd = String(this.monitorInfo.startTime || '').slice(0, 10);
+				const endYmd = String(this.monitorInfo.endTime || '').slice(0, 10);
+				if (!/^\d{4}-\d{2}-\d{2}$/.test(startYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(endYmd)) {
+					return data;
+				}
+				return data.filter((item) => {
+					const date = String((item && (item.fullTime || item.time)) || '').slice(0, 10);
+					return date >= startYmd && date <= endYmd;
+				});
 			},
 			calculateExtremesFromData(data) {
 				if (!data.length) {
@@ -1108,12 +1126,9 @@
 
 			// ==================== API 请求 ====================
 			get_retVarList() {
-				// 永远中国时间；当天凌晨 1 点前报告尚未就绪，用前一天
-				const chinaNow = getChinaTimeAllJSON()
-				const chinaHour = Number(chinaNow.YMDHMS.slice(11, 13))
-				const profYmd = chinaHour < 1 ?
-					getChinaTimeAllJSON(new Date(Date.now() - 24 * 60 * 60 * 1000)).YMD :
-					chinaNow.YMD
+				this.fetchRetVarList(resolveReportProfYmd(), true)
+			},
+			fetchRetVarList(profYmd, allowFallback) {
 				const data = {
 					userId: uni.getStorageSync("userid"),
 					profDate: profYmd + ' 00:00:00',
@@ -1124,14 +1139,21 @@
 					'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 					'content-type': 'application/x-www-form-urlencoded'
 				}).then((res) => {
-					if (res.code === 200 && res.data && res.data.retVarList) {
-						this.monitorData = this.processRetVarList(res.data.retVarList);
-						this.updateStatistics(this.monitorData);
-						this.calculateDailyStats(this.monitorData);
-						if (!this.monitorData.length) {
-							console.warn('[day7] get_retVarList 无明细', this.monitorInfo.startTime,
-								this.monitorInfo.endTime, res);
-						}
+					let processedData = hasRetVarListPayload(res) ?
+						this.processRetVarList(res.data.retVarList) : [];
+					if (!isChinaTimezone()) {
+						processedData = this.filterByMonitorDateRange(processedData);
+					}
+					if (!processedData.length && allowFallback && canFallbackAbroadProfDate()) {
+						this.fetchRetVarList(shiftCalendarDay(profYmd, -1), false)
+						return
+					}
+					this.monitorData = processedData;
+					this.updateStatistics(this.monitorData);
+					this.calculateDailyStats(this.monitorData);
+					if (!this.monitorData.length) {
+						console.warn('[day7] get_retVarList 无明细', this.monitorInfo.startTime,
+							this.monitorInfo.endTime, res);
 					}
 				}).catch((err) => {
 					console.warn('[day7] get_retVarList', err);

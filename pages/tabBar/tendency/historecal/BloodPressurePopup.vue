@@ -12,6 +12,13 @@
 					<text class="header-cell">{{$t("舒张压")}}</text>
 				</view>
 
+				<view class="table-row low">
+					<text class="cell">{{$t("血压偏低")}}</text>
+					<text class="cell">&lt;90</text>
+					<text class="cell">{{$t("或")}}</text>
+					<text class="cell">&lt;60</text>
+				</view>
+
 				<view class="table-row normal">
 					<text class="cell">{{$t("正常血压")}}</text>
 					<text class="cell">91-120</text>
@@ -104,6 +111,10 @@
 		padding: 10px;
 		display: flex;
 		align-items: center;
+	}
+
+	.table-row.low {
+		background: #FFF176;
 	}
 
 	.table-row.normal {

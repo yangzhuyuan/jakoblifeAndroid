@@ -124,6 +124,7 @@
 		startGlobalQxBleAlignedSchedule,
 		stopGlobalQxBleAlignedSchedule,
 		ensureQxBleKeepAliveForBackground,
+		isQxBleAppInForeground,
 		QX_EMOTION_BPW6_KEY
 	} from '@/pages/api/qxBleAlignedSchedule.js'
 	import {
@@ -272,6 +273,12 @@
 						uni.setStorageSync('switchEmotion', this.switchEmotion)
 					}
 					this.$forceUpdate()
+				}).catch(err => {
+					if (!isQxBleAppInForeground()) return
+					uni.showToast({
+						title: this.$t("网络连接异常"),
+						icon: 'none'
+					})
 				})
 			},
 			/** 解析云端 QX_DATA 的 data 串（无引号 JSON 风格，与 formatDatacard 一致） */

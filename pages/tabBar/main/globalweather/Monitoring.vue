@@ -25,7 +25,8 @@
 				</view>
 			</view>
 
-			<view class="card" hover-class="card-hover" @click="goToTest">
+			<view class="card" :class="{ 'card-disabled': !wuganModelReady }"
+				:hover-class="wuganModelReady ? 'card-hover' : ''" @click="goToTest">
 				<view class="card-icon">
 					<image class="card-icon-img" src="/static/page_icon/jiance_1.png" mode="aspectFit" />
 				</view>
@@ -35,11 +36,12 @@
 				</view>
 				<view class="card-right">
 					<view class="status-pill">
-						<text class="status-pill-text">{{ $t('关闭') }}</text>
+						<text class="status-pill-text status-pill-text-active">{{ $t('查看') }}</text>
 					</view>
 					<text class="card-chevron">›</text>
 				</view>
 			</view>
+			<view v-if="!wuganModelReady" class="wugan-gate-tip">{{ $t('您的无感血压AI模型正在建立中大概需要2周时间定时测量') }}</view>
 
 			<view v-if="isChinese" class="card" hover-class="card-hover" @click="goToPulse">
 				<view class="card-icon">
@@ -67,7 +69,7 @@
 				</view>
 				<view class="card-right">
 					<view class="status-pill">
-						<text class="status-pill-text">{{ $t('未设置') }}</text>
+						<text class="status-pill-text status-pill-text-active">{{ $t('查看') }}</text>
 					</view>
 					<text class="card-chevron">›</text>
 				</view>
@@ -116,30 +118,124 @@
 				devicetype: true,
 				BPW6deviceId: uni.getStorageSync("BPW6devicemac"),
 				isChinese: lan === 'zh-Hans' || lan === 'zh-Hant',
+				skipNextShowGate: false,
+				wuganModelReady: false,
 			}
 		},
 		onShow() {
 			let that = this
+			that.wuganModelReady = that.isWuganModelReady()
 			uni.setNavigationBarTitle({
 				title: that.$t("定时监测")
 			})
+			// 首次 onLoad 后紧跟的 onShow 跳过，避免覆盖路由参数；从子页返回再按本地重判
+			if (that.skipNextShowGate) {
+				that.skipNextShowGate = false
+				return
+			}
+			that.applyBpw1Gate()
 		},
 		onLoad(options) {
-			// 只要不包含 BPW1，就禁止「血压定时测量开关」
-			let hasBpw1 = false
-			if (options.hasBpw1 !== undefined && options.hasBpw1 !== null && options.hasBpw1 !== '') {
-				hasBpw1 = options.hasBpw1 === '1' || options.hasBpw1 === 1 ||
-					options.hasBpw1 === true || options.hasBpw1 === 'true'
-			} else {
-				hasBpw1 = !!uni.getStorageSync('deviceIdwatch')
-			}
-			this.devicetype = !hasBpw1
-			if (this.devicetype) {
-				console.log("无BPW1设备，禁止血压定时测量")
-			}
+			this.wuganModelReady = this.isWuganModelReady()
+			this.applyBpw1Gate(options || {})
+			this.skipNextShowGate = true
 		},
 
 		methods: {
+			/** 与无感血压报告一致：体温有效且 >= 500 才视为无感模型已建立 */
+			isWuganModelReady() {
+				const modeltipsbool = uni.getStorageSync('temperature')
+				return !!(modeltipsbool && modeltipsbool !== '-/-' && Number(modeltipsbool) >= 500)
+			},
+			parseRouteFlag(val) {
+				return val === '1' || val === 1 || val === true || val === 'true'
+			},
+			/**
+			 * 是否已绑定 BPW1：与 Main.hasBoundBpw1Device 对齐。
+			 * 不能只看 deviceIdwatch——该值多在 BLE 连上后才写入，服务端已绑但未连时会误判。
+			 * @param {object} [options] 仅 onLoad 传入路由参数；onShow 不传则只看本地绑定。
+			 */
+			resolveHasBpw1(options) {
+				if (options && options.hasBpw1 !== undefined && options.hasBpw1 !== null && options.hasBpw1 !== '') {
+					return this.parseRouteFlag(options.hasBpw1)
+				}
+				if (uni.getStorageSync('deviceIdwatch')) {
+					return true
+				}
+				// 首页跳转参数：当前机型为 BPW1(30000)
+				if (options && String(options.devicetype) === '30000') {
+					return true
+				}
+				try {
+					const list = uni.getStorageSync('lixianlist')
+					if (Array.isArray(list) && list.some((row) => String(row && row.deviceModelId) === '30000')) {
+						return true
+					}
+				} catch (e) {}
+				try {
+					const snap = uni.getStorageSync('qx_emotion_bind_snapshot')
+					if (snap && (snap.hasBpw1 === true || snap.hasBpw1 === 'true')) {
+						return true
+					}
+				} catch (e) {}
+				try {
+					const macs = uni.getStorageSync('devicdsdmac1')
+					if (Array.isArray(macs) && macs.length > 0) {
+						return true
+					}
+				} catch (e) {}
+				return false
+			},
+			/** 是否已绑定任意手表（BPW1/BPW6）；未绑定时入口仍要展示 */
+			resolveHasAnyWatch(options) {
+				if (options && options.hasAny !== undefined && options.hasAny !== null && options.hasAny !== '') {
+					return this.parseRouteFlag(options.hasAny)
+				}
+				if (options && options.devicetypelist !== undefined && options.devicetypelist !== null &&
+					options.devicetypelist !== '') {
+					const n = Number(options.devicetypelist)
+					if (!Number.isNaN(n)) {
+						return n > 0
+					}
+				}
+				if (uni.getStorageSync('deviceIdwatch') || uni.getStorageSync('BPW6devicemac')) {
+					return true
+				}
+				try {
+					const list = uni.getStorageSync('lixianlist')
+					if (Array.isArray(list) && list.some((row) => {
+							const id = String(row && row.deviceModelId)
+							return id === '30000' || id === '30001'
+						})) {
+						return true
+					}
+				} catch (e) {}
+				try {
+					const snap = uni.getStorageSync('qx_emotion_bind_snapshot')
+					if (snap && (snap.hasBpw1 === true || snap.hasBpw1 === 'true' ||
+							snap.hasBpw6 === true || snap.hasBpw6 === 'true')) {
+						return true
+					}
+				} catch (e) {}
+				try {
+					const macs1 = uni.getStorageSync('devicdsdmac1')
+					if (Array.isArray(macs1) && macs1.length > 0) {
+						return true
+					}
+				} catch (e) {}
+				return false
+			},
+			applyBpw1Gate(options) {
+				const hasBpw1 = this.resolveHasBpw1(options)
+				const hasAny = this.resolveHasAnyWatch(options)
+				// 未绑定任何设备、或已绑 BPW1：显示「血压定时」；仅绑非 BPW1（如只有 BPW6）时隐藏
+				const showBpTimer = hasBpw1 || !hasAny
+				// devicetype=true 表示隐藏入口（兼容模板 v-show="!devicetype"）
+				this.devicetype = !showBpTimer
+				if (this.devicetype) {
+					console.log("无BPW1设备，禁止血压定时测量")
+				}
+			},
 			// 跳转到监测报告页面
 			goToReport() {
 				uni.navigateTo({
@@ -154,6 +250,10 @@
 			},
 			// 跳转到无压测试页面（仅无感定时）
 			goToTest() {
+				if (!this.isWuganModelReady()) {
+					this.wuganModelReady = false
+					return
+				}
 				uni.navigateTo({
 					url: '../../main/sleep_report/Reports_Alerts_new?mode=wugan&devicetype=' + this.devicetype
 				})
@@ -306,6 +406,20 @@
 
 	.card-hover {
 		opacity: 0.9;
+	}
+
+	.card-disabled {
+		opacity: 0.45;
+	}
+
+	.wugan-gate-tip {
+		margin: -4rpx 0 24rpx;
+		padding: 24rpx 28rpx;
+		background: #FFF6E0;
+		border-radius: 24rpx;
+		font-size: 26rpx;
+		line-height: 1.6;
+		color: #E8A317;
 	}
 
 	.card-icon {

@@ -1,0 +1,21 @@
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: FATAL EXCEPTION: binder:20758_B
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: Process: com.work.jakob, PID: 20758
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: java.lang.NoClassDefFoundError: Failed resolution of: Lcom/alibaba/aliagentsdk/AliAgentSdk;
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at com.yucheng.ycbtsdk.jl.ALiIOTKit.<init>(Unknown Source:14)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at com.yucheng.ycbtsdk.jl.ALiIOTKit.getInstance(Unknown Source:9)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at com.yucheng.ycbtsdk.jl.WatchManager$BleConnectResponseImpl.onConnectResponse(Unknown Source:146)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at com.yucheng.ycbtsdk.core.YCBTClientImpl.bleStateResponse(Unknown Source:59)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at com.yucheng.ycbtsdk.gatt.BleHelper.callBackState(Unknown Source:4)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at com.yucheng.ycbtsdk.gatt.BleHelper$1.onConnectionStateChange(Unknown Source:108)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at android.bluetooth.BluetoothGatt$1$4.run(BluetoothGatt.java:305)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at android.bluetooth.BluetoothGatt.runOrQueueCallback(BluetoothGatt.java:876)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at android.bluetooth.BluetoothGatt.-$$Nest$mrunOrQueueCallback(Unknown Source:0)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at android.bluetooth.BluetoothGatt$1.onClientConnectionState(BluetoothGatt.java:300)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at android.bluetooth.IBluetoothGattCallback$Stub.onTransact(IBluetoothGattCallback.java:128)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at android.os.Binder.execTransactInternal(Binder.java:1323)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at android.os.Binder.execTransact(Binder.java:1279)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: Caused by: java.lang.ClassNotFoundException: Didn't find class "com.alibaba.aliagentsdk.AliAgentSdk" on path: DexPathList[[dex file "InMemoryDexFile[cookie=[0, -5476376629528648176]]", zip file "/data/app/~~JCVi3Xdp7HPw8p-fh9DnCA==/com.work.jakob-G-7UE1wBlTbmCB7as7A4OQ==/base.apk"],nativeLibraryDirectories=[/data/app/~~JCVi3Xdp7HPw8p-fh9DnCA==/com.work.jakob-G-7UE1wBlTbmCB7as7A4OQ==/lib/arm64, /data/app/~~JCVi3Xdp7HPw8p-fh9DnCA==/com.work.jakob-G-7UE1wBlTbmCB7as7A4OQ==/base.apk!/lib/arm64-v8a, /system/lib64, /product_h/lib64, /system_ext/lib64]]
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at dalvik.system.BaseDexClassLoader.findClass(BaseDexClassLoader.java:259)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at java.lang.ClassLoader.loadClass(ClassLoader.java:379)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	at java.lang.ClassLoader.loadClass(ClassLoader.java:312)
+10-12 15:24:47.592 20758 28775 E AndroidRuntime: 	... 13 more

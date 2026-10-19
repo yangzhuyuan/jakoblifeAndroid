@@ -2,7 +2,7 @@
 	"name": "KeepAlivesdkplugin",
 	"id": "KeepAlivesdkplugin",
 	"version": "1.0.0",
-	"description": "UniApp后台保活与定时唤醒插件",
+	"description": "UniApp设备连接前台服务插件",
 	"_dp_type": "nativeplugin",
 	"_dp_nativeplugin": {
 		"android": {

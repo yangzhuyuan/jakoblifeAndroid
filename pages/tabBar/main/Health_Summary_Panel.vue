@@ -5,12 +5,13 @@
 				<text class="hs-title">{{ $t('健康摘要') }}</text>
 				<text class="hs-subtitle">{{ $t('基于您近期的心脏健康测量数据和趋势') }}</text>
 			</view>
-			<image class="hero-img" src="/static/page_icon/app_icon_all.jpg" mode="aspectFit"></image>
+			<image class="hero-img" src="/static/page_icon/app_icon_all.jpg" mode="aspectFit" />
+			<!-- <image @click="newasd()" class="hero-img" src="/static/page_icon/app_icon_all.jpg" mode="aspectFit" /> -->
 		</view>
-		<view class="emotion-tip-card">
+		<!-- <view class="emotion-tip-card">
 			<uni-icons type="info" size="18" color="#3298F7"></uni-icons>
 			<text class="emotion-tip-text">{{ $t('血压计注意事项') }}</text>
-		</view>
+		</view> -->
 		<view class="hs-card status-card">
 			<view class="status-main">
 				<view class="status-check" :class="overall.tone">
@@ -34,6 +35,7 @@
 					<text class="metric-name">{{ m.name }}</text>
 					<text class="metric-value">{{ m.value }}</text>
 					<text class="metric-unit" v-if="m.unit">{{ m.unit }}</text>
+					<text class="metric-date" v-if="m.date">{{ m.date }}</text>
 					<view class="metric-status" v-if="m.status">
 						<view class="dot" :class="m.tone"></view>
 						<text class="metric-status-text" :class="m.tone">{{ m.status }}</text>
@@ -46,17 +48,16 @@
 		</view>
 		<view class="hs-card trends-card">
 			<text class="trends-title">{{ $t('天趋势7') }}</text>
-			<view class="trend-row" v-for="(t, i) in trends" :key="i" @click="onTrendTap(t)">
+			<view class="trend-row" v-for="t in trends" :key="t.key" @click="onTrendTap(t)">
 				<view class="trend-icon">
 					<image class="trend-icon-img" :src="t.icon" mode="aspectFit" />
 				</view>
 				<text class="trend-name">{{ t.name }}</text>
-				<view class="sparkline" :class="t.tone">
-					<qiun-data-charts v-if="sparkShow" type="line" :canvas2d="false" :inScrollView="true"
+				<view class="sparkline" :class="t.tone" :id="t.boxId">
+					<qiun-data-charts v-if="sparkShow && t.hasData" type="line" :canvas2d="false" :inScrollView="true"
 						:animation="false" :ontouch="false" :ontap="false" :disableScroll="true" :optsWatch="false"
-						:tooltipShow="false" :errorShow="false" :reshow="sparkReshow"
-						:canvas-id="'hsSpark' + t.key + (embedded ? 'e' : 'p')" :opts="t.opts"
-						:chartData="t.chartData" />
+						:tooltipShow="false" :errorShow="false" :reshow="sparkReshow" :canvas-id="t.canvasId"
+						:opts="t.opts" :chartData="t.chartData" />
 				</view>
 				<text class="trend-status" :class="t.tone">{{ t.status }}</text>
 			</view>
@@ -79,10 +80,17 @@
 
 <script>
 	import WeightConverter from '@/pages/api/unitls/weightConverter.js'
+	import {
+		classifyBloodPressure
+	} from '@/pages/api/unitls/bloodPressureLevel.js'
 
 	export default {
 		name: 'HealthSummaryPanel',
 		props: {
+			syncArmCuffBp: {
+				type: Object,
+				default: null
+			},
 			embedded: {
 				type: Boolean,
 				default: false
@@ -102,6 +110,22 @@
 			syncPulse: {
 				type: [String, Number],
 				default: ''
+			},
+			syncPulseTime: {
+				type: [String, Number],
+				default: ''
+			},
+			syncSpo2: {
+				type: [String, Number],
+				default: ''
+			},
+			syncSpo2Time: {
+				type: [String, Number],
+				default: ''
+			},
+			syncList: {
+				type: Array,
+				default: () => []
 			},
 			tabActive: {
 				type: Boolean,
@@ -152,6 +176,11 @@
 				highPressure: '-',
 				lowPressure: '-',
 				pulse: '-',
+				bpDate: '--/--',
+				hrDate: '--/--',
+				spo2Date: '--/--',
+				heightDate: '--/--',
+				apiBpTs: 0,
 				dayAvgHigh: null,
 				dayAvgLow: null,
 				dayAvgHr: null,
@@ -159,7 +188,8 @@
 				weekAvgLow: null,
 				weekAvgHr: null,
 				sparkShow: false,
-				sparkReshow: true,
+				sparkReshow: false,
+				sparkEpoch: 0,
 				sparkOptsBp: Object.assign({}, sparkBase, {
 					color: ['#FC7F41', '#7AE545']
 				}),
@@ -267,54 +297,14 @@
 						tone: 'mute'
 					};
 				}
-				const highPressure = Number(this.highPressure);
-				const lowPressure = Number(this.lowPressure);
-				const pressureRanges = [{
-						lowMin: 61,
-						lowMax: 80,
-						highMin: 91,
-						highMax: 120,
-						level: 0,
-						name: this.$t('正常血压')
-					},
-					{
-						lowMin: 81,
-						lowMax: 90,
-						highMin: 121,
-						highMax: 140,
-						level: 1,
-						name: this.$t('正常高值')
-					},
-					{
-						lowMin: 91,
-						lowMax: 100,
-						highMin: 141,
-						highMax: 160,
-						level: 2,
-						name: this.$t('一级高血压')
-					},
-					{
-						lowMin: 101,
-						lowMax: 110,
-						highMin: 161,
-						highMax: 180,
-						level: 3,
-						name: this.$t('二级高血压')
-					}
-				];
-				for (let i = 0; i < pressureRanges.length; i++) {
-					const range = pressureRanges[i];
-					if ((lowPressure >= range.lowMin && lowPressure <= range.lowMax) ||
-						(highPressure >= range.highMin && highPressure <= range.highMax)) {
-						return {
-							text: range.name,
-							tone: range.level === 0 ? 'ok' : 'warn'
-						};
-					}
-				}
+				const {
+					level,
+					key
+				} = classifyBloodPressure(this.lowPressure, this.highPressure);
+				const toneMap = ['bp-normal', 'bp-high-normal', 'bp-stage1', 'bp-stage2', 'bp-low'];
 				return {
-					text: this.$t('未知'),
-					tone: 'mute'
+					text: this.$t(key),
+					tone: level >= 0 ? (toneMap[level] || 'mute') : 'mute'
 				};
 			},
 			hrStatus() {
@@ -356,21 +346,15 @@
 						tone: 'mute'
 					};
 				}
-				if (val <= 95) {
+				if (val <= 92) {
 					return {
 						text: this.$t('偏低'),
-						tone: 'warn'
-					};
-				}
-				if (val < 98) {
-					return {
-						text: this.$t('正常'),
-						tone: 'ok'
+						tone: 'spo2-low'
 					};
 				}
 				return {
-					text: this.$t('偏高'),
-					tone: 'warn'
+					text: this.$t('正常'),
+					tone: 'spo2-ok'
 				};
 			},
 			metrics() {
@@ -382,6 +366,7 @@
 						helpType: 'bp',
 						value: this.bpValue,
 						unit: this.isValidMetric(this.highPressure) ? this.bloodUnit : this.bloodUnit,
+						date: this.bpDate,
 						status: this.bpStatus.text,
 						tone: this.bpStatus.tone
 					},
@@ -392,6 +377,7 @@
 						measureType: 0,
 						value: this.hrValue,
 						unit: this.isValidMetric(this.pulse) ? "BPM" : 'BPM',
+						date: this.hrDate,
 						status: this.hrStatus.text,
 						tone: this.hrStatus.tone
 					},
@@ -403,6 +389,7 @@
 						helpType: 'spo2',
 						value: this.spo2Value,
 						unit: this.isValidMetric(this.spo2) ? '%' : '%',
+						date: this.spo2Date,
 						status: this.spo2Status.text,
 						tone: this.spo2Status.tone
 					},
@@ -412,6 +399,7 @@
 						measurable: false,
 						value: this.heightValue,
 						unit: this.isValidMetric(this.heightVal) ? this.heightUnit : '',
+						date: this.heightDate,
 						status: '',
 						tone: 'ok'
 					}
@@ -449,12 +437,19 @@
 			trends() {
 				const bp = this.bpTrendStatus;
 				const hr = this.hrTrendStatus;
+				const suffix = (this.embedded ? 'e' : 'p') + this.sparkEpoch;
+				const bpHas = this.hasSparkValues(this.sparkChartBp.series[0].data) ||
+					this.hasSparkValues(this.sparkChartBp.series[1].data);
+				const hrHas = this.hasSparkValues(this.sparkChartHr.series[0].data);
 				return [{
 						key: 'bp',
 						name: this.$t('血压'),
 						icon: '/static/icons/3.png',
 						opts: this.sparkOptsBp,
 						chartData: this.sparkChartBp,
+						hasData: bpHas,
+						boxId: 'hsSparkBoxbp' + (this.embedded ? 'e' : 'p'),
+						canvasId: 'hsSparkbp' + suffix,
 						status: bp.text,
 						tone: bp.tone
 					},
@@ -464,6 +459,9 @@
 						icon: '/static/icons/5.png',
 						opts: this.sparkOptsByTone[hr.tone],
 						chartData: this.sparkChartHr,
+						hasData: hrHas,
+						boxId: 'hsSparkBoxhr' + (this.embedded ? 'e' : 'p'),
+						canvasId: 'hsSparkhr' + suffix,
 						status: hr.text,
 						tone: hr.tone
 					}
@@ -504,16 +502,20 @@
 			}
 		},
 		mounted() {
+			this._hsDestroyed = false;
 			this.syncUnitSettings();
 			uni.$on('UNIT_SETTINGS_CHANGED', this.syncUnitSettings);
+			uni.$on('USER_ID_READY', this.onUserIdReady);
+			uni.$on('APP_LOGOUT', this.onAppLogout);
 			this.$nextTick(() => {
+				if (this._hsDestroyed) return;
 				if (this.autoLoad) this.refreshData();
-				setTimeout(() => {
-					if (!this.sparkShow) this.sparkShow = true;
-				}, 280);
 			});
 		},
 		watch: {
+			syncArmCuffBp() {
+				this.scheduleHomeSync();
+			},
 			syncHighPressure() {
 				this.scheduleHomeSync();
 			},
@@ -523,15 +525,35 @@
 			syncPulse() {
 				this.scheduleHomeSync();
 			},
+			syncPulseTime() {
+				this.scheduleHomeSync();
+			},
+			syncSpo2() {
+				this.scheduleHomeSync();
+			},
+			syncSpo2Time() {
+				this.scheduleHomeSync();
+			},
+			syncList: {
+				deep: true,
+				handler() {
+					this.scheduleHomeSync();
+				}
+			},
 			tabActive(val) {
 				if (val) {
 					this.syncUnitSettings();
 					this.nudgeSparkCharts();
+					this.refreshData();
 				}
 			}
 		},
 		beforeDestroy() {
+			this._hsDestroyed = true;
+			this._sparkQuerySeq = (this._sparkQuerySeq || 0) + 1;
 			uni.$off('UNIT_SETTINGS_CHANGED', this.syncUnitSettings);
+			uni.$off('USER_ID_READY', this.onUserIdReady);
+			uni.$off('APP_LOGOUT', this.onAppLogout);
 			if (this._syncTimer) {
 				clearTimeout(this._syncTimer);
 				this._syncTimer = null;
@@ -539,6 +561,18 @@
 			if (this._sparkNudge) {
 				clearTimeout(this._sparkNudge);
 				this._sparkNudge = null;
+			}
+			if (this._sparkShowTimer) {
+				clearTimeout(this._sparkShowTimer);
+				this._sparkShowTimer = null;
+			}
+			if (this._sparkSafetyTimer) {
+				clearTimeout(this._sparkSafetyTimer);
+				this._sparkSafetyTimer = null;
+			}
+			if (this._sparkRetryTimer) {
+				clearTimeout(this._sparkRetryTimer);
+				this._sparkRetryTimer = null;
 			}
 			if (this._useridRetry) {
 				clearTimeout(this._useridRetry);
@@ -555,11 +589,17 @@
 				this.heightUnitIndex = this.normalizeUnitIndex(uni.getStorageSync('danwei1'));
 			},
 			scheduleHomeSync() {
-				if (this._syncTimer) return;
+				if (this._hsDestroyed) return;
+				if (this._syncTimer) {
+					clearTimeout(this._syncTimer);
+					this._syncTimer = null;
+				}
+				// 测量结果同步尽量即时，对齐血压刷卡速度
 				this._syncTimer = setTimeout(() => {
 					this._syncTimer = null;
+					if (this._hsDestroyed) return;
 					this.applyHomeSync();
-				}, 400);
+				}, 0);
 			},
 			onMetricTap(m) {
 				if (!m || !m.measurable || m.measureType == null) return;
@@ -583,22 +623,60 @@
 				}
 				this.syncUnitSettings();
 				this.applyLocalHomeCache();
+				const userid = uni.getStorageSync('userid');
+				const token = uni.getStorageSync('token');
+				// 退出再登录后 token 先到、userid 由 getUserInfo 异步写入；等齐再拉数，避免首页空白
+				if (!token) return;
+				if (!userid) {
+					this._useridTries = (this._useridTries || 0) + 1;
+					if (this._useridTries <= 25) {
+						if (this._useridRetry) clearTimeout(this._useridRetry);
+						this._useridRetry = setTimeout(() => {
+							this._useridRetry = null;
+							if (!this._hsDestroyed) this.refreshData();
+						}, 400);
+					}
+					return;
+				}
+				this._useridTries = 0;
 				this.loadHomeMetrics();
 				this.loadTrendStability();
 				this.loadWeekTrendChart();
-				const userid = uni.getStorageSync('userid');
-				if (!userid) {
-					this._useridTries = (this._useridTries || 0) + 1;
-					if (this._useridTries < 6) {
-						this._useridRetry = setTimeout(() => {
-							this._useridRetry = null;
-							this.loadTrendStability();
-							this.loadWeekTrendChart();
-						}, 400);
-					}
-				} else {
-					this._useridTries = 0;
+			},
+			onUserIdReady() {
+				this._useridTries = 0;
+				// 退出时置位；重新拿到 userid 后恢复布局查询，避免摘要图永久停摆
+				this._hsDestroyed = false;
+				if (this._useridRetry) {
+					clearTimeout(this._useridRetry);
+					this._useridRetry = null;
 				}
+				this.refreshData();
+			},
+			onAppLogout() {
+				this._hsDestroyed = true;
+				this._useridTries = 99;
+				if (this._useridRetry) {
+					clearTimeout(this._useridRetry);
+					this._useridRetry = null;
+				}
+				if (this._sparkNudge) {
+					clearTimeout(this._sparkNudge);
+					this._sparkNudge = null;
+				}
+				if (this._sparkShowTimer) {
+					clearTimeout(this._sparkShowTimer);
+					this._sparkShowTimer = null;
+				}
+				if (this._sparkSafetyTimer) {
+					clearTimeout(this._sparkSafetyTimer);
+					this._sparkSafetyTimer = null;
+				}
+				if (this._sparkRetryTimer) {
+					clearTimeout(this._sparkRetryTimer);
+					this._sparkRetryTimer = null;
+				}
+				this.sparkShow = false;
 			},
 			localYmd() {
 				const now = new Date();
@@ -651,16 +729,85 @@
 				return y + '-' + (m >= 10 ? m : '0' + m) + '-' + (d >= 10 ? d : '0' + d);
 			},
 			nudgeSparkCharts() {
+				if (this._hsDestroyed) return;
+				const hasBp = this.hasSparkValues(this.sparkChartBp.series[0].data) ||
+					this.hasSparkValues(this.sparkChartBp.series[1].data);
+				const hasHr = this.hasSparkValues(this.sparkChartHr.series[0].data);
+				if (!hasBp && !hasHr) return;
+				if (this._sparkShowTimer) {
+					clearTimeout(this._sparkShowTimer);
+					this._sparkShowTimer = null;
+				}
+				if (this._sparkRetryTimer) {
+					clearTimeout(this._sparkRetryTimer);
+					this._sparkRetryTimer = null;
+				}
 				if (this._sparkNudge) clearTimeout(this._sparkNudge);
+				// 合并 BP/HR 多次回调；先等容器有宽高再挂载 qiun，避免首屏量到 0 导致空白
 				this._sparkNudge = setTimeout(() => {
 					this._sparkNudge = null;
-					this.sparkShow = false;
-					this.sparkReshow = false;
-					this.$nextTick(() => {
-						this.sparkShow = true;
-						this.sparkReshow = true;
-					});
-				}, 160);
+					if (this._hsDestroyed) return;
+					this.mountSparkWhenReady(0);
+				}, 180);
+				if (this._sparkSafetyTimer) clearTimeout(this._sparkSafetyTimer);
+				this._sparkSafetyTimer = setTimeout(() => {
+					this._sparkSafetyTimer = null;
+					if (this._hsDestroyed) return;
+					this.mountSparkWhenReady(0, true);
+				}, 800);
+			},
+			mountSparkWhenReady(retry, force) {
+				if (this._hsDestroyed) return;
+				const hasBp = this.hasSparkValues(this.sparkChartBp.series[0].data) ||
+					this.hasSparkValues(this.sparkChartBp.series[1].data);
+				const hasHr = this.hasSparkValues(this.sparkChartHr.series[0].data);
+				if (!hasBp && !hasHr) return;
+				const boxId = hasBp ? ('#hsSparkBoxbp' + (this.embedded ? 'e' : 'p')) :
+					('#hsSparkBoxhr' + (this.embedded ? 'e' : 'p'));
+				const querySeq = (this._sparkQuerySeq = (this._sparkQuerySeq || 0) + 1);
+				try {
+					uni.createSelectorQuery().in(this).select(boxId).boundingClientRect(rect => {
+						// 过期查询 / 已销毁：忽略，避免 App 视图层 vm not found 后续逻辑
+						if (this._hsDestroyed || querySeq !== this._sparkQuerySeq) return;
+						if (!rect || !rect.width || rect.width < 8) {
+							// rect 为空多伴随 Not Found，少重试；仅宽高不足时可多试几次
+							const noNode = !rect;
+							const maxRetry = noNode ? 2 : 8;
+							if (retry < maxRetry) {
+								if (this._sparkRetryTimer) clearTimeout(this._sparkRetryTimer);
+								this._sparkRetryTimer = setTimeout(() => {
+									this._sparkRetryTimer = null;
+									if (!this._hsDestroyed) this.mountSparkWhenReady(retry + 1, force);
+								}, noNode ? 300 : (160 + retry * 80));
+							}
+							return;
+						}
+						// 已显示时优先 reshow，避免频繁销毁触发 option/context 异步空引用
+						if (this.sparkShow && !force) {
+							this.sparkReshow = false;
+							this.$nextTick(() => {
+								if (!this._hsDestroyed) this.sparkReshow = true;
+							});
+							return;
+						}
+						this.sparkShow = false;
+						this.sparkReshow = false;
+						this.sparkEpoch += 1;
+						this.$nextTick(() => {
+							if (this._hsDestroyed) return;
+							this._sparkShowTimer = setTimeout(() => {
+								this._sparkShowTimer = null;
+								if (this._hsDestroyed) return;
+								this.sparkShow = true;
+								this.$nextTick(() => {
+									if (!this._hsDestroyed) this.sparkReshow = true;
+								});
+							}, force ? 120 : 60);
+						});
+					}).exec();
+				} catch (e) {
+					// App 端组件已销毁时 createSelectorQuery.in(this) 可能抛 Not Found / vm not found，忽略即可
+				}
 			},
 			hasSparkValues(data) {
 				if (!data || !data.length) return false;
@@ -712,6 +859,7 @@
 				for (let i = 0; i < dateList.length; i++) {
 					data.push(hrMap.has(dateList[i].dateStr) ? hrMap.get(dateList[i].dateStr) : null);
 				}
+				if (!this.hasSparkValues(data)) return;
 				this.sparkChartHr = {
 					categories: dateList.map(function() {
 						return '';
@@ -1070,19 +1218,47 @@
 			isValidRegisterVal(val) {
 				return val != null && val !== '' && val !== '-/-';
 			},
+			/** 与首页一致：数字时间原样比较，日期字符串按东八区换成秒 */
+			registerUpdateTimeSec(updateTime) {
+				const num = Number(updateTime);
+				if (!Number.isNaN(num) && num > 0) {
+					return num;
+				}
+				if (typeof updateTime !== 'string') {
+					return 0;
+				}
+				const m = updateTime.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+				if (!m) {
+					return 0;
+				}
+				const ms = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]) - 8, Number(m[5]),
+					Number(m[6]));
+				return Number.isNaN(ms) ? 0 : Math.floor(ms / 1000);
+			},
+			normalizeHomeVitalTs(ts) {
+				if (ts === '' || ts == null || ts === undefined) {
+					return 0;
+				}
+				const num = Number(ts);
+				if (Number.isNaN(num) || num <= 0) {
+					return 0;
+				}
+				return num > 9999999999 ? Math.floor(num / 1000) : Math.floor(num);
+			},
 			getLatestRegisterFromList(list, register) {
 				if (!list || !list.length) return null;
 				let best = null;
 				for (let i = 0; i < list.length; i++) {
 					const row = list[i];
 					if (!row || row.register !== register) continue;
-					if (!this.isValidRegisterVal(row.registerVal) && !(row.updateTime > 0)) continue;
+					if (!this.isValidRegisterVal(row.registerVal) && !(this.registerUpdateTimeSec(row.updateTime) > 0))
+						continue;
 					if (!best) {
 						best = row;
 						continue;
 					}
-					const tNew = Number(row.updateTime) || 0;
-					const tOld = Number(best.updateTime) || 0;
+					const tNew = this.registerUpdateTimeSec(row.updateTime);
+					const tOld = this.registerUpdateTimeSec(best.updateTime);
 					if (tNew > tOld) {
 						best = row;
 					} else if (tNew === tOld && this.isValidRegisterVal(row.registerVal) &&
@@ -1112,7 +1288,8 @@
 				const pickSide = (sideData) => {
 					const high = this.getLatestRegisterFromList(sideData, 'highPressure');
 					const low = this.getLatestRegisterFromList(sideData, 'lowPressure');
-					const time = Math.max(Number(high && high.updateTime) || 0, Number(low && low.updateTime) || 0);
+					const time = Math.max(this.registerUpdateTimeSec(high && high.updateTime), this
+						.registerUpdateTimeSec(low && low.updateTime));
 					const hasVal = this.isValidRegisterVal(high && high.registerVal) ||
 						this.isValidRegisterVal(low && low.registerVal);
 					return {
@@ -1136,14 +1313,120 @@
 				const spo2 = uni.getStorageSync('xueyang');
 				if (this.isValidMetric(high)) this.highPressure = high;
 				if (this.isValidMetric(low)) this.lowPressure = low;
-				if (this.isValidMetric(pulse)) this.pulse = pulse;
+				const isBpw6 = !!(uni.getStorageSync('BPW6devicemac') || uni.getStorageSync('BPW6deviceSn'));
+				// BPW6：重开先不用本地心率垫屏，等 loadHomeMetrics，避免先闪上一次
+				if (!isBpw6 && this.isValidMetric(pulse)) this.pulse = pulse;
 				if (this.isValidMetric(spo2)) this.spo2 = spo2;
 				this.applyHomeSync();
 			},
+			findHomeCard(titles) {
+				const list = this.syncList;
+				if (!list || !list.length || !titles || !titles.length) return null;
+				for (let i = 0; i < list.length; i++) {
+					const item = list[i];
+					if (item && titles.indexOf(item.title) >= 0) return item;
+				}
+				return null;
+			},
+			asCardDate(value) {
+				if (value === '' || value == null || value === undefined) {
+					return '--/--';
+				}
+				const trimmed = String(value).trim();
+				if (!trimmed || trimmed === '-' || trimmed === '-/-' || trimmed === '--/--') {
+					return '--/--';
+				}
+				if (/^\d{1,2}[\/\-.]\d{1,2}$/.test(trimmed)) {
+					return trimmed.replace(/[-.]/g, '/');
+				}
+				return this.formatCardDate(value);
+			},
+			getSyncedArmCuffBp() {
+				const bp = this.syncArmCuffBp;
+				if (!this.embedded || !bp || bp.time !== this.normalizeHomeVitalTs(uni.getStorageSync('parseBloodDatatime')) ||
+					Number(bp.high) !== Number(uni.getStorageSync('highPressure')) ||
+					Number(bp.low) !== Number(uni.getStorageSync('lowPressure'))) return null;
+				return bp;
+			},
 			applyHomeSync() {
-				if (this.isValidMetric(this.syncHighPressure)) this.highPressure = this.syncHighPressure;
-				if (this.isValidMetric(this.syncLowPressure)) this.lowPressure = this.syncLowPressure;
+				const syncBpTs = this.normalizeHomeVitalTs(uni.getStorageSync('parseBloodDatatime'));
+				const apiBpTs = this.normalizeHomeVitalTs(this.apiBpTs);
+				const armCuffBp = this.getSyncedArmCuffBp();
+				// 面板刚用接口刷过更新血压时，勿被父页旧 sync 盖回上一次
+				let preferApiBp = apiBpTs > 0 && (!syncBpTs || apiBpTs >= syncBpTs);
+				if (armCuffBp && apiBpTs <= armCuffBp.time) preferApiBp = false;
+				// 父页 keepLocal 仍推旧血压（如 143/91），但面板已按 list_recipe 刷成套新值：保持接口，勿回写错配
+				if (!preferApiBp && !armCuffBp && apiBpTs > 0 && this.isValidMetric(this.highPressure) && this.isValidMetric(this
+						.lowPressure)) {
+					const syncH = this.syncHighPressure;
+					const syncL = this.syncLowPressure;
+					const syncDiffers = (this.isValidMetric(syncH) && String(syncH).trim() !== String(this.highPressure)
+							.trim()) ||
+						(this.isValidMetric(syncL) && String(syncL).trim() !== String(this.lowPressure).trim());
+					const syncHr = this.syncPulse;
+					const apiHrPairedWithPanelBp = this.isValidMetric(syncHr) && this.isValidMetric(this.pulse) &&
+						String(syncHr).trim() === String(this.pulse).trim();
+					if (syncDiffers && apiHrPairedWithPanelBp) {
+						preferApiBp = true;
+					}
+				}
+				if (!preferApiBp) {
+					if (this.isValidMetric(this.syncHighPressure)) this.highPressure = this.syncHighPressure;
+					if (this.isValidMetric(this.syncLowPressure)) this.lowPressure = this.syncLowPressure;
+				}
 				if (this.isValidMetric(this.syncPulse)) this.pulse = this.syncPulse;
+				if (this.isValidMetric(this.syncSpo2)) this.spo2 = this.syncSpo2;
+				const hrCard = this.findHomeCard([this.$t('心率'), '心率', 'Heart']);
+				const o2Card = this.findHomeCard([this.$t('血氧'), '血氧', 'SpO2', 'SpO₂']);
+				if (!this.isValidMetric(this.syncPulse) && hrCard && this.isValidMetric(hrCard.Step_number)) {
+					this.pulse = hrCard.Step_number;
+				}
+				if (!this.isValidMetric(this.syncSpo2) && o2Card && this.isValidMetric(o2Card.Step_number)) {
+					this.spo2 = o2Card.Step_number;
+				}
+				const hrDate = this.asCardDate((hrCard && hrCard.Step_count) || this.syncPulseTime ||
+					uni.getStorageSync('pulsetimes'));
+				if (hrDate !== '--/--') this.hrDate = hrDate;
+				const spo2Date = this.asCardDate((o2Card && o2Card.Step_count) || this.syncSpo2Time ||
+					uni.getStorageSync('xueyangtimes'));
+				if (spo2Date !== '--/--') this.spo2Date = spo2Date;
+				if (!preferApiBp) {
+					const bpDate = this.asCardDate(uni.getStorageSync('parseBloodDatatime'));
+					if (bpDate !== '--/--') this.bpDate = bpDate;
+				}
+			},
+			formatCardDate(value) {
+				if (value === '' || value == null || value === undefined) {
+					return '--/--';
+				}
+				if (typeof value === 'string') {
+					const trimmed = value.trim();
+					if (!trimmed || trimmed === '-' || trimmed === '-/-' || trimmed === '--/--') {
+						return '--/--';
+					}
+					const md = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
+					if (md) {
+						return String(md[1]).padStart(2, '0') + '/' + String(md[2]).padStart(2, '0');
+					}
+					const ymd = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+					if (ymd) {
+						return ymd[2] + '/' + ymd[3];
+					}
+				}
+				let tsMs = Number(value);
+				if (Number.isNaN(tsMs) || tsMs <= 0) {
+					const parsed = new Date(value).getTime();
+					if (Number.isNaN(parsed) || parsed <= 0) {
+						return '--/--';
+					}
+					tsMs = parsed;
+				} else if (tsMs < 9999999999) {
+					tsMs = tsMs * 1000;
+				}
+				const beijingDate = new Date(tsMs + 8 * 3600000);
+				const month = String(beijingDate.getUTCMonth() + 1).padStart(2, '0');
+				const day = String(beijingDate.getUTCDate()).padStart(2, '0');
+				return month + '/' + day;
 			},
 			loadHomeMetrics() {
 				this.$post(this.$url_APP_IP + this.$url_list_recipe, {
@@ -1154,28 +1437,42 @@
 				}).then(res => {
 					if (res.code != 200 || !Array.isArray(res.data)) return;
 					const data = res.data;
-					const sn2 = data.filter(item => item.slaveSn === '2');
-					const sn3 = data.filter(item => item.slaveSn === '3');
+					const sn2 = data.filter(item => item.slaveSn === '2' || item.slaveSn === 2);
+					const sn3 = data.filter(item => item.slaveSn === '3' || item.slaveSn === 3);
 					const latestBp = this.getLatestBloodPressurePair(sn2, sn3);
 					const latestHr = this.getLatestRegisterEntry(sn2, sn3, 'heartrate');
 					const latestO2 = this.getLatestRegisterEntry(sn2, sn3, 'oxygen');
-					if (this.isValidRegisterVal(latestBp.high) && this.isValidRegisterVal(latestBp.low)) {
+					// 先同步父页卡片日期等，再让接口体征覆盖，避免旧 sync 属性把接口最新血压盖回上一次
+					this.applyHomeSync();
+					const armCuffBp = this.getSyncedArmCuffBp();
+					const keepArmCuffBp = armCuffBp && this.normalizeHomeVitalTs(latestBp.time) <= armCuffBp.time;
+					if (!keepArmCuffBp && this.isValidRegisterVal(latestBp.high) && this.isValidRegisterVal(latestBp.low)) {
 						this.highPressure = latestBp.high;
 						this.lowPressure = latestBp.low;
+						this.apiBpTs = latestBp.time || 0;
+						const bpDate = this.asCardDate(latestBp.time);
+						if (bpDate !== '--/--') this.bpDate = bpDate;
 					}
 					if (this.isValidRegisterVal(latestHr.value)) {
 						this.pulse = latestHr.value;
+						const hrDate = this.asCardDate(latestHr.time);
+						if (hrDate !== '--/--') this.hrDate = hrDate;
 					}
 					if (this.isValidRegisterVal(latestO2.value)) {
 						this.spo2 = latestO2.value;
+						const spo2Date = this.asCardDate(latestO2.time);
+						if (spo2Date !== '--/--') this.spo2Date = spo2Date;
 					} else if (this.isValidMetric(uni.getStorageSync('xueyang'))) {
 						this.spo2 = uni.getStorageSync('xueyang');
+						const spo2Date = this.asCardDate(uni.getStorageSync('xueyangtimes'));
+						if (spo2Date !== '--/--') this.spo2Date = spo2Date;
 					}
 					const heightRow = this.getLatestRegisterFromList(data, 'height');
 					if (heightRow && this.isValidRegisterVal(heightRow.registerVal)) {
 						this.heightVal = heightRow.registerVal;
+						const heightDate = this.formatCardDate(heightRow.updateTime);
+						if (heightDate !== '--/--') this.heightDate = heightDate;
 					}
-					this.applyHomeSync();
 				}).catch(() => {});
 			},
 			onRangeTap() {
@@ -1190,6 +1487,11 @@
 			onViewReport() {
 				uni.navigateTo({
 					url: '/pages/tabBar/main/report_all_type/report_all_type'
+				});
+			},
+			newasd() {
+				uni.navigateTo({
+					url: '/pages/tabBar/newatch/newwatchindex'
 				});
 			}
 		}
@@ -1484,6 +1786,15 @@
 		text-align: left;
 	}
 
+	.metric-date {
+		margin-top: 4rpx;
+		font-size: 24rpx;
+		font-weight: 700;
+		color: #1A2B4A;
+		line-height: 1.2;
+		text-align: left;
+	}
+
 	.metric-status {
 		display: flex;
 		flex-direction: row;
@@ -1509,10 +1820,46 @@
 		background: #C7C7CC;
 	}
 
+	.dot.bp-normal {
+		background: #A6CE39;
+	}
+
+	.dot.bp-high-normal {
+		background: #FFEC01;
+	}
+
+	.dot.bp-stage1 {
+		background: #FFB602;
+	}
+
+	.dot.bp-stage2 {
+		background: #BB3A01;
+	}
+
+	.dot.bp-low {
+		background: #FFF176;
+	}
+
+	.dot.spo2-low {
+		background: #FCCD41;
+	}
+
+	.dot.spo2-ok {
+		background: #58BF78;
+	}
+
+	.dot.spo2-high {
+		background: #58BF78;
+	}
+
 	.metric-status-text {
 		font-size: 24rpx;
 		color: #8E8E93;
 		line-height: 1.3;
+	}
+
+	.metric-status-text.ok {
+		color: #34C759;
 	}
 
 	.metric-status-text.warn {
@@ -1521,6 +1868,38 @@
 
 	.metric-status-text.mute {
 		color: #AEAEB2;
+	}
+
+	.metric-status-text.bp-normal {
+		color: #A6CE39;
+	}
+
+	.metric-status-text.bp-high-normal {
+		color: #FFEC01;
+	}
+
+	.metric-status-text.bp-stage1 {
+		color: #FFB602;
+	}
+
+	.metric-status-text.bp-stage2 {
+		color: #BB3A01;
+	}
+
+	.metric-status-text.bp-low {
+		color: #C9A800;
+	}
+
+	.metric-status-text.spo2-low {
+		color: #FCCD41;
+	}
+
+	.metric-status-text.spo2-ok {
+		color: #58BF78;
+	}
+
+	.metric-status-text.spo2-high {
+		color: #58BF78;
 	}
 
 	.metric-help {
@@ -1581,10 +1960,12 @@
 	.sparkline {
 		flex: 1;
 		display: flex;
+		align-items: center;
 		height: 72rpx;
 		min-width: 160rpx;
 		overflow: hidden;
 		pointer-events: none;
+		position: relative;
 	}
 
 	.trend-status {

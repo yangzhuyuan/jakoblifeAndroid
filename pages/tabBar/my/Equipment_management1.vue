@@ -1,5 +1,5 @@
 <template>
-	<view class="pagsin" :class="{ 'pagsin-empty': !list.length }">
+	<view class="pagsin" :class="{ 'pagsin-empty': !list.length, 'pagsin-bound': !!list.length }">
 		<view v-if="!list.length" class="empty-page">
 			<view class="hs-header">
 				<view class="empty-header">
@@ -30,44 +30,72 @@
 				</view>
 			</view>
 			<view class="empty-bottom">
-				<button plain="true" class="button_bg_color empty-remove-btn" @tap="deleteDevice()">{{ $t('删除该设备') }}
+				<button plain="true" class="button_bg_color empty-remove-btn">{{ $t('删除该设备') }}
 				</button>
 				<text class="empty-footer-note">{{ $t('连接设备后即可使用') }}</text>
 			</view>
 		</view>
 		<template v-else>
-			<view class="list-container">
-				<view class="list-item">
-					<view class="item-content" @click="btn_add">
-						<image lazy-load style="width: 68px; height: 68px;" :src="imageurl"></image>
+			<view class="empty-page bound-page">
+				<view class="hs-header">
+					<view class="empty-header">
+						<text class="empty-title">{{ $t('我的设备') }}</text>
+						<text class="empty-subtitle">{{ $t('连接并管理您的Jakoblife设备') }}</text>
+					</view>
+					<image class="hero-img" src="/static/page_icon/app_icon_all.jpg" mode="aspectFit"></image>
+				</view>
+				<view class="empty-card bound-card">
+					<view class="empty-add-btn" @click="btn_add">
+						<view class="empty-add-icon">
+							<text class="empty-add-plus">+</text>
+						</view>
+						<text class="empty-add-text">{{ $t('添加设备') }}</text>
+					</view>
+					<view class="empty-tip-card">
+						<view class="empty-tip-icon-wrap">
+							<image class="empty-tip-icon" src="/static/page_icon/shebei_2.png" mode="aspectFit" />
+						</view>
+						<view class="empty-tip-body">
+							<text class="empty-tip-title">{{ $t('连接提示') }}</text>
+							<text class="empty-tip-desc">{{ $t('请开启蓝牙并将设备靠近手机') }}</text>
+						</view>
+					</view>
+					<view class="list-container">
+						<view class="list-item" v-for="(item, index) in list" :key="index"
+							:class="{ active: act === index }" @click="checkClick(index, item)">
+							<view class="item-content">
+								<image lazy-load class="imagesd" mode="aspectFit"
+									:src="getDeviceImage(item.deviceModelId)">
+								</image>
+								<view class="xinghao">{{$t('型号') + (item.name==="BPW6"?"U19M/U16H":item.name)}}</view>
+								<view class="device-sn">SN:{{item.deviceSn}}</view>
+								<view v-if="item.name==='JL-S260'||item.name==='JL-S100'||item.name==='ZK-B872B'">
+								</view>
+								<view v-else class="device-ble-status-badge"
+									:class="isDeviceBleConnected(item.mac) ? 'is-on' : 'is-off'">
+									{{ isDeviceBleConnected(item.mac) ? $t('设备已连接') : $t('设备未连接') }}
+								</view>
+								<view v-if="isWifiSettableDevice(item)" class="device-set-wifi-btn"
+									@click.stop="onSetWifiClick(item)">
+									{{ $t('设置wifi') }}
+								</view>
+							</view>
+						</view>
 					</view>
 				</view>
-				<view class="list-item" v-for="(item, index) in list" :key="index" :class="{ active: act === index }"
-					@click="checkClick(index, item)">
-					<view class="item-content">
-						<image lazy-load class="imagesd" mode="aspectFit" :src="getDeviceImage(item.deviceModelId)">
-						</image>
-						<view class="xinghao">{{$t('型号') + (item.name==="BPW6"?"U19M":item.name)}}</view>
-						<view style="font-size: 10px; padding-bottom: 5px; text-align: center;">SN:{{item.deviceSn}}
-						</view>
-						<view v-if="item.name==='JL-S260'||item.name==='JL-S100'"></view>
-						<view v-else class="device-ble-status-badge"
-							:class="isDeviceBleConnected(item.mac) ? 'is-on' : 'is-off'">
-							{{ isDeviceBleConnected(item.mac) ? $t('设备已连接') : $t('设备未连接') }}
-						</view>
-					</view>
+				<view class="empty-bottom bound-bottom">
+					<button plain="true" class="button_bg_color"
+						:style="{ background: act === -1 ? '#DBDBDB' : '#3298F7' }"
+						@tap="deleteDevice()">{{$t('删除该设备')}}
+					</button>
 				</view>
-			</view>
-			<view class="bottom-bar">
-				<button plain="true" class="button_bg_color" :style="{ background: act === -1 ? '#DBDBDB' : '#3298F7' }"
-					@tap="deleteDevice()">{{$t('删除该设备')}}
-				</button>
 			</view>
 		</template>
 	</view>
 </template>
 
 <script>
+	import { getDeviceBindingContext, recordBoundDevices, recordDeviceUnbound } from '@/pages/api/deviceBindingState.js';
 	import {
 		mapState,
 		mapMutations
@@ -117,6 +145,19 @@
 			normalizeBleDeviceId(id) {
 				if (!id) return '';
 				return String(id).trim().toUpperCase();
+			},
+			/** listdadsa 解绑比对：兼容大小写 / 冒号，避免 ZK-872 等解绑后「已连接过的设备」残留 */
+			isSameListdadsaDeviceId(a, b) {
+				if (a == null || b == null || a === '' || b === '') return false;
+				if (a === b) return true;
+				const na = this.normalizeBleDeviceId(a);
+				const nb = this.normalizeBleDeviceId(b);
+				if (!na || !nb) return false;
+				if (na === nb) return true;
+				const ha = na.replace(/[^0-9A-F]/g, '');
+				const hb = nb.replace(/[^0-9A-F]/g, '');
+				// 仅双方都是 12 位 MAC 时去分隔符比较，避免 UUID 误伤
+				return ha.length === 12 && hb.length === 12 && ha === hb;
 			},
 			buildConnectedBleMacSet(devices) {
 				const set = {};
@@ -215,6 +256,31 @@
 				const key = this.normalizeBleDeviceId(mac);
 				return !!(key && this.connectedBleMacSet[key]);
 			},
+			isWifiSettableDevice(item) {
+				if (!item || !item.name) return false;
+				const name = item.name;
+				return name === 'JL-BP68W' || name === 'JL-BP67W' || name === 'ZK-B872' || name === 'ZK-B872B';
+			},
+			onSetWifiClick(item) {
+				if (!this.isWifiSettableDevice(item)) return;
+				this.navigateToWifiSetting(item);
+			},
+			navigateToWifiSetting(item) {
+				// 已绑定设备直接复用扫码后的配网流程，蓝牙连接由准备页处理。
+				const params = {
+					SELECT_TYPE: '0',
+					sn: item.deviceSn || '',
+					modelname: item.name || '',
+					modelId: item.deviceModelId || '',
+					fromManage: '1'
+				};
+				const deviceId = String(item.mac || '').trim();
+				if (deviceId) params.deviceId = deviceId;
+				const query = Object.keys(params).map(key => key + '=' + encodeURIComponent(params[key])).join('&');
+				uni.navigateTo({
+					url: '../../Bind/Bing_xueya/Bing_xueya?' + query
+				});
+			},
 			async disconnectAll(mac) {
 				this.bluetoothManager = new BluetoothManager();
 				this.bluetoothManager.disconnectDevice(mac);
@@ -244,9 +310,9 @@
 					'20001': this.getLocaleImage('JL-S100', '/static/image/jls260.png', '/static/image/tizhi1.jpg'),
 					'10000': this.getLocaleImage('TSB-617B-T', '/static/image/617.png', '/static/image/xueya1.png'),
 					'10001': this.getLocaleImage('JL-BP68W', '/static/image/BP68.png', '/static/image/xueya1.png'),
-					'10002': this.getLocaleImage('JL-BP67W', '/static/image/xueya1.png', '/static/image/xueya1.png'),
+					'10002': this.getLocaleImage('JL-BP67W', '/static/image/BP67.png', '/static/image/xueya1.png'),
 					'10003': this.getLocaleImage('JL-BP68G', '/static/image/68G.png', '/static/image/xueya1.png'),
-					'10004': this.getLocaleImage('JL-BP67G', '/static/image/xueya1.png', '/static/image/xueya1.png'),
+					'10004': this.getLocaleImage('JL-BP67G', '/static/image/BP67.png', '/static/image/xueya1.png'),
 					'10005': this.getLocaleImage('ZK-B872B', '/static/image/68G.png', '/static/image/xueya1.png'),
 				};
 				return devicePictures[deviceModelId] || '/static/image/xueya1.png';
@@ -322,10 +388,15 @@
 					uni.removeStorageSync('deviceIdwatch');
 					uni.removeStorageSync('serviceIdwatch');
 					uni.removeStorageSync('writeuuid');
+					uni.$emit('DEVICE_BLE_UNBIND', {
+						mac: this.mac,
+						deviceModelId: '30000',
+						reason: 'unbind'
+					});
 				}
 				if (this.deviceModelId === '30001') {
 					console.log('正在解绑设备，型号：30001');
-					// this.calculateChecksumsss1(this.mac);
+					this.calculateChecksumsss1(this.mac);
 					setTimeout(() => {
 						this.setacktypes6(0);
 						uni.removeStorageSync('BPW6devicemac');
@@ -353,6 +424,7 @@
 				return buffer;
 			},
 			queryDevices() {
+				const bindingContext = getDeviceBindingContext();
 				uni.request({
 					url: this.$url_APP_IP + this.$url_queryDevices,
 					method: 'POST',
@@ -360,12 +432,13 @@
 						'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 						'content-type': 'application/json;charset=UTF-8'
 					},
-					success: this.handleQueryDevicesSuccess,
+					success: (res) => this.handleQueryDevicesSuccess(res, bindingContext),
 					fail: this.handleQueryDevicesFail
 				});
 			},
-			handleQueryDevicesSuccess(res) {
+			handleQueryDevicesSuccess(res, bindingContext) {
 				if (res.data.code === 200) {
+					recordBoundDevices(res.data.rows, bindingContext);
 					this.list = this.formatDeviceList(res.data.rows);
 					this.removeDuplicateDeviceNames();
 					this.refreshBleConnectionState();
@@ -436,12 +509,13 @@
 				});
 			},
 			removeDuplicateDeviceNames() {
-				this.list = [...new Map(this.list.map(item => [item.name, item])).values()];
+				// 按 deviceSn / mac 去重，避免同型号多台设备被 name 合并成一台
+				this.list = [...new Map(this.list.map(item => {
+					const key = item.deviceSn || item.mac || item.name;
+					return [key, item];
+				})).values()];
 			},
 			clearHeartbeatInterval() {
-				// if (this.deviceModelId === '30001') {
-				// 	return;
-				// }
 				if (Vue.prototype.$globalTimers.heartbeatInterval) {
 					clearInterval(Vue.prototype.$globalTimers.heartbeatInterval);
 					Vue.prototype.$globalTimers.heartbeatInterval = null;
@@ -458,13 +532,15 @@
 						'Authorization': 'Bearer ' + uni.getStorageSync('token'),
 						'content-type': 'application/x-www-form-urlencoded'
 					},
-					success: this.handleUnbindSuccess(deviceModelId, mac),
+					success: this.handleUnbindSuccess(deviceModelId, mac, deviceSn),
 					fail: this.handleUnbindFail
 				});
 			},
-			handleUnbindSuccess(deviceModelId, mac) {
+			handleUnbindSuccess(deviceModelId, mac, deviceSn) {
+				const bindingContext = getDeviceBindingContext();
 				return (res) => {
 					if (res.data.code === 200) {
+						recordDeviceUnbound(deviceSn, this.list, bindingContext);
 						this.queryDevices();
 						if (deviceModelId !== '30001') {
 							this.clearHeartbeatInterval();
@@ -502,12 +578,24 @@
 						keys
 					}) => {
 						if (!keys.includes('listdadsa')) return;
-						const uniqueArr = uni.getStorageSync('listdadsa');
+						let uniqueArr = uni.getStorageSync('listdadsa');
+						if (!Array.isArray(uniqueArr) || !uniqueArr.length) return;
 						const isWeightScale = deviceModelId === '20000' || deviceModelId === '20001';
-						const deviceIndex = isWeightScale ?
-							uniqueArr.findIndex(item => item.name === 'EL2' || item.deviceId === mac) :
-							uniqueArr.findIndex(item => item.deviceId === mac);
-						if (deviceIndex !== -1) uniqueArr.splice(deviceIndex, 1);
+						if (isWeightScale) {
+							// 体脂秤：保持原「EL2 名或 deviceId」语义，仅增强 MAC 比对
+							const deviceIndex = uniqueArr.findIndex(item => item && (item.name === 'EL2' ||
+								this.isSameListdadsaDeviceId(item.deviceId, mac)));
+							if (deviceIndex !== -1) uniqueArr.splice(deviceIndex, 1);
+						} else {
+							// 血压计等：规范化比对，清掉同设备残留（大小写/冒号不一致时旧逻辑会漏删）
+							const before = uniqueArr.length;
+							uniqueArr = uniqueArr.filter(item => !this.isSameListdadsaDeviceId(item && item
+								.deviceId, mac));
+							if (uniqueArr.length === before && mac) {
+								const deviceIndex = uniqueArr.findIndex(item => item && item.deviceId === mac);
+								if (deviceIndex !== -1) uniqueArr.splice(deviceIndex, 1);
+							}
+						}
 						if (uniqueArr.length === 0) {
 							uni.removeStorageSync('listdadsa');
 						} else {
@@ -633,11 +721,122 @@
 		height: 100vh;
 	}
 
+	.pagsin-bound {
+		background: #F8F9FB;
+		padding-top: 0;
+		height: auto;
+		min-height: 100vh;
+	}
+
+	.bound-page {
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
+		padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
+	}
+
+	.bound-card {
+		align-items: stretch;
+		padding: 40rpx 32rpx 32rpx;
+	}
+
+	.bound-card .empty-tip-card {
+		background: #FFFFFF;
+		border: 1rpx solid #EEF2F6;
+		box-shadow: 0 6rpx 20rpx rgba(16, 24, 40, 0.06);
+		margin-bottom: 28rpx;
+	}
+
+	.bound-card .list-container {
+		width: 100%;
+		padding: 0 0 40rpx;
+		margin: 0;
+		box-sizing: border-box;
+	}
+
+	.bound-card .list-item {
+		background-color: #FFFFFF;
+		border-radius: 24rpx;
+		margin: 0 8rpx 16rpx;
+		padding: 16rpx 12rpx 20rpx;
+		box-shadow: 0 6rpx 20rpx rgba(16, 24, 40, 0.08);
+		border: 1rpx solid #F0F2F5;
+	}
+
+	.bound-card .item-content {
+		height: auto;
+		min-height: 320rpx;
+	}
+
+	.bound-card .imagesd {
+		width: 70%;
+		height: 160rpx;
+		margin-top: 8rpx;
+	}
+
+	.bound-card .xinghao {
+		font-size: 24rpx;
+		color: #1A2B4A;
+		margin-top: 12rpx;
+	}
+
+	.device-sn {
+		font-size: 20rpx;
+		color: #8A97AB;
+		padding-bottom: 10rpx;
+		text-align: center;
+		word-break: break-all;
+	}
+
+	.bound-card .device-ble-status-badge {
+		margin-top: 8rpx;
+		padding: 8rpx 20rpx;
+		font-size: 22rpx;
+		border-radius: 999rpx;
+		min-width: 120rpx;
+	}
+
+	.bound-card .device-ble-status-badge.is-off {
+		color: #FFFFFF;
+		background: #C8CDD4;
+	}
+
+	.bound-card .device-ble-status-badge.is-on {
+		color: #FFFFFF;
+		background: #3298F7;
+	}
+
+	.bound-card .device-set-wifi-btn {
+		margin-top: 12rpx;
+		padding: 8rpx 28rpx;
+		font-size: 22rpx;
+		color: #3298F7;
+		border: 1rpx solid #3298F7;
+		border-radius: 999rpx;
+		background: #FFFFFF;
+	}
+
+	.bound-bottom {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 20;
+		margin-top: 0;
+		padding: 24rpx 0 calc(24rpx + env(safe-area-inset-bottom));
+		background: #F8F9FB;
+	}
+
+	.bound-bottom .button_bg_color {
+		box-shadow: none;
+	}
+
 	.list-container {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		padding: 0 10px 160px 10px;
 		justify-content: space-between;
+		gap: 10px;
 	}
 
 	.list-item {
@@ -690,6 +889,16 @@
 		background: #f0f0f0;
 	}
 
+	.device-set-wifi-btn {
+		margin-top: 8px;
+		padding: 4px 12px;
+		font-size: 12px;
+		color: #3298F7;
+		border: 1px solid #3298F7;
+		border-radius: 999px;
+		text-align: center;
+	}
+
 	.bottom-bar {
 		width: 100vw;
 		height: 100px;
@@ -726,6 +935,10 @@
 		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.empty-page.bound-page {
+		padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
 	}
 
 	.empty-header {
@@ -769,7 +982,7 @@
 		background: #FFFFFF;
 		border-radius: 40rpx;
 		padding: 48rpx 40rpx 40rpx;
-		box-shadow: 0 8rpx 28rpx rgba(16, 24, 40, 0.06);
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -808,7 +1021,7 @@
 		align-items: center;
 		justify-content: center;
 		margin-bottom: 24rpx;
-		box-shadow: 0 8rpx 24rpx rgba(0, 122, 255, 0.28);
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	.empty-add-icon {
@@ -846,6 +1059,7 @@
 		align-items: center;
 		justify-content: center;
 		box-sizing: border-box;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	.empty-tip-icon-wrap {

@@ -21,7 +21,7 @@
 					<view class="steps-info">
 						<text class="steps-label">{{ $t('步数') }}</text>
 						<text class="steps-value">{{ displaySteps }}</text>
-						<text class="steps-sub">{{ $t('今日') }}</text>
+						<text class="steps-sub">{{ dateLabel }}</text>
 					</view>
 				</view>
 				<view class="col-divider"></view>
@@ -190,17 +190,20 @@
 				}
 			},
 			stepsNum() {
+				// 当天大数字：以接口回填的 bushu 为准（无当天则为 0）
+				if (this.isTodaySteps) {
+					const n = this.parseStepsVal(this.bushu)
+					return n == null ? 0 : n
+				}
 				const todayKey = this.localTodayMd()
 				const cats = (this.displayChartData.categories || [])
 				const vals = (this.displayChartData.series[0] && this.displayChartData.series[0].data) || []
 				const idx = cats.indexOf(todayKey)
 				if (idx >= 0) {
 					const n = Number(vals[idx])
-					if (Number.isFinite(n) && n > 0) return n
+					if (Number.isFinite(n) && n >= 0) return n
 				}
-				if (!this.isTodaySteps) return 0
-				const n = this.parseStepsVal(this.bushu)
-				return n == null ? 0 : n
+				return 0
 			},
 			goalNum() {
 				const n = parseInt(this.today_Daily_Goal, 10)
@@ -249,11 +252,11 @@
 				const todayKey = this.localTodayMd()
 				const apiKey = this.normalizeMdKey(this.bushu_time)
 				const apiVal = this.parseStepsVal(this.bushu)
-				if (apiKey === todayKey && apiVal != null) {
-					const prev = Number(source[todayKey])
-					if (!Number.isFinite(prev) || prev <= 0) {
-						source[todayKey] = apiVal
-					}
+				// 表其它天不变；当天与接口展示一致（有值用值，无则 0）
+				if (apiKey === todayKey) {
+					source[todayKey] = apiVal != null ? apiVal : 0
+				} else if (!(todayKey in source)) {
+					source[todayKey] = 0
 				}
 				const now = new Date()
 				const categories = []
@@ -311,17 +314,10 @@
 			dateLabel() {
 				const raw = String(this.bushu_time || '').trim()
 				if (!raw || raw === '--/--' || raw === '-/-') {
-					return this.formatDateFromParts(new Date())
+					return this.localTodayMd()
 				}
-				const parts = raw.split(/[\/\-.]/)
-				if (parts.length >= 2) {
-					const month = parseInt(parts[0], 10)
-					const day = parseInt(parts[1], 10)
-					if (!isNaN(month) && !isNaN(day)) {
-						return this.formatDateLabel(month, day)
-					}
-				}
-				return raw
+				const key = this.normalizeMdKey(raw)
+				return key || this.localTodayMd()
 			}
 		},
 		methods: {
@@ -558,7 +554,8 @@
 	.steps-sub {
 		margin-top: 2px;
 		font-size: 12px;
-		color: #8a94a6;
+		color: black;
+		font-weight: bold;
 		line-height: 1.2;
 	}
 

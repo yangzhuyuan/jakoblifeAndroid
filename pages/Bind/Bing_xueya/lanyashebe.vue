@@ -198,7 +198,7 @@
 			//获取蓝牙设备设置图标
 			getDeviceImage(deviceName) {
 				if (deviceName === 'BPW1') return '/static/page_icon/shoubiao.png';
-				if (deviceName.includes('U19M')) return '/static/page_icon/shoubiao.png';
+				if (deviceName.includes('U19M') || deviceName.includes('U16H')) return '/static/page_icon/shoubiao.png';
 				if (deviceName === 'EL2') return '/static/page_icon/lanya.png';
 				return '/static/page_icon/lanya.png';
 			},
@@ -708,7 +708,7 @@
 				that.$refs.popup.open("bottom");
 				uni.createBLEConnection({
 					deviceId: deviceId,
-					timeout: 8000,
+					timeout: 10000,
 					success(res) {
 						that.$refs.popup.close();
 						that.$refs.popup1.open("bottom");

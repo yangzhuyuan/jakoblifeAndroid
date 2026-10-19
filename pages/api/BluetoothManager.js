@@ -32,8 +32,27 @@ export default class BluetoothManager {
 		const isAlreadyConnected = await this.isDeviceConnected(deviceId);
 		if (isAlreadyConnected) {
 			await bluetooth.connect();
-			await bluetooth.delay(3000);
-			await bluetooth.getServices();
+			// 假 already 时服务可能瞬时未就绪；过长 delay 叠加心跳会卡死切页
+			await bluetooth.delay(500);
+			try {
+				await bluetooth.getServices();
+			} catch (eSvc) {
+				try {
+					await bluetooth.delay(400);
+					await bluetooth.getServices();
+				} catch (eSvc2) {
+					try {
+						await bluetooth.disconnect();
+					} catch (eClose) {}
+					throw eSvc2;
+				}
+			}
+			if (!bluetooth.services || bluetooth.services.length === 0) {
+				try {
+					await bluetooth.disconnect();
+				} catch (eEmpty) {}
+				throw new Error('BPW empty BLE services on already-connected');
+			}
 			// 根据服务数量处理不同的逻辑
 			switch (bluetooth.services.length) {
 				case 1:
@@ -67,8 +86,14 @@ export default class BluetoothManager {
 			return this.connectedDevices[deviceId];
 		}
 		await bluetooth.connect();
-		await bluetooth.delay(2000);
-		await bluetooth.getServices();
+		// 回连场景 2s 空等极易被二次 close → getServices 10004；短稳定即可
+		await bluetooth.delay(500);
+		try {
+			await bluetooth.getServices();
+		} catch (eSvc2) {
+			await bluetooth.delay(400);
+			await bluetooth.getServices();
+		}
 		// 根据服务数量处理不同的逻辑
 		switch (bluetooth.services.length) {
 			case 1:

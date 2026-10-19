@@ -27,7 +27,7 @@
 			"path": "pages/tabBar/tendency/Tendency",
 			"style": {
 				"navigationBarTitleText": "趋势",
-				"navigationBarBackgroundColor": "#EFEFF4",
+				"navigationBarBackgroundColor": "#F5F7FA",
 				"navigationBarTextStyle": "black",
 				"enablePullDownRefresh": true,
 				"app-plus": {
@@ -37,7 +37,7 @@
 							"text": "\ue8bd",
 							"fontSrc": "/static/ted.ttf",
 							"fontSize": "22px",
-							"color": "#000"
+							"color": "#3298F7"
 						}]
 					}
 				}
@@ -955,21 +955,110 @@
 			}
 		},
 		{
-			"path": "pages/tabBar/main/AI_Cardiovascular_Guardian",
-			"style": {
-				"navigationBarTitleText": "AI 心血管守护者",
-				"navigationBarBackgroundColor": "#0B3A5C",
-				"navigationBarTextStyle": "white"
-			}
-		},
-		{
 			"path": "pages/tabBar/main/Health_Summary",
 			"style": {
 				"navigationBarTitleText": "健康摘要",
 				"navigationBarBackgroundColor": "#EEF5FB",
 				"navigationBarTextStyle": "black"
 			}
+		},
+		{
+			"path": "pages/tabBar/newatch/newwatchindex",
+			"style": {
+				"navigationBarTitleText": "新手表",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/health_data/health_data",
+			"style": {
+				"navigationBarTitleText": "Health data",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/query/query",
+			"style": {
+				"navigationBarTitleText": "Query",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/setting/setting",
+			"style": {
+				"navigationBarTitleText": "Setting",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/appController/appController",
+			"style": {
+				"navigationBarTitleText": "App Controller",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/deviceController/deviceController",
+			"style": {
+				"navigationBarTitleText": "Device Controller",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/ecg/ecg",
+			"style": {
+				"navigationBarTitleText": "ECG",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/ota/ota",
+			"style": {
+				"navigationBarTitleText": "OTA",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/collection_data/collection_data",
+			"style": {
+				"navigationBarTitleText": "Collection data",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/watch_face/watch_face",
+			"style": {
+				"navigationBarTitleText": "Watch face",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/log/log",
+			"style": {
+				"navigationBarTitleText": "Log",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/tabBar/newatch/util/util",
+			"style": {
+				"navigationBarTitleText": "Util",
+				"navigationBarBackgroundColor": "#EEF5FB",
+				"navigationBarTextStyle": "black"
+			}
 		}
+
 	],
 
 	"globalStyle": {

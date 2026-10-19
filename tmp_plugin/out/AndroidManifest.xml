@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.android.bluetooth.myPlugin" > <!-- 允许程序访问WiFi网络状态 -->
+    <uses-sdk android:minSdkVersion="26" />
+
+    <!-- 蓝牙相关的权限 -->
+    <uses-permission android:name="android.permission.BLUETOOTH" /> <!-- 允许程序连接到已配对的蓝牙设备 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" /> <!-- 管理蓝牙设置 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /> <!-- 与已配对的蓝牙设备通信 -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" /> <!-- 查找蓝牙设备 -->
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> <!-- 大概位置定位 -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> <!-- 安卓10新增后台定位权限 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /> <!-- 精确位置定位 -->
+    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" /> <!-- 允许应用程序访问额外的位置提供命令 -->
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- 允许程序访问WiFi网络信息 -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" /> <!-- 允许程序修改WiFi网络信息 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+</manifest>

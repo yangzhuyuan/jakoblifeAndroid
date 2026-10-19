@@ -1,7 +1,8 @@
 {
   "version": "1",
   "env": {
-    "compilerVersion": "4.76"
+    "vapor": false,
+    "compilerVersion": "5.24"
   },
   "files": {
     "utssdk/app-android/index.uts": {

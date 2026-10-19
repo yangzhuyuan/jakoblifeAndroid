@@ -3,11 +3,11 @@
 		<view>
 			<view style="display: flex;flex-direction: column; padding-top: 120px; align-items: center; ">
 				<image src="../../../static/icons/shibaitubiao.png" style="width: 68px; height: 68px;"></image>
-				<view style="margin-top: 20px;font-weight: 600;font-size: 17px;">{{$t('添加失败请重试')}}</view>
+				<view style="margin-top: 20px;font-weight: 600;font-size: 17px;">{{$t(fromManage ? '更换WiFi账号密码失败' : '添加失败请重试')}}</view>
 				<view style="font-weight: 600;font-size: 17px;">{{bindqu}}</view>
 			</view>
 			<view style="position: fixed; bottom: 50px;width: 100vw;">
-				<button class="button_bg" @click="back()">{{$t('重新绑定')}}</button>
+				<button class="button_bg" @click="back()">{{$t(fromManage ? '再试一次' : '重新绑定')}}</button>
 				<view class="text" @click="bing_fail()">{{$t('绑定失败')}}</view>
 			</view>
 		</view>
@@ -31,10 +31,12 @@
 		data() {
 			return {
 				bindqu: '',
+				fromManage: false,
 			}
 		},
 
 		onLoad(opts) {
+			this.fromManage = opts.fromManage === '1' || opts.fromManage === 1 || opts.fromManage === true
 			switch (opts.bindcode) {
 				case "401":
 					this.bindqu = this.$t("该设备与其他帐号绑定")
@@ -48,12 +50,26 @@
 		onShow() {
 			let that = this
 			uni.setNavigationBarTitle({
-				title: that.$t('绑定设备')
+				title: that.$t(that.fromManage ? '为设备连接WiFi' : '绑定设备')
 			})
 		},
 
 		methods: {
 			back() {
+				if (this.fromManage) {
+					const pages = getCurrentPages()
+					const manageRoutes = ['pages/tabBar/device/Equipment_management',
+						'pages/tabBar/my/Equipment_management1'
+					]
+					for (let i = pages.length - 2; i >= 0; i--) {
+						if (manageRoutes.includes(pages[i].route)) {
+							uni.navigateBack({ delta: pages.length - 1 - i })
+							return
+						}
+					}
+					uni.switchTab({ url: '/pages/tabBar/device/Equipment_management' })
+					return
+				}
 				uni.switchTab({
 					url: "../../tabBar/my/My"
 				})

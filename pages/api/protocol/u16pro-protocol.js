@@ -686,11 +686,11 @@ export class U16ProProtocol {
 		}
 
 		if (!result.crcValid) {
-			console.warn('BC包CRC16校验失败', {
-				cmd: cmd.toString(16),
-				receivedCrc: receivedCrc.toString(16),
-				calculatedCrc: calculatedCrc.toString(16)
-			})
+			// console.warn('BC包CRC16校验失败', {
+			// 	cmd: cmd.toString(16),
+			// 	receivedCrc: receivedCrc.toString(16),
+			// 	calculatedCrc: calculatedCrc.toString(16)
+			// })
 		}
 
 		switch (cmd) {
@@ -968,7 +968,11 @@ export class U16ProProtocol {
 				result.data = this.parseBPHistory(bytes)
 				break
 			case CMD.HR_MEASUREMENT:
-				console.log('【解析心率测量响应】', bytes)
+				result.data = {
+					success: 0x38,
+					type: 'HR_MEASUREMENT'
+				}
+				console.log('【解析心率测量响应】', result.data)
 				break
 			case CMD.READ_HR_HISTORY:
 				result.data = this.parseHRHistory(bytes)
@@ -978,7 +982,7 @@ export class U16ProProtocol {
 					success: 0x39,
 					type: "SpO2_MEASUREMENT"
 				}
-				console.log('【解析血压测量响应】', result.data)
+				console.log('【解析血氧测量响应】', result.data)
 				break
 			case CMD.READ_SPO2_HISTORY:
 				result.data = this.parseSpO2History(bytes)

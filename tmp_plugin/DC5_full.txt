@@ -1,0 +1,42 @@
+﻿Compiled from "YcUniAppPluginDeviceControl.java"
+class com.android.bluetooth.ycSdkPlugin.YcUniAppPluginDeviceControl$5 implements com.yucheng.ycbtsdk.response.BleDataResponse {
+  final io.dcloud.feature.uniapp.bridge.UniJSCallback val$callback;
+
+  com.android.bluetooth.ycSdkPlugin.YcUniAppPluginDeviceControl$5(io.dcloud.feature.uniapp.bridge.UniJSCallback);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: putfield      #1                  // Field val$callback:Lio/dcloud/feature/uniapp/bridge/UniJSCallback;
+       5: aload_0
+       6: invokespecial #2                  // Method java/lang/Object."<init>":()V
+       9: return
+
+  public void onDataResponse(int, float, java.util.HashMap);
+    Code:
+       0: iload_1
+       1: invokestatic  #3                  // Method com/android/bluetooth/ycSdkPlugin/BluetoothPlugin.convertPluginState:(I)I
+       4: istore        4
+       6: new           #4                  // class com/alibaba/fastjson/JSONObject
+       9: dup
+      10: invokespecial #5                  // Method com/alibaba/fastjson/JSONObject."<init>":()V
+      13: astore        5
+      15: aload         5
+      17: ldc           #7                  // String code
+      19: iconst_0
+      20: invokestatic  #8                  // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+      23: invokevirtual #9                  // Method com/alibaba/fastjson/JSONObject.put:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;
+      26: pop
+      27: aload         5
+      29: ldc           #10                 // String data
+      31: iload         4
+      33: invokestatic  #8                  // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+      36: invokevirtual #9                  // Method com/alibaba/fastjson/JSONObject.put:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;
+      39: pop
+      40: aload_0
+      41: getfield      #1                  // Field val$callback:Lio/dcloud/feature/uniapp/bridge/UniJSCallback;
+      44: aload         5
+      46: iconst_0
+      47: invokestatic  #11                 // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+      50: invokestatic  #12                 // Method com/android/bluetooth/ycSdkPlugin/YcUniAppPluginDeviceControl.access$000:(Lio/dcloud/feature/uniapp/bridge/UniJSCallback;Lcom/alibaba/fastjson/JSONObject;Ljava/lang/Boolean;)V
+      53: return
+}

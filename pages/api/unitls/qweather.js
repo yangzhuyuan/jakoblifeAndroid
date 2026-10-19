@@ -353,7 +353,7 @@ export async function searchCityWeather(cityName, adm) {
  * 获取本地天气（包含空气质量）
  */
 export async function getGlobalLocalWeather() {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		// 使用 ip-api.com（无需Key，免费）
 		uni.request({
 			url: 'http://ip-api.com/json/?lang=zh-CN',

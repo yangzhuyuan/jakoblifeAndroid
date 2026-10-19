@@ -9,6 +9,10 @@
 			<view class="card-desc">
 				<text>{{$t("全天候血压监测覆盖睡眠与活动时段")}}</text>
 			</view>
+			<view class="emotion-tip-card">
+				<uni-icons type="info" size="18" color="#3298F7"></uni-icons>
+				<text class="emotion-tip-text">{{$t("24小时监测时间提示")}}</text>
+			</view>
 			<view v-if="activeMode === '24h'" class="report-info">
 				<view class="time-range">
 					<text>{{$t("白天监测时段")}}：06:00 - 21:30 ({{$t("每")}}30{{$t("分钟")}})</text>
@@ -712,6 +716,26 @@
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 20rpx;
+	}
+
+	.emotion-tip-card {
+		margin-top: 14px;
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+		background: #eaf4ff;
+		border-radius: 14px;
+		padding: 14px;
+		box-sizing: border-box;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	.emotion-tip-text {
+		flex: 1;
+		margin-left: 8px;
+		font-size: 12px;
+		color: #FF0000;
+		line-height: 1.5;
 	}
 
 	.mode-title {

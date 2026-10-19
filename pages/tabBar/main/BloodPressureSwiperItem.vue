@@ -1,148 +1,10 @@
-﻿<template>
+<template>
 	<view class="home-bp-page">
-		<HealthSummaryPanel ref="panel" :embedded="true" :tabActive="tabActive"
-			@measure-link="$emit('measure-link', $event)" @xueya-tap="$emit('xueya-tap')"
-			@bmi-tap="$emit('bmi-tap', $event)" />
-		<!-- <view class="home-cards-bottom">
-			<view class="data_bg">
-				<view class="icon_bg bp-measure-btn" @click="$emit('measure-link', 1)">
-					<view class="card-vital-icon-wrap">
-						<image lazy-load
-							:src="Languageceliang == 'zh-Hans' || Languageceliang == 'zh-Hant' ? '../../../static/icons/3.png' : '../../../static/icons/3.png'"
-							class="img_style_celiang" mode="aspectFit" />
-					</view>
-					<text class="bp-measure-action">{{$t('测量')}}</text>
-					<text class="bp-measure-label">{{$t('血压')}}</text>
-				</view>
-				<view class="xueya_all">
-					<view v-if="xueya == 0" class="xueya_item">
-						<view class="xueya_bg"></view>
-						<view class="common-style">
-							<view class="common-text">{{title_name}}</view>
-							<uni-icons type="help" size="15" @tap="$emit('xueya-tap')"></uni-icons>
-						</view>
-					</view>
-					<view v-else-if="xueya == 1" class="xueya_item">
-						<view class="xueya_bg_1"></view>
-						<view class="common-style">
-							<view class="common-text">{{title_name}}</view>
-							<uni-icons type="help" size="15" @tap="$emit('xueya-tap')"></uni-icons>
-						</view>
-					</view>
-					<view v-else-if="xueya == 2" class="xueya_item">
-						<view class="xueya_bg_2"></view>
-						<view class="common-style">
-							<view class="common-text">{{title_name}}</view>
-							<uni-icons type="help" size="15" @tap="$emit('xueya-tap')"></uni-icons>
-						</view>
-					</view>
-					<view v-else-if="xueya == 3" class="xueya_item">
-						<view class="xueya_bg_3"></view>
-						<view class="common-style">
-							<view class="common-text">{{title_name}}</view>
-							<uni-icons type="help" size="15" @tap="$emit('xueya-tap')"></uni-icons>
-						</view>
-					</view>
-					<view v-else-if="xueya == 4" class="xueya_item">
-						<view class="xueya_bg_4"></view>
-						<view class="common-style">
-							<view class="common-text">{{title_name}}</view>
-							<uni-icons type="help" size="15" @tap="$emit('xueya-tap')"></uni-icons>
-						</view>
-					</view>
-					<view class="borstysdl"></view>
-					<view @click="$emit('xueya-click')" class="yalisdsty">
-						<view>
-							<view class="yalisdjjj">{{$t('收缩压')}}/{{Blood}}</view>
-							<view class="yalisdjjj2">{{highPressure}}</view>
-						</view>
-						<view>
-							<view class="yalisdjjj">{{$t('舒张压')}}/{{Blood}}</view>
-							<view class="yalisdjjj2">{{lowPressure}}</view>
-						</view>
-						<view style="margin-left: 10px;">
-							<view class="yalisdjjj">{{$t('脉搏')}}/BPM</view>
-							<view class="yalisdjjj2" :key="'pulse-' + pulse">{{pulse}}</view>
-						</view>
-					</view>
-				</view>
-			</view>
-			<view class="data_bg_A">
-				<view class="title_zs1" @click="$emit('AI-note')">{{$t('血压计注意事项')}}</view>
-				<view v-show="binaji" class="tzkpsx" @click="$emit('edit-cards')">{{$t("编辑数据卡片")}}</view>
-				<view class="drag-containersss">
-					<basic-drag v-model="listModel" :disabled="disabledsaaa" itemKey="title" :column="2"
-						itemHeight="130px" @update:disabled="$emit('update:disabled', $event)">
-						<template #item="{element}">
-							<view class="data_item_bgsss" :class="'animation-' + animation"
-								@click="$emit('card-click', element)">
-								<view class="icon_bgsss">
-									<view v-if="isVitalCardIcon(element.title)" class="card-vital-icon-wrap">
-										<image :src="element.image" class="img_style_celiang " mode="aspectFit" />
-									</view>
-									<image v-else :src="element.image" class="img_style" mode="aspectFit" />
-									<text v-if="isVitalCardIcon(element.title)"
-										class="bp-measure-action">{{$t('测量')}}</text>
-									<text class="icon_text_bgsss">{{element.title}}</text>
-								</view>
-								<view class="elementsduu">
-									<view v-if="element.bmi_show">
-										<view class="xueya_item">
-											<text class="tesdtsdsdk">{{element.BMI_ys}}</text>
-											<uni-icons type="help" size="15" @tap="$emit('bmi-tap', element.title)" />
-										</view>
-									</view>
-									<view class="enlkij">
-										<view v-if="element.bmi_show">
-											<view v-if="element.BMI_TF === 0">
-												<view class="BMI_TF_0" />
-											</view>
-											<view v-else-if="element.BMI_TF === 1">
-												<view class="BMI_TF_1" />
-											</view>
-											<view v-else-if="element.BMI_TF ==2">
-												<view class="BMI_TF_2" />
-											</view>
-											<view v-else-if="element.BMI_TF ==3">
-												<view class="BMI_TF_3" />
-											</view>
-											<view v-else-if="element.BMI_TF ==4">
-												<view class="BMI_TF_4" />
-											</view>
-											<view v-else-if="element.BMI_TF ==10">
-												<view class="BMI_TF_10" />
-											</view>
-											<view v-else>
-												<view class="BMI_TF_5" />
-											</view>
-										</view>
-										<text class="teststuld">{{element.Step_number}}</text>
-									</view>
-									<text class="teststuld_1">{{element.type_LX}}</text>
-									<text class="teststuld_2">{{element.Step_count}}</text>
-								</view>
-								<view v-show="delate_icon" class="delete-button"
-									@touchstart.stop.prevent="$emit('delete-card', element.title, element)"
-									hover-class="del-hover">
-									<image src="/static/icons/minus_filled.png" class="delete-icon" mode="aspectFit" />
-								</view>
-							</view>
-						</template>
-					</basic-drag>
-				</view>
-				<view v-show="button_show" class="btnshow">
-					<view class="tuodongsd">{{$t('长按拖动可调整数据卡片位置')}}</view>
-					<view class="quernsda">
-						<view @click="$emit('confirm-cards')" class="cardstyle_1">{{$t('确认')}}</view>
-						<view @tap.stop="$emit('add-card')" class="cardstyle_2">{{$t('添加数据卡片')}}</view>
-					</view>
-				</view>
-				<view>
-					<image class="imashtylkkk" lazy-load src="/static/image/yundomng2.png" mode="aspectFit" />
-				</view>
-			</view>
-		</view>
-	 -->
+		<HealthSummaryPanel ref="panel" :embedded="true" :tabActive="tabActive" :syncHighPressure="highPressure"
+			:syncArmCuffBp="armCuffHomeBp"
+			:syncLowPressure="lowPressure" :syncPulse="pulse" :syncPulseTime="pulsetime" :syncSpo2="xueyang"
+			:syncSpo2Time="xueyangtimes" :syncList="list" @measure-link="$emit('measure-link', $event)"
+			@xueya-tap="$emit('xueya-tap')" @bmi-tap="$emit('bmi-tap', $event)" />
 	</view>
 </template>
 
@@ -157,6 +19,10 @@
 			HealthSummaryPanel
 		},
 		props: {
+			armCuffHomeBp: {
+				type: Object,
+				default: null
+			},
 			Languageceliang: {
 				type: String,
 				default: ''
@@ -184,6 +50,18 @@
 			pulse: {
 				type: [String, Number],
 				default: '--/--'
+			},
+			pulsetime: {
+				type: [String, Number],
+				default: ''
+			},
+			xueyang: {
+				type: [String, Number],
+				default: ''
+			},
+			xueyangtimes: {
+				type: [String, Number],
+				default: ''
 			},
 			binaji: {
 				type: Boolean,
@@ -228,14 +106,51 @@
 			Blood() {
 				this.syncPanelUnits();
 			},
+			highPressure() {
+				this.syncPanelFromHome();
+			},
+			lowPressure() {
+				this.syncPanelFromHome();
+			},
+			pulse() {
+				this.syncPanelFromHome();
+			},
+			pulsetime() {
+				this.syncPanelFromHome();
+			},
+			xueyang() {
+				this.syncPanelFromHome();
+			},
+			xueyangtimes() {
+				this.syncPanelFromHome();
+			},
+			list: {
+				deep: true,
+				handler() {
+					this.syncPanelFromHome();
+				}
+			},
 			tabActive(val) {
-				if (val) this.syncPanelUnits();
+				if (val) {
+					this.syncPanelUnits();
+					this.refreshPanel();
+				}
 			}
 		},
 		methods: {
 			syncPanelUnits() {
 				if (this.$refs.panel && this.$refs.panel.syncUnitSettings) {
 					this.$refs.panel.syncUnitSettings();
+				}
+			},
+			syncPanelFromHome() {
+				if (this.$refs.panel && this.$refs.panel.applyHomeSync) {
+					this.$refs.panel.applyHomeSync();
+				}
+			},
+			refreshPanel() {
+				if (this.$refs.panel && this.$refs.panel.refreshData) {
+					this.$refs.panel.refreshData();
 				}
 			},
 			isVitalCardIcon(title) {
@@ -397,7 +312,7 @@
 	.xueya_bg_4 {
 		width: 10px;
 		height: 10px;
-		background: #C7C7CC;
+		background: #FFF176;
 		border-radius: 50px;
 	}
 

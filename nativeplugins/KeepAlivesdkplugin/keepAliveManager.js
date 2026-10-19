@@ -1,6 +1,7 @@
 /**
  * 保活管理器 - 夜间防杀专用（含无声音乐保活 + 白名单管理 + 通知权限 + 定位保活）
  */
+import { hasAnyBoundDevice } from '../../pages/api/deviceBindingState.js';
 const keepAlive = uni.requireNativePlugin('KeepAliveModule');
 
 /** 情绪定时保活闹钟固定 15 秒（与 qxBleAlignedSchedule.QX_BLE_SLOT_ALARM_POLL_SEC 一致） */
@@ -17,6 +18,7 @@ function getQxBleKeepAliveAlarmIntervalSecFromStorage() {
 const BLOOD_PRESSURE_TIMER_CONFIG_KEY = 'blood_pressure_timer_config'
 
 function shouldKeepAliveForAppTimersFromStorage() {
+	if (!hasAnyBoundDevice()) return false;
 	if (getQxBleKeepAliveAlarmIntervalSecFromStorage() != null) return true
 	try {
 		const saved = uni.getStorageSync(BLOOD_PRESSURE_TIMER_CONFIG_KEY)
@@ -75,6 +77,8 @@ class KeepAliveManager {
 			model: ''
 		};
 		this.notificationEnabled = false; // 通知权限状态
+		this._notificationPermissionTimer = null;
+		this._notificationGuidePending = false;
 		/** 跳转厂商白名单/系统设置前已暂停前台服务，回到 App 后需恢复 */
 		this._suspendedForWhitelistUi = false;
 		this._alarmListenerBound = false;
@@ -160,6 +164,7 @@ class KeepAliveManager {
 	 * 应用进入后台时调用（在 App.vue onHide 中调用）
 	 */
 	onAppHide() {
+		if (!hasAnyBoundDevice()) return;
 		if (shouldKeepAliveForAppTimersFromStorage()) {
 			this.ensureAlarmListener();
 			this.ensureRunningForAppTimers();
@@ -186,6 +191,7 @@ class KeepAliveManager {
 	 * 应用进入前台时调用（在 App.vue onShow 中调用）
 	 */
 	onAppShow() {
+		if (!hasAnyBoundDevice()) return;
 		this._bgWhileInUseGuideShownThisLaunch = false;
 		setTimeout(() => {
 			this._promptBackgroundLocationWhileInUseOnAppShow();
@@ -194,6 +200,7 @@ class KeepAliveManager {
 
 	/** 重新进入 App 时：若仍为「仅使用期间允许」，再次提示并可跳转设置 */
 	_promptBackgroundLocationWhileInUseOnAppShow() {
+		if (!hasAnyBoundDevice()) return;
 		this._clearBackgroundWhileInUseAckIfGranted();
 		if (!this._isAndroidForegroundOnlyLocationState()) {
 			return;
@@ -209,9 +216,12 @@ class KeepAliveManager {
 		return hour >= NATIVE_NIGHT_START_HOUR || hour <= NATIVE_NIGHT_END_HOUR;
 	}
 
-	/** 是否走原生夜间防杀链（23–6，与 NightKeepAliveHelper 一致） */
+	/**
+	 * 是否走原生夜间防杀链。
+	 * 华为 2.19：夜间链会挂 JobScheduler 保活，已改为仅前台服务，不再启用夜间闹钟/Job。
+	 */
 	_shouldUseNightKeepAliveNative() {
-		return this._isNightHour();
+		return false;
 	}
 
 	/**
@@ -278,32 +288,18 @@ class KeepAliveManager {
 		const isNight = this._isNightHour();
 		const useNightNative = this._shouldUseNightKeepAliveNative();
 		const isZh = this.getLocale();
-		const alarmInterval = useNightNative ?
-			resolveNightKeepAliveAlarmIntervalSec() :
-			resolveKeepAliveAlarmIntervalSec(isNight);
-		let contentText;
-		if (forUpdate) {
-			const intervalSec = this.alarmInterval > 0 ? this.alarmInterval : alarmInterval;
-			contentText = isZh ?
-				`无声音乐保活中` :
-				`Silent music active`;
-		} else if (useNightNative) {
-			contentText = isZh ? '夜间防杀保护已开启' : 'Night anti-kill protection active';
-		} else if (isZh) {
-			contentText = isNight ? '后台服务夜间模式（无声音乐保活）' : '后台服务正常运行';
-		} else {
-			contentText = isNight ? 'Background service with silent music' : 'Background service running normally';
-		}
+		// 不再向原生传短周期 alarmInterval，避免触发系统定时器保活链
+		const alarmInterval = 0;
+		let contentText = isZh ? '设备连接服务运行中' : 'Device connection service running';
 		if (this.locationKeepAliveEnabled) {
-			contentText += isZh ? ' · 后台保活增强（不采集位置）' : ' · Enhanced keep-alive (no location collection)';
+			contentText += isZh ? ' · 后台连接增强' : ' · Background connection enhanced';
 		}
 		contentText = this._appendMeasuringHintIfNeeded(contentText, isZh);
 		return {
 			isNight,
 			isZh,
 			useNightNative,
-			title: (useNightNative || isNight) ?
-				(isZh ? '夜间保活中' : 'Nighttime Keep-Alive') : (isZh ? 'JakobLife' : 'JakobLife'),
+			title: isZh ? 'JakobLife' : 'JakobLife',
 			content: contentText,
 			icon: 'static/icons/48x48.png',
 			alarmInterval
@@ -322,18 +318,30 @@ class KeepAliveManager {
 		};
 	}
 
-	_startNativeDayKeepAlive(callback, enableJob = true) {
+	_cancelNativeAlarmTimers() {
+		try {
+			if (keepAlive && typeof keepAlive.cancelAlarmTimer === 'function') {
+				keepAlive.cancelAlarmTimer(() => {});
+			}
+		} catch (e) {}
+	}
+
+	/** 仅拉起前台服务；enableJob 固定 false，避免 JobScheduler 保活链 */
+	_startNativeDayKeepAlive(callback, enableJob = false) {
+		if (!hasAnyBoundDevice()) return;
 		const payload = this._buildKeepAliveNotificationPayload(false);
 		keepAlive.startKeepAlive({
 			title: payload.title,
 			content: payload.content,
 			icon: payload.icon,
-			alarmInterval: payload.alarmInterval,
-			enableJob: enableJob
+			alarmInterval: 0,
+			enableJob: false
 		}, (res) => {
+			if (!hasAnyBoundDevice()) return this.stopForNoBoundDevice();
 			this._nativeNightKeepAliveActive = false;
-			this._applyAlarmIntervalFromNativeRes(res, payload.alarmInterval);
+			this._applyAlarmIntervalFromNativeRes(res, 0);
 			this.nightMode = payload.isNight;
+			this._cancelNativeAlarmTimers();
 			if (typeof callback === 'function') {
 				callback(res);
 			}
@@ -341,10 +349,12 @@ class KeepAliveManager {
 	}
 
 	_startNativeNightKeepAlive(callback) {
+		if (!hasAnyBoundDevice()) return;
 		const payload = this._buildKeepAliveNotificationPayload(false);
 		keepAlive.startNightKeepAlive(
 			this._buildNightKeepAliveNativeOptions(payload),
 			(res) => {
+				if (!hasAnyBoundDevice()) return this.stopForNoBoundDevice();
 				this._nativeNightKeepAliveActive = !!(res && res.code === 0);
 				this._applyAlarmIntervalFromNativeRes(res, payload.alarmInterval);
 				this.nightMode = true;
@@ -392,37 +402,19 @@ class KeepAliveManager {
 				callback(res);
 			}
 		};
-		if (this._shouldUseNightKeepAliveNative()) {
-			if (this._nativeNightKeepAliveActive) {
-				const payload = this._buildKeepAliveNotificationPayload(false);
-				keepAlive.startNightKeepAlive(
-					this._buildNightKeepAliveNativeOptions(payload),
-					(res) => {
-						this._applyAlarmIntervalFromNativeRes(res, payload.alarmInterval);
-						afterChain(res);
-					}
-				);
-			} else {
-				this._startNativeNightKeepAlive(afterChain);
-			}
-			return;
-		}
+		// 若历史上开过夜间链，先停掉再走日间前台服务（无 Job / 无系统精确闹钟）
 		if (this._nativeNightKeepAliveActive) {
 			this._stopNativeNightKeepAlive(() => {
-				this._startNativeDayKeepAlive(afterChain, true);
+				this._startNativeDayKeepAlive(afterChain, false);
 			});
 			return;
 		}
-		this._startNativeDayKeepAlive(afterChain, true);
+		this._startNativeDayKeepAlive(afterChain, false);
 	}
 
-	/** 一键启动原生保活链（自动选择夜间/日间 API，闹钟由 _syncNativeKeepAliveMode 统一调度） */
+	/** 一键启动原生前台服务（不再走夜间 Job/闹钟链） */
 	_startNativeKeepAlive(callback) {
-		if (this._shouldUseNightKeepAliveNative()) {
-			this._startNativeNightKeepAlive(callback);
-			return;
-		}
-		this._startNativeDayKeepAlive(callback, true);
+		this._startNativeDayKeepAlive(callback, false);
 	}
 
 	/**
@@ -474,6 +466,7 @@ class KeepAliveManager {
 	 * @returns {Promise}
 	 */
 	async startLocationKeepAlive(options = {}) {
+		if (!hasAnyBoundDevice()) return { success: false, message: '未绑定设备' };
 		// console.log('[KeepAlive] ========== 开始启动定位保活 ==========');
 		const interval = options.interval || this.locationUpdateInterval;
 
@@ -512,11 +505,17 @@ class KeepAliveManager {
 
 		return new Promise((resolve) => {
 			// 调用原生层启动定位保活
+			if (!hasAnyBoundDevice()) return resolve({ success: false, message: '未绑定设备' });
 			keepAlive.startLocationKeepAlive((res) => {
+				if (!hasAnyBoundDevice()) {
+					this.stopLocationKeepAlive(true);
+					return resolve({ success: false, message: '未绑定设备' });
+				}
 				// console.log('[KeepAlive] 原生层返回结果:', JSON.stringify(res));
 
 				if (res.code === 0) {
 					this.locationKeepAliveEnabled = true;
+					this._locationKeepAliveSuspended = false;
 					this.locationUpdateInterval = interval;
 					this._saveLocationConfig();
 
@@ -647,7 +646,8 @@ class KeepAliveManager {
 	 * 停止定位保活
 	 * @returns {Promise}
 	 */
-	stopLocationKeepAlive() {
+	stopLocationKeepAlive(preserveConfig = false) {
+		if (preserveConfig) this._locationKeepAliveSuspended = true;
 		return new Promise((resolve) => {
 			console.log('[KeepAlive] 停止定位保活');
 
@@ -658,8 +658,10 @@ class KeepAliveManager {
 			keepAlive.stopLocationKeepAlive((res) => {
 				console.log('[KeepAlive] 定位保活停止结果:', res);
 
-				this.locationKeepAliveEnabled = false;
-				this._saveLocationConfig();
+				if (!preserveConfig) {
+					this.locationKeepAliveEnabled = false;
+					this._saveLocationConfig();
+				}
 
 				// 触发事件
 				this._emitLocationEvent('locationKeepAliveStopped', {});
@@ -680,11 +682,12 @@ class KeepAliveManager {
 	 * @returns {Promise}
 	 */
 	ensureLocationRunning(options = {}) {
+		if (!hasAnyBoundDevice()) return Promise.resolve({ success: false, message: '未绑定设备' });
 		// console.log('[KeepAlive] 确保定位保活服务运行中...');
 
 		return new Promise(async (resolve) => {
 			// 如果已经在运行，直接返回
-			if (this.locationKeepAliveEnabled) {
+			if (this.locationKeepAliveEnabled && !this._locationKeepAliveSuspended) {
 				// console.log('[KeepAlive] 定位保活已在运行中');
 
 				// 但仍然检查一下权限和定时器状态
@@ -748,11 +751,17 @@ class KeepAliveManager {
 			}
 
 			// 调用原生层启动
+			if (!hasAnyBoundDevice()) return resolve({ success: false, message: '未绑定设备' });
 			keepAlive.startLocationKeepAlive((res) => {
+				if (!hasAnyBoundDevice()) {
+					this.stopLocationKeepAlive(true);
+					return resolve({ success: false, message: '未绑定设备' });
+				}
 				console.log('[KeepAlive] ensureLocationRunning 结果:', res);
 
 				if (res.code === 0) {
 					this.locationKeepAliveEnabled = true;
+					this._locationKeepAliveSuspended = false;
 					this.locationUpdateInterval = interval;
 					this._saveLocationConfig();
 
@@ -1810,6 +1819,22 @@ class KeepAliveManager {
 	_markNotificationUserResponded() {
 		uni.setStorageSync(NOTIFICATION_USER_RESPONDED_KEY, true);
 		uni.setStorageSync('keepAlive_notification_guide_shown', true);
+		this._notificationGuidePending = false;
+	}
+
+	/** 两种自动通知引导共用一把锁，直到用户选择或系统授权回调完成。 */
+	_showNotificationGuideModal(options) {
+		if (!hasAnyBoundDevice() || this._notificationGuidePending || this._isNotificationUserResponded()) return;
+		this._notificationGuidePending = true;
+		try {
+			uni.showModal({
+				...options,
+				fail: () => { this._notificationGuidePending = false; }
+			});
+		} catch (e) {
+			this._notificationGuidePending = false;
+			console.log('[KeepAlive] 通知权限引导显示失败:', e);
+		}
 	}
 
 	/**
@@ -1872,7 +1897,7 @@ class KeepAliveManager {
 		const tail = isZh ?
 			'\n\n接下来将弹出系统权限对话框，请选择「允许」或「始终允许」。' :
 			'\n\nNext, the system will ask for notification permission—please tap Allow (or Always allow).';
-		uni.showModal({
+		this._showNotificationGuideModal({
 			title: isZh ? '通知权限说明' : 'About notification permission',
 			content: purpose + tail,
 			confirmText: isZh ? '继续' : 'Continue',
@@ -1891,6 +1916,7 @@ class KeepAliveManager {
 	 * 初始化保活（入口方法）
 	 */
 	init() {
+		if (!hasAnyBoundDevice()) return;
 
 		// console.log('[KeepAlive] 初始化保活', keepAlive);
 
@@ -1899,10 +1925,13 @@ class KeepAliveManager {
 			return;
 		}
 		this._initInProgress = true;
+		const initGeneration = this._initGeneration = (this._initGeneration || 0) + 1;
 		// console.log('[KeepAlive] 初始化保活管理器');
 		this.ensureAlarmListener();
 
 		keepAlive.init({}, (res) => {
+			if (!hasAnyBoundDevice()) return this.stopForNoBoundDevice();
+			if (initGeneration !== this._initGeneration) return;
 			// console.log('【KeepAlive】 初始化结果:', res);
 			this._initInProgress = false;
 
@@ -1915,8 +1944,11 @@ class KeepAliveManager {
 			// 无声音乐暂时关闭
 			// this.startSilentMusic();
 			this.startNightModeCheck();
-			// 前台服务 + 原生保活链（日间/夜间 API + 业务闹钟）
-			this._syncNativeKeepAliveMode();
+			// 停掉历史夜间 Job/闹钟链，仅保留前台服务（华为 2.19）
+			this._stopNativeNightKeepAlive(() => {
+				this._cancelNativeAlarmTimers();
+				this._syncNativeKeepAliveMode();
+			});
 			if (this.locationKeepAliveEnabled) {
 				setTimeout(() => {
 					this.ensureLocationRunning({
@@ -1981,9 +2013,15 @@ class KeepAliveManager {
 	 * 检查并引导通知权限
 	 */
 	checkAndGuideNotificationPermission() {
-		setTimeout(() => {
+		clearTimeout(this._notificationPermissionTimer);
+		const generation = this._initGeneration;
+		const timer = setTimeout(() => {
+			if (this._notificationPermissionTimer !== timer) return;
+			this._notificationPermissionTimer = null;
+			if (generation !== this._initGeneration || !hasAnyBoundDevice()) return;
 			this.checkNotificationPermission();
 		}, 2000);
+		this._notificationPermissionTimer = timer;
 	}
 
 	/**
@@ -2023,17 +2061,19 @@ class KeepAliveManager {
 			return false;
 		}
 		try {
-			const ret = plus.android.invoke(nm, 'areNotificationsEnabled', []);
-			return !!ret;
+			const ret = plus.android.invoke(nm, 'areNotificationsEnabled');
+			if (ret !== undefined && ret !== null) return !!ret;
 		} catch (e) {
-			try {
-				if (typeof nm.areNotificationsEnabled === 'function') {
-					return !!nm.areNotificationsEnabled();
-				}
-			} catch (e2) {}
 			console.log('[KeepAlive] areNotificationsEnabled 不可用:', e);
-			return true;
 		}
+		try {
+			if (typeof nm.areNotificationsEnabled === 'function') {
+				const ret = nm.areNotificationsEnabled();
+				if (ret !== undefined && ret !== null) return !!ret;
+			}
+		} catch (e2) {}
+		// 保持原异常兜底：读取失败不能当成用户关闭通知。
+		return true;
 		// #endif
 	}
 
@@ -2078,7 +2118,9 @@ class KeepAliveManager {
 
 			this.createNotificationChannel();
 
+			const generation = this._initGeneration;
 			plus.android.checkPermission('android.permission.POST_NOTIFICATIONS', (permRes) => {
+				if (generation !== this._initGeneration || !hasAnyBoundDevice() || this._isNotificationUserResponded()) return;
 				const runtimeGranted = permRes && permRes.checkResult === 0;
 				this.notificationEnabled = runtimeGranted && areNotificationsEnabled;
 				console.log('[KeepAlive] POST_NOTIFICATIONS:', runtimeGranted,
@@ -2185,7 +2227,7 @@ class KeepAliveManager {
 				'\n\nAfter enabling, the app can run more reliably in the background and show necessary device/data alerts.\n\nGo to settings now?';
 		}
 
-		uni.showModal({
+		this._showNotificationGuideModal({
 			title: title,
 			content: content,
 			confirmText: isZh ? '去开启' : 'Go Setting',
@@ -2205,6 +2247,7 @@ class KeepAliveManager {
 	 */
 	requestNotificationPermission() {
 		if (this.notificationEnabled) {
+			this._markNotificationUserResponded();
 			console.log('[KeepAlive] 通知权限已存在，无需重复请求');
 			const isZh = this.getLocale();
 			uni.showToast({
@@ -3112,12 +3155,10 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	}
 
 	/**
-	 * 设置JobScheduler
+	 * 设置JobScheduler（华为 2.19：禁用，避免系统定时任务保活）
 	 */
 	setJobScheduler() {
-		keepAlive.setJobScheduler({}, (res) => {
-			console.log('[KeepAlive] JobScheduler:', res);
-		});
+		return;
 	}
 
 	/**
@@ -3136,6 +3177,7 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	 * 启动夜间模式检测
 	 */
 	startNightModeCheck() {
+		if (!hasAnyBoundDevice()) return;
 		this.checkNightModeTransition();
 		this.checkTimer = setInterval(() => {
 			this.checkNightModeTransition();
@@ -3146,6 +3188,7 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	 * 检查夜间模式切换
 	 */
 	checkNightModeTransition() {
+		if (!hasAnyBoundDevice()) return;
 		const isNight = this._isNightHour();
 		if (isNight === this.nightMode) {
 			return;
@@ -3169,27 +3212,24 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	 * 更新通知内容
 	 */
 	updateNotification() {
+		if (!hasAnyBoundDevice()) return;
 		const payload = this._buildKeepAliveNotificationPayload(true);
-		if (payload.useNightNative || this._nativeNightKeepAliveActive) {
-			keepAlive.startNightKeepAlive(
-				this._buildNightKeepAliveNativeOptions(payload),
-				(res) => {
-					if (res && res.code === 0) {
-						this._nativeNightKeepAliveActive = true;
-					}
-					this._applyAlarmIntervalFromNativeRes(res, payload.alarmInterval);
-				}
-			);
+		if (this._nativeNightKeepAliveActive) {
+			this._stopNativeNightKeepAlive(() => {
+				this._startNativeDayKeepAlive(() => {}, false);
+			});
 			return;
 		}
 		keepAlive.startKeepAlive({
 			title: payload.title,
 			content: payload.content,
 			icon: payload.icon,
-			alarmInterval: payload.alarmInterval,
+			alarmInterval: 0,
 			enableJob: false
 		}, (res) => {
-			this._applyAlarmIntervalFromNativeRes(res, payload.alarmInterval);
+			if (!hasAnyBoundDevice()) return this.stopForNoBoundDevice();
+			this._applyAlarmIntervalFromNativeRes(res, 0);
+			this._cancelNativeAlarmTimers();
 		});
 	}
 
@@ -3197,6 +3237,7 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	 * 唤醒回调
 	 */
 	onWakeUp(data) {
+		if (!hasAnyBoundDevice()) return;
 		// console.log('[KeepAlive] 执行唤醒任务:', new Date().toLocaleString());
 		this.checkNightModeTransition();
 		if (this._isQxBleMeasuringForNotification()) {
@@ -3250,6 +3291,7 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 
 	/** 情绪/血压定时开启时：确保前台服务与闹钟监听已就绪（进后台前调用） */
 	ensureRunningForAppTimers() {
+		if (!hasAnyBoundDevice()) return;
 		this.ensureAlarmListener();
 		if (!this.isRunning) {
 			this.init();
@@ -3269,7 +3311,19 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 	/**
 	 * 停止保活
 	 */
-	stop() {
+	stopForNoBoundDevice() {
+		// 暂停服务但保留用户的定位配置，重新绑定后仍按原配置恢复。
+		this._stopNativeNightKeepAlive();
+		this._cancelNativeAlarmTimers();
+		this.stop(true);
+	}
+
+	stop(preserveLocationConfig = false) {
+		clearTimeout(this._notificationPermissionTimer);
+		this._notificationPermissionTimer = null;
+		this._initGeneration = (this._initGeneration || 0) + 1;
+		this._initInProgress = false;
+		this._alarmListenerBound = false;
 		console.log('[KeepAlive] 停止保活');
 		if (this.checkTimer) {
 			clearInterval(this.checkTimer);
@@ -3285,7 +3339,7 @@ Keep-alive channel: ${this.locationKeepAliveEnabled ? 'Enabled ✅' : 'Disabled 
 		}
 		// #endif
 
-		this.stopLocationKeepAlive();
+		this.stopLocationKeepAlive(preserveLocationConfig);
 		this.stopSilentMusic();
 
 		keepAlive.stopKeepAlive((res) => {

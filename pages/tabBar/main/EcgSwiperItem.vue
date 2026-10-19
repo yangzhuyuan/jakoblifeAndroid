@@ -1,7 +1,7 @@
 <template>
 	<view class="page">
 		<view class="ecg-container">
-			<ecg-wave ref="wave" :box-height="boxHeight" />
+			<ecg-wave ref="wave" :box-height="boxHeight" :invert-wave="invertWave" />
 		</view>
 		<view class="control-panel"></view>
 		<view style="padding:0px 20px;">
@@ -95,6 +95,10 @@
 			ecgWave
 		},
 		props: {
+			invertWave: {
+				type: Boolean,
+				default: false
+			},
 			statsVisible: {
 				type: Boolean,
 				default: true

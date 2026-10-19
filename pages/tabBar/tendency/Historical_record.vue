@@ -85,6 +85,9 @@
 	import BmiPopup from '../tendency/historecal/BmiPopup.vue';
 	import BloodOxygenPopup from '../tendency/historecal/BloodOxygenPopup.vue';
 	import ExportPopup from '../tendency/historecal/ExportPopup.vue';
+	import {
+		classifyBloodPressure
+	} from '../../api/unitls/bloodPressureLevel.js';
 
 	export default {
 		components: {
@@ -343,6 +346,9 @@
 			async queryBloodPressureData(deviceSn, startTime, endTime) {
 				const data = {
 					deviceSn,
+					// deviceSn: [
+					// 	"30000041421B6C1330"
+					// ],
 					dataType: "pressure",
 					slaveList: [{
 							slaveSn: "0",
@@ -360,11 +366,13 @@
 					startTime,
 					endTime,
 				};
+				console.log("血压数据查询成功:", data);
 				const res = await this.$post(this.$url_APP_IP + this.$url_query_log_v2, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token"),
 					'content-type': 'application/json;charset=UTF-8'
 				});
 				if (res.code === 200) {
+					console.log("血压数据查询成功:", res);
 					this.processBloodPressureData(res.data || []);
 				} else {
 					throw new Error(res.msg || '血压数据查询失败');
@@ -407,10 +415,14 @@
 					startTime,
 					endTime,
 				};
+				console.log("【原始体脂数据传参】" + this.$url_APP_IP, data);
+				console.log("【原始体脂数据传参】" + uni.getStorageSync("token"));
 				const res = await this.$post(this.$url_APP_IP + this.$url_query_log_v2, data, {
 					'Authorization': 'Bearer ' + uni.getStorageSync("token")
 				});
+				// console.log("【原始体脂数据】:", res, uni.getStorageSync("token"));
 				if (res.code === 200) {
+
 					this.processBodyFatData(res.data || []);
 				} else {
 					throw new Error(res.msg || '体脂数据查询失败');
@@ -506,37 +518,21 @@
 				}));
 			},
 
-			// 计算血压等级
+			// 计算血压等级（正常需双条件；其余优先收缩压，未命中再看舒张压）
 			calculateBloodPressureLevel(data, isDetail = false) {
 				if (!data) return isDetail ? {
 					level2: this.$t("未知"),
-					xueyalist1: 4
+					xueyalist1: 5
 				} : {
 					level: this.$t("未知"),
-					xueyalist: 4
+					xueyalist: 5
 				};
 
 				const low = isDetail ? data.lowPressure : data.lowPressureAvg;
 				const high = isDetail ? data.highPressure : data.highPressureAvg;
-
-				let level, xueyalist;
-
-				if ((low >= 61 && low <= 80) && (high >= 91 && high <= 120)) {
-					level = this.$t("正常血压");
-					xueyalist = 0;
-				} else if ((low >= 81 && low <= 90) || (high >= 121 && high <= 140)) {
-					level = this.$t("正常高血压值");
-					xueyalist = 1;
-				} else if ((low >= 91 && low <= 100) || (high >= 141 && high <= 160)) {
-					level = this.$t("一级高血压");
-					xueyalist = 2;
-				} else if ((low >= 101 && low <= 110) || (high >= 161 && high <= 180)) {
-					level = this.$t("二级高血压");
-					xueyalist = 3;
-				} else {
-					level = this.$t("未知");
-					xueyalist = 4;
-				}
+				const classified = classifyBloodPressure(low, high);
+				const level = this.$t(classified.key);
+				const xueyalist = classified.level >= 0 ? classified.level : 5;
 
 				return isDetail ? {
 					...data,
@@ -567,15 +563,12 @@
 				if (Number.isNaN(val)) {
 					level = this.$t("未知");
 					oxygenlist = 3;
-				} else if (val <= 95) {
+				} else if (val <= 92) {
 					level = this.$t('偏低');
 					oxygenlist = 0;
-				} else if (val < 98) {
+				} else {
 					level = this.$t('正常');
 					oxygenlist = 1;
-				} else {
-					level = this.$t('偏高');
-					oxygenlist = 2;
 				}
 
 				return isDetail ? {
@@ -947,6 +940,7 @@
 						'content-type': 'application/json' //自定义请求头信息
 					},
 					success(res) {
+						console.log("历史记录V2 - 体脂", data)
 						if (res.data.code == 200) {
 							that.swipeList1111 = []
 							res.data.data.forEach((item, index) => {
