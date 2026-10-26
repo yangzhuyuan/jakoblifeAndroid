@@ -423,11 +423,22 @@ class U16ProBLEManager {
 	}
 
 	/**
-	 * 设置 Main.vue 等页面的 notify 转发回调（uni-app 全局只能有一个监听）
+	 * 设置首页的统一 notify 转发；重新接管入口时让旧回调失效，避免重复解析。
 	 */
 	setForwardNotifyHandler(handler) {
 		this._forwardNotifyHandler = typeof handler === 'function' ? handler : null
-		this._registerUnifiedBleListener()
+		this._registerUnifiedBleListener(true)
+	}
+
+	// 配网页面仅接收指定设备的特征值，其余通知继续交给首页。
+	addScopedNotifyHandler(deviceId, serviceId, characteristicId, handler) {
+		if (!this._scopedNotifyHandlers) this._scopedNotifyHandlers = new Map()
+		this._scopedNotifyHandlers.set(handler, { deviceId, serviceId, characteristicId })
+		this._registerUnifiedBleListener(true)
+	}
+
+	removeScopedNotifyHandler(handler) {
+		if (this._scopedNotifyHandlers) this._scopedNotifyHandlers.delete(handler)
 	}
 
 	/**
@@ -436,25 +447,41 @@ class U16ProBLEManager {
 	 */
 	clearForwardNotifyRouting() {
 		this._forwardNotifyHandler = null
+		if (this._scopedNotifyHandlers && this._scopedNotifyHandlers.size) return
+		this._bleNotifyListener = null
 		this._bleListenerInitialized = false
 	}
 
 	/**
 	 * 注册统一的 BLE notify 监听（BC 协议优先，再转发给页面层）
 	 */
-	_registerUnifiedBleListener() {
-		if (this._bleListenerInitialized) {
+	_registerUnifiedBleListener(force = false) {
+		if (this._bleListenerInitialized && !force) {
 			return
 		}
-		uni.onBLECharacteristicValueChange((res) => {
+		const previous = this._bleNotifyListener
+		const listener = (res) => {
+			if (this._bleNotifyListener !== listener) return
+			if (this._scopedNotifyHandlers) {
+				for (const [handler, target] of this._scopedNotifyHandlers) {
+					if (String(res.deviceId || '').trim().toUpperCase() === String(target.deviceId).trim().toUpperCase() &&
+						this._isSameBleUuid(res.characteristicId, target.characteristicId) &&
+						(!res.serviceId || this._isSameBleUuid(res.serviceId, target.serviceId))) {
+						handler(res)
+						return
+					}
+				}
+			}
 			const bytes = [...new Uint8Array(res.value)]
-			const hexStr = U16ProProtocol.bytesToHex(bytes)
 			const serviceUpper = (res.serviceId || '').toUpperCase()
-			const isBcPacket = bytes.length && bytes[0] === BC_PACKET.HEADER
+			const targetId = this.bcDeviceId || this.deviceId || uni.getStorageSync('BPW6devicemac')
+			const isBpw6Device = !!targetId && String(res.deviceId || '').toUpperCase() ===
+				String(targetId).toUpperCase()
+			// BPW1 的 PPG 续包也可能以 BC 开头，不能仅凭首字节抢走其它设备的数据。
+			const isBcPacket = isBpw6Device && bytes.length && bytes[0] === BC_PACKET.HEADER
 			const isBcService = this._isSameBleUuid(serviceUpper, BC_BLE_UUID.SERVICE)
 
-			if (isBcPacket || isBcService) {
-				// console.log('【PPG notify】serviceId:', res.serviceId, 'data:', hexStr)
+			if ((isBcPacket || isBcService) && (!targetId || isBpw6Device)) {
 				this._lastBcNotifyTime = Date.now()
 				const bcResult = this._handleBcDataReceived(bytes, res.deviceId)
 				if (this._forwardNotifyHandler) {
@@ -463,7 +490,7 @@ class U16ProBLEManager {
 				return
 			}
 
-			if (this._isSameBleUuid(serviceUpper, BLE_UUID.SERVICE)) {
+			if (this._isSameBleUuid(serviceUpper, BLE_UUID.SERVICE) && (!targetId || isBpw6Device)) {
 				const mainResult = this._handleDataReceived(res, res.deviceId)
 				if (this._forwardNotifyHandler) {
 					this._forwardNotifyHandler(res, bytes, mainResult)
@@ -482,7 +509,12 @@ class U16ProBLEManager {
 			if (this._forwardNotifyHandler) {
 				this._forwardNotifyHandler(res, bytes, null)
 			}
-		})
+		}
+		this._bleNotifyListener = listener
+		if (previous && typeof uni.offBLECharacteristicValueChange === 'function') {
+			uni.offBLECharacteristicValueChange(previous)
+		}
+		uni.onBLECharacteristicValueChange(listener)
 		this._bleListenerInitialized = true
 	}
 

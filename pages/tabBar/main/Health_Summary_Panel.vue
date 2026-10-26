@@ -87,6 +87,10 @@
 	export default {
 		name: 'HealthSummaryPanel',
 		props: {
+			syncWatchBp: {
+				type: Object,
+				default: null
+			},
 			syncArmCuffBp: {
 				type: Object,
 				default: null
@@ -378,7 +382,8 @@
 						value: this.hrValue,
 						unit: this.isValidMetric(this.pulse) ? "BPM" : 'BPM',
 						date: this.hrDate,
-						status: this.hrStatus.text,
+						// status: this.hrStatus.text,
+						status: '',
 						tone: this.hrStatus.tone
 					},
 					{
@@ -513,6 +518,9 @@
 			});
 		},
 		watch: {
+			syncWatchBp() {
+				this.scheduleHomeSync();
+			},
 			syncArmCuffBp() {
 				this.scheduleHomeSync();
 			},
@@ -1343,7 +1351,16 @@
 			},
 			getSyncedArmCuffBp() {
 				const bp = this.syncArmCuffBp;
-				if (!this.embedded || !bp || bp.time !== this.normalizeHomeVitalTs(uni.getStorageSync('parseBloodDatatime')) ||
+				if (!this.embedded || !bp || bp.time !== this.normalizeHomeVitalTs(uni.getStorageSync(
+						'parseBloodDatatime')) ||
+					Number(bp.high) !== Number(uni.getStorageSync('highPressure')) ||
+					Number(bp.low) !== Number(uni.getStorageSync('lowPressure'))) return null;
+				return bp;
+			},
+			getSyncedWatchBp() {
+				const bp = this.syncWatchBp;
+				if (!this.embedded || !bp || bp.userId !== uni.getStorageSync('userid') ||
+					!(bp.time > 0) || bp.time !== this.normalizeHomeVitalTs(uni.getStorageSync('parseBloodDatatime')) ||
 					Number(bp.high) !== Number(uni.getStorageSync('highPressure')) ||
 					Number(bp.low) !== Number(uni.getStorageSync('lowPressure'))) return null;
 				return bp;
@@ -1352,11 +1369,14 @@
 				const syncBpTs = this.normalizeHomeVitalTs(uni.getStorageSync('parseBloodDatatime'));
 				const apiBpTs = this.normalizeHomeVitalTs(this.apiBpTs);
 				const armCuffBp = this.getSyncedArmCuffBp();
+				const watchBp = this.getSyncedWatchBp();
 				// 面板刚用接口刷过更新血压时，勿被父页旧 sync 盖回上一次
 				let preferApiBp = apiBpTs > 0 && (!syncBpTs || apiBpTs >= syncBpTs);
 				if (armCuffBp && apiBpTs <= armCuffBp.time) preferApiBp = false;
+				if (watchBp && apiBpTs <= watchBp.time) preferApiBp = false;
 				// 父页 keepLocal 仍推旧血压（如 143/91），但面板已按 list_recipe 刷成套新值：保持接口，勿回写错配
-				if (!preferApiBp && !armCuffBp && apiBpTs > 0 && this.isValidMetric(this.highPressure) && this.isValidMetric(this
+				if (!preferApiBp && !armCuffBp && !watchBp && apiBpTs > 0 && this.isValidMetric(this.highPressure) && this
+					.isValidMetric(this
 						.lowPressure)) {
 					const syncH = this.syncHighPressure;
 					const syncL = this.syncLowPressure;
@@ -1446,7 +1466,15 @@
 					this.applyHomeSync();
 					const armCuffBp = this.getSyncedArmCuffBp();
 					const keepArmCuffBp = armCuffBp && this.normalizeHomeVitalTs(latestBp.time) <= armCuffBp.time;
-					if (!keepArmCuffBp && this.isValidRegisterVal(latestBp.high) && this.isValidRegisterVal(latestBp.low)) {
+					const watchBp = this.getSyncedWatchBp();
+					const apiBpTs = this.normalizeHomeVitalTs(latestBp.time);
+					// 手表刚测值优先；接口已跟上后，迟到的更旧回包也不能倒退面板。
+					const hasWatchBp = this.embedded && this.syncWatchBp &&
+						this.syncWatchBp.userId === uni.getStorageSync('userid');
+					const keepWatchBp = (watchBp && apiBpTs <= watchBp.time) ||
+						(hasWatchBp && apiBpTs < this.normalizeHomeVitalTs(this.apiBpTs));
+					if (!keepArmCuffBp && !keepWatchBp && this.isValidRegisterVal(latestBp.high) && this.isValidRegisterVal(
+							latestBp.low)) {
 						this.highPressure = latestBp.high;
 						this.lowPressure = latestBp.low;
 						this.apiBpTs = latestBp.time || 0;

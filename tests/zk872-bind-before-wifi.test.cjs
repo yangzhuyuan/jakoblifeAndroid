@@ -300,7 +300,7 @@ test('device-management Wi-Fi ignores the account marker and keeps its return-wi
   h.page.btn_start();
   h.tick(1000);
   h.emit('+QSTASTAT:GOT_IP\r\n');
-  h.tick(1500);
+  h.tick(2000);
   assert.equal(h.calls.requests.length, 0);
   assert.equal(h.calls.navigation[0].kind, 'back');
 });

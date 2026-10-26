@@ -1,0 +1,12 @@
+{
+  "files": [
+    {
+      "file": "pages/tabBar/main/Main.vue",
+      "sha256": "9de6d8ae10d59cfd03623067424233b31f6387b431d7846dbacc00e91e541e17"
+    },
+    {
+      "file": "tests/device-binding-keepalive.test.cjs",
+      "sha256": "c2095372e1b36ba27f01d27c652e099dbaccefe0e1e9ecf19e637997c701009d"
+    }
+  ]
+}

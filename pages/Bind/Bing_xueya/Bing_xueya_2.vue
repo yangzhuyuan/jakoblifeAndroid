@@ -63,6 +63,7 @@
 	import {
 		getLocalTimeAllJSON
 	} from '@/pages/api/unitls/timezone.js'
+	import { u16proBLE } from '@/pages/api/protocol/u16pro-ble-manager.js'
 	export default {
 		data() {
 			return {
@@ -182,8 +183,8 @@
 				}
 			},
 			stopBleValueListener() {
-				if (this.bleValueHandler && typeof uni.offBLECharacteristicValueChange === 'function') {
-					uni.offBLECharacteristicValueChange(this.bleValueHandler)
+				if (this.bleValueHandler) {
+					u16proBLE.removeScopedNotifyHandler(this.bleValueHandler)
 				}
 				this.bleValueHandler = null
 				this.bleValueListening = false
@@ -572,6 +573,11 @@
 				this.addlog('WiFi设置成功，关闭加载提示', this.fromManage ? '返回设备管理' : '开始绑定设备')
 				uni.hideLoading()
 				if (this.fromManage) {
+					uni.showToast({
+						title: this.$t('WiFi更换成功'),
+						icon: 'none',
+						duration: 1500
+					})
 					this.bleNotifyResumeTimer = setTimeout(() => {
 						this.bleNotifyResumeTimer = null
 						// 跳过准备页和可能存在的蓝牙列表，返回本次配网的设备管理入口。
@@ -592,7 +598,7 @@
 								this.wifiConnecting = false
 							}
 						})
-					}, 800)
+					}, 1500)
 					return
 				}
 				this.bind_device(this.sn, deviceId, this.modelId)
@@ -716,12 +722,12 @@
 				}
 				that.bleValueListening = true
 				that.bleValueHandler = (res) => {
-					that.addlog('蓝牙特征值变化事件:', that.ab2hex(res.value))
 					if (!that.isWaitingForWifi(attemptId) || !that.wifiAtSent) return
 					if (that.normalizeBleId(res.deviceId) !== that.normalizeBleId(deviceId) ||
 						that.normalizeBleId(res.characteristicId) !== that.normalizeBleId(notifyuuid) ||
 						(res.serviceId && that.normalizeBleId(res.serviceId) !== that.normalizeBleId(serviceId)))
 						return
+					that.addlog('蓝牙特征值变化事件:', that.ab2hex(res.value))
 					let hexData = that.ab2hex(res.value)
 					let asciiString = that.hexToAscii(hexData)
 					that.addlog('接收到蓝牙数据:', asciiString)
@@ -765,7 +771,7 @@
 						that.addlog('收到OK，继续等待GOT_IP')
 					}
 				}
-				uni.onBLECharacteristicValueChange(that.bleValueHandler)
+				u16proBLE.addScopedNotifyHandler(deviceId, serviceId, notifyuuid, that.bleValueHandler)
 				that.addlog('蓝牙回包监听已注册')
 			},
 			getunbind(deviceSn) {
@@ -792,6 +798,7 @@
 			},
 			//设备绑定
 			bind_device(sn, MACdeviceID, modelId) {
+				console.log('设备绑定', sn, MACdeviceID, modelId)
 				const attemptId = this.wifiAttemptId
 				// 确认页已绑定的 ZK872 只核对当前账号，避免再次提交绑定被当成重复绑定。
 				const checkExistingBinding = this.zkAccountBound && !this.fromManage
@@ -829,13 +836,15 @@
 				}, 15000)
 				try {
 					this.bindRequestTask = uni.request({
-						url: this.$url_APP_IP + (checkExistingBinding ? this.$url_queryDevices : this.$url_bind_device),
+						url: this.$url_APP_IP + (checkExistingBinding ? this.$url_queryDevices : this
+							.$url_bind_device),
 						method: 'POST',
 						data,
 						timeout: 15000,
 						header: {
 							'Authorization': 'Bearer ' + uni.getStorageSync('token'),
-							'content-type': checkExistingBinding ? 'application/json;charset=UTF-8' : 'application/x-www-form-urlencoded;'
+							'content-type': checkExistingBinding ? 'application/json;charset=UTF-8' :
+								'application/x-www-form-urlencoded;'
 						},
 						success: (res) => {
 							if (res.statusCode !== 200 || !res.data || res.data.code == null) {
@@ -847,7 +856,9 @@
 							}
 							if (checkExistingBinding) {
 								if (res.data.code != 200 || !Array.isArray(res.data.rows)) {
-									fail({ errMsg: '查询设备绑定状态失败' })
+									fail({
+										errMsg: '查询设备绑定状态失败'
+									})
 									return
 								}
 								if (!res.data.rows.some(item => String(item.deviceSn) === String(sn))) {

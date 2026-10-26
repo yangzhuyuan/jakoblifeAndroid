@@ -50,6 +50,7 @@
 		isChinaTimezone,
 		resolveAbroadMonitorEndYmd,
 		resolveReportProfYmd,
+		resolveChinaMonitorReportRange,
 		shiftCalendarDay,
 		canFallbackAbroadProfDate,
 		hasRetVarListPayload
@@ -62,6 +63,7 @@
 				currentTab: 'all',
 				bloodUnit: uni.getStorageSync('Blood') === 0 || uni.getStorageSync('Blood') === '' ? 'mmHg' : 'kPa',
 				pacitime: '',
+				chinaMonitorRange: null,
 				filterVarList: "JLvFLGvJL01v1W",
 				period: "1W",
 			}
@@ -77,13 +79,17 @@
 			nightCount() {
 				return this.dataList.filter(item => item.period === 'night').length
 			},
-			// 提示日期取手机本地「昨天」
+			// 国内提示日期与本次查询范围一致；国外保留本地「昨天」规则。
 			dataTipText() {
 				const yesterday = new Date()
 				yesterday.setDate(yesterday.getDate() - 1)
 				let month = yesterday.getMonth() + 1
 				let day = yesterday.getDate()
-				if (!isChinaTimezone() && canFallbackAbroadProfDate()) {
+				if (this.chinaMonitorRange) {
+					const parts = this.chinaMonitorRange.endTime.slice(0, 10).split('-')
+					month = parseInt(parts[1], 10)
+					day = parseInt(parts[2], 10)
+				} else if (!isChinaTimezone() && canFallbackAbroadProfDate()) {
 					const tipYmd = shiftCalendarDay(resolveAbroadMonitorEndYmd(), -1)
 					const parts = String(tipYmd).split('-')
 					if (parts.length >= 3) {
@@ -112,11 +118,15 @@
 				this.currentTab = tab
 			},
 			calculateTimeRange() {
-				this.pacitime = resolveReportProfYmd()
+				this.chinaMonitorRange = resolveChinaMonitorReportRange(1)
+				this.pacitime = this.chinaMonitorRange ? this.chinaMonitorRange.profYmd : resolveReportProfYmd()
 			},
-			// 国内：只保留本地「昨天」和「前天」（今天 18 号 → 16、17 号）
+			// 国内：保留两个自然日，07:00 前再向前一天（23 号 → 20、21 号；07:00 起 → 21、22 号）。
 			// 国外：仅中国 00:00–00:59 按监测结束日往前一天（3–4）；过了 01:00 恢复本地昨天+前天
 			getTargetDateSet() {
+				if (this.chinaMonitorRange) {
+					return new Set([this.chinaMonitorRange.startTime.slice(0, 10), this.chinaMonitorRange.endTime.slice(0, 10)])
+				}
 				if (!isChinaTimezone() && canFallbackAbroadProfDate()) {
 					const endYmd = resolveAbroadMonitorEndYmd()
 					return new Set([shiftCalendarDay(endYmd, -1), endYmd])

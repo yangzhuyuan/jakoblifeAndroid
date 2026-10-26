@@ -183,7 +183,7 @@
 				// 报告日期展示用手机本地日历日
 				return getLocalTimeAllJSON().YMD
 			},
-			/** 跳转下一页时的报告日：本地展示 → 中国时区（含凌晨 1 点门槛） */
+			/** 跳转下一页时的报告日：国内 07:00 就绪，国外保持中国 01:00 换算。 */
 			getProfDateForNextPage() {
 				return resolveChinaReportDateFromLocal(this.profDate)
 			},

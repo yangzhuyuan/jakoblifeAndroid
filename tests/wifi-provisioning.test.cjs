@@ -7,7 +7,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../pages/Bind/Bing_xueya/Bing_xueya_2.vue'), 'utf8')
   .split('<script>')[1].split('</script>')[0]
-  .replace(/import[\s\S]*?from\s+'[^']+'/, '')
+  .replace(/import[\s\S]*?from\s+'[^']+';?/g, '')
   .replace('export default', 'module.exports =');
 
 function setup({ fromManage = true, platform = 'ios', notify, write, request, pageRoutes = [] } = {}) {
@@ -55,6 +55,10 @@ function setup({ fromManage = true, platform = 'ios', notify, write, request, pa
   };
   const context = {
     module: { exports: {} }, uni, console: { log() {} },
+    u16proBLE: {
+      addScopedNotifyHandler(deviceId, serviceId, characteristicId, handler) { uni.onBLECharacteristicValueChange(handler); },
+      removeScopedNotifyHandler(handler) { uni.offBLECharacteristicValueChange(handler); }
+    },
     setTimeout: schedule, clearTimeout: id => timers.delete(id),
     getCurrentPages: () => pageRoutes.map(route => ({ route })),
     getLocalTimeAllJSON: () => ({ YMDHMSWIFI: '20261015161109' })
@@ -119,7 +123,7 @@ test('reported OK -> disconnected -> connected -> GOT_IP closes loading and fini
   assert.equal(h.listeners.size, 0);
 });
 
-test('managed Wi-Fi success returns past setup pages to the originating manager without binding again', () => {
+test('managed Wi-Fi success shows confirmation before returning to the originating manager without binding again', () => {
   for (const manager of ['pages/tabBar/device/Equipment_management', 'pages/tabBar/my/Equipment_management1']) {
     for (const useBluetoothList of [false, true]) {
       const setupPages = ['pages/Bind/Bing_xueya/Bing_xueya'];
@@ -128,8 +132,18 @@ test('managed Wi-Fi success returns past setup pages to the originating manager 
       const h = setup({ pageRoutes: ['pages/tabBar/main/Main', manager, ...setupPages] });
       h.page.btn_start();
       h.tick(300);
+      assert.equal(h.calls.toasts.length, 0, 'writing credentials alone is not success');
       h.emit('+QSTASTAT:GOT_IP\r\n');
-      h.tick(1300);
+      h.tick(500);
+      assert.equal(h.calls.toasts.length, 1);
+      assert.equal(h.calls.toasts[0].title, 'WiFi更换成功');
+      assert.equal(h.calls.toasts[0].duration, 1500);
+      assert.equal(h.calls.loading, false);
+      h.emit('+QSTASTAT:GOT_IP\r\n');
+      h.tick(1499);
+      assert.equal(h.calls.navigation.length, 0, 'leave time to read the confirmation');
+      h.tick(1);
+      assert.equal(h.calls.toasts.length, 1, 'duplicate device replies must not repeat the confirmation');
       assert.equal(h.calls.navigation.length, 1);
       assert.equal(h.calls.navigation[0].kind, 'back');
       assert.equal(h.calls.navigation[0].delta, setupPages.length);
@@ -245,9 +259,9 @@ test('time write with no callback finishes after 3 seconds without restoring spi
   h.emit('+QSTASTAT:GOT_IP\r\n');
   h.tick(3500);
   assert.equal(h.calls.loading, false);
-  assert.equal(h.calls.toasts.at(-1).title, '保存成功');
+  assert.equal(h.calls.toasts.at(-1).title, 'WiFi更换成功');
   h.calls.writes[1].success({});
-  h.tick(800);
+  h.tick(1500);
   assert.equal(h.calls.navigation.length, 1);
 });
 
@@ -260,7 +274,7 @@ test('combined disconnect/GOT_IP packet succeeds; unrelated devices and characte
   assert.equal(h.calls.loading, true);
   h.emit('+QSTASTAT:WLAN_DISCONNECTED\r\n+QSTASTAT:GOT_IP\r\n');
   assert.equal(h.calls.loading, false);
-  h.tick(1300);
+  h.tick(2000);
   assert.equal(h.calls.navigation.length, 1);
 });
 
@@ -370,7 +384,7 @@ test('iOS AT and time sync honor the write mode selected during service discover
   h.page.btn_start();
   h.tick(1000);
   h.emit('+QSTASTAT:GOT_IP\r\n');
-  h.tick(1300);
+  h.tick(2000);
   assert.deepEqual(h.calls.writes.map(w => w.writeType), ['write', 'write']);
   assert.equal(h.calls.navigation.length, 1);
 });
@@ -396,7 +410,7 @@ test('Android uses writeNoResponse even when an old route suggests write', () =>
     h.page.btn_start();
     h.tick(300);
     h.emit('+QSTASTAT:GOT_IP\r\n');
-    h.tick(1300);
+    h.tick(2000);
     assert.deepEqual(h.calls.writes.map(w => w.writeType), ['writeNoResponse', 'writeNoResponse']);
     h.unload();
     assert.equal(h.timers.size, 0);
@@ -479,7 +493,7 @@ test('discovery -> route -> AT -> device reply -> time sync respects advertised 
       h.page.btn_start();
       h.tick(300);
       assert.equal(h.page.bleValueHandled, true, 'device must accept AT and return GOT_IP');
-      h.tick(1300);
+      h.tick(2000);
       assert.deepEqual(h.calls.writes.map(w => w.writeType), [expectedMode, expectedMode]);
       assert.equal(h.calls.writes[0].command, 'AT+QSTAAPINFODEF=TestWifi,test-password');
       assert.equal(Buffer.from(h.calls.writes[1].value).toString('hex'), '74696d654020261015161109');
@@ -513,7 +527,7 @@ test('management rediscovery carries the selected characteristic write mode into
     await new Promise(resolve => setImmediate(resolve));
     h.tick(300);
     h.emit('+QSTASTAT:GOT_IP\r\n');
-    h.tick(1300);
+    h.tick(2000);
     const expectedMode = properties.write ? 'write' : 'writeNoResponse';
     assert.deepEqual(h.calls.writes.map(w => w.writeType), [expectedMode, expectedMode]);
     assert.equal(h.calls.navigation[0].kind, 'back');
@@ -548,7 +562,7 @@ test('time sync failure does not change write mode or fail an established WiFi c
   h.page.btn_start();
   h.tick(1000);
   h.emit('+QSTASTAT:GOT_IP\r\n');
-  h.tick(1300);
+  h.tick(2000);
   assert.deepEqual(h.calls.writes.map(w => w.writeType), ['write', 'write']);
   assert.equal(h.calls.navigation.length, 1);
   assert.equal(h.calls.loading, false);
@@ -580,6 +594,7 @@ test('first binding waits for notification and listener readiness before writing
   h.emit('+QSTASTAT:GOT_IP\r\n');
   assert.equal(h.calls.loading, false);
   h.tick(1300);
+  assert.equal(h.calls.toasts.length, 0, 'first binding retains its success-page flow');
   assert.equal(h.calls.requests.length, 1);
   assert.equal(h.calls.requests[0].url, 'https://example.invalid/bind');
   assert.equal(h.calls.writes.length, 2);
@@ -676,7 +691,7 @@ test('a previous management notify callback cannot send AT for a new attempt', (
   h.tick(300);
   assert.equal(h.calls.writes.length, 1);
   h.emit('+QSTASTAT:GOT_IP\r\n');
-  h.tick(1300);
+  h.tick(2000);
   assert.equal(h.calls.navigation.length, 2);
   assert.equal(h.calls.navigation[0].url, '../Bing_page/Bind_fail?bindcode=0&fromManage=1');
   assert.equal(h.calls.navigation[1].kind, 'back');

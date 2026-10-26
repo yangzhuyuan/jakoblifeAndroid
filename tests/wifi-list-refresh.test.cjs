@@ -7,7 +7,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../pages/Bind/Bing_xueya/Bing_xueya_2.vue'), 'utf8')
   .split('<script>')[1].split('</script>')[0]
-  .replace(/import[\s\S]*?from\s+'[^']+'/, '')
+  .replace(/import[\s\S]*?from\s+'[^']+';?/g, '')
   .replace('export default', 'module.exports =');
 
 function setup({ native = true, startScan = () => true, startWifi, registerError, readError } = {}) {

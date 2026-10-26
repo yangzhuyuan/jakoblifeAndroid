@@ -266,9 +266,9 @@
 					</view>
 					<view class="popupsdind-body">
 						<view class="popupsdind_1">
-							<input type="number" v-model="tizhong" :placeholder="$t('请输入体重')"
+							<input type="digit" v-model="tizhong" :placeholder="$t('请输入体重')"
 								class="popupsdind-input" />
-							<text class="popupsdind-unit">kg</text>
+							<text class="popupsdind-unit">{{newweightKG}}</text>
 						</view>
 					</view>
 					<button @tap="jitizhong_tc()" class="butonsd">{{$t('确认')}}</button>
@@ -330,73 +330,73 @@
 								<view class="title_select_ruler">{{$t('胸围')}}</view>
 								<view style="display: flex;justify-content: center; flex-direction: row;">
 									<view style="font-weight: bold;font-size: 18px;">{{xw_value}}</view>
-									<text style="margin-left: 5px;">cm</text>
+									<text style="margin-left: 5px;">{{circumferenceUnit}}</text>
 								</view>
 								<text></text>
 							</view>
 							<view style="width: 90vw;margin-top: 10px;" v-if="tihziRulerReady >= 1">
-								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
-									:defaultValue="1000" @change="xw_handleChange"></select-ruler>
+								<select-ruler :key="circumferenceUnitIndex" :min="0" :max="circumferenceRulerMax" :disable="false" :multiple="10" :point="1"
+									:defaultValue="circumferenceRulerValue(xw_value)" @change="xw_handleChange"></select-ruler>
 							</view>
 							<view style="display: flex;justify-content: space-between;margin-top: 20px;">
 								<view class="title_select_ruler">{{$t('腰围')}}</view>
 								<view style="display: flex;justify-content: center; flex-direction: row;">
 									<view style="font-weight: bold;font-size: 18px;">{{yw_value}}</view>
-									<text style="margin-left: 5px;">cm</text>
+									<text style="margin-left: 5px;">{{circumferenceUnit}}</text>
 								</view>
 								<text></text>
 							</view>
 							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 2">
-								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
-									:defaultValue="1000" @change="yw_handleChange"></select-ruler>
+								<select-ruler :key="circumferenceUnitIndex" :min="0" :max="circumferenceRulerMax" :disable="false" :multiple="10" :point="1"
+									:defaultValue="circumferenceRulerValue(yw_value)" @change="yw_handleChange"></select-ruler>
 							</view>
 							<view style="display: flex;justify-content: space-between;margin-top: 20px;">
 								<view class="title_select_ruler">{{$t('臀围')}}</view>
 								<view style="display: flex;justify-content: center; flex-direction: row;">
 									<view style="font-weight: bold;font-size: 18px;">{{tw_value}}</view>
-									<text style="margin-left: 5px;">cm</text>
+									<text style="margin-left: 5px;">{{circumferenceUnit}}</text>
 								</view>
 								<text></text>
 							</view>
 							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 3">
-								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
-									:defaultValue="1000" @change="tw_handleChange"></select-ruler>
+								<select-ruler :key="circumferenceUnitIndex" :min="0" :max="circumferenceRulerMax" :disable="false" :multiple="10" :point="1"
+									:defaultValue="circumferenceRulerValue(tw_value)" @change="tw_handleChange"></select-ruler>
 							</view>
 							<view style="display: flex;justify-content: space-between;margin-top: 20px;">
 								<view class="title_select_ruler">{{$t('上臂围')}}</view>
 								<view style="display: flex;justify-content: center; flex-direction: row;">
 									<view style="font-weight: bold;font-size: 18px;">{{stw_value}}</view>
-									<text style="margin-left: 5px;">cm</text>
+									<text style="margin-left: 5px;">{{circumferenceUnit}}</text>
 								</view>
 								<text></text>
 							</view>
 							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 4">
-								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
-									:defaultValue="1000" @change="stw_handleChange"></select-ruler>
+								<select-ruler :key="circumferenceUnitIndex" :min="0" :max="circumferenceRulerMax" :disable="false" :multiple="10" :point="1"
+									:defaultValue="circumferenceRulerValue(stw_value)" @change="stw_handleChange"></select-ruler>
 							</view>
 							<view style="display: flex;justify-content: space-between;margin-top: 20px;">
 								<view class="title_select_ruler">{{$t('大腿围')}}</view>
 								<view style="display: flex;justify-content: center; flex-direction: row;">
 									<view style="font-weight: bold;font-size: 18px;">{{dtw_value}}</view>
-									<text style="margin-left: 5px;">cm</text>
+									<text style="margin-left: 5px;">{{circumferenceUnit}}</text>
 								</view>
 								<text></text>
 							</view>
 							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 5">
-								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
-									:defaultValue="1000" @change="dtw_handleChange"></select-ruler>
+								<select-ruler :key="circumferenceUnitIndex" :min="0" :max="circumferenceRulerMax" :disable="false" :multiple="10" :point="1"
+									:defaultValue="circumferenceRulerValue(dtw_value)" @change="dtw_handleChange"></select-ruler>
 							</view>
 							<view style="display: flex;justify-content: space-between;margin-top: 20px;">
 								<view class="title_select_ruler">{{$t('小腿围')}}</view>
 								<view style="display: flex;justify-content: center; flex-direction: row;">
 									<view style="font-weight: bold;font-size: 18px;">{{xtw_value}}</view>
-									<text style="margin-left: 5px;">cm</text>
+									<text style="margin-left: 5px;">{{circumferenceUnit}}</text>
 								</view>
 								<text></text>
 							</view>
 							<view style="width: 90vw;padding: 10px;" v-if="tihziRulerReady >= 6">
-								<select-ruler :min="0" :max="1500" :disable="false" :multiple="10" :point="1"
-									:defaultValue="1000" @change="xtw_handleChange"></select-ruler>
+								<select-ruler :key="circumferenceUnitIndex" :min="0" :max="circumferenceRulerMax" :disable="false" :multiple="10" :point="1"
+									:defaultValue="circumferenceRulerValue(xtw_value)" @change="xtw_handleChange"></select-ruler>
 							</view>
 						</view>
 						<button @tap="select_ruler()"
@@ -426,34 +426,34 @@
 						<view style="padding-bottom: 10px;">
 							<view style="padding: 10px;">
 								<view class="popupsdind_1">
-									<input type="number" v-model="xiongwei" :placeholder="$t('请输入胸围')"
+									<input type="digit" v-model="xiongwei" :placeholder="$t('请输入胸围')"
 										class="popupsdind-input" />
-									<text class="popupsdind-unit">cm</text>
+									<text class="popupsdind-unit">{{circumferenceUnit}}</text>
 								</view>
 								<view class="popupsdind_1" style="margin-top: 20px;">
-									<input type="number" v-model="yaowei" :placeholder="$t('请输入腰围')"
+									<input type="digit" v-model="yaowei" :placeholder="$t('请输入腰围')"
 										class="popupsdind-input" />
-									<text class="popupsdind-unit">cm</text>
+									<text class="popupsdind-unit">{{circumferenceUnit}}</text>
 								</view>
 								<view class="popupsdind_1" style="margin-top: 20px;">
-									<input type="number" v-model="tunwei" :placeholder="$t('请输入臀围')"
+									<input type="digit" v-model="tunwei" :placeholder="$t('请输入臀围')"
 										class="popupsdind-input" />
-									<text class="popupsdind-unit">cm</text>
+									<text class="popupsdind-unit">{{circumferenceUnit}}</text>
 								</view>
 								<view class="popupsdind_1" style="margin-top: 20px;">
-									<input type="number" v-model="shangtunwei" :placeholder="$t('请输入上臂围')"
+									<input type="digit" v-model="shangtunwei" :placeholder="$t('请输入上臂围')"
 										class="popupsdind-input" />
-									<text class="popupsdind-unit">cm</text>
+									<text class="popupsdind-unit">{{circumferenceUnit}}</text>
 								</view>
 								<view class="popupsdind_1" style="margin-top: 20px;">
-									<input type="number" v-model="datuiwei" :placeholder="$t('请输入大腿围')"
+									<input type="digit" v-model="datuiwei" :placeholder="$t('请输入大腿围')"
 										class="popupsdind-input" />
-									<text class="popupsdind-unit">cm</text>
+									<text class="popupsdind-unit">{{circumferenceUnit}}</text>
 								</view>
 								<view class="popupsdind_1" style="margin-top: 20px;">
-									<input type="number" v-model="xiaotuiwei" :placeholder="$t('请输入小腿围')"
+									<input type="digit" v-model="xiaotuiwei" :placeholder="$t('请输入小腿围')"
 										class="popupsdind-input" />
-									<text class="popupsdind-unit">cm</text>
+									<text class="popupsdind-unit">{{circumferenceUnit}}</text>
 								</view>
 							</view>
 							<button @tap="popup_sd()" class="butonsd">{{$t('确认')}}</button>
@@ -612,6 +612,12 @@
 	export default {
 		computed: {
 			...mapState(['info', 'bianhuadata', 'TenddeviceSn']),
+			circumferenceUnit() {
+				return this.circumferenceUnitIndex === 0 ? 'inch' : 'cm';
+			},
+			circumferenceRulerMax() {
+				return this.circumferenceUnitIndex === 0 ? Math.round(150 / WeightConverter.INCH_TO_CM * 10) : 1500;
+			},
 		},
 		onPullDownRefresh() {
 			this.queryDevices()
@@ -825,6 +831,7 @@
 				slaveSn: '3',
 				bloodUnitIndex: 0,
 				weightUnitIndex: 0,
+				circumferenceUnitIndex: 1,
 				bpMinMaxRaw: null,
 				bpMonthAvgRaw: null,
 				weightDayRaw: null,
@@ -906,9 +913,8 @@
 			},
 			syncUnitSettings() {
 				this.bloodUnitIndex = this.normalizeUnitIndex(uni.getStorageSync('Blood'));
-				this.weightUnitIndex = this.normalizeUnitIndex(uni.getStorageSync('danwei2'));
+				this.syncMeasurementInputUnits();
 				this.Blood = this.bloodUnitIndex === 0 ? 'mmHg' : 'kPa';
-				this.newweightKG = this.weightUnitIndex === 1 ? this.$t('英镑') : this.$t('千克');
 				this.xeuyaopts = Object.assign({}, this.xeuyaopts, {
 					yAxis: Object.assign({}, this.xeuyaopts.yAxis, {
 						data: [Object.assign({}, this.xeuyaopts.yAxis.data[0], {
@@ -926,6 +932,40 @@
 					})
 				});
 				this.applyUnitDisplay();
+			},
+			// 输入框保存当前显示单位；切换设置时同时换算尚未提交的数值。
+			syncMeasurementInputUnits() {
+				const weightUnit = this.normalizeUnitIndex(uni.getStorageSync('danwei2'));
+				const circumferenceUnit = this.normalizeUnitIndex(uni.getStorageSync('danwei1'));
+				if (weightUnit !== this.weightUnitIndex) {
+					this.tizhong = this.convertMeasurementInput(this.tizhong, value => weightUnit === 1 ?
+						WeightConverter.kgToLb(value) : WeightConverter.lbToKg(value));
+				}
+				if (circumferenceUnit !== this.circumferenceUnitIndex) {
+					const fields = ['xiongwei', 'yaowei', 'tunwei', 'shangtunwei', 'datuiwei', 'xiaotuiwei',
+						'xw_value', 'yw_value', 'tw_value', 'stw_value', 'dtw_value', 'xtw_value'];
+					fields.forEach(field => {
+						this[field] = this.convertMeasurementInput(this[field], value => circumferenceUnit === 0 ?
+							WeightConverter.cmToInch(value) : WeightConverter.inchToCm(value));
+					});
+				}
+				this.weightUnitIndex = weightUnit;
+				this.circumferenceUnitIndex = circumferenceUnit;
+				this.newweightKG = weightUnit === 1 ? this.$t('英镑') : this.$t('千克');
+			},
+			convertMeasurementInput(value, convert) {
+				if (value == null || value === '' || !Number.isFinite(Number(value))) return value;
+				return convert(Number(value));
+			},
+			circumferenceRulerValue(value) {
+				const initial = this.circumferenceUnitIndex === 0 ? WeightConverter.cmToInch(100) : 100;
+				const display = value == null || value === '' ? initial : Number(value);
+				return Math.max(0, Math.min(this.circumferenceRulerMax, Math.round(display * 10)));
+			},
+			// 六围接口仍使用 cm，英寸仅用于弹窗显示和输入。
+			circumferenceToCm(value) {
+				return this.circumferenceUnitIndex === 0 ?
+					this.convertMeasurementInput(value, number => WeightConverter.inchToCm(number)) : value;
 			},
 			formatBpValue(val) {
 				if (val == null || val === '') return '-';
@@ -1216,6 +1256,7 @@
 			},
 
 			Body_circumference() {
+				this.syncMeasurementInputUnits()
 				this.fillOut = false
 				this.$nextTick(() => {
 					this.$refs.tihzi_popup_hd.open("center")
@@ -1228,6 +1269,11 @@
 					this._tihziRulerTimer = null
 				}
 				if (e.show) {
+					this.syncMeasurementInputUnits()
+					const fields = ['xw_value', 'yw_value', 'tw_value', 'stw_value', 'dtw_value', 'xtw_value']
+					fields.forEach(field => {
+						this[field] = (this.circumferenceRulerValue(this[field]) / 10).toFixed(1)
+					})
 					this.tihziRulerReady = 0
 					const mountNext = () => {
 						if (this.tihziRulerReady < 6) {
@@ -1242,6 +1288,7 @@
 			},
 
 			Keep() {
+				this.syncMeasurementInputUnits()
 				this.fillOut = false
 				this.$refs.tizhong_popup.open("center")
 			},
@@ -1352,7 +1399,7 @@
 					deviceSn: uni.getStorageSync("deviceSn"),
 					slaveSn: "0",
 					slaveData: {
-						weight: that.tizhong
+						weight: that.isKgWeightUnit() ? that.tizhong : WeightConverter.lbToKg(that.tizhong)
 					},
 					time: timestamp
 				}
@@ -1399,17 +1446,17 @@
 							//目标体重 
 							goal_weight: '',
 							//胸围    
-							chest_circumference: that.xiongwei,
+							chest_circumference: that.circumferenceToCm(that.xiongwei),
 							//腰围   
-							waistline: that.yaowei,
+							waistline: that.circumferenceToCm(that.yaowei),
 							//臀围   
-							hipline: that.tunwei,
+							hipline: that.circumferenceToCm(that.tunwei),
 							//上臂围   
-							biceps_circumference: that.shangtunwei,
+							biceps_circumference: that.circumferenceToCm(that.shangtunwei),
 							//大腿围  
-							thigh_circumference: that.datuiwei,
+							thigh_circumference: that.circumferenceToCm(that.datuiwei),
 							//小腿围   
-							calf_circumference: that.xiaotuiwei,
+							calf_circumference: that.circumferenceToCm(that.xiaotuiwei),
 						},
 						time: timestamp
 					},
@@ -1464,17 +1511,17 @@
 							//目标体重 
 							goal_weight: '',
 							//胸围    
-							chest_circumference: that.xw_value,
+							chest_circumference: that.circumferenceToCm(that.xw_value),
 							//腰围   
-							waistline: that.yw_value,
+							waistline: that.circumferenceToCm(that.yw_value),
 							//臀围   
-							hipline: that.tw_value,
+							hipline: that.circumferenceToCm(that.tw_value),
 							//上臂围   
-							biceps_circumference: that.stw_value,
+							biceps_circumference: that.circumferenceToCm(that.stw_value),
 							//大腿围  
-							thigh_circumference: that.dtw_value,
+							thigh_circumference: that.circumferenceToCm(that.dtw_value),
 							//小腿围   
-							calf_circumference: that.xtw_value,
+							calf_circumference: that.circumferenceToCm(that.xtw_value),
 						},
 						time: timestamp
 					},

@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "file": "pages/Bind/Bing_xueya/Bing_xueya_2.vue",
+      "sha256": "566f8f58cac804bcf4b389a7826d6cb3d52472853eb1ca7ffad5e5e33dbac9e3"
+    },
+    {
+      "file": "pages/api/language.js",
+      "sha256": "797b9bd89b3e4b6addf21a716a869c38da4fb274cc6994bab7523a2f69e45894"
+    },
+    {
+      "file": "tests/wifi-provisioning.test.cjs",
+      "sha256": "a89949bd1e9288359071606eed701fd891e729d19b4e133f5b175f565dd9171f"
+    },
+    {
+      "file": "tests/zk872-bind-before-wifi.test.cjs",
+      "sha256": "9f3c0912891f09347648e4c0f7e531eda7f239d04ab22ef1ca026a66c60d59f0"
+    }
+  ]
+}

@@ -30,7 +30,8 @@
 				<image class="imgss_sc" mode="aspectFit"
 					:src="(language === 'zh-Hans' || language == 'zh-Hant')?'/static/image/U19M_zh_2.jpg':'/static/image/U19M_en_2.jpg'" />
 				<view class="bpw6-swipe-hint">
-					<text class="bpw6-swipe-hint-text">{{ (language === 'zh-Hans' || language == 'zh-Hant') ? '左滑' : 'Swipe left' }}</text>
+					<text
+						class="bpw6-swipe-hint-text">{{ (language === 'zh-Hans' || language == 'zh-Hant') ? '左滑' : 'Swipe left' }}</text>
 					<text class="bpw6-swipe-hint-arrow">-></text>
 				</view>
 				<image class="imgss_sc" mode="aspectFit" src="/static/image/U19M_en_3.jpg" />
@@ -80,7 +81,9 @@
 		mapMutations
 	} from 'vuex'
 	import appScan from '@/uni_modules/simbalkj-scan/components/simbalkj-scan/appScan.vue'
-	import { isZk872WifiModel } from '@/pages/api/zk872WifiConnection.js'
+	import {
+		isZk872WifiModel
+	} from '@/pages/api/zk872WifiConnection.js'
 	import {
 		u16proBLE
 	} from '@/pages/api/protocol/u16pro-ble-manager.js'
@@ -217,7 +220,7 @@
 				return
 			}
 			// 首次进入或需要重新初始化
-			uni.closeBluetoothAdapter()
+			if (!this.shouldPreserveWatchBle()) uni.closeBluetoothAdapter()
 			setTimeout(() => this.initBluetooth(), 1000)
 		},
 
@@ -251,6 +254,11 @@
 					gt.deviceBindingActive = active
 				}
 				uni.$emit(active ? 'DEVICE_BIND_PAGE_ACTIVE' : 'DEVICE_BIND_PAGE_INACTIVE')
+			},
+			shouldPreserveWatchBle() {
+				// ZK872 配网只操作血压计，不能重置已绑定手表共用的蓝牙模块。
+				return String(this.modelConnectType) === '2' && isZk872WifiModel(this.modelId, this.modelname) &&
+					!!(uni.getStorageSync('deviceIdwatch') || uni.getStorageSync('BPW6devicemac'))
 			},
 
 			// ==================== 蓝牙初始化 ====================
@@ -571,6 +579,7 @@
 			 * 处理BPW1扫码
 			 */
 			handleBPW1Code(barCode) {
+				console.log("barCode", barCode);
 				const match = barCode.match(/para=([^&]+)/)
 				if (match?.[1]) {
 					this.BPW1deviceId = match[1]
@@ -796,7 +805,10 @@
 				const sn = this.context_msg1
 				if (!sn) return
 				this.zkBinding = true
-				uni.showLoading({ title: this.$t('加载中'), mask: true })
+				uni.showLoading({
+					title: this.$t('加载中'),
+					mask: true
+				})
 				let settled = false
 				let completed = false
 				let loading = true
@@ -811,7 +823,10 @@
 					settled = true
 					if (active()) {
 						hideLoading()
-						uni.showToast({ title: this.$t('网络连接失败'), icon: 'none' })
+						uni.showToast({
+							title: this.$t('网络连接失败'),
+							icon: 'none'
+						})
 					}
 				}
 				const complete = () => {
@@ -825,7 +840,10 @@
 					const task = uni.request({
 						url: this.$url_APP_IP + this.$url_bind_device,
 						method: 'POST',
-						data: { deviceSn: sn, mac: String(this.wifiDeviceId || '').trim() },
+						data: {
+							deviceSn: sn,
+							mac: String(this.wifiDeviceId || '').trim()
+						},
 						timeout: 15000,
 						header: {
 							'Authorization': `Bearer ${uni.getStorageSync('token')}`,
@@ -843,11 +861,17 @@
 							if (!active()) return
 							hideLoading()
 							if (res.code == 401) {
-								uni.showToast({ title: this.$t('此设备已被其他账号绑定'), icon: 'none' })
+								uni.showToast({
+									title: this.$t('此设备已被其他账号绑定'),
+									icon: 'none'
+								})
 								return
 							}
 							if (res.code != 200) {
-								uni.showToast({ title: res.msg || this.$t('失败'), icon: 'none' })
+								uni.showToast({
+									title: res.msg || this.$t('失败'),
+									icon: 'none'
+								})
 								return
 							}
 							this.openZkWifiBindPage(modelId)
@@ -1611,7 +1635,7 @@
 					uni.stopBluetoothDevicesDiscovery()
 				} catch (e) {}
 				// BPW1 绑定成功跳转：只停扫描，不断开/关适配器（否则进主页重连很慢）
-				if (this._bpw1BindKeepBle) {
+				if (this._bpw1BindKeepBle || this.shouldPreserveWatchBle()) {
 					return
 				}
 				uni.closeBLEConnection()

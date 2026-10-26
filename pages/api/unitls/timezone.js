@@ -289,6 +289,26 @@ export function resolveChinaReportReadyYmd(now = new Date()) {
 	return chinaNow.YMD
 }
 
+/** 国内监测报告于 07:00 切换日期；24 小时为 06:00–06:00，7 天保留 08:00–21:05。 */
+export function resolveChinaMonitorReportRange(days = 1, now = new Date()) {
+	// 同为 UTC+8 的其他国家保持原规则；固定 GMT/UTC 或无地区 ID 时沿用偏移判断。
+	const zone = String(getDeviceTimeZone() || '').toLowerCase()
+	const chinaZones = ['asia/shanghai', 'asia/chongqing', 'asia/chungking', 'asia/harbin', 'asia/urumqi', 'prc']
+	if (zone && !chinaZones.includes(zone) && !/^(etc\/)?(gmt|utc)/.test(zone)) return null
+	if (!isChinaTimezone(now)) return null
+	const chinaNow = getChinaTimeAllJSON(now)
+	const profYmd = Number(chinaNow.YMDHMS.slice(11, 13)) < 7 ?
+		shiftCalendarDay(chinaNow.YMD, -1) : chinaNow.YMD
+	// 监测截止日为报告日期的前一天；接口仍使用报告日期，避免再回退一天。
+	const endYmd = shiftCalendarDay(profYmd, -1)
+	const isWeek = days === 7
+	return {
+		startTime: `${shiftCalendarDay(endYmd, isWeek ? -6 : -1)} ${isWeek ? '08:00:00' : '06:00:00'}`,
+		endTime: `${endYmd} ${isWeek ? '21:05:00' : '06:00:00'}`,
+		profYmd
+	}
+}
+
 /**
  * 日历日加减（按 YYYY-MM-DD，不走本地时区）
  * @param {string} ymd
@@ -363,8 +383,8 @@ export function resolveReportProfYmd(now = new Date()) {
 
 /**
  * 信息补充页「报告日期」跳转参数：
- * 选 D → 中国已过「D+1 日 01:00」则传 D+1，否则仍传 D
- * 例（中国）：选 22 号，中国已过 23 号 01:00 → 传 23；选 25 号，未过 26 号 01:00 → 传 25。
+ * 国内选 D → 已过「D+1 日 07:00」则传 D+1，否则仍传 D；选今天时使用最新就绪报告日。
+ * 国外仍按中国「D+1 日 01:00」换算，未到时传 D。
  * 例（其他时区）：洛杉矶选 21 号，中国已过 22 号 01:00 → 传 22；未过 → 传 21。
  * @param {string} localDateYmd 界面所选本地日期 YYYY-MM-DD
  * @param {Date} [now]
@@ -374,9 +394,11 @@ export function resolveChinaReportDateFromLocal(localDateYmd, now = new Date()) 
 	const localToday = getLocalTimeAllJSON(now).YMD
 	const selected = String(localDateYmd || '').trim().slice(0, 10)
 	const dateYmd = /^\d{4}-\d{2}-\d{2}$/.test(selected) ? selected : localToday
+	const chinaRange = resolveChinaMonitorReportRange(1, now)
+	if (chinaRange && dateYmd === localToday) return chinaRange.profYmd
 	const nextDay = addOneCalendarDay(dateYmd)
-	// 中国时区（UTC+8）下「次日 01:00:00」的绝对时刻
-	const thresholdMs = new Date(`${nextDay}T01:00:00+08:00`).getTime()
+	// 国内 07:00、国外保持中国 01:00 的报告就绪门槛。
+	const thresholdMs = new Date(`${nextDay}T${chinaRange ? '07' : '01'}:00:00+08:00`).getTime()
 	if (!Number.isFinite(thresholdMs)) {
 		return dateYmd
 	}

@@ -295,7 +295,7 @@ test('module-level BPW6 Doze alarm retains its existing interval when bound and 
 
 test('Main records no-MAC bindings even when appQX is off, before filtering its BLE device list', async () => {
   const h = setup({ appQX: '0' });
-  const page = methods('pages/tabBar/main/Main.vue', ['queryDevices'], h.context);
+  const page = methods('pages/tabBar/main/Main.vue', ['queryDevices', 'resolveZk872BleRows'], h.context);
   let resolve;
   Object.assign(page, { queryDevicesDone: true, $post: () => new Promise(r => { resolve = r; }),
     isEmotionMeasureBusySession: () => false, dropStaleBpw6Binding: noop });

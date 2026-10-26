@@ -1,7 +1,7 @@
 <template>
 	<view class="home-bp-page">
 		<HealthSummaryPanel ref="panel" :embedded="true" :tabActive="tabActive" :syncHighPressure="highPressure"
-			:syncArmCuffBp="armCuffHomeBp"
+			:syncArmCuffBp="armCuffHomeBp" :syncWatchBp="watchHomeBp"
 			:syncLowPressure="lowPressure" :syncPulse="pulse" :syncPulseTime="pulsetime" :syncSpo2="xueyang"
 			:syncSpo2Time="xueyangtimes" :syncList="list" @measure-link="$emit('measure-link', $event)"
 			@xueya-tap="$emit('xueya-tap')" @bmi-tap="$emit('bmi-tap', $event)" />
@@ -19,6 +19,10 @@
 			HealthSummaryPanel
 		},
 		props: {
+			watchHomeBp: {
+				type: Object,
+				default: null
+			},
 			armCuffHomeBp: {
 				type: Object,
 				default: null

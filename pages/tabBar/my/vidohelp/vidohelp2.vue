@@ -28,11 +28,11 @@
 						title: this.$t('臂式血压计的安装'),
 						list: [{
 								platform: 'youtube',
-								url: 'https://youtube.com/shorts/OlvxABTsPhk?si=UcUSHIL5WQLeAS7e'
+								url: 'https://youtube.com/shorts/54XE0ObAjFo?si=j0zdnKQlXLeUlS7P'
 							},
 							{
 								platform: 'douyin',
-								url: 'https://v.douyin.com/i_hsH1h_aZM/ 04/28 a@n.QX IiP:/'
+								url: 'https://v.douyin.com/x_YXqhmY224/'
 							}
 						]
 					},
@@ -64,11 +64,11 @@
 						title: this.$t('臂式血压计如何和手机APP配对'),
 						list: [{
 								platform: 'youtube',
-								url: 'https://youtube.com/shorts/ptCJFFL5doo?si=HeLEKSXDuo7lfnH5'
+								url: 'https://youtube.com/shorts/4tsayKqQT7E?si=EwzL2_5ALEZggSXp'
 							},
 							{
 								platform: 'douyin',
-								url: 'https://v.douyin.com/h_r5LDLUlZI/ J@I.iP 06/11 Dus:/'
+								url: 'https://v.douyin.com/Vcgmd6wxrDc/'
 							}
 						]
 					},

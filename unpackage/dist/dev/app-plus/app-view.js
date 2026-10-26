@@ -7308,7 +7308,7 @@ var render = function () {
               _c("v-uni-image", {
                 staticClass: _vm._$g(9, "sc"),
                 attrs: {
-                  src: "/static/page_icon/aipbg.jpg",
+                  src: "/static/page_icon/aipbg.png",
                   mode: "aspectFit",
                   _i: 9,
                 },
@@ -21579,7 +21579,7 @@ var _index = _interopRequireDefault(__webpack_require__(/*! @/components/basic-d
 var _Health_Summary_Panel = _interopRequireDefault(__webpack_require__(/*! ./Health_Summary_Panel.vue */ 195));
 var _default = {
   name: "BloodPressureSwiperItem",
-  props: ["armCuffHomeBp", "Languageceliang", "xueya", "title_name", "Blood", "highPressure", "lowPressure", "pulse", "pulsetime", "xueyang", "xueyangtimes", "binaji", "list", "disabledsaaa", "animation", "delate_icon", "button_show", "tabActive"],
+  props: ["watchHomeBp", "armCuffHomeBp", "Languageceliang", "xueya", "title_name", "Blood", "highPressure", "lowPressure", "pulse", "pulsetime", "xueyang", "xueyangtimes", "binaji", "list", "disabledsaaa", "animation", "delate_icon", "button_show", "tabActive"],
   data: function data() {
     return {
       wxsProps: {}
@@ -22126,7 +22126,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 var _default = {
   name: "HealthSummaryPanel",
-  props: ["syncArmCuffBp", "embedded", "autoLoad", "syncHighPressure", "syncLowPressure", "syncPulse", "syncPulseTime", "syncSpo2", "syncSpo2Time", "syncList", "tabActive"],
+  props: ["syncWatchBp", "syncArmCuffBp", "embedded", "autoLoad", "syncHighPressure", "syncLowPressure", "syncPulse", "syncPulseTime", "syncSpo2", "syncSpo2Time", "syncList", "tabActive"],
   data: function data() {
     return {
       wxsProps: {}
@@ -25408,7 +25408,7 @@ var render = function () {
                           _c("v-uni-input", {
                             staticClass: _vm._$g(178, "sc"),
                             attrs: {
-                              type: "number",
+                              type: "digit",
                               placeholder: _vm._$g(178, "a-placeholder"),
                               _i: 178,
                             },
@@ -25426,7 +25426,7 @@ var render = function () {
                               staticClass: _vm._$g(179, "sc"),
                               attrs: { _i: 179 },
                             },
-                            [_vm._v("kg")]
+                            [_vm._v(_vm._$g(179, "t0-0"))]
                           ),
                         ],
                         1
@@ -25787,7 +25787,7 @@ var render = function () {
                                       staticStyle: { "margin-left": "5px" },
                                       attrs: { _i: 218 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(218, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -25808,6 +25808,7 @@ var render = function () {
                                 },
                                 [
                                   _c("select-ruler", {
+                                    key: _vm._$g(221, "a-key"),
                                     attrs: { _i: 221 },
                                     on: {
                                       change: function ($event) {
@@ -25866,7 +25867,7 @@ var render = function () {
                                       staticStyle: { "margin-left": "5px" },
                                       attrs: { _i: 226 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(226, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -25887,6 +25888,7 @@ var render = function () {
                                 },
                                 [
                                   _c("select-ruler", {
+                                    key: _vm._$g(229, "a-key"),
                                     attrs: { _i: 229 },
                                     on: {
                                       change: function ($event) {
@@ -25945,7 +25947,7 @@ var render = function () {
                                       staticStyle: { "margin-left": "5px" },
                                       attrs: { _i: 234 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(234, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -25966,6 +25968,7 @@ var render = function () {
                                 },
                                 [
                                   _c("select-ruler", {
+                                    key: _vm._$g(237, "a-key"),
                                     attrs: { _i: 237 },
                                     on: {
                                       change: function ($event) {
@@ -26024,7 +26027,7 @@ var render = function () {
                                       staticStyle: { "margin-left": "5px" },
                                       attrs: { _i: 242 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(242, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26045,6 +26048,7 @@ var render = function () {
                                 },
                                 [
                                   _c("select-ruler", {
+                                    key: _vm._$g(245, "a-key"),
                                     attrs: { _i: 245 },
                                     on: {
                                       change: function ($event) {
@@ -26103,7 +26107,7 @@ var render = function () {
                                       staticStyle: { "margin-left": "5px" },
                                       attrs: { _i: 250 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(250, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26124,6 +26128,7 @@ var render = function () {
                                 },
                                 [
                                   _c("select-ruler", {
+                                    key: _vm._$g(253, "a-key"),
                                     attrs: { _i: 253 },
                                     on: {
                                       change: function ($event) {
@@ -26182,7 +26187,7 @@ var render = function () {
                                       staticStyle: { "margin-left": "5px" },
                                       attrs: { _i: 258 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(258, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26203,6 +26208,7 @@ var render = function () {
                                 },
                                 [
                                   _c("select-ruler", {
+                                    key: _vm._$g(261, "a-key"),
                                     attrs: { _i: 261 },
                                     on: {
                                       change: function ($event) {
@@ -26375,7 +26381,7 @@ var render = function () {
                                   _c("v-uni-input", {
                                     staticClass: _vm._$g(279, "sc"),
                                     attrs: {
-                                      type: "number",
+                                      type: "digit",
                                       placeholder: _vm._$g(
                                         279,
                                         "a-placeholder"
@@ -26396,7 +26402,7 @@ var render = function () {
                                       staticClass: _vm._$g(280, "sc"),
                                       attrs: { _i: 280 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(280, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26412,7 +26418,7 @@ var render = function () {
                                   _c("v-uni-input", {
                                     staticClass: _vm._$g(282, "sc"),
                                     attrs: {
-                                      type: "number",
+                                      type: "digit",
                                       placeholder: _vm._$g(
                                         282,
                                         "a-placeholder"
@@ -26433,7 +26439,7 @@ var render = function () {
                                       staticClass: _vm._$g(283, "sc"),
                                       attrs: { _i: 283 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(283, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26449,7 +26455,7 @@ var render = function () {
                                   _c("v-uni-input", {
                                     staticClass: _vm._$g(285, "sc"),
                                     attrs: {
-                                      type: "number",
+                                      type: "digit",
                                       placeholder: _vm._$g(
                                         285,
                                         "a-placeholder"
@@ -26470,7 +26476,7 @@ var render = function () {
                                       staticClass: _vm._$g(286, "sc"),
                                       attrs: { _i: 286 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(286, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26486,7 +26492,7 @@ var render = function () {
                                   _c("v-uni-input", {
                                     staticClass: _vm._$g(288, "sc"),
                                     attrs: {
-                                      type: "number",
+                                      type: "digit",
                                       placeholder: _vm._$g(
                                         288,
                                         "a-placeholder"
@@ -26507,7 +26513,7 @@ var render = function () {
                                       staticClass: _vm._$g(289, "sc"),
                                       attrs: { _i: 289 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(289, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26523,7 +26529,7 @@ var render = function () {
                                   _c("v-uni-input", {
                                     staticClass: _vm._$g(291, "sc"),
                                     attrs: {
-                                      type: "number",
+                                      type: "digit",
                                       placeholder: _vm._$g(
                                         291,
                                         "a-placeholder"
@@ -26544,7 +26550,7 @@ var render = function () {
                                       staticClass: _vm._$g(292, "sc"),
                                       attrs: { _i: 292 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(292, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -26560,7 +26566,7 @@ var render = function () {
                                   _c("v-uni-input", {
                                     staticClass: _vm._$g(294, "sc"),
                                     attrs: {
-                                      type: "number",
+                                      type: "digit",
                                       placeholder: _vm._$g(
                                         294,
                                         "a-placeholder"
@@ -26581,7 +26587,7 @@ var render = function () {
                                       staticClass: _vm._$g(295, "sc"),
                                       attrs: { _i: 295 },
                                     },
-                                    [_vm._v("cm")]
+                                    [_vm._v(_vm._$g(295, "t0-0"))]
                                   ),
                                 ],
                                 1
@@ -29541,7 +29547,7 @@ var render = function () {
                               ? _c("v-uni-image", {
                                   staticClass: _vm._$g("29-" + $30, "sc"),
                                   attrs: {
-                                    src: "/static/page_icon/aipbg.jpg",
+                                    src: "/static/page_icon/aipbg.png",
                                     mode: "aspectFit",
                                     _i: "29-" + $30,
                                   },
@@ -145942,7 +145948,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../../../../HBuilderX.4.66.2025051912/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.page[data-v-ec5c90d8] {\n\tmin-height: 100vh;\n\tbackground: linear-gradient(180deg, #dceefc 0%, #eef6fc 40%, #f4f7fb 100%);\n\tbox-sizing: border-box;\n\tposition: relative;\n}\n.wave[data-v-ec5c90d8] {\n\tposition: absolute;\n\ttop: -180rpx;\n\tleft: -120rpx;\n\twidth: 560rpx;\n\theight: 420rpx;\n\tbackground: radial-gradient(ellipse at center, #FFFFFF 0%, rgba(255, 255, 255, 0.55) 46%, rgba(240, 247, 255, 0) 72%);\n\tpointer-events: none;\n\tz-index: 0;\n}\n.content[data-v-ec5c90d8] {\n\tposition: relative;\n\tz-index: 1;\n\tpadding: 32rpx 40rpx 56rpx;\n\tbox-sizing: border-box;\n}\n.hs-header[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\talign-items: flex-start;\n\tmargin-bottom: 28rpx;\n}\n.hero-img[data-v-ec5c90d8] {\n\twidth: 68px;\n\theight: 68px;\n\tborder-radius: 50%;\n\tflex-shrink: 0;\n\tobject-fit: contain;\n}\n.empty-header[data-v-ec5c90d8] {\n\tmargin-top: 15px;\n\tmargin-bottom: 32rpx;\n}\n.header[data-v-ec5c90d8] {\n\tmargin-top: 10px;\n\tmargin-bottom: 36rpx;\n\tpadding: 8rpx 8rpx 0;\n}\n.page-title[data-v-ec5c90d8] {\n\tdisplay: block;\n\tfont-size: 48rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.3;\n}\n.page-subtitle[data-v-ec5c90d8] {\n\tdisplay: block;\n\tmargin-top: 12rpx;\n\tfont-size: 26rpx;\n\tcolor: #8A97AB;\n\tline-height: 1.5;\n}\n.card[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tbackground: #FFFFFF;\n\tborder-radius: 32rpx;\n\tpadding: 28rpx 28rpx;\n\tmargin-bottom: 24rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.card-hover[data-v-ec5c90d8] {\n\topacity: 0.9;\n}\n.card-disabled[data-v-ec5c90d8] {\n\topacity: 0.45;\n}\n.wugan-gate-tip[data-v-ec5c90d8] {\n\tmargin: -4rpx 0 24rpx;\n\tpadding: 24rpx 28rpx;\n\tbackground: #FFF6E0;\n\tborder-radius: 24rpx;\n\tfont-size: 26rpx;\n\tline-height: 1.6;\n\tcolor: #E8A317;\n}\n.card-icon[data-v-ec5c90d8] {\n\twidth: 48px;\n\theight: 48px;\n\tborder-radius: 20%;\n\tbackground: #EAF2FF;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n\tflex-shrink: 0;\n\toverflow: hidden;\n\tborder: 1px solid #EAF2FF;\n}\n.card-icon-img[data-v-ec5c90d8] {\n\twidth: 48px;\n\theight: 48px;\n}\n.card-text[data-v-ec5c90d8] {\n\tflex: 1;\n\tmin-width: 0;\n\tpadding: 0 20rpx;\n}\n.card-title[data-v-ec5c90d8] {\n\tdisplay: block;\n\tfont-size: 30rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.35;\n}\n.card-desc[data-v-ec5c90d8] {\n\tdisplay: block;\n\tmargin-top: 8rpx;\n\tfont-size: 22rpx;\n\tcolor: #8A94A6;\n\tline-height: 1.45;\n}\n.card-right[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tflex-shrink: 0;\n}\n.status-pill[data-v-ec5c90d8] {\n\tpadding: 8rpx 18rpx;\n\tborder-radius: 999rpx;\n\tbackground: #EEF1F5;\n}\n.status-pill-active[data-v-ec5c90d8] {\n\tbackground: #E3EEFF;\n}\n.status-pill-text[data-v-ec5c90d8] {\n\tfont-size: 22rpx;\n\tcolor: #7A8699;\n\tline-height: 1.2;\n}\n.status-pill-text-active[data-v-ec5c90d8] {\n\tcolor: #2F6BFF;\n}\n.card-chevron[data-v-ec5c90d8] {\n\tmargin-left: 10rpx;\n\tfont-size: 36rpx;\n\tcolor: #B7C1D0;\n\tfont-weight: 300;\n\tline-height: 1;\n}\n.tip-card[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tbackground: #EAF2FF;\n\tborder-radius: 28rpx;\n\tpadding: 28rpx 24rpx;\n\tmargin-top: 8rpx;\n\tmargin-bottom: 36rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.tip-main[data-v-ec5c90d8] {\n\tflex: 1;\n\tmin-width: 0;\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: flex-start;\n}\n.tip-icon-wrap[data-v-ec5c90d8] {\n\twidth: 36rpx;\n\theight: 36rpx;\n\tborder-radius: 50%;\n\tborder: 2rpx solid #4A78C6;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n\tflex-shrink: 0;\n\tmargin-top: 4rpx;\n}\n.tip-icon-text[data-v-ec5c90d8] {\n\tfont-size: 22rpx;\n\tcolor: #4A78C6;\n\tfont-weight: 700;\n\tline-height: 1;\n}\n.tip-text[data-v-ec5c90d8] {\n\tflex: 1;\n\tmin-width: 0;\n\tmargin-left: 14rpx;\n\tpadding-right: 12rpx;\n}\n.tip-title[data-v-ec5c90d8] {\n\tdisplay: block;\n\tfont-size: 28rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.35;\n}\n.tip-desc[data-v-ec5c90d8] {\n\tdisplay: block;\n\tmargin-top: 8rpx;\n\tfont-size: 22rpx;\n\tcolor: #7A8699;\n\tline-height: 1.5;\n}\n.tip-device[data-v-ec5c90d8] {\n\twidth: 96rpx;\n\theight: 96rpx;\n\tflex-shrink: 0;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n}\n.tip-device-body[data-v-ec5c90d8] {\n\twidth: 72rpx;\n\theight: 88rpx;\n\tborder-radius: 18rpx;\n\tbackground: linear-gradient(160deg, #5B8CFF 0%, #2F6BFF 100%);\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n\tdisplay: flex;\n\tflex-direction: column;\n\talign-items: center;\n\tjustify-content: center;\n}\n.tip-device-heart[data-v-ec5c90d8] {\n\tfont-size: 28rpx;\n\tcolor: #FFFFFF;\n\tline-height: 1;\n}\n.tip-device-wave[data-v-ec5c90d8] {\n\twidth: 36rpx;\n\theight: 10rpx;\n\tmargin-top: 8rpx;\n\tborder-radius: 999rpx;\n\tbackground: rgba(255, 255, 255, 0.85);\n\tposition: relative;\n}\n.tip-device-wave[data-v-ec5c90d8]::before,\n.tip-device-wave[data-v-ec5c90d8]::after {\n\tcontent: '';\n\tposition: absolute;\n\ttop: -6rpx;\n\twidth: 10rpx;\n\theight: 10rpx;\n\tborder-radius: 50%;\n\tbackground: rgba(255, 255, 255, 0.85);\n}\n.tip-device-wave[data-v-ec5c90d8]::before {\n\tleft: 8rpx;\n}\n.tip-device-wave[data-v-ec5c90d8]::after {\n\tright: 8rpx;\n}\n.manage-btn[data-v-ec5c90d8] {\n\tposition: relative;\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tjustify-content: center;\n\tbackground: #2F6BFF;\n\tborder-radius: 24rpx;\n\theight: 48px;\n\tpadding: 30rpx 36rpx;\n\tmargin-left: 20px;\n\tmargin-right: 20px;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.manage-btn-hover[data-v-ec5c90d8] {\n\topacity: 0.92;\n}\n.manage-btn-center[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tjustify-content: center;\n}\n.manage-btn-icon[data-v-ec5c90d8] {\n\twidth: 40rpx;\n\theight: 40rpx;\n\tposition: relative;\n\tmargin-right: 16rpx;\n}\n.manage-btn-phone[data-v-ec5c90d8] {\n\tposition: absolute;\n\tleft: 0;\n\ttop: 4rpx;\n\twidth: 22rpx;\n\theight: 32rpx;\n\tborder: 3rpx solid #FFFFFF;\n\tborder-radius: 6rpx;\n\tbox-sizing: border-box;\n}\n.manage-btn-watch[data-v-ec5c90d8] {\n\tposition: absolute;\n\tright: 0;\n\tbottom: 2rpx;\n\twidth: 20rpx;\n\theight: 20rpx;\n\tborder: 3rpx solid #FFFFFF;\n\tborder-radius: 6rpx;\n\tbackground: #2F6BFF;\n\tbox-sizing: border-box;\n}\n.manage-btn-text[data-v-ec5c90d8] {\n\tfont-size: 30rpx;\n\tfont-weight: 600;\n\tcolor: #FFFFFF;\n\tline-height: 1.2;\n}\n.manage-btn-arrow[data-v-ec5c90d8] {\n\tposition: absolute;\n\tright: 36rpx;\n\ttop: 50%;\n\t-webkit-transform: translateY(-50%);\n\t        transform: translateY(-50%);\n\tfont-size: 40rpx;\n\tcolor: #FFFFFF;\n\tfont-weight: 300;\n\tline-height: 1;\n}\n", ""]);
+exports.push([module.i, "\n.page[data-v-ec5c90d8] {\n\tmin-height: 100vh;\n\tbackground: linear-gradient(180deg, #dceefc 0%, #eef6fc 40%, #f4f7fb 100%);\n\tbox-sizing: border-box;\n\tposition: relative;\n\tpadding-bottom: 50px;\n}\n.wave[data-v-ec5c90d8] {\n\tposition: absolute;\n\ttop: -180rpx;\n\tleft: -120rpx;\n\twidth: 560rpx;\n\theight: 420rpx;\n\tbackground: radial-gradient(ellipse at center, #FFFFFF 0%, rgba(255, 255, 255, 0.55) 46%, rgba(240, 247, 255, 0) 72%);\n\tpointer-events: none;\n\tz-index: 0;\n}\n.content[data-v-ec5c90d8] {\n\tposition: relative;\n\tz-index: 1;\n\tpadding: 32rpx 40rpx 56rpx;\n\tbox-sizing: border-box;\n}\n.hs-header[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\talign-items: flex-start;\n\tmargin-bottom: 28rpx;\n}\n.hero-img[data-v-ec5c90d8] {\n\twidth: 68px;\n\theight: 68px;\n\tborder-radius: 50%;\n\tflex-shrink: 0;\n\tobject-fit: contain;\n}\n.empty-header[data-v-ec5c90d8] {\n\tmargin-top: 15px;\n\tmargin-bottom: 32rpx;\n}\n.header[data-v-ec5c90d8] {\n\tmargin-top: 10px;\n\tmargin-bottom: 36rpx;\n\tpadding: 8rpx 8rpx 0;\n}\n.page-title[data-v-ec5c90d8] {\n\tdisplay: block;\n\tfont-size: 48rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.3;\n}\n.page-subtitle[data-v-ec5c90d8] {\n\tdisplay: block;\n\tmargin-top: 12rpx;\n\tfont-size: 26rpx;\n\tcolor: #8A97AB;\n\tline-height: 1.5;\n}\n.card[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tbackground: #FFFFFF;\n\tborder-radius: 32rpx;\n\tpadding: 28rpx 28rpx;\n\tmargin-bottom: 24rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.card-hover[data-v-ec5c90d8] {\n\topacity: 0.9;\n}\n.card-disabled[data-v-ec5c90d8] {\n\topacity: 0.45;\n}\n.wugan-gate-tip[data-v-ec5c90d8] {\n\tmargin: -4rpx 0 24rpx;\n\tpadding: 24rpx 28rpx;\n\tbackground: #FFF6E0;\n\tborder-radius: 24rpx;\n\tfont-size: 26rpx;\n\tline-height: 1.6;\n\tcolor: #E8A317;\n}\n.card-icon[data-v-ec5c90d8] {\n\twidth: 48px;\n\theight: 48px;\n\tborder-radius: 20%;\n\tbackground: #EAF2FF;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n\tflex-shrink: 0;\n\toverflow: hidden;\n\tborder: 1px solid #EAF2FF;\n}\n.card-icon-img[data-v-ec5c90d8] {\n\twidth: 48px;\n\theight: 48px;\n}\n.card-text[data-v-ec5c90d8] {\n\tflex: 1;\n\tmin-width: 0;\n\tpadding: 0 20rpx;\n}\n.card-title[data-v-ec5c90d8] {\n\tdisplay: block;\n\tfont-size: 30rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.35;\n}\n.card-desc[data-v-ec5c90d8] {\n\tdisplay: block;\n\tmargin-top: 8rpx;\n\tfont-size: 22rpx;\n\tcolor: #8A94A6;\n\tline-height: 1.45;\n}\n.card-right[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tflex-shrink: 0;\n}\n.status-pill[data-v-ec5c90d8] {\n\tpadding: 8rpx 18rpx;\n\tborder-radius: 999rpx;\n\tbackground: #EEF1F5;\n}\n.status-pill-active[data-v-ec5c90d8] {\n\tbackground: #E3EEFF;\n}\n.status-pill-text[data-v-ec5c90d8] {\n\tfont-size: 22rpx;\n\tcolor: #7A8699;\n\tline-height: 1.2;\n}\n.status-pill-text-active[data-v-ec5c90d8] {\n\tcolor: #2F6BFF;\n}\n.card-chevron[data-v-ec5c90d8] {\n\tmargin-left: 10rpx;\n\tfont-size: 36rpx;\n\tcolor: #B7C1D0;\n\tfont-weight: 300;\n\tline-height: 1;\n}\n.tip-card[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tbackground: #EAF2FF;\n\tborder-radius: 28rpx;\n\tpadding: 28rpx 24rpx;\n\tmargin-top: 8rpx;\n\tmargin-bottom: 36rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.tip-main[data-v-ec5c90d8] {\n\tflex: 1;\n\tmin-width: 0;\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: flex-start;\n}\n.tip-icon-wrap[data-v-ec5c90d8] {\n\twidth: 36rpx;\n\theight: 36rpx;\n\tborder-radius: 50%;\n\tborder: 2rpx solid #4A78C6;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n\tflex-shrink: 0;\n\tmargin-top: 4rpx;\n}\n.tip-icon-text[data-v-ec5c90d8] {\n\tfont-size: 22rpx;\n\tcolor: #4A78C6;\n\tfont-weight: 700;\n\tline-height: 1;\n}\n.tip-text[data-v-ec5c90d8] {\n\tflex: 1;\n\tmin-width: 0;\n\tmargin-left: 14rpx;\n\tpadding-right: 12rpx;\n}\n.tip-title[data-v-ec5c90d8] {\n\tdisplay: block;\n\tfont-size: 28rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.35;\n}\n.tip-desc[data-v-ec5c90d8] {\n\tdisplay: block;\n\tmargin-top: 8rpx;\n\tfont-size: 22rpx;\n\tcolor: #7A8699;\n\tline-height: 1.5;\n}\n.tip-device[data-v-ec5c90d8] {\n\twidth: 96rpx;\n\theight: 96rpx;\n\tflex-shrink: 0;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n}\n.tip-device-body[data-v-ec5c90d8] {\n\twidth: 72rpx;\n\theight: 88rpx;\n\tborder-radius: 18rpx;\n\tbackground: linear-gradient(160deg, #5B8CFF 0%, #2F6BFF 100%);\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n\tdisplay: flex;\n\tflex-direction: column;\n\talign-items: center;\n\tjustify-content: center;\n}\n.tip-device-heart[data-v-ec5c90d8] {\n\tfont-size: 28rpx;\n\tcolor: #FFFFFF;\n\tline-height: 1;\n}\n.tip-device-wave[data-v-ec5c90d8] {\n\twidth: 36rpx;\n\theight: 10rpx;\n\tmargin-top: 8rpx;\n\tborder-radius: 999rpx;\n\tbackground: rgba(255, 255, 255, 0.85);\n\tposition: relative;\n}\n.tip-device-wave[data-v-ec5c90d8]::before,\n.tip-device-wave[data-v-ec5c90d8]::after {\n\tcontent: '';\n\tposition: absolute;\n\ttop: -6rpx;\n\twidth: 10rpx;\n\theight: 10rpx;\n\tborder-radius: 50%;\n\tbackground: rgba(255, 255, 255, 0.85);\n}\n.tip-device-wave[data-v-ec5c90d8]::before {\n\tleft: 8rpx;\n}\n.tip-device-wave[data-v-ec5c90d8]::after {\n\tright: 8rpx;\n}\n.manage-btn[data-v-ec5c90d8] {\n\tposition: relative;\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tjustify-content: center;\n\tbackground: #2F6BFF;\n\tborder-radius: 24rpx;\n\theight: 48px;\n\tpadding: 30rpx 36rpx;\n\tmargin-left: 20px;\n\tmargin-right: 20px;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.manage-btn-hover[data-v-ec5c90d8] {\n\topacity: 0.92;\n}\n.manage-btn-center[data-v-ec5c90d8] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tjustify-content: center;\n}\n.manage-btn-icon[data-v-ec5c90d8] {\n\twidth: 40rpx;\n\theight: 40rpx;\n\tposition: relative;\n\tmargin-right: 16rpx;\n}\n.manage-btn-phone[data-v-ec5c90d8] {\n\tposition: absolute;\n\tleft: 0;\n\ttop: 4rpx;\n\twidth: 22rpx;\n\theight: 32rpx;\n\tborder: 3rpx solid #FFFFFF;\n\tborder-radius: 6rpx;\n\tbox-sizing: border-box;\n}\n.manage-btn-watch[data-v-ec5c90d8] {\n\tposition: absolute;\n\tright: 0;\n\tbottom: 2rpx;\n\twidth: 20rpx;\n\theight: 20rpx;\n\tborder: 3rpx solid #FFFFFF;\n\tborder-radius: 6rpx;\n\tbackground: #2F6BFF;\n\tbox-sizing: border-box;\n}\n.manage-btn-text[data-v-ec5c90d8] {\n\tfont-size: 30rpx;\n\tfont-weight: 600;\n\tcolor: #FFFFFF;\n\tline-height: 1.2;\n}\n.manage-btn-arrow[data-v-ec5c90d8] {\n\tposition: absolute;\n\tright: 36rpx;\n\ttop: 50%;\n\t-webkit-transform: translateY(-50%);\n\t        transform: translateY(-50%);\n\tfont-size: 40rpx;\n\tcolor: #FFFFFF;\n\tfont-weight: 300;\n\tline-height: 1;\n}\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -148599,7 +148605,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../../../../HBuilderX.4.66.2025051912/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.page[data-v-5cf11b39] {\n\tmin-height: 100vh;\n\tbackground: linear-gradient(180deg, #dceefc 0%, #eef6fc 40%, #f4f7fb 100%);\n\tbox-sizing: border-box;\n\tposition: relative;\n}\n.wave[data-v-5cf11b39] {\n\tposition: absolute;\n\ttop: -180rpx;\n\tleft: -120rpx;\n\twidth: 560rpx;\n\theight: 420rpx;\n\tbackground: radial-gradient(ellipse at center, #FFFFFF 0%, rgba(255, 255, 255, 0.55) 46%, rgba(244, 248, 252, 0) 72%);\n\tpointer-events: none;\n\tz-index: 0;\n}\n.content[data-v-5cf11b39] {\n\tposition: relative;\n\tz-index: 1;\n\tpadding: 32rpx 40rpx 56rpx;\n\tbox-sizing: border-box;\n}\n.header[data-v-5cf11b39] {\n\tmargin-top: 10px;\n\tmargin-bottom: 36rpx;\n\tpadding: 8rpx 8rpx 0;\n}\n.hs-header[data-v-5cf11b39] {\n\tdisplay: flex;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\talign-items: flex-start;\n\tmargin-bottom: 28rpx;\n}\n.hero-img[data-v-5cf11b39] {\n\twidth: 68px;\n\theight: 68px;\n\tborder-radius: 50%;\n\tflex-shrink: 0;\n\tobject-fit: contain;\n}\n.page-title[data-v-5cf11b39] {\n\tdisplay: block;\n\tfont-size: 48rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.3;\n}\n.page-subtitle[data-v-5cf11b39] {\n\tdisplay: block;\n\tmargin-top: 12rpx;\n\tfont-size: 26rpx;\n\tcolor: #8A97AB;\n\tline-height: 1.5;\n}\n.card[data-v-5cf11b39] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tbackground: #FFFFFF;\n\tborder-radius: 32rpx;\n\tpadding: 36rpx 32rpx;\n\tmargin-bottom: 28rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.card-hover[data-v-5cf11b39] {\n\topacity: 0.86;\n}\n.card-disabled[data-v-5cf11b39] {\n\topacity: 0.45;\n}\n.wugan-gate-tip[data-v-5cf11b39] {\n\tmargin: -8rpx 0 28rpx;\n\tpadding: 24rpx 28rpx;\n\tbackground: #FFF6E0;\n\tborder-radius: 24rpx;\n\tfont-size: 26rpx;\n\tline-height: 1.6;\n\tcolor: #E8A317;\n}\n.card-icon[data-v-5cf11b39] {\n\twidth: 58px;\n\theight: 58px;\n\tborder-radius: 50%;\n\tbackground: #E8F0FE;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n\tflex-shrink: 0;\n}\n.card-icon-img[data-v-5cf11b39] {\n\twidth: 58px;\n\theight: 58px;\n}\n.card-text[data-v-5cf11b39] {\n\tflex: 1;\n\tmin-width: 0;\n\tpadding: 0 28rpx;\n}\n.card-title[data-v-5cf11b39] {\n\tdisplay: block;\n\tfont-size: 30rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.35;\n}\n.card-desc[data-v-5cf11b39] {\n\tdisplay: block;\n\tmargin-top: 8rpx;\n\tfont-size: 24rpx;\n\tcolor: #8A94A6;\n\tline-height: 1.45;\n}\n.card-arrow[data-v-5cf11b39] {\n\tflex-shrink: 0;\n}\n.info-box[data-v-5cf11b39] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tjustify-content: center;\n\tbackground: #EAF2FF;\n\tborder: 2rpx solid #D4E4FA;\n\tborder-radius: 24rpx;\n\tpadding: 22rpx 24rpx;\n\tmargin-top: 8rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.info-text[data-v-5cf11b39] {\n\tflex: 1;\n\tmargin-left: 12rpx;\n\tfont-size: 24rpx;\n\tcolor: #4A78C6;\n\tline-height: 1.5;\n}\n", ""]);
+exports.push([module.i, "\n.page[data-v-5cf11b39] {\n\tmin-height: 100vh;\n\tbackground: linear-gradient(180deg, #dceefc 0%, #eef6fc 40%, #f4f7fb 100%);\n\tbox-sizing: border-box;\n\tposition: relative;\n\tpadding-bottom: 50px;\n}\n.wave[data-v-5cf11b39] {\n\tposition: absolute;\n\ttop: -180rpx;\n\tleft: -120rpx;\n\twidth: 560rpx;\n\theight: 420rpx;\n\tbackground: radial-gradient(ellipse at center, #FFFFFF 0%, rgba(255, 255, 255, 0.55) 46%, rgba(244, 248, 252, 0) 72%);\n\tpointer-events: none;\n\tz-index: 0;\n}\n.content[data-v-5cf11b39] {\n\tposition: relative;\n\tz-index: 1;\n\tpadding: 32rpx 40rpx 56rpx;\n\tbox-sizing: border-box;\n}\n.header[data-v-5cf11b39] {\n\tmargin-top: 10px;\n\tmargin-bottom: 36rpx;\n\tpadding: 8rpx 8rpx 0;\n}\n.hs-header[data-v-5cf11b39] {\n\tdisplay: flex;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\talign-items: flex-start;\n\tmargin-bottom: 28rpx;\n}\n.hero-img[data-v-5cf11b39] {\n\twidth: 68px;\n\theight: 68px;\n\tborder-radius: 50%;\n\tflex-shrink: 0;\n\tobject-fit: contain;\n}\n.page-title[data-v-5cf11b39] {\n\tdisplay: block;\n\tfont-size: 48rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.3;\n}\n.page-subtitle[data-v-5cf11b39] {\n\tdisplay: block;\n\tmargin-top: 12rpx;\n\tfont-size: 26rpx;\n\tcolor: #8A97AB;\n\tline-height: 1.5;\n}\n.card[data-v-5cf11b39] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tbackground: #FFFFFF;\n\tborder-radius: 32rpx;\n\tpadding: 36rpx 32rpx;\n\tmargin-bottom: 28rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.card-hover[data-v-5cf11b39] {\n\topacity: 0.86;\n}\n.card-disabled[data-v-5cf11b39] {\n\topacity: 0.45;\n}\n.wugan-gate-tip[data-v-5cf11b39] {\n\tmargin: -8rpx 0 28rpx;\n\tpadding: 24rpx 28rpx;\n\tbackground: #FFF6E0;\n\tborder-radius: 24rpx;\n\tfont-size: 26rpx;\n\tline-height: 1.6;\n\tcolor: #E8A317;\n}\n.card-icon[data-v-5cf11b39] {\n\twidth: 58px;\n\theight: 58px;\n\tborder-radius: 50%;\n\tbackground: #E8F0FE;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n\tflex-shrink: 0;\n}\n.card-icon-img[data-v-5cf11b39] {\n\twidth: 58px;\n\theight: 58px;\n}\n.card-text[data-v-5cf11b39] {\n\tflex: 1;\n\tmin-width: 0;\n\tpadding: 0 28rpx;\n}\n.card-title[data-v-5cf11b39] {\n\tdisplay: block;\n\tfont-size: 30rpx;\n\tfont-weight: 700;\n\tcolor: #1A2B4A;\n\tline-height: 1.35;\n}\n.card-desc[data-v-5cf11b39] {\n\tdisplay: block;\n\tmargin-top: 8rpx;\n\tfont-size: 24rpx;\n\tcolor: #8A94A6;\n\tline-height: 1.45;\n}\n.card-arrow[data-v-5cf11b39] {\n\tflex-shrink: 0;\n}\n.info-box[data-v-5cf11b39] {\n\tdisplay: flex;\n\tflex-direction: row;\n\talign-items: center;\n\tjustify-content: center;\n\tbackground: #EAF2FF;\n\tborder: 2rpx solid #D4E4FA;\n\tborder-radius: 24rpx;\n\tpadding: 22rpx 24rpx;\n\tmargin-top: 8rpx;\n\tbox-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);\n}\n.info-text[data-v-5cf11b39] {\n\tflex: 1;\n\tmargin-left: 12rpx;\n\tfont-size: 24rpx;\n\tcolor: #4A78C6;\n\tline-height: 1.5;\n}\n", ""]);
 // Exports
 module.exports = exports;
 

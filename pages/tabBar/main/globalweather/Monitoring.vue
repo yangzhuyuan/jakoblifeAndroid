@@ -330,6 +330,7 @@
 		background: linear-gradient(180deg, #dceefc 0%, #eef6fc 40%, #f4f7fb 100%);
 		box-sizing: border-box;
 		position: relative;
+		padding-bottom: 50px;
 	}
 
 	.wave {

@@ -42,7 +42,7 @@
 					<view class="menu-row" @click="onMenuItemClick(item)">
 						<view class="icon-box">
 							<image v-if="item.title === '生成健康报告'" class="menu-icon-img menu-icon-ai"
-								src="/static/page_icon/aipbg.jpg" mode="aspectFit"></image>
+								src="/static/page_icon/aipbg.png" mode="aspectFit"></image>
 							<uni-icons v-else-if="item.title === '设置'" type="gear-filled" size="20"
 								color="#3298F7"></uni-icons>
 							<image v-else-if="item.title === '设备管理'" class="menu-icon-img"
